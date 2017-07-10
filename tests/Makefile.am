@@ -1,50 +1,6 @@
 SUBDIRS = \
-	libiudummy \
-	gsm0408 \
-	channel \
-	mgcp \
-	gprs \
-	abis \
-	gbproxy \
-	trau \
-	subscr \
-	nanobts_omlattr \
-	sms_queue \
-	msc_vlr \
+	legacy_mgcp \
 	$(NULL)
-
-if BUILD_NAT
-SUBDIRS += \
-	bsc-nat \
-	bsc-nat-trie \
-	$(NULL)
-endif
-if BUILD_BSC
-SUBDIRS += \
-	bsc \
-	$(NULL)
-endif
-if BUILD_SMPP
-SUBDIRS += \
-	smpp \
-	$(NULL)
-endif
-if HAVE_LIBGTP
-SUBDIRS += \
-	gtphub \
-	$(NULL)
-
-if HAVE_LIBCARES
-SUBDIRS += \
-	sgsn \
-	oap \
-	xid \
-	sndcp_xid \
-	slhc \
-	v42bis \
-	$(NULL)
-endif
-endif
 
 # The `:;' works around a Bash 3.2 bug when the output is not writeable.
 $(srcdir)/package.m4: $(top_srcdir)/configure.ac
@@ -70,7 +26,6 @@ EXTRA_DIST = \
 	$(TESTSUITE) \
 	vty_test_runner.py \
 	ctrl_test_runner.py \
-	smpp_test_runner.py \
 	$(NULL)
 
 TESTSUITE = $(srcdir)/testsuite
@@ -85,10 +40,6 @@ python-tests: $(BUILT_SOURCES)
 	osmotestconfig.py -p $(abs_top_srcdir) -w $(abs_top_builddir) -v
 	$(PYTHON) $(srcdir)/vty_test_runner.py -w $(abs_top_builddir) -v
 	$(PYTHON) $(srcdir)/ctrl_test_runner.py -w $(abs_top_builddir) -v
-if BUILD_SMPP
-	$(PYTHON) $(srcdir)/smpp_test_runner.py -w $(abs_top_builddir) -v
-endif
-	rm -f $(top_builddir)/sms.db $(top_builddir)/gsn_restart $(top_builddir)/gtphub_restart_count
 else
 python-tests: $(BUILT_SOURCES)
 	echo "Not running python-based tests (determined at configure-time)"
