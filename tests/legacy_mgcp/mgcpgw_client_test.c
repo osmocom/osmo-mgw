@@ -24,6 +24,7 @@
 #include <osmocom/core/application.h>
 #include <osmocom/legacy_mgcp/mgcp.h>
 #include <osmocom/legacy_mgcp/mgcpgw_client.h>
+#include <osmocom/legacy_mgcp/mgcpgw_client_internal.h>
 
 void *ctx;
 

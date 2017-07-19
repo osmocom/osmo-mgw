@@ -59,8 +59,6 @@ int mgcpgw_client_tx(struct mgcpgw_client *mgcp, struct msgb *msg,
 
 enum mgcp_connection_mode;
 
-int mgcp_response_parse_params(struct mgcp_response *r);
-
 struct msgb *mgcp_msg_crcx(struct mgcpgw_client *mgcp,
 			   uint16_t rtp_endpoint, unsigned int call_id,
 			   enum mgcp_connection_mode mode);
@@ -71,10 +69,3 @@ struct msgb *mgcp_msg_mdcx(struct mgcpgw_client *mgcp,
 
 struct msgb *mgcp_msg_dlcx(struct mgcpgw_client *mgcp, uint16_t rtp_endpoint,
 			   unsigned int call_id);
-
-struct mgcp_response_pending * mgcpgw_client_pending_add(
-					struct mgcpgw_client *mgcp,
-					mgcp_trans_id_t trans_id,
-					mgcp_response_cb_t response_cb,
-					void *priv);
-int mgcpgw_client_rx(struct mgcpgw_client *mgcp, struct msgb *msg);
