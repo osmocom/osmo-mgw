@@ -615,3 +615,8 @@ struct msgb *mgcp_msg_dlcx(struct mgcpgw_client *mgcp, uint16_t rtp_endpoint,
 				 "DLCX %u %x@mgw MGCP 1.0\r\n"
 				 "C: %x\r\n", trans_id, rtp_endpoint, call_id);
 }
+
+struct mgcpgw_client_conf *mgcpgw_client_conf_actual(struct mgcpgw_client *mgcp)
+{
+	return &mgcp->actual;
+}

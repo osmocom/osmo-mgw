@@ -9,6 +9,7 @@
 
 struct msgb;
 struct vty;
+struct mgcpgw_client;
 
 struct mgcpgw_client_conf {
 	const char *local_addr;
@@ -37,6 +38,7 @@ struct mgcp_response {
 void mgcpgw_client_conf_init(struct mgcpgw_client_conf *conf);
 void mgcpgw_client_vty_init(void *talloc_ctx, int node, struct mgcpgw_client_conf *conf);
 int mgcpgw_client_config_write(struct vty *vty, const char *indent);
+struct mgcpgw_client_conf *mgcpgw_client_conf_actual(struct mgcpgw_client *mgcp);
 
 struct mgcpgw_client *mgcpgw_client_init(void *ctx,
 					 struct mgcpgw_client_conf *conf);
