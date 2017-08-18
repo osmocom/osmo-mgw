@@ -172,6 +172,7 @@ static struct msgb *do_retransmission(const struct mgcp_endpoint *endp)
 
 	msg->l2h = msgb_put(msg, strlen(endp->last_response));
 	memcpy(msg->l2h, endp->last_response, msgb_l2len(msg));
+	display_mgcp_message(msg->l2h, msgb_l2len(msg), "Retransmitted response");
 	return msg;
 }
 
