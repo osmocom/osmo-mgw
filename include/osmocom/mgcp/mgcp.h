@@ -20,21 +20,21 @@
  *
  */
 
-#ifndef OPENBSC_MGCP_H
-#define OPENBSC_MGCP_H
+#pragma once
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/write_queue.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/mgcp/mgcp_ep.h>
 
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#define RTP_PORT_DEFAULT 4000
-#define RTP_PORT_NET_DEFAULT 16000
+#define RTP_PORT_DEFAULT_RANGE_START 16002
+#define RTP_PORT_DEFAULT_RANGE_END RTP_PORT_DEFAULT_RANGE_START + 64
 
 /**
  * Calculate the RTP audio port for the given multiplex
@@ -102,25 +102,19 @@ typedef int (*mgcp_processing_setup)(struct mgcp_endpoint *endp,
 				     struct mgcp_rtp_end *dst_end,
 				     struct mgcp_rtp_end *src_end);
 
+struct mgcp_conn_rtp;
 typedef void (*mgcp_get_format)(struct mgcp_endpoint *endp,
 				int *payload_type,
 				const char**subtype_name,
-				const char**fmtp_extra);
-
-#define PORT_ALLOC_STATIC	0
-#define PORT_ALLOC_DYNAMIC	1
+				const char**fmtp_extra,
+				struct mgcp_conn_rtp *conn);
 
 /**
  * This holds information on how to allocate ports
  */
 struct mgcp_port_range {
-	int mode;
-
 	/* addr or NULL to fall-back to default */
 	char *bind_addr;
-
-	/* pre-allocated from a base? */
-	int base_port;
 
 	/* dynamically allocated */
 	int range_start;
@@ -160,6 +154,10 @@ struct mgcp_trunk_config {
 	/* timer */
 	struct osmo_timer_list keepalive_timer;
 
+	/* When set, incoming RTP packets are not filtered
+	 * when ports and ip-address do not match (debug) */
+	int rtp_accept_all;
+
 	unsigned int number_endpoints;
 	struct mgcp_endpoint *endpoints;
 };
@@ -188,15 +186,7 @@ struct mgcp_config {
 	int source_port;
 	char *local_ip;
 	char *source_addr;
-	char *bts_ip;
 	char *call_agent_addr;
-
-	struct in_addr bts_in;
-
-	/* transcoder handling */
-	char *transcoder_ip;
-	struct in_addr transcoder_in;
-	int transcoder_remote_base;
 
 	/* RTP processing */
 	mgcp_processing rtp_processing_cb;
@@ -206,12 +196,10 @@ struct mgcp_config {
 
 	struct osmo_wqueue gw_fd;
 
-	struct mgcp_port_range bts_ports;
 	struct mgcp_port_range net_ports;
-	struct mgcp_port_range transcoder_ports;
 	int endp_dscp;
 
-	int bts_force_ptime;
+	int force_ptime;
 
 	mgcp_change change_cb;
 	mgcp_policy policy_cb;
@@ -225,10 +213,6 @@ struct mgcp_config {
 	/* trunk handling */
 	struct mgcp_trunk_config trunk;
 	struct llist_head trunks;
-
-	/* only used for start with a static configuration */
-	int last_net_port;
-	int last_bts_port;
 
 	enum mgcp_role role;
 
@@ -259,11 +243,6 @@ int mgcp_parse_config(const char *config_file, struct mgcp_config *cfg,
 int mgcp_vty_init(void);
 int mgcp_endpoints_allocate(struct mgcp_trunk_config *cfg);
 void mgcp_release_endp(struct mgcp_endpoint *endp);
-void mgcp_initialize_endp(struct mgcp_endpoint *endp);
-int mgcp_reset_transcoder(struct mgcp_config *cfg);
-void mgcp_format_stats(struct mgcp_endpoint *endp, char *stats, size_t size);
-int mgcp_parse_stats(struct msgb *msg, uint32_t *ps, uint32_t *os, uint32_t *pr, uint32_t *_or, int *loss, uint32_t *jitter);
-
 void mgcp_trunk_set_keepalive(struct mgcp_trunk_config *tcfg, int interval);
 
 /*
@@ -293,7 +272,4 @@ int mgcp_send_reset_all(struct mgcp_config *cfg);
 
 
 int mgcp_create_bind(const char *source_addr, struct osmo_fd *fd, int port);
-int mgcp_send(struct mgcp_endpoint *endp, int dest, int is_rtp, struct sockaddr_in *addr, char *buf, int rc);
 int mgcp_udp_send(int fd, struct in_addr *addr, int port, char *buf, int len);
-
-#endif

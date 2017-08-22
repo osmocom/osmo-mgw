@@ -9,7 +9,6 @@ AM_CFLAGS = \
 	-ggdb3 \
 	$(LIBOSMOCORE_CFLAGS) \
 	$(LIBOSMONETIF_CFLAGS) \
-	$(LIBBCG729_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
 	$(NULL)
 
@@ -19,43 +18,21 @@ AM_LDFLAGS = \
 
 EXTRA_DIST = \
 	mgcp_test.ok \
-	mgcp_transcoding_test.ok \
 	$(NULL)
 
 noinst_PROGRAMS = \
 	mgcp_test \
 	$(NULL)
-if BUILD_MGCP_TRANSCODING
-noinst_PROGRAMS += \
-	mgcp_transcoding_test \
-	$(NULL)
-endif
 
 mgcp_test_SOURCES = \
 	mgcp_test.c \
 	$(NULL)
 
 mgcp_test_LDADD = \
-	$(top_builddir)/src/libosmo-legacy-mgcp/libosmo-legacy-mgcp.la \
+	$(top_builddir)/src/libosmo-mgcp/libosmo-mgcp.la \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
 	$(LIBRARY_DL) \
 	$(LIBOSMONETIF_LIBS) \
-	$(LIBRARY_GSM) \
 	-lm  \
-	$(NULL)
-
-mgcp_transcoding_test_SOURCES = \
-	mgcp_transcoding_test.c \
-	$(NULL)
-
-mgcp_transcoding_test_LDADD = \
-	$(top_builddir)/src/libosmo-legacy-mgcp/libosmo-legacy-mgcp.la \
-	$(LIBOSMOCORE_LIBS) \
-	$(LIBOSMOVTY_LIBS) \
-	$(LIBBCG729_LIBS) \
-	$(LIBRARY_DL) \
-	$(LIBOSMONETIF_LIBS) \
-	$(LIBRARY_GSM) \
-	-lm \
 	$(NULL)

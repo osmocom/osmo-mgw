@@ -1,7 +1,8 @@
-#ifndef _OPENBSC_OSMUX_H_
-#define _OPENBSC_OSMUX_H_
+#pragma once
+
 
 #include <osmocom/netif/osmux.h>
+struct mgcp_conn_rtp;
 
 #define OSMUX_PORT	1984
 
@@ -11,16 +12,13 @@ enum {
 };
 
 int osmux_init(int role, struct mgcp_config *cfg);
-int osmux_enable_endpoint(struct mgcp_endpoint *endp, struct in_addr *addr, uint16_t port);
-void osmux_disable_endpoint(struct mgcp_endpoint *endp);
-void osmux_allocate_cid(struct mgcp_endpoint *endp);
-void osmux_release_cid(struct mgcp_endpoint *endp);
-
-int osmux_xfrm_to_rtp(struct mgcp_endpoint *endp, int type, char *buf, int rc);
-int osmux_xfrm_to_osmux(int type, char *buf, int rc, struct mgcp_endpoint *endp);
-
-int osmux_send_dummy(struct mgcp_endpoint *endp);
-
+int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
+		      struct in_addr *addr, uint16_t port);
+void osmux_disable_conn(struct mgcp_conn_rtp *conn);
+void osmux_allocate_cid(struct mgcp_conn_rtp *conn);
+void osmux_release_cid(struct mgcp_conn_rtp *conn);
+int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn);
+int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn);
 int osmux_get_cid(void);
 void osmux_put_cid(uint8_t osmux_cid);
 int osmux_used_cid(void);
@@ -38,4 +36,3 @@ enum osmux_usage {
 	OSMUX_USAGE_ONLY = 2,
 };
 
-#endif

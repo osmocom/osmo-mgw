@@ -16,32 +16,32 @@ Testing AUEP2
 Testing MDCX1
 Testing MDCX2
 Testing CRCX
-Dummy packets: 1
+Dummy packets: 2
 Detected packet duration: 40
 Requested packetetization period: 20-20
 Connection mode: 1: RECV
 Testing MDCX3
-Dummy packets: 1
-Packet duration not set
+Dummy packets: 2
+Detected packet duration: 40
 Requested packetization period not set
-Connection mode not set
+Connection mode: 1: RECV
 Testing MDCX4
-Dummy packets: 1
+Dummy packets: 2
 Detected packet duration: 40
 Requested packetetization period: 20-20
 Connection mode: 3: SEND RECV
 Testing MDCX4_PT1
-Dummy packets: 1
+Dummy packets: 2
 Detected packet duration: 40
 Requested packetetization period: 20-40
 Connection mode: 3: SEND RECV
 Testing MDCX4_PT2
-Dummy packets: 1
+Dummy packets: 2
 Detected packet duration: 40
 Requested packetetization period: 20-20
 Connection mode: 3: SEND RECV
 Testing MDCX4_PT3
-Dummy packets: 1
+Dummy packets: 2
 Detected packet duration: 40
 Requested packetization period not set
 Connection mode: 3: SEND RECV
@@ -50,17 +50,14 @@ Detected packet duration: 40
 Requested packetetization period: 20-20
 Connection mode: 2: SEND
 Testing MDCX4_RO
-Dummy packets: 1
-Packet duration not set
+Dummy packets: 2
+Detected packet duration: 40
 Requested packetetization period: 20-20
 Connection mode: 1: RECV
 Testing DLCX
-Detected packet duration: 20
-Requested packetization period not set
-Connection mode: 0: NONE
 Testing CRCX_ZYN
-Dummy packets: 1
-Packet duration not set
+Dummy packets: 2
+Detected packet duration: 20
 Requested packetization period not set
 Connection mode: 1: RECV
 Testing EMPTY
@@ -71,23 +68,17 @@ Testing SHORT4
 Testing RQNT1
 Testing RQNT2
 Testing DLCX
-Detected packet duration: 20
-Requested packetization period not set
-Connection mode: 0: NONE
 Testing CRCX
-Dummy packets: 1
+Dummy packets: 2
 Detected packet duration: 40
 Requested packetetization period: 20-20
 Connection mode: 1: RECV
 Testing MDCX3
-Dummy packets: 1
-Packet duration not set
+Dummy packets: 2
+Detected packet duration: 40
 Requested packetization period not set
-Connection mode not set
+Connection mode: 1: RECV
 Testing DLCX
-Detected packet duration: 20
-Requested packetization period not set
-Connection mode: 0: NONE
 Testing CRCX
 Re-transmitting CRCX
 Testing RQNT1

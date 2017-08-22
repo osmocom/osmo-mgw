@@ -32,9 +32,9 @@
 
 #include <sys/socket.h>
 
-#include <osmocom/legacy_mgcp/mgcp.h>
-#include <osmocom/legacy_mgcp/mgcp_internal.h>
-#include <osmocom/legacy_mgcp/vty.h>
+#include <osmocom/mgcp/mgcp.h>
+#include <osmocom/mgcp/mgcp_internal.h>
+#include <osmocom/mgcp/vty.h>
 
 #include <osmocom/core/application.h>
 #include <osmocom/core/msgb.h>
@@ -52,14 +52,10 @@
 
 #include "../../bscconfig.h"
 
-#ifdef BUILD_MGCP_TRANSCODING
-#include <osmocom/legacy_mgcp/mgcp_transcode.h>
-#endif
-
 #define _GNU_SOURCE
 #include <getopt.h>
 
-#warning "Make use of the rtp proxy code"
+/* FIXME: Make use of the rtp proxy code */
 
 static struct mgcp_config *cfg;
 static struct mgcp_trunk_config *reset_trunk;
@@ -68,6 +64,7 @@ static int daemonize = 0;
 
 const char *openbsc_copyright =
 	"Copyright (C) 2009-2010 Holger Freyther and On-Waves\r\n"
+	"Copyright (C) 2017 by sysmocom s.f.m.c. GmbH <info@sysmocom.de>\r\n"
 	"Contributions by Daniel Willmann, Jan Lübbe, Stefan Schmidt\r\n"
 	"Dieter Spaar, Andreas Eversberg, Harald Welte\r\n\r\n"
 	"License AGPLv3+: GNU AGPL version 3 or later <http://gnu.org/licenses/agpl-3.0.html>\r\n"
@@ -132,10 +129,14 @@ static void handle_options(int argc, char **argv)
 	}
 }
 
-/* simply remember this */
+/* Callback function to be called when the RSIP ("Reset in Progress") mgcp
+ * command is received */
 static int mgcp_rsip_cb(struct mgcp_trunk_config *tcfg)
 {
+	/* Set flag so that, when read_call_agent() is called next time
+	 * the reset can progress */
 	reset_endpoints = 1;
+
 	reset_trunk = tcfg;
 
 	return 0;
@@ -173,13 +174,17 @@ static int read_call_agent(struct osmo_fd *fd, unsigned int what)
 		msgb_free(resp);
 	}
 
+	/* reset endpoints */
 	if (reset_endpoints) {
 		LOGP(DLMGCP, LOGL_NOTICE,
 		     "Asked to reset endpoints: %d/%d\n",
 		     reset_trunk->trunk_nr, reset_trunk->trunk_type);
+
+		/* reset flag */
 		reset_endpoints = 0;
 
-		/* is checking in_addr.s_addr == INADDR_LOOPBACK making it more secure? */
+		/* Walk over all endpoints and trigger a release, this will release all
+		 * endpoints, possible open connections are forcefully dropped */
 		for (i = 1; i < reset_trunk->number_endpoints; ++i)
 			mgcp_release_endp(&reset_trunk->endpoints[i]);
 	}
@@ -220,7 +225,7 @@ int mgcp_vty_go_parent(struct vty *vty)
 
 
 static struct vty_app_info vty_info = {
-	.name 		= "OpenBSC MGCP",
+	.name 		= "OsmoMGW",
 	.version	= PACKAGE_VERSION,
 	.go_parent_cb	= mgcp_vty_go_parent,
 	.is_config_node	= mgcp_vty_is_config_node,
@@ -250,14 +255,6 @@ int main(int argc, char **argv)
 	if (!cfg)
 		return -1;
 
-#ifdef BUILD_MGCP_TRANSCODING
-	cfg->setup_rtp_processing_cb = &mgcp_transcoding_setup;
-	cfg->rtp_processing_cb = &mgcp_transcoding_process_rtp;
-	cfg->get_net_downlink_format_cb = &mgcp_transcoding_net_downlink_format;
-#endif
-
-	cfg->trunk.force_realloc = 1;
-
 	vty_info.copyright = openbsc_copyright;
 	vty_init(&vty_info);
 	logging_vty_add_cmds(NULL);
@@ -279,7 +276,8 @@ int main(int argc, char **argv)
 	if (rc < 0)
 		return rc;
 
-	/* set some callbacks */
+	/* Set the reset callback function. This functions is called when the
+	 * mgcp-command "RSIP" (Reset in Progress) is received */
 	cfg->reset_cb = mgcp_rsip_cb;
 
         /* we need to bind a socket */

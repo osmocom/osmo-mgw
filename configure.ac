@@ -119,18 +119,23 @@ AM_CONFIG_HEADER(bscconfig.h)
 AC_OUTPUT(
     libosmo-legacy-mgcp.pc
     libosmo-mgcp-client.pc
+    libosmo-mgcp.pc
     include/Makefile
     include/osmocom/Makefile
     include/osmocom/legacy_mgcp/Makefile
     include/osmocom/mgcp_client/Makefile
+    include/osmocom/mgcp/Makefile
     src/Makefile
     src/libosmo-legacy-mgcp/Makefile
     src/libosmo-mgcp-client/Makefile
+    src/libosmo-mgcp/Makefile
     src/osmo-bsc_mgcp/Makefile
+    src/osmo-mgw/Makefile
     tests/Makefile
     tests/atlocal
     tests/legacy_mgcp/Makefile
     tests/mgcp_client/Makefile
+    tests/mgcp/Makefile
     doc/Makefile
     doc/examples/Makefile
     contrib/Makefile

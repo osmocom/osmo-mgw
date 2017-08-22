@@ -489,11 +489,11 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp)
 static void test_values(void)
 {
 	/* Check that NONE disables all output */
-	OSMO_ASSERT((MGCP_CONN_NONE & MGCP_CONN_RECV_SEND) == 0)
+	OSMO_ASSERT((MGCP_CONN_NONE & MGCP_CONN_RECV_SEND) == 0);
 
 	/* Check that LOOPBACK enables all output */
 	OSMO_ASSERT((MGCP_CONN_LOOPBACK & MGCP_CONN_RECV_SEND) ==
-		    MGCP_CONN_RECV_SEND)
+		    MGCP_CONN_RECV_SEND);
 }
 
 

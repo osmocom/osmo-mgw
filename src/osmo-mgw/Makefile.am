@@ -9,23 +9,20 @@ AM_CFLAGS = \
 	$(LIBOSMOCORE_CFLAGS) \
 	$(LIBOSMOVTY_CFLAGS) \
 	$(LIBOSMONETIF_CFLAGS) \
-	$(LIBBCG729_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
 	$(NULL)
 
 bin_PROGRAMS = \
-	osmo-bsc_mgcp \
+	osmo-mgw \
 	$(NULL)
 
-osmo_bsc_mgcp_SOURCES = \
-	mgcp_main.c \
+osmo_mgw_SOURCES = \
+	mgw_main.c \
 	$(NULL)
 
-osmo_bsc_mgcp_LDADD = \
-	$(top_builddir)/src/libosmo-legacy-mgcp/libosmo-legacy-mgcp.la \
+osmo_mgw_LDADD = \
+	$(top_builddir)/src/libosmo-mgcp/libosmo-mgcp.la \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMONETIF_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
-	$(LIBBCG729_LIBS) \
-	$(LIBRARY_GSM) \
 	$(NULL)

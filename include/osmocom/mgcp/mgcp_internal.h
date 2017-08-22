@@ -23,10 +23,15 @@
 #pragma once
 
 #include <string.h>
-
+#include <inttypes.h>
 #include <osmocom/core/select.h>
+#include <osmocom/mgcp/mgcp.h>
+#include <osmocom/core/linuxlist.h>
 
 #define CI_UNUSED 0
+
+#define CONN_ID_BTS 0
+#define CONN_ID_NET 1
 
 enum mgcp_trunk_type {
 	MGCP_TRUNK_VIRTUAL,
@@ -80,8 +85,10 @@ struct mgcp_rtp_codec {
 
 struct mgcp_rtp_end {
 	/* statistics */
-	unsigned int packets;
-	unsigned int octets;
+	unsigned int packets_rx;
+	unsigned int octets_rx;
+	unsigned int packets_tx;
+	unsigned int octets_tx;
 	unsigned int dropped_packets;
 	struct in_addr addr;
 
@@ -104,24 +111,11 @@ struct mgcp_rtp_end {
 	int force_aligned_timing;
 	void *rtp_process_data;
 
-	/*
-	 * Each end has a socket...
-	 */
+	/* Each end has a separate socket for RTP and RTCP */
 	struct osmo_fd rtp;
 	struct osmo_fd rtcp;
 
 	int local_port;
-	int local_alloc;
-};
-
-enum {
-	MGCP_TAP_BTS_IN,
-	MGCP_TAP_BTS_OUT,
-	MGCP_TAP_NET_IN,
-	MGCP_TAP_NET_OUT,
-
-	/* last element */
-	MGCP_TAP_COUNT
 };
 
 struct mgcp_rtp_tap {
@@ -136,51 +130,36 @@ struct mgcp_lco {
 	int pkt_period_max; /* time in ms */
 };
 
-enum mgcp_type {
+/* Specific rtp connection type (see struct mgcp_conn_rtp) */
+enum mgcp_conn_rtp_type {
 	MGCP_RTP_DEFAULT	= 0,
-	MGCP_RTP_TRANSCODED,
 	MGCP_OSMUX_BSC,
 	MGCP_OSMUX_BSC_NAT,
 };
 
-#include <osmocom/legacy_mgcp/osmux.h>
+#include <osmocom/mgcp/osmux.h>
+struct mgcp_conn;
 
-struct mgcp_endpoint {
-	int allocated;
-	uint32_t ci;
-	char *callid;
-	struct mgcp_lco local_options;
-	int conn_mode;
-	int orig_mode;
+/* MGCP connection (RTP) */
+struct mgcp_conn_rtp {
 
-	/* backpointer */
-	struct mgcp_config *cfg;
-	struct mgcp_trunk_config *tcfg;
+	/* Backpointer to conn struct */
+	struct mgcp_conn *conn;
 
-	/* port status for bts/net */
-	struct mgcp_rtp_end bts_end;
-	struct mgcp_rtp_end net_end;
+	/* Specific connection type */
+	enum mgcp_conn_rtp_type type;
 
-	/*
-	 * For transcoding we will send from the local_port
-	 * of trans_bts and it will arrive at trans_net from
-	 * where we will forward it to the network.
-	 */
-	struct mgcp_rtp_end trans_bts;
-	struct mgcp_rtp_end trans_net;
-	enum mgcp_type type;
+	/* Port status */
+	struct mgcp_rtp_end end;
 
-	/* sequence bits */
-	struct mgcp_rtp_state net_state;
-	struct mgcp_rtp_state bts_state;
+	/* Sequence bits */
+	struct mgcp_rtp_state state;
 
-	/* fields for re-transmission */
-	char *last_trans;
-	char *last_response;
+	/* taps for the rtp connection */
+	struct mgcp_rtp_tap tap_in;
+	struct mgcp_rtp_tap tap_out;
 
-	/* tap for the endpoint */
-	struct mgcp_rtp_tap taps[MGCP_TAP_COUNT];
-
+	/* Osmux states (optional) */
 	struct {
 		/* Osmux state: disabled, activating, active */
 		enum osmux_state state;
@@ -200,38 +179,64 @@ struct mgcp_endpoint {
 	} osmux;
 };
 
-#define for_each_line(line, save)			\
-	for (line = strline_r(NULL, &save); line;\
-	     line = strline_r(NULL, &save))
+/*! Connection type, specifies which member of the union "u" in mgcp_conn
+ *  contains a useful connection description (currently only RTP) */
+enum mgcp_conn_type {
+	MGCP_CONN_TYPE_RTP,
+};
 
-static inline char *strline_r(char *str, char **saveptr)
-{
-	char *result;
+/*! MGCP connection (untyped) */
+struct mgcp_conn {
+	/*!< list head */
+	struct llist_head entry;
 
-	if (str)
-		*saveptr = str;
+	/*!< Backpointer to the endpoint where the conn belongs to */
+	struct mgcp_endpoint *endp;
 
-	result = *saveptr;
+	/*!< type of the connection (union) */
+	enum mgcp_conn_type type;
 
-	if (*saveptr != NULL) {
-		*saveptr = strpbrk(*saveptr, "\r\n");
+	/*!< mode of the connection */
+	enum mgcp_connection_mode mode;
 
-		if (*saveptr != NULL) {
-			char *eos = *saveptr;
+	/*!< copy of the mode to restore the original setting (VTY) */
+	enum mgcp_connection_mode mode_orig;
 
-			if ((*saveptr)[0] == '\r' && (*saveptr)[1] == '\n')
-				(*saveptr)++;
-			(*saveptr)++;
-			if ((*saveptr)[0] == '\0')
-				*saveptr = NULL;
+	/*!< connection id to identify the conntion */
+	uint32_t id;
 
-			*eos = '\0';
-		}
-	}
+	/*!< human readable name (vty, logging) */
+	char name[256];
 
-	return result;
-}
+	/*!< union with connection description */
+	union {
+		struct mgcp_conn_rtp rtp;
+	} u;
 
+	/*!< pointer to optional private data */
+	void *priv;
+};
+
+#include <osmocom/mgcp/mgcp_conn.h>
+
+struct mgcp_endpoint_type;
+
+struct mgcp_endpoint {
+	char *callid;
+	struct mgcp_lco local_options;
+
+	struct llist_head conns;
+
+	/* backpointer */
+	struct mgcp_config *cfg;
+	struct mgcp_trunk_config *tcfg;
+
+	const struct mgcp_endpoint_type *type;
+
+	/* fields for re-transmission */
+	char *last_trans;
+	char *last_response;
+};
 
 
 #define ENDPOINT_NUMBER(endp) abs((int)(endp - endp->tcfg->endpoints))
@@ -247,12 +252,15 @@ struct mgcp_parse_data {
 	int found;
 };
 
-int mgcp_send_dummy(struct mgcp_endpoint *endp);
-int mgcp_bind_bts_rtp_port(struct mgcp_endpoint *endp, int rtp_port);
-int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port);
-int mgcp_bind_trans_bts_rtp_port(struct mgcp_endpoint *enp, int rtp_port);
-int mgcp_bind_trans_net_rtp_port(struct mgcp_endpoint *enp, int rtp_port);
-int mgcp_free_rtp_port(struct mgcp_rtp_end *end);
+int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
+	      char *buf, int rc, struct mgcp_conn_rtp *conn_src,
+	      struct mgcp_conn_rtp *conn_dst);
+int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn);
+int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
+				unsigned int buf_size, struct mgcp_conn *conn);
+int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
+			   struct mgcp_conn_rtp *conn);
+void mgcp_free_rtp_port(struct mgcp_rtp_end *end);
 
 /* For transcoding we need to manage an in and an output that are connected */
 static inline int endp_back_channel(int endpoint)
@@ -268,10 +276,6 @@ void mgcp_rtp_end_config(struct mgcp_endpoint *endp, int expect_ssrc_change,
 uint32_t mgcp_rtp_packet_duration(struct mgcp_endpoint *endp,
 				  struct mgcp_rtp_end *rtp);
 
-void mgcp_state_calc_loss(struct mgcp_rtp_state *s, struct mgcp_rtp_end *,
-			uint32_t *expected, int *loss);
-uint32_t mgcp_state_calc_jitter(struct mgcp_rtp_state *);
-
 /* payload processing default functions */
 int mgcp_rtp_processing_default(struct mgcp_endpoint *endp, struct mgcp_rtp_end *dst_end,
 				char *data, int *len, int buf_size);
@@ -282,8 +286,9 @@ int mgcp_setup_rtp_processing_default(struct mgcp_endpoint *endp,
 
 void mgcp_get_net_downlink_format_default(struct mgcp_endpoint *endp,
 					  int *payload_type,
-					  const char**subtype_name,
-					  const char**fmtp_extra);
+					  const char**audio_name,
+					  const char**fmtp_extra,
+					  struct mgcp_conn_rtp *conn);
 
 /* internal RTP Annex A counting */
 void mgcp_rtp_annex_count(struct mgcp_endpoint *endp, struct mgcp_rtp_state *state,
@@ -316,21 +321,13 @@ int mgcp_parse_sdp_data(struct mgcp_endpoint *endp, struct mgcp_rtp_end *rtp, st
 int mgcp_set_audio_info(void *ctx, struct mgcp_rtp_codec *codec,
 			int payload_type, const char *audio_name);
 
-
-/**
- * Internal network related
- */
+/*! get the ip-address where the mgw application is bound on.
+ *  \param[in] endp mgcp endpoint, that holds a copy of the VTY parameters
+ *  \returns pointer to a string that contains the source ip-address */
 static inline const char *mgcp_net_src_addr(struct mgcp_endpoint *endp)
 {
 	if (endp->cfg->net_ports.bind_addr)
 		return endp->cfg->net_ports.bind_addr;
-	return endp->cfg->source_addr;
-}
-
-static inline const char *mgcp_bts_src_addr(struct mgcp_endpoint *endp)
-{
-	if (endp->cfg->bts_ports.bind_addr)
-		return endp->cfg->bts_ports.bind_addr;
 	return endp->cfg->source_addr;
 }
 

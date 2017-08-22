@@ -20,3 +20,9 @@ cat $abs_srcdir/mgcp_client/mgcp_client_test.ok > expout
 cat $abs_srcdir/mgcp_client/mgcp_client_test.err > experr
 AT_CHECK([$abs_top_builddir/tests/mgcp_client/mgcp_client_test], [], [expout], [experr])
 AT_CLEANUP
+
+AT_SETUP([mgcp])
+AT_KEYWORDS([mgcp])
+cat $abs_srcdir/mgcp/mgcp_test.ok > expout
+AT_CHECK([$abs_top_builddir/tests/mgcp/mgcp_test], [], [expout], [ignore])
+AT_CLEANUP
