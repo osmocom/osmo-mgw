@@ -25,7 +25,6 @@ EXTRA_DIST = \
 	$(srcdir)/package.m4 \
 	$(TESTSUITE) \
 	vty_test_runner.py \
-	ctrl_test_runner.py \
 	$(NULL)
 
 TESTSUITE = $(srcdir)/testsuite
@@ -39,7 +38,6 @@ python-tests: $(BUILT_SOURCES)
 	osmotestvty.py -p $(abs_top_srcdir) -w $(abs_top_builddir) -v
 	osmotestconfig.py -p $(abs_top_srcdir) -w $(abs_top_builddir) -v
 	$(PYTHON) $(srcdir)/vty_test_runner.py -w $(abs_top_builddir) -v
-	$(PYTHON) $(srcdir)/ctrl_test_runner.py -w $(abs_top_builddir) -v
 else
 python-tests: $(BUILT_SOURCES)
 	echo "Not running python-based tests (determined at configure-time)"
