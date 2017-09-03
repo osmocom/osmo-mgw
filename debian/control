@@ -9,9 +9,9 @@ Build-Depends: debhelper (>=9),
                libosmocore-dev,
                libosmo-netif-dev
 Standards-Version: 3.9.8
-Vcs-Git: git://git.osmocom.org/osmo-iuh.git
-Vcs-Browser: https://git.osmocom.org/osmo-iuh/
-Homepage: https://projects.osmocom.org/projects/osmohnbgw
+Vcs-Git: git://git.osmocom.org/osmo-mgw.git
+Vcs-Browser: https://git.osmocom.org/osmo-mgw/
+Homepage: https://osmocom.org/projects/osmo-mgw
 
 Package: osmo-mgw
 Architecture: any
@@ -32,18 +32,18 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: OsmoMGW: Osmocom's Media Gateway for 2G and 3G circuit-switched mobile networks
+Description: libosmo-legacy-mgcp: Osmocom's Media Gateway server library
 
 Package: libosmo-legacy-mgcp-dbg
 Section: debug
 Architecture: any
 Multi-Arch: same
 Depends: libosmo-legacy-mgcp0 (= ${binary:Version}), ${misc:Depends}
-Description: OsmoMGW: Osmocom's Media Gateway for 2G and 3G circuit-switched mobile networks
+Description: libosmo-legacy-mgcp: Osmocom's Media Gateway server library
 
 Package: libosmo-legacy-mgcp-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
 Depends: libosmo-legacy-mgcp0 (= ${binary:Version}), ${misc:Depends}
-Description: OsmoMGW: Osmocom's Media Gateway for 2G and 3G circuit-switched mobile networks
+Description: libosmo-legacy-mgcp: Osmocom's Media Gateway server library
