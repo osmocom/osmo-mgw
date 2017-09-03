@@ -17,19 +17,19 @@ AM_LDFLAGS = \
 	$(NULL)
 
 EXTRA_DIST = \
-	mgcpgw_client_test.ok \
-	mgcpgw_client_test.err \
+	mgcp_client_test.ok \
+	mgcp_client_test.err \
 	$(NULL)
 
 noinst_PROGRAMS = \
-	mgcpgw_client_test \
+	mgcp_client_test \
 	$(NULL)
 
-mgcpgw_client_test_SOURCES = \
-	mgcpgw_client_test.c \
+mgcp_client_test_SOURCES = \
+	mgcp_client_test.c \
 	$(NULL)
 
-mgcpgw_client_test_LDADD = \
+mgcp_client_test_LDADD = \
 	$(top_builddir)/src/libosmo-mgcp-client/libosmo-mgcp-client.la \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOVTY_LIBS) \

@@ -26,8 +26,8 @@
 
 #include <osmocom/legacy_mgcp/mgcp.h>
 #include <osmocom/legacy_mgcp/mgcp_internal.h>
-#include <osmocom/mgcp_client/mgcpgw_client.h>
-#include <osmocom/mgcp_client/mgcpgw_client_internal.h>
+#include <osmocom/mgcp_client/mgcp_client.h>
+#include <osmocom/mgcp_client/mgcp_client_internal.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -36,10 +36,10 @@
 #include <unistd.h>
 #include <string.h>
 
-void mgcpgw_client_conf_init(struct mgcpgw_client_conf *conf)
+void mgcp_client_conf_init(struct mgcp_client_conf *conf)
 {
-	/* NULL and -1 default to MGCPGW_CLIENT_*_DEFAULT values */
-	*conf = (struct mgcpgw_client_conf){
+	/* NULL and -1 default to MGCP_CLIENT_*_DEFAULT values */
+	*conf = (struct mgcp_client_conf){
 		.local_addr = NULL,
 		.local_port = -1,
 		.remote_addr = NULL,
@@ -51,7 +51,7 @@ void mgcpgw_client_conf_init(struct mgcpgw_client_conf *conf)
 }
 
 /* Test if a given endpoint id is currently in use */
-static bool endpoint_in_use(uint16_t id, struct mgcpgw_client *client)
+static bool endpoint_in_use(uint16_t id, struct mgcp_client *client)
 {
 	struct mgcp_inuse_endpoint *endpoint;
 	llist_for_each_entry(endpoint, &client->inuse_endpoints, entry) {
@@ -63,7 +63,7 @@ static bool endpoint_in_use(uint16_t id, struct mgcpgw_client *client)
 }
 
 /* Find and seize an unsused endpoint id */
-int mgcpgw_client_next_endpoint(struct mgcpgw_client *client)
+int mgcp_client_next_endpoint(struct mgcp_client *client)
 {
 	int i;
 	uint16_t first_endpoint = client->actual.first_endpoint;
@@ -96,7 +96,7 @@ int mgcpgw_client_next_endpoint(struct mgcpgw_client *client)
 }
 
 /* Release a seized endpoint id to make it available again for other calls */
-void mgcpgw_client_release_endpoint(uint16_t id, struct mgcpgw_client *client)
+void mgcp_client_release_endpoint(uint16_t id, struct mgcp_client *client)
 {
 	struct mgcp_inuse_endpoint *endpoint;
 	struct mgcp_inuse_endpoint *endpoint_tmp;
@@ -108,9 +108,9 @@ void mgcpgw_client_release_endpoint(uint16_t id, struct mgcpgw_client *client)
 	}
 }
 
-static void mgcpgw_client_handle_response(struct mgcpgw_client *mgcp,
-					  struct mgcp_response_pending *pending,
-					  struct mgcp_response *response)
+static void mgcp_client_handle_response(struct mgcp_client *mgcp,
+					struct mgcp_response_pending *pending,
+					struct mgcp_response *response)
 {
 	if (!pending) {
 		LOGP(DLMGCP, LOGL_ERROR,
@@ -226,8 +226,8 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 	return 0;
 }
 
-static struct mgcp_response_pending *mgcpgw_client_response_pending_get(
-					 struct mgcpgw_client *mgcp,
+static struct mgcp_response_pending *mgcp_client_response_pending_get(
+					 struct mgcp_client *mgcp,
 					 struct mgcp_response *r)
 {
 	struct mgcp_response_pending *pending;
@@ -248,7 +248,7 @@ static struct mgcp_response_pending *mgcpgw_client_response_pending_get(
  * mgcp_do_read that reads from the socket connected to the MGCP gateway. This
  * function is published mainly to be able to feed data from the test suite.
  */
-int mgcpgw_client_rx(struct mgcpgw_client *mgcp, struct msgb *msg)
+int mgcp_client_rx(struct mgcp_client *mgcp, struct msgb *msg)
 {
 	struct mgcp_response r = { 0 };
 	struct mgcp_response_pending *pending;
@@ -260,7 +260,7 @@ int mgcpgw_client_rx(struct mgcpgw_client *mgcp, struct msgb *msg)
 		return -1;
 	}
 
-	pending = mgcpgw_client_response_pending_get(mgcp, &r);
+	pending = mgcp_client_response_pending_get(mgcp, &r);
 	if (!pending) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "Cannot find matching MGCP transaction for trans_id %d\n",
@@ -268,13 +268,13 @@ int mgcpgw_client_rx(struct mgcpgw_client *mgcp, struct msgb *msg)
 		return -1;
 	}
 
-	mgcpgw_client_handle_response(mgcp, pending, &r);
+	mgcp_client_handle_response(mgcp, pending, &r);
 	return 0;
 }
 
 static int mgcp_do_read(struct osmo_fd *fd)
 {
-	struct mgcpgw_client *mgcp = fd->data;
+	struct mgcp_client *mgcp = fd->data;
 	struct msgb *msg;
 	int ret;
 
@@ -296,7 +296,7 @@ static int mgcp_do_read(struct osmo_fd *fd)
         }
 
 	msg->l2h = msgb_put(msg, ret);
-	ret = mgcpgw_client_rx(mgcp, msg);
+	ret = mgcp_client_rx(mgcp, msg);
 	talloc_free(msg);
 	return ret;
 }
@@ -327,12 +327,12 @@ static int mgcp_do_write(struct osmo_fd *fd, struct msgb *msg)
 	return ret;
 }
 
-struct mgcpgw_client *mgcpgw_client_init(void *ctx,
-					 struct mgcpgw_client_conf *conf)
+struct mgcp_client *mgcp_client_init(void *ctx,
+				     struct mgcp_client_conf *conf)
 {
-	struct mgcpgw_client *mgcp;
+	struct mgcp_client *mgcp;
 
-	mgcp = talloc_zero(ctx, struct mgcpgw_client);
+	mgcp = talloc_zero(ctx, struct mgcp_client);
 
 	INIT_LLIST_HEAD(&mgcp->responses_pending);
 	INIT_LLIST_HEAD(&mgcp->inuse_endpoints);
@@ -340,14 +340,14 @@ struct mgcpgw_client *mgcpgw_client_init(void *ctx,
 	mgcp->next_trans_id = 1;
 
 	mgcp->actual.local_addr = conf->local_addr ? conf->local_addr :
-		MGCPGW_CLIENT_LOCAL_ADDR_DEFAULT;
+		MGCP_CLIENT_LOCAL_ADDR_DEFAULT;
 	mgcp->actual.local_port = conf->local_port >= 0 ? (uint16_t)conf->local_port :
-		MGCPGW_CLIENT_LOCAL_PORT_DEFAULT;
+		MGCP_CLIENT_LOCAL_PORT_DEFAULT;
 
 	mgcp->actual.remote_addr = conf->remote_addr ? conf->remote_addr :
-		MGCPGW_CLIENT_REMOTE_ADDR_DEFAULT;
+		MGCP_CLIENT_REMOTE_ADDR_DEFAULT;
 	mgcp->actual.remote_port = conf->remote_port >= 0 ? (uint16_t)conf->remote_port :
-		MGCPGW_CLIENT_REMOTE_PORT_DEFAULT;
+		MGCP_CLIENT_REMOTE_PORT_DEFAULT;
 
 	mgcp->actual.first_endpoint = conf->first_endpoint > 0 ? (uint16_t)conf->first_endpoint : 0;
 	mgcp->actual.last_endpoint = conf->last_endpoint > 0 ? (uint16_t)conf->last_endpoint : 0;
@@ -356,7 +356,7 @@ struct mgcpgw_client *mgcpgw_client_init(void *ctx,
 	return mgcp;
 }
 
-int mgcpgw_client_connect(struct mgcpgw_client *mgcp)
+int mgcp_client_connect(struct mgcp_client *mgcp)
 {
 	int on;
 	struct sockaddr_in addr;
@@ -434,24 +434,24 @@ error_close_fd:
 	return rc;
 }
 
-const char *mgcpgw_client_remote_addr_str(struct mgcpgw_client *mgcp)
+const char *mgcp_client_remote_addr_str(struct mgcp_client *mgcp)
 {
 	return mgcp->actual.remote_addr;
 }
 
-uint16_t mgcpgw_client_remote_port(struct mgcpgw_client *mgcp)
+uint16_t mgcp_client_remote_port(struct mgcp_client *mgcp)
 {
 	return mgcp->actual.remote_port;
 }
 
 /* Return the MGCP GW binary IPv4 address in network byte order. */
-uint32_t mgcpgw_client_remote_addr_n(struct mgcpgw_client *mgcp)
+uint32_t mgcp_client_remote_addr_n(struct mgcp_client *mgcp)
 {
 	return mgcp->remote_addr;
 }
 
-struct mgcp_response_pending * mgcpgw_client_pending_add(
-					struct mgcpgw_client *mgcp,
+struct mgcp_response_pending * mgcp_client_pending_add(
+					struct mgcp_client *mgcp,
 					mgcp_trans_id_t trans_id,
 					mgcp_response_cb_t response_cb,
 					void *priv)
@@ -472,8 +472,8 @@ struct mgcp_response_pending * mgcpgw_client_pending_add(
  * mgcp_response_parse_params(response) to get the parsed parameters -- to
  * potentially save some CPU cycles, only the head line has been parsed when
  * the response_cb is invoked. */
-int mgcpgw_client_tx(struct mgcpgw_client *mgcp, struct msgb *msg,
-		     mgcp_response_cb_t response_cb, void *priv)
+int mgcp_client_tx(struct mgcp_client *mgcp, struct msgb *msg,
+		   mgcp_response_cb_t response_cb, void *priv)
 {
 	struct mgcp_response_pending *pending;
 	mgcp_trans_id_t trans_id;
@@ -487,7 +487,7 @@ int mgcpgw_client_tx(struct mgcpgw_client *mgcp, struct msgb *msg,
 		return -EINVAL;
 	}
 
-	pending = mgcpgw_client_pending_add(mgcp, trans_id, response_cb, priv);
+	pending = mgcp_client_pending_add(mgcp, trans_id, response_cb, priv);
 
 	if (msgb_l2len(msg) > 4096) {
 		LOGP(DLMGCP, LOGL_ERROR,
@@ -510,7 +510,7 @@ int mgcpgw_client_tx(struct mgcpgw_client *mgcp, struct msgb *msg,
 
 mgcp_tx_error:
 	/* Pass NULL to response cb to indicate an error */
-	mgcpgw_client_handle_response(mgcp, pending, NULL);
+	mgcp_client_handle_response(mgcp, pending, NULL);
 	return -1;
 }
 
@@ -562,7 +562,7 @@ static struct msgb *mgcp_msg_from_str(mgcp_trans_id_t trans_id,
 	return mgcp_msg_from_buf(trans_id, compose, len);
 }
 
-static mgcp_trans_id_t mgcpgw_client_next_trans_id(struct mgcpgw_client *mgcp)
+static mgcp_trans_id_t mgcp_client_next_trans_id(struct mgcp_client *mgcp)
 {
 	/* avoid zero trans_id to distinguish from unset trans_id */
 	if (!mgcp->next_trans_id)
@@ -570,11 +570,11 @@ static mgcp_trans_id_t mgcpgw_client_next_trans_id(struct mgcpgw_client *mgcp)
 	return mgcp->next_trans_id ++;
 }
 
-struct msgb *mgcp_msg_crcx(struct mgcpgw_client *mgcp,
+struct msgb *mgcp_msg_crcx(struct mgcp_client *mgcp,
 			   uint16_t rtp_endpoint, unsigned int call_id,
 			   enum mgcp_connection_mode mode)
 {
-	mgcp_trans_id_t trans_id = mgcpgw_client_next_trans_id(mgcp);
+	mgcp_trans_id_t trans_id = mgcp_client_next_trans_id(mgcp);
 	return mgcp_msg_from_str(trans_id,
 		 "CRCX %u %x@mgw MGCP 1.0\r\n"
 		 "C: %x\r\n"
@@ -587,12 +587,12 @@ struct msgb *mgcp_msg_crcx(struct mgcpgw_client *mgcp,
 		 mgcp_cmode_name(mode));
 }
 
-struct msgb *mgcp_msg_mdcx(struct mgcpgw_client *mgcp,
+struct msgb *mgcp_msg_mdcx(struct mgcp_client *mgcp,
 			   uint16_t rtp_endpoint, const char *rtp_conn_addr,
 			   uint16_t rtp_port, enum mgcp_connection_mode mode)
 
 {
-	mgcp_trans_id_t trans_id = mgcpgw_client_next_trans_id(mgcp);
+	mgcp_trans_id_t trans_id = mgcp_client_next_trans_id(mgcp);
 	return mgcp_msg_from_str(trans_id,
 		 "MDCX %u %x@mgw MGCP 1.0\r\n"
 		 "M: %s\r\n"
@@ -607,16 +607,16 @@ struct msgb *mgcp_msg_mdcx(struct mgcpgw_client *mgcp,
 		 rtp_port);
 }
 
-struct msgb *mgcp_msg_dlcx(struct mgcpgw_client *mgcp, uint16_t rtp_endpoint,
+struct msgb *mgcp_msg_dlcx(struct mgcp_client *mgcp, uint16_t rtp_endpoint,
 			   unsigned int call_id)
 {
-	mgcp_trans_id_t trans_id = mgcpgw_client_next_trans_id(mgcp);
+	mgcp_trans_id_t trans_id = mgcp_client_next_trans_id(mgcp);
 	return mgcp_msg_from_str(trans_id,
 				 "DLCX %u %x@mgw MGCP 1.0\r\n"
 				 "C: %x\r\n", trans_id, rtp_endpoint, call_id);
 }
 
-struct mgcpgw_client_conf *mgcpgw_client_conf_actual(struct mgcpgw_client *mgcp)
+struct mgcp_client_conf *mgcp_client_conf_actual(struct mgcp_client *mgcp)
 {
 	return &mgcp->actual;
 }

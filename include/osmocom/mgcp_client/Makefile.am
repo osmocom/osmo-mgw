@@ -1,3 +1,3 @@
 noinst_HEADERS = \
-	mgcpgw_client_internal.h \
+	mgcp_client_internal.h \
 	$(NULL)

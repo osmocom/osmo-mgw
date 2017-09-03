@@ -23,8 +23,8 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/application.h>
 #include <osmocom/legacy_mgcp/mgcp.h>
-#include <osmocom/mgcp_client/mgcpgw_client.h>
-#include <osmocom/mgcp_client/mgcpgw_client_internal.h>
+#include <osmocom/mgcp_client/mgcp_client.h>
+#include <osmocom/mgcp_client/mgcp_client_internal.h>
 
 void *ctx;
 
@@ -71,8 +71,8 @@ static struct msgb *from_str(const char *str)
 	return msg;
 }
 
-static struct mgcpgw_client_conf conf;
-struct mgcpgw_client *mgcp = NULL;
+static struct mgcp_client_conf conf;
+struct mgcp_client *mgcp = NULL;
 
 static void reply_to(mgcp_trans_id_t trans_id, int code, const char *comment,
 		     int conn_id, const char *params)
@@ -88,7 +88,7 @@ static void reply_to(mgcp_trans_id_t trans_id, int code, const char *comment,
 
 	printf("composed response:\n-----\n%s\n-----\n",
 	       compose);
-	mgcpgw_client_rx(mgcp, from_str(compose));
+	mgcp_client_rx(mgcp, from_str(compose));
 }
 
 void test_response_cb(struct mgcp_response *response, void *priv)
@@ -114,7 +114,7 @@ mgcp_trans_id_t dummy_mgcp_send(struct msgb *msg)
 	trans_id = msg->cb[MSGB_CB_MGCP_TRANS_ID];
 	char *end;
 
-	OSMO_ASSERT(mgcpgw_client_pending_add(mgcp, trans_id, test_response_cb, mgcp));
+	OSMO_ASSERT(mgcp_client_pending_add(mgcp, trans_id, test_response_cb, mgcp));
 
 	end = (char*)msgb_put(msg, 1);
 	*end = '\0';
@@ -134,7 +134,7 @@ void test_crcx(void)
 
 	if (mgcp)
 		talloc_free(mgcp);
-	mgcp = mgcpgw_client_init(ctx, &conf);
+	mgcp = mgcp_client_init(ctx, &conf);
 
 	msg = mgcp_msg_crcx(mgcp, 23, 42, MGCP_CONN_LOOPBACK);
 	trans_id = dummy_mgcp_send(msg);
@@ -161,11 +161,11 @@ const struct log_info log_info = {
 
 int main(int argc, char **argv)
 {
-	ctx = talloc_named_const(NULL, 1, "mgcpgw_client_test");
+	ctx = talloc_named_const(NULL, 1, "mgcp_client_test");
 	msgb_talloc_ctx_init(ctx, 0);
 	osmo_init_logging(&log_info);
 
-	mgcpgw_client_conf_init(&conf);
+	mgcp_client_conf_init(&conf);
 
 	test_crcx();
 

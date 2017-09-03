@@ -14,9 +14,9 @@ cat $abs_srcdir/legacy_mgcp/mgcp_transcoding_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/legacy_mgcp/mgcp_transcoding_test], [], [expout], [ignore])
 AT_CLEANUP
 
-AT_SETUP([mgcpgw_client])
-AT_KEYWORDS([mgcpgw_client])
-cat $abs_srcdir/mgcp_client/mgcpgw_client_test.ok > expout
-cat $abs_srcdir/mgcp_client/mgcpgw_client_test.err > experr
-AT_CHECK([$abs_top_builddir/tests/mgcp_client/mgcpgw_client_test], [], [expout], [experr])
+AT_SETUP([mgcp_client])
+AT_KEYWORDS([mgcp_client])
+cat $abs_srcdir/mgcp_client/mgcp_client_test.ok > expout
+cat $abs_srcdir/mgcp_client/mgcp_client_test.err > experr
+AT_CHECK([$abs_top_builddir/tests/mgcp_client/mgcp_client_test], [], [expout], [experr])
 AT_CLEANUP
