@@ -20,13 +20,10 @@ AM_LDFLAGS = \
 EXTRA_DIST = \
 	mgcp_test.ok \
 	mgcp_transcoding_test.ok \
-	mgcpgw_client_test.ok \
-	mgcpgw_client_test.err \
 	$(NULL)
 
 noinst_PROGRAMS = \
 	mgcp_test \
-	mgcpgw_client_test \
 	$(NULL)
 if BUILD_MGCP_TRANSCODING
 noinst_PROGRAMS += \
@@ -61,17 +58,4 @@ mgcp_transcoding_test_LDADD = \
 	$(LIBOSMONETIF_LIBS) \
 	$(LIBRARY_GSM) \
 	-lm \
-	$(NULL)
-
-mgcpgw_client_test_SOURCES = \
-	mgcpgw_client_test.c \
-	$(NULL)
-
-mgcpgw_client_test_LDADD = \
-	$(top_builddir)/src/libosmo-legacy-mgcp/libosmo-legacy-mgcp.la \
-	$(LIBOSMOCORE_LIBS) \
-	$(LIBOSMOVTY_LIBS) \
-	$(LIBRARY_DL) \
-	$(LIBOSMONETIF_LIBS) \
-	$(LIBRARY_GSM) \
 	$(NULL)

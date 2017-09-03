@@ -10,7 +10,6 @@ AM_CFLAGS = \
 	$(LIBOSMOVTY_CFLAGS) \
 	$(LIBOSMONETIF_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
-	$(LIBBCG729_CFLAGS) \
 	$(NULL)
 
 AM_LDFLAGS = \
@@ -18,34 +17,21 @@ AM_LDFLAGS = \
 	$(LIBOSMOGSM_LIBS) \
 	$(LIBOSMONETIF_LIBS) \
 	$(COVERAGE_LDFLAGS) \
-	$(LIBBCG729_LIBS) \
 	$(NULL)
 
 # This is _NOT_ the library release version, it's an API version.
 # Please read Chapter 6 "Library interface versions" of the libtool
 # documentation before making any modification
-LEGACY_MGCP_LIBVERSION=0:0:0
+MGCP_CLIENT_LIBVERSION=1:0:0
 
 lib_LTLIBRARIES = \
-	libosmo-legacy-mgcp.la \
+	libosmo-mgcp-client.la \
 	$(NULL)
 
-noinst_HEADERS = \
-	g711common.h \
+libosmo_mgcp_client_la_SOURCES = \
+	mgcpgw_client.c \
+	mgcpgw_client_vty.c \
+	../libosmo-legacy-mgcp/mgcp_common.c \
 	$(NULL)
 
-libosmo_legacy_mgcp_la_SOURCES = \
-	mgcp_common.c \
-	mgcp_protocol.c \
-	mgcp_network.c \
-	mgcp_vty.c \
-	mgcp_osmux.c \
-	mgcp_sdp.c \
-	$(NULL)
-if BUILD_MGCP_TRANSCODING
-libosmo_legacy_mgcp_la_SOURCES += \
-	mgcp_transcode.c \
-	$(NULL)
-endif
-
-libosmo_legacy_mgcp_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(LEGACY_MGCP_LIBVERSION)
+libosmo_mgcp_client_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(MGCP_CLIENT_LIBVERSION)
