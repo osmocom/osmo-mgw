@@ -23,7 +23,7 @@
 
 #include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_internal.h>
-#include <osmocom/mgcp/mgcp_ep.h>
+#include <osmocom/mgcp/mgcp_common.h>
 
 /* Reset codec state and free memory */
 static void mgcp_rtp_codec_reset(struct mgcp_rtp_codec *codec)

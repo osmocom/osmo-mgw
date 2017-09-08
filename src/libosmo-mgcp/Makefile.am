@@ -32,7 +32,6 @@ noinst_HEADERS = \
 	$(NULL)
 
 libosmo_mgcp_la_SOURCES = \
-	mgcp_common.c \
 	mgcp_protocol.c \
 	mgcp_network.c \
 	mgcp_vty.c \

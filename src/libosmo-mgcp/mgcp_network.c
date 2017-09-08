@@ -34,6 +34,7 @@
 #include <osmocom/core/select.h>
 #include <osmocom/netif/rtp.h>
 #include <osmocom/mgcp/mgcp.h>
+#include <osmocom/mgcp/mgcp_common.h>
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/mgcp_stat.h>
 #include <osmocom/mgcp/osmux.h>

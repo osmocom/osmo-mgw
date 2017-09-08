@@ -21,6 +21,7 @@
 
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/vty.h>
+#include <osmocom/mgcp/mgcp_common.h>
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/mgcp_stat.h>
 #include <osmocom/mgcp/mgcp_msg.h>

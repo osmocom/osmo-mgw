@@ -330,5 +330,3 @@ static inline const char *mgcp_net_src_addr(struct mgcp_endpoint *endp)
 		return endp->cfg->net_ports.bind_addr;
 	return endp->cfg->source_addr;
 }
-
-int mgcp_msg_terminate_nul(struct msgb *msg);
