@@ -31,7 +31,3 @@ override_dh_autoreconf:
 	dh_autoreconf
 
 # See https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html#bpp-dbg
-override_dh_strip:
-	dh_strip --dbg-package=osmo-mgw-dbg
-	dh_strip --dbg-package=libosmo-legacy-mgcp-dbg
-	dh_strip --dbg-package=libosmo-mgcp-client-dbg

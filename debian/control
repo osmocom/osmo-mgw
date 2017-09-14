@@ -19,26 +19,12 @@ Multi-Arch: foreign
 Depends: libosmo-legacy-mgcp0, ${misc:Depends}, ${shlibs:Depends}
 Description: OsmoMGW: Osmocom's Media Gateway for 2G and 3G circuit-switched mobile networks
 
-Package: osmo-mgw-dbg
-Section: debug
-Architecture: any
-Multi-Arch: same
-Depends: osmo-mgw (= ${binary:Version}), ${misc:Depends}
-Description: OsmoMGW: Osmocom's Media Gateway for 2G and 3G circuit-switched mobile networks
-
 Package: libosmo-legacy-mgcp0
 Section: libs
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: libosmo-legacy-mgcp: Osmocom's Media Gateway server library
-
-Package: libosmo-legacy-mgcp-dbg
-Section: debug
-Architecture: any
-Multi-Arch: same
-Depends: libosmo-legacy-mgcp0 (= ${binary:Version}), ${misc:Depends}
 Description: libosmo-legacy-mgcp: Osmocom's Media Gateway server library
 
 Package: libosmo-legacy-mgcp-dev
@@ -54,13 +40,6 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: libosmo-mgcp-client: Osmocom's Media Gateway Control Protocol client utilities
-
-Package: libosmo-mgcp-client-dbg
-Section: debug
-Architecture: any
-Multi-Arch: same
-Depends: libosmo-mgcp-client1 (= ${binary:Version}), ${misc:Depends}
 Description: libosmo-mgcp-client: Osmocom's Media Gateway Control Protocol client utilities
 
 Package: libosmo-mgcp-client-dev
