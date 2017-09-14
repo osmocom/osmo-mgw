@@ -48,7 +48,7 @@ Multi-Arch: same
 Depends: libosmo-legacy-mgcp0 (= ${binary:Version}), ${misc:Depends}
 Description: libosmo-legacy-mgcp: Osmocom's Media Gateway server library
 
-Package: libosmo-mgcp-client0
+Package: libosmo-mgcp-client1
 Section: libs
 Architecture: any
 Multi-Arch: same
@@ -60,12 +60,12 @@ Package: libosmo-mgcp-client-dbg
 Section: debug
 Architecture: any
 Multi-Arch: same
-Depends: libosmo-mgcp-client0 (= ${binary:Version}), ${misc:Depends}
+Depends: libosmo-mgcp-client1 (= ${binary:Version}), ${misc:Depends}
 Description: libosmo-mgcp-client: Osmocom's Media Gateway Control Protocol client utilities
 
 Package: libosmo-mgcp-client-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
-Depends: libosmo-mgcp-client0 (= ${binary:Version}), ${misc:Depends}
+Depends: libosmo-mgcp-client1 (= ${binary:Version}), ${misc:Depends}
 Description: libosmo-mgcp-client: Osmocom's Media Gateway Control Protocol client utilities
