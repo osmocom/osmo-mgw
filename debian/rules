@@ -10,6 +10,8 @@ DEBIAN  := $(shell dpkg-parsechangelog | grep '^Version:' | cut -d' ' -f2)
 DEBVERS := $(shell echo '$(DEBIAN)' | cut -d- -f1)
 VERSION := $(shell echo '$(DEBVERS)' | sed -e 's/[+-].*//' -e 's/~//g')
 
+CFLAGS += -g
+
 # main packaging script based on dh7 syntax
 %:
 	dh $@ --with autoreconf 
