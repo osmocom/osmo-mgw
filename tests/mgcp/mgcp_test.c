@@ -599,7 +599,8 @@ static void test_messages(void)
 				OSMO_ASSERT(false);
 			}
 		} else if (strcmp((char *)msg->data, t->exp_resp) != 0) {
-			printf("%s failed '%s'\n", t->name, (char *)msg->data);
+			printf("%s failed.\nExpected:\n%s\nGot:\n%s\n",
+			       t->name, t->exp_resp, (char *) msg->data);
 			OSMO_ASSERT(false);
 		}
 		msgb_free(msg);

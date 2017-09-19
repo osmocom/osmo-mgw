@@ -541,7 +541,8 @@ static void test_messages(void)
 			if (msg)
 				printf("%s failed '%s'\n", t->name, (char *) msg->data);
 		} else if (strcmp((char *) msg->data, t->exp_resp) != 0)
-			printf("%s failed '%s'\n", t->name, (char *) msg->data);
+			printf("%s failed.\nExpected:\n%s\nGot:\n%s\n",
+			       t->name, t->exp_resp, (char *) msg->data);
 		msgb_free(msg);
 
 		if (dummy_packets)
