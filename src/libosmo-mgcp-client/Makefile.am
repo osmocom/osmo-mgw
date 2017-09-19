@@ -22,7 +22,7 @@ AM_LDFLAGS = \
 # This is _NOT_ the library release version, it's an API version.
 # Please read Chapter 6 "Library interface versions" of the libtool
 # documentation before making any modification
-MGCP_CLIENT_LIBVERSION=1:0:1
+MGCP_CLIENT_LIBVERSION=0:0:0
 
 lib_LTLIBRARIES = \
 	libosmo-mgcp-client.la \
