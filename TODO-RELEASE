@@ -1,9 +1,26 @@
-# When cleaning up this file: bump API version in corresponding Makefile.am and rename corresponding debian/lib*.install
-# according to https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html#Updating-version-info
-# In short:
-# LIBVERSION=c:r:a
-# If the library source code has changed at all since the last update, then increment revision: c:r + 1:a.
-# If any interfaces have been added, removed, or changed since the last update: c + 1:0:0.
-# If any interfaces have been added since the last public release: c:r:a + 1.
-# If any interfaces have been removed or changed since the last public release: c:r:0.
+# When cleaning up this file upon a release:
+#
+# - Note that the release version number is entirely unrelated to the API
+#   versions. A release version 5.2.3 may happily have an API version of 42:7:5.
+#
+# - Bump API version in src/lib*/Makefile.am files according to chapter
+#   "Library interface versions" of the libtool documentation.
+#   https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
+#
+# - Iff the 'current' API version has changed, rename debian/lib*.install
+#
+# API version bumping for the impatient:
+# LIBVERSION=c:r:a  (current:revision_of_current:backwards_compat_age)
+# 5:2:4 means that
+# - this implements version 5 of the API;
+# - this is the 2nd (compatible) revision of API version 5;
+# - this is backwards compatible to all APIs since 4 versions ago,
+#   i.e. callers that need API versions from 1 to 5 can use this.
+#
+# Bumping API versions recipe:
+# If the library source code has changed at all since the last update, r++;
+# If any interfaces have been added, removed, or changed since the last update, c++, r=0;
+# If any interfaces have been added since the last public release, a++;
+# If any interfaces have been removed or changed since the last public release, a=0.
+#
 #library	what		description / commit summary line

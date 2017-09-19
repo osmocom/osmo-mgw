@@ -21,9 +21,8 @@ AM_LDFLAGS = \
 	$(LIBBCG729_LIBS) \
 	$(NULL)
 
-# This is _NOT_ the library release version, it's an API version.
-# Please read Chapter 6 "Library interface versions" of the libtool
-# documentation before making any modification
+# This is not at all related to the release version, but a range of supported
+# API versions. Read TODO_RELEASE in the source tree's root!
 LEGACY_MGCP_LIBVERSION=0:0:0
 
 lib_LTLIBRARIES = \
