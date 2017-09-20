@@ -1,1 +1,1 @@
-usr/lib/*/*legacy-mgcp*.so.*
+usr/lib/*/libosmo-legacy-mgcp.so.*

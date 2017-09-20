@@ -1,1 +1,1 @@
-usr/lib/*/*mgcp-client*.so.*
+usr/lib/*/libosmo-mgcp-client.so.*
