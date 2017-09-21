@@ -24,8 +24,6 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/logging.h>
 
-#include <osmocom/legacy_mgcp/mgcp.h>
-#include <osmocom/legacy_mgcp/mgcp_internal.h>
 #include <osmocom/mgcp_client/mgcp_client.h>
 #include <osmocom/mgcp_client/mgcp_client_internal.h>
 
@@ -208,7 +206,7 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 	*data = '\0';
 	data ++;
 
-	for_each_line(line, data) {
+	for_each_non_empty_line(line, data) {
 		if (!mgcp_line_is_valid(line))
 			return -EINVAL;
 
@@ -584,7 +582,7 @@ struct msgb *mgcp_msg_crcx(struct mgcp_client *mgcp,
 		 trans_id,
 		 rtp_endpoint,
 		 call_id,
-		 mgcp_cmode_name(mode));
+		 mgcp_client_cmode_name(mode));
 }
 
 struct msgb *mgcp_msg_mdcx(struct mgcp_client *mgcp,
@@ -602,7 +600,7 @@ struct msgb *mgcp_msg_mdcx(struct mgcp_client *mgcp,
 		 ,
 		 trans_id,
 		 rtp_endpoint,
-		 mgcp_cmode_name(mode),
+		 mgcp_client_cmode_name(mode),
 		 rtp_conn_addr,
 		 rtp_port);
 }
@@ -620,3 +618,12 @@ struct mgcp_client_conf *mgcp_client_conf_actual(struct mgcp_client *mgcp)
 {
 	return &mgcp->actual;
 }
+
+const struct value_string mgcp_client_connection_mode_strs[] = {
+	{ MGCP_CONN_NONE, "none" },
+	{ MGCP_CONN_RECV_SEND, "sendrecv" },
+	{ MGCP_CONN_SEND_ONLY, "sendonly" },
+	{ MGCP_CONN_RECV_ONLY, "recvonly" },
+	{ MGCP_CONN_LOOPBACK, "loopback" },
+	{ 0, NULL }
+};

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <osmocom/core/write_queue.h>
+
 #define MSGB_CB_MGCP_TRANS_ID 0
 
 struct mgcp_client {

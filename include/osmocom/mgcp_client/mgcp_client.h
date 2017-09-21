@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include <osmocom/mgcp_client/mgcp_common.h>
+
 #define MGCP_CLIENT_LOCAL_ADDR_DEFAULT "0.0.0.0"
 #define MGCP_CLIENT_LOCAL_PORT_DEFAULT 0
 #define MGCP_CLIENT_REMOTE_ADDR_DEFAULT "127.0.0.1"
@@ -71,3 +73,9 @@ struct msgb *mgcp_msg_mdcx(struct mgcp_client *mgcp,
 
 struct msgb *mgcp_msg_dlcx(struct mgcp_client *mgcp, uint16_t rtp_endpoint,
 			   unsigned int call_id);
+
+extern const struct value_string mgcp_client_connection_mode_strs[];
+static inline const char *mgcp_client_cmode_name(enum mgcp_connection_mode mode)
+{
+	return get_value_string(mgcp_client_connection_mode_strs, mode);
+}

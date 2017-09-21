@@ -27,7 +27,6 @@
 #include <osmocom/vty/command.h>
 #include <osmocom/core/utils.h>
 
-#include <osmocom/legacy_mgcp/vty.h>
 #include <osmocom/mgcp_client/mgcp_client.h>
 
 #define MGCPGW_STR "MGCP gateway configuration for RTP streams\n"
