@@ -19,6 +19,7 @@ AM_LDFLAGS = \
 	$(LIBOSMONETIF_LIBS) \
 	$(COVERAGE_LDFLAGS) \
 	$(LIBBCG729_LIBS) \
+	$(LIBRARY_GSM) \
 	$(NULL)
 
 # This is not at all related to the release version, but a range of supported
