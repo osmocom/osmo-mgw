@@ -174,7 +174,7 @@ static bool mgcp_line_is_valid(const char *line)
 }
 
 /* Parse a line like "m=audio 16002 RTP/AVP 98" */
-static int mgcp_parse_audio(struct mgcp_response *r, const char *line)
+static int mgcp_parse_audio_port(struct mgcp_response *r, const char *line)
 {
         if (sscanf(line, "m=audio %hu",
 		   &r->audio_port) != 1)
@@ -184,7 +184,35 @@ static int mgcp_parse_audio(struct mgcp_response *r, const char *line)
 
 response_parse_failure:
 	LOGP(DLMGCP, LOGL_ERROR,
-	     "Failed to parse MGCP response header\n");
+	     "Failed to parse MGCP response header (audio port)\n");
+	return -EINVAL;
+}
+
+/* Parse a line like "c=IN IP4 10.11.12.13" */
+static int mgcp_parse_audio_ip(struct mgcp_response *r, const char *line)
+{
+	struct in_addr ip_test;
+
+	if (strlen(line) < 16)
+		goto response_parse_failure;
+
+	/* The current implementation strictly supports IPV4 only ! */
+	if (memcmp("c=IN IP4 ", line, 9) != 0)
+		goto response_parse_failure;
+
+	/* Extract IP-Address */
+	strncpy(r->audio_ip, line + 9, sizeof(r->audio_ip));
+	r->audio_ip[sizeof(r->audio_ip) - 1] = '\0';
+
+	/* Check IP-Address */
+	if (inet_aton(r->audio_ip, &ip_test) == 0)
+		goto response_parse_failure;
+
+	return 0;
+
+response_parse_failure:
+	LOGP(DLMGCP, LOGL_ERROR,
+	     "Failed to parse MGCP response header (audio ip)\n");
 	return -EINVAL;
 }
 
@@ -213,7 +241,12 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 
 		switch (line[0]) {
 		case 'm':
-			rc = mgcp_parse_audio(r, line);
+			rc = mgcp_parse_audio_port(r, line);
+			if (rc)
+				return rc;
+			break;
+		case 'c':
+			rc = mgcp_parse_audio_ip(r, line);
 			if (rc)
 				return rc;
 			break;

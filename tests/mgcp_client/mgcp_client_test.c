@@ -99,11 +99,13 @@ void test_response_cb(struct mgcp_response *response, void *priv)
 	       "  head.response_code = %d\n"
 	       "  head.trans_id = %u\n"
 	       "  head.comment = %s\n"
-	       "  audio_port = %u\n",
+	       "  audio_port = %u\n"
+	       "  audio_ip = %s\n",
 	       response->head.response_code,
 	       response->head.trans_id,
 	       response->head.comment,
-	       response->audio_port
+	       response->audio_port,
+	       response->audio_ip
 	      );
 }
 

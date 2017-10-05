@@ -36,6 +36,7 @@ struct mgcp_response {
 	char *body;
 	struct mgcp_response_head head;
 	uint16_t audio_port;
+	char audio_ip[INET_ADDRSTRLEN];
 };
 
 enum mgcp_verb {

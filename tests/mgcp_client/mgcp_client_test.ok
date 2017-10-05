@@ -28,6 +28,7 @@ response cb received:
   head.trans_id = 1
   head.comment = OK
   audio_port = 16002
+  audio_ip = 10.9.1.120
 
 Generated CRCX message:
 CRCX 1 23@mgw MGCP 1.0
