@@ -23,6 +23,7 @@
 #include <osmocom/core/write_queue.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/core/byteswap.h>
 
 #include <osmocom/mgcp_client/mgcp_client.h>
 #include <osmocom/mgcp_client/mgcp_client_internal.h>
@@ -612,6 +613,109 @@ struct msgb *mgcp_msg_dlcx(struct mgcp_client *mgcp, uint16_t rtp_endpoint,
 	return mgcp_msg_from_str(trans_id,
 				 "DLCX %u %x@mgw MGCP 1.0\r\n"
 				 "C: %x\r\n", trans_id, rtp_endpoint, call_id);
+}
+
+#define MGCP_CRCX_MANDATORY (MGCP_MSG_PRESENCE_ENDPOINT | \
+			     MGCP_MSG_PRESENCE_CALL_ID | \
+			     MGCP_MSG_PRESENCE_CONN_ID | \
+			     MGCP_MSG_PRESENCE_CONN_MODE)
+#define MGCP_MDCX_MANDATORY (MGCP_MSG_PRESENCE_ENDPOINT | \
+			     MGCP_MSG_PRESENCE_CONN_ID)
+#define MGCP_DLCX_MANDATORY (MGCP_MSG_PRESENCE_ENDPOINT)
+#define MGCP_AUEP_MANDATORY (MGCP_MSG_PRESENCE_ENDPOINT)
+#define MGCP_RSIP_MANDATORY 0	/* none */
+
+struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
+{
+	mgcp_trans_id_t trans_id = mgcp_client_next_trans_id(mgcp);
+	uint32_t mandatory_mask;
+	struct msgb *msg = msgb_alloc_headroom(4096, 128, "MGCP tx");
+	int rc = 0;
+
+	msg->l2h = msg->data;
+	msg->cb[MSGB_CB_MGCP_TRANS_ID] = trans_id;
+
+	/* Add command verb */
+	switch (mgcp_msg->verb) {
+	case MGCP_VERB_CRCX:
+		mandatory_mask = MGCP_CRCX_MANDATORY;
+		rc += msgb_printf(msg, "CRCX %u", trans_id);
+		break;
+	case MGCP_VERB_MDCX:
+		mandatory_mask = MGCP_MDCX_MANDATORY;
+		rc += msgb_printf(msg, "MDCX %u", trans_id);
+		break;
+	case MGCP_VERB_DLCX:
+		mandatory_mask = MGCP_DLCX_MANDATORY;
+		rc += msgb_printf(msg, "DLCX %u", trans_id);
+		break;
+	case MGCP_VERB_AUEP:
+		mandatory_mask = MGCP_AUEP_MANDATORY;
+		rc += msgb_printf(msg, "AUEP %u", trans_id);
+		break;
+	case MGCP_VERB_RSIP:
+		mandatory_mask = MGCP_RSIP_MANDATORY;
+		rc += msgb_printf(msg, "RSIP %u", trans_id);
+		break;
+	default:
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "Invalid command verb, can not generate MGCP message\n");
+		msgb_free(msg);
+		return NULL;
+	}
+
+	/* Check if mandatory fields are missing */
+	if (!((mgcp_msg->presence & mandatory_mask) == mandatory_mask)) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "One or more missing mandatory fields, can not generate MGCP message\n");
+		msgb_free(msg);
+		return NULL;
+	}
+
+	/* Add endpoint name */
+	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_ENDPOINT)
+		rc += msgb_printf(msg, " %s", mgcp_msg->endpoint);
+
+	/* Add protocol version */
+	rc += msgb_printf(msg, " MGCP 1.0\r\n");
+
+	/* Add call id */
+	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CALL_ID)
+		rc += msgb_printf(msg, "C: %x\r\n", mgcp_msg->call_id);
+
+	/* Add connection id */
+	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CONN_ID)
+		rc += msgb_printf(msg, "I: %u\r\n", mgcp_msg->conn_id);
+
+	/* Add local connection options */
+	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CONN_ID
+	    && mgcp_msg->verb == MGCP_VERB_CRCX)
+		rc += msgb_printf(msg, "L: p:20, a:AMR, nt:IN\r\n");
+
+	/* Add mode */
+	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CONN_MODE)
+		rc +=
+		    msgb_printf(msg, "M: %s\r\n",
+				mgcp_client_cmode_name(mgcp_msg->conn_mode));
+
+	/* Add RTP address and port (SDP) */
+	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_IP
+	    && mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_PORT) {
+		rc += msgb_printf(msg, "\r\n");
+		rc += msgb_printf(msg, "c=IN IP4 %s\r\n", mgcp_msg->audio_ip);
+		rc +=
+		    msgb_printf(msg, "m=audio %u RTP/AVP 255\r\n",
+				mgcp_msg->audio_port);
+	}
+
+	if (rc != 0) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "message buffer to small, can not generate MGCP message\n");
+		msgb_free(msg);
+		msg = NULL;
+	}
+
+	return msg;
 }
 
 struct mgcp_client_conf *mgcp_client_conf_actual(struct mgcp_client *mgcp)

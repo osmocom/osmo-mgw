@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <arpa/inet.h>
 
 #include <osmocom/mgcp_client/mgcp_common.h>
 
@@ -37,6 +38,36 @@ struct mgcp_response {
 	uint16_t audio_port;
 };
 
+enum mgcp_verb {
+	MGCP_VERB_CRCX,
+	MGCP_VERB_MDCX,
+	MGCP_VERB_DLCX,
+	MGCP_VERB_AUEP,
+	MGCP_VERB_RSIP,
+};
+
+#define MGCP_MSG_PRESENCE_ENDPOINT	0x0001
+#define MGCP_MSG_PRESENCE_CALL_ID	0x0002
+#define MGCP_MSG_PRESENCE_CONN_ID	0x0004
+#define MGCP_MSG_PRESENCE_AUDIO_IP	0x0008
+#define MGCP_MSG_PRESENCE_AUDIO_PORT	0x0010
+#define MGCP_MSG_PRESENCE_CONN_MODE	0x0020
+
+/* See also RFC3435 section 3.2.1.3 */
+#define MGCP_ENDPOINT_MAXLEN (255*2+1+1)
+
+struct mgcp_msg {
+	enum mgcp_verb verb;
+	/* See MGCP_MSG_PRESENCE_* constants */
+	uint32_t presence;
+	char endpoint[MGCP_ENDPOINT_MAXLEN];
+	unsigned int call_id;
+	uint32_t conn_id;
+        uint16_t audio_port;
+        char *audio_ip;
+	enum mgcp_connection_mode conn_mode;
+};
+
 void mgcp_client_conf_init(struct mgcp_client_conf *conf);
 void mgcp_client_vty_init(void *talloc_ctx, int node, struct mgcp_client_conf *conf);
 int mgcp_client_config_write(struct vty *vty, const char *indent);
@@ -65,14 +96,19 @@ enum mgcp_connection_mode;
 
 struct msgb *mgcp_msg_crcx(struct mgcp_client *mgcp,
 			   uint16_t rtp_endpoint, unsigned int call_id,
-			   enum mgcp_connection_mode mode);
+			   enum mgcp_connection_mode mode)
+OSMO_DEPRECATED("Use mgcp_msg_gen() instead");
 
 struct msgb *mgcp_msg_mdcx(struct mgcp_client *mgcp,
 			   uint16_t rtp_endpoint, const char *rtp_conn_addr,
-			   uint16_t rtp_port, enum mgcp_connection_mode mode);
+			   uint16_t rtp_port, enum mgcp_connection_mode mode)
+OSMO_DEPRECATED("Use mgcp_msg_gen() instead");
 
 struct msgb *mgcp_msg_dlcx(struct mgcp_client *mgcp, uint16_t rtp_endpoint,
-			   unsigned int call_id);
+			   unsigned int call_id)
+OSMO_DEPRECATED("Use mgcp_msg_gen() instead");
+
+struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg);
 
 extern const struct value_string mgcp_client_connection_mode_strs[];
 static inline const char *mgcp_client_cmode_name(enum mgcp_connection_mode mode)

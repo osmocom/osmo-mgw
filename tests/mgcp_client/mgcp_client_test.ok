@@ -28,4 +28,34 @@ response cb received:
   head.trans_id = 1
   head.comment = OK
   audio_port = 16002
+
+Generated CRCX message:
+CRCX 1 23@mgw MGCP 1.0
+C: 2f
+I: 11
+L: p:20, a:AMR, nt:IN
+M: sendrecv
+
+Generated MDCX message:
+MDCX 2 23@mgw MGCP 1.0
+C: 2f
+I: 11
+M: sendrecv
+
+c=IN IP4 192.168.100.23
+m=audio 1234 RTP/AVP 255
+
+Generated DLCX message:
+DLCX 3 23@mgw MGCP 1.0
+C: 2f
+I: 11
+
+Generated AUEP message:
+AUEP 4 23@mgw MGCP 1.0
+
+Generated RSIP message:
+RSIP 5 23@mgw MGCP 1.0
+
+Overfolow test:
+
 Done

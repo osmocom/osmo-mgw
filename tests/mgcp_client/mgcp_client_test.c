@@ -149,6 +149,80 @@ void test_crcx(void)
 		"a=ptime:20\r\n");
 }
 
+void test_mgcp_msg(void)
+{
+	struct msgb *msg;
+	char audio_ip_overflow[5000];
+
+	/* A message struct prefilled with some arbitary values */
+	struct mgcp_msg mgcp_msg = {
+		.audio_ip = "192.168.100.23",
+		.endpoint = "23@mgw",
+		.audio_port = 1234,
+		.call_id = 47,
+		.conn_id = 11,
+		.conn_mode = MGCP_CONN_RECV_SEND
+	};
+
+	if (mgcp)
+		talloc_free(mgcp);
+	mgcp = mgcp_client_init(ctx, &conf);
+
+	printf("\n");
+
+	printf("Generated CRCX message:\n");
+	mgcp_msg.verb = MGCP_VERB_CRCX;
+	mgcp_msg.presence =
+	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE);
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	printf("%s\n", (char *)msg->data);
+
+	printf("Generated MDCX message:\n");
+	mgcp_msg.verb = MGCP_VERB_MDCX;
+	mgcp_msg.presence =
+	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE |
+	     MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT);
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	printf("%s\n", (char *)msg->data);
+
+	printf("Generated DLCX message:\n");
+	mgcp_msg.verb = MGCP_VERB_DLCX;
+	mgcp_msg.presence =
+	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+	     MGCP_MSG_PRESENCE_CONN_ID);
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	printf("%s\n", (char *)msg->data);
+
+	printf("Generated AUEP message:\n");
+	mgcp_msg.verb = MGCP_VERB_AUEP;
+	mgcp_msg.presence = (MGCP_MSG_PRESENCE_ENDPOINT);
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	printf("%s\n", msg->data);
+
+	printf("Generated RSIP message:\n");
+	mgcp_msg.verb = MGCP_VERB_RSIP;
+	mgcp_msg.presence = (MGCP_MSG_PRESENCE_ENDPOINT);
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	printf("%s\n", (char *)msg->data);
+
+	printf("Overfolow test:\n");
+	mgcp_msg.verb = MGCP_VERB_MDCX;
+	mgcp_msg.presence =
+	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE |
+	     MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT);
+	memset(audio_ip_overflow, 'X', sizeof(audio_ip_overflow));
+	audio_ip_overflow[sizeof(audio_ip_overflow) - 1] = '\0';
+	mgcp_msg.audio_ip = audio_ip_overflow;
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	OSMO_ASSERT(msg == NULL);
+
+	printf("\n");
+	msgb_free(msg);
+}
+
 static const struct log_info_cat log_categories[] = {
 };
 
@@ -171,6 +245,7 @@ int main(int argc, char **argv)
 	mgcp_client_conf_init(&conf);
 
 	test_crcx();
+	test_mgcp_msg();
 
 	printf("Done\n");
 	fprintf(stderr, "Done\n");
