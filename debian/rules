@@ -26,6 +26,9 @@ CFLAGS += -g
 #override_dh_install:
 #	dh_install --list-missing -X.la -X.pyc -X.pyo
 
+override_dh_auto_test:
+	dh_auto_test || (find . -name testsuite.log -exec cat {} \; ; false)
+
 override_dh_autoreconf:
 	echo $(VERSION) > .tarball-version
 	dh_autoreconf
