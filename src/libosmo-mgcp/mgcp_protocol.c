@@ -910,14 +910,31 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 		}
 	}
 
-	/* find the connection */
+	/* When no connection id is supplied, we will interpret this as a
+	 * wildcarded DLCX and drop all connections at once. (See also
+	 * RFC3435 Section F.7) */
+	if (!ci) {
+		LOGP(DLMGCP, LOGL_NOTICE,
+		     "DLCX: endpoint:%x missing ci (connectionIdentifier), will remove all connections at once\n",
+		     ENDPOINT_NUMBER(endp));
+
+		mgcp_release_endp(endp);
+
+		/* Note: In this case we do not return any statistics,
+		 * as we assume that the client is not interested in
+		 * this case. */
+		return create_ok_response(endp, 200, "DLCX", p->trans);
+	}
+
+	/* Parse the connection id */
 	if (mgcp_parse_ci(&conn_id, ci)) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "DLCX: endpoint:%x insufficient parameters, missing ci (connectionIdentifier)\n",
+		     "DLCX: endpoint:%x insufficient parameters, invalid ci (connectionIdentifier)\n",
 		     ENDPOINT_NUMBER(endp));
 		return create_err_response(endp, 400, "DLCX", p->trans);
 	}
 
+	/* Find the connection */
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	if (!conn)
 		goto error3;
