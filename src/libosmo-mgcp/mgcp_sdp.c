@@ -20,6 +20,7 @@
  *
  */
 
+#include <osmocom/core/msgb.h>
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/mgcp_msg.h>
@@ -38,6 +39,12 @@ struct sdp_rtp_map {
 	int channels;
 };
 
+/*! Set codec configuration depending on payload type and codec name.
+ *  \param[in] ctx talloc context.
+ *  \param[out] codec configuration (caller provided memory).
+ *  \param[in] payload_type codec type id (e.g. 3 for GSM, -1 when undefined).
+ *  \param[in] audio_name audio codec name (e.g. "GSM/8000/1").
+ *  \returns 0 on success, -1 on failure. */
 int mgcp_set_audio_info(void *ctx, struct mgcp_rtp_codec *codec,
 			int payload_type, const char *audio_name)
 {
@@ -107,7 +114,7 @@ int mgcp_set_audio_info(void *ctx, struct mgcp_rtp_codec *codec,
 	return 0;
 }
 
-void codecs_initialize(void *ctx, struct sdp_rtp_map *codecs, int used)
+static void codecs_initialize(void *ctx, struct sdp_rtp_map *codecs, int used)
 {
 	int i;
 
@@ -137,7 +144,8 @@ void codecs_initialize(void *ctx, struct sdp_rtp_map *codecs, int used)
 	}
 }
 
-void codecs_update(void *ctx, struct sdp_rtp_map *codecs, int used, int payload, char *audio_name)
+static void codecs_update(void *ctx, struct sdp_rtp_map *codecs, int used,
+			  int payload, const char *audio_name)
 {
 	int i;
 
@@ -163,7 +171,9 @@ void codecs_update(void *ctx, struct sdp_rtp_map *codecs, int used, int payload,
 	LOGP(DLMGCP, LOGL_ERROR, "Unconfigured PT(%d) with %s\n", payload, audio_name);
 }
 
-int is_codec_compatible(struct mgcp_endpoint *endp, struct sdp_rtp_map *codec)
+/* Check if the codec matches what is set up in the trunk config */
+static int is_codec_compatible(const struct mgcp_endpoint *endp,
+			       const struct sdp_rtp_map *codec)
 {
 	char *bts_codec;
 	char audio_codec[64];
@@ -182,7 +192,17 @@ int is_codec_compatible(struct mgcp_endpoint *endp, struct sdp_rtp_map *codec)
 	return strcasecmp(audio_codec, codec->codec_name) == 0;
 }
 
-int mgcp_parse_sdp_data(struct mgcp_endpoint *endp, struct mgcp_rtp_end *rtp, struct mgcp_parse_data *p)
+/*! Analyze SDP input string.
+ *  \param[in] endp trunk endpoint.
+ *  \param[out] conn associated rtp connection.
+ *  \param[out] caller provided memory to store the parsing results.
+ *  \returns 0 on success, -1 on failure.
+ *
+ *  Note: In conn (conn->end) the function returns the packet duration,
+ *  the rtp port and the rtcp port */
+int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
+			struct mgcp_conn_rtp *conn,
+			struct mgcp_parse_data *p)
 {
 	struct sdp_rtp_map codecs[10];
 	int codecs_used = 0;
@@ -191,7 +211,13 @@ int mgcp_parse_sdp_data(struct mgcp_endpoint *endp, struct mgcp_rtp_end *rtp, st
 	int i;
 	int codecs_assigned = 0;
 	void *tmp_ctx = talloc_new(NULL);
+	struct mgcp_rtp_end *rtp;
 
+	OSMO_ASSERT(endp);
+	OSMO_ASSERT(conn);
+	OSMO_ASSERT(p);
+
+	rtp = &conn->end;
 	memset(&codecs, 0, sizeof(codecs));
 
 	for_each_line(line, p->save) {
@@ -304,3 +330,73 @@ int mgcp_parse_sdp_data(struct mgcp_endpoint *endp, struct mgcp_rtp_end *rtp, st
 	return codecs_assigned > 0;
 }
 
+/*! Generate SDP response string.
+ *  \param[in] endp trunk endpoint.
+ *  \param[in] conn associated rtp connection.
+ *  \param[out] sdp msg buffer to append resulting SDP string data.
+ *  \param[in] addr IPV4 address string (e.g. 192.168.100.1).
+ *  \returns 0 on success, -1 on failure. */
+int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
+			    const struct mgcp_conn_rtp *conn, struct msgb *sdp,
+			    const char *addr)
+{
+	const char *fmtp_extra;
+	const char *audio_name;
+	int payload_type;
+	int rc;
+
+	OSMO_ASSERT(endp);
+	OSMO_ASSERT(conn);
+	OSMO_ASSERT(sdp);
+	OSMO_ASSERT(addr);
+
+	/* FIXME: constify endp and conn args in get_net_donwlink_format_cb() */
+	endp->cfg->get_net_downlink_format_cb((struct mgcp_endpoint *)endp,
+					      &payload_type, &audio_name,
+					      &fmtp_extra,
+					      (struct mgcp_conn_rtp *)conn);
+
+	rc = msgb_printf(sdp,
+			 "v=0\r\n"
+			 "o=- %u 23 IN IP4 %s\r\n"
+			 "s=-\r\n"
+			 "c=IN IP4 %s\r\n"
+			 "t=0 0\r\n", conn->conn->id, addr, addr);
+
+	if (rc < 0)
+		goto buffer_too_small;
+
+	if (payload_type >= 0) {
+		rc = msgb_printf(sdp, "m=audio %d RTP/AVP %d\r\n",
+				 conn->end.local_port, payload_type);
+		if (rc < 0)
+			goto buffer_too_small;
+
+		if (audio_name && endp->tcfg->audio_send_name) {
+			rc = msgb_printf(sdp, "a=rtpmap:%d %s\r\n",
+					 payload_type, audio_name);
+
+			if (rc < 0)
+				goto buffer_too_small;
+		}
+
+		if (fmtp_extra) {
+			rc = msgb_printf(sdp, "%s\r\n", fmtp_extra);
+
+			if (rc < 0)
+				goto buffer_too_small;
+		}
+	}
+	if (conn->end.packet_duration_ms > 0 && endp->tcfg->audio_send_ptime) {
+		rc = msgb_printf(sdp, "a=ptime:%u\r\n",
+				 conn->end.packet_duration_ms);
+		if (rc < 0)
+			goto buffer_too_small;
+	}
+
+	return 0;
+
+buffer_too_small:
+	LOGP(DLMGCP, LOGL_ERROR, "SDP messagebuffer too small\n");
+	return -1;
+}

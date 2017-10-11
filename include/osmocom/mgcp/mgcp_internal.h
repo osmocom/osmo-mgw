@@ -317,9 +317,6 @@ enum {
 #define DEFAULT_RTP_AUDIO_DEFAULT_CHANNELS 1
 
 #define PTYPE_UNDEFINED (-1)
-int mgcp_parse_sdp_data(struct mgcp_endpoint *endp, struct mgcp_rtp_end *rtp, struct mgcp_parse_data *p);
-int mgcp_set_audio_info(void *ctx, struct mgcp_rtp_codec *codec,
-			int payload_type, const char *audio_name);
 
 /*! get the ip-address where the mgw application is bound on.
  *  \param[in] endp mgcp endpoint, that holds a copy of the VTY parameters
