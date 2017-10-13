@@ -26,7 +26,6 @@
 #include <osmocom/core/write_queue.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/logging.h>
-#include <osmocom/mgcp/mgcp_ep.h>
 
 #include <osmocom/mgcp/mgcp_common.h>
 
