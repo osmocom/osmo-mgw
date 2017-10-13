@@ -509,15 +509,9 @@ static int dummy_packets = 0;
 ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 	       const struct sockaddr *dest_addr, socklen_t addrlen)
 {
-	typedef ssize_t(*sendto_t) (int, const void *, size_t, int,
-				    const struct sockaddr *, socklen_t);
-	static sendto_t real_sendto = NULL;
 	uint32_t dest_host =
 	    htonl(((struct sockaddr_in *)dest_addr)->sin_addr.s_addr);
 	int dest_port = htons(((struct sockaddr_in *)dest_addr)->sin_port);
-
-	if (!real_sendto)
-		real_sendto = dlsym(RTLD_NEXT, "sendto");
 
 	if (len == 1 && ((const char *)buf)[0] == MGCP_DUMMY_LOAD) {
 		fprintf(stderr,
@@ -526,7 +520,7 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 		dummy_packets += 1;
 	}
 
-	return real_sendto(sockfd, buf, len, flags, dest_addr, addrlen);
+	return len;
 }
 
 static int64_t force_monotonic_time_us = -1;
