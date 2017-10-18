@@ -62,15 +62,23 @@ int mgcp_set_audio_info(void *ctx, struct mgcp_rtp_codec *codec,
 
 	if (!audio_name) {
 		switch (payload_type) {
-		case 0: audio_name = "PCMU/8000/1"; break;
-		case 3: audio_name = "GSM/8000/1"; break;
-		case 8: audio_name = "PCMA/8000/1"; break;
-		case 18: audio_name = "G729/8000/1"; break;
+		case 0:
+			audio_name = "PCMU/8000/1";
+			break;
+		case 3:
+			audio_name = "GSM/8000/1";
+			break;
+		case 8:
+			audio_name = "PCMA/8000/1";
+			break;
+		case 18:
+			audio_name = "G729/8000/1";
+			break;
 		default:
-			 /* Payload type is unknown, don't change rate and
-			  * channels. */
-			 /* TODO: return value? */
-			 return 0;
+			/* Payload type is unknown, don't change rate and
+			 * channels. */
+			/* TODO: return value? */
+			return 0;
 		}
 	}
 
@@ -156,8 +164,9 @@ static void codecs_update(void *ctx, struct sdp_rtp_map *codecs, int used,
 		if (codecs[i].payload_type != payload)
 			continue;
 		if (sscanf(audio_name, "%63[^/]/%d/%d",
-				audio_codec, &rate, &channels) < 1) {
-			LOGP(DLMGCP, LOGL_ERROR, "Failed to parse '%s'\n", audio_name);
+			   audio_codec, &rate, &channels) < 1) {
+			LOGP(DLMGCP, LOGL_ERROR, "Failed to parse '%s'\n",
+			     audio_name);
 			continue;
 		}
 
@@ -168,7 +177,8 @@ static void codecs_update(void *ctx, struct sdp_rtp_map *codecs, int used,
 		return;
 	}
 
-	LOGP(DLMGCP, LOGL_ERROR, "Unconfigured PT(%d) with %s\n", payload, audio_name);
+	LOGP(DLMGCP, LOGL_ERROR, "Unconfigured PT(%d) with %s\n", payload,
+	     audio_name);
 }
 
 /* Check if the codec matches what is set up in the trunk config */
