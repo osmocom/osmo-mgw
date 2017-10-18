@@ -181,10 +181,8 @@ static int is_codec_compatible(const struct mgcp_endpoint *endp,
 	if (!codec->codec_name)
 		return 0;
 
-	/*
-	 * GSM, GSM/8000 and GSM/8000/1 should all be compatible.. let's go
-	 * by name first.
-	 */
+	/* GSM, GSM/8000 and GSM/8000/1 should all be compatible...
+	 * let's go by name first. */
 	codec_str = endp->tcfg->audio_name;
 	if (sscanf(codec_str, "%63[^/]/%*d/%*d", audio_codec) < 1)
 		return 0;
