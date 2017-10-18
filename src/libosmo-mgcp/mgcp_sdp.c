@@ -213,6 +213,12 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	void *tmp_ctx = talloc_new(NULL);
 	struct mgcp_rtp_end *rtp;
 
+	int payload;
+	int ptime, ptime2 = 0;
+	char audio_name[64];
+	int port, rc;
+	char ipv4[16];
+
 	OSMO_ASSERT(endp);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(p);
@@ -228,41 +234,36 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 		case 'v':
 			/* skip these SDP attributes */
 			break;
-		case 'a': {
-			int payload;
-			int ptime, ptime2 = 0;
-			char audio_name[64];
-
-
+		case 'a':
 			if (sscanf(line, "a=rtpmap:%d %63s",
 				   &payload, audio_name) == 2) {
-				codecs_update(tmp_ctx, codecs, codecs_used, payload, audio_name);
-			} else if (sscanf(line, "a=ptime:%d-%d",
-					  &ptime, &ptime2) >= 1) {
+				codecs_update(tmp_ctx, codecs,
+					      codecs_used, payload, audio_name);
+			} else
+			    if (sscanf
+				(line, "a=ptime:%d-%d", &ptime, &ptime2) >= 1) {
 				if (ptime2 > 0 && ptime2 != ptime)
 					rtp->packet_duration_ms = 0;
 				else
 					rtp->packet_duration_ms = ptime;
-			} else if (sscanf(line, "a=maxptime:%d", &ptime2) == 1) {
+			} else if (sscanf(line, "a=maxptime:%d", &ptime2)
+				   == 1) {
 				maxptime = ptime2;
 			}
 			break;
-		}
-		case 'm': {
-			int port, rc;
-
-			rc = sscanf(line, "m=audio %d RTP/AVP %d %d %d %d %d %d %d %d %d %d",
-					&port,
-					&codecs[0].payload_type,
-					&codecs[1].payload_type,
-					&codecs[2].payload_type,
-					&codecs[3].payload_type,
-					&codecs[4].payload_type,
-					&codecs[5].payload_type,
-					&codecs[6].payload_type,
-					&codecs[7].payload_type,
-					&codecs[8].payload_type,
-					&codecs[9].payload_type);
+		case 'm':
+			rc = sscanf(line,
+				    "m=audio %d RTP/AVP %d %d %d %d %d %d %d %d %d %d",
+				    &port, &codecs[0].payload_type,
+				    &codecs[1].payload_type,
+				    &codecs[2].payload_type,
+				    &codecs[3].payload_type,
+				    &codecs[4].payload_type,
+				    &codecs[5].payload_type,
+				    &codecs[6].payload_type,
+				    &codecs[7].payload_type,
+				    &codecs[8].payload_type,
+				    &codecs[9].payload_type);
 			if (rc >= 2) {
 				rtp->rtp_port = htons(port);
 				rtp->rtcp_port = htons(port + 1);
@@ -270,20 +271,18 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 				codecs_initialize(tmp_ctx, codecs, codecs_used);
 			}
 			break;
-		}
-		case 'c': {
-			char ipv4[16];
+		case 'c':
 
 			if (sscanf(line, "c=IN IP4 %15s", ipv4) == 1) {
 				inet_aton(ipv4, &rtp->addr);
 			}
 			break;
-		}
 		default:
 			if (p->endp)
 				LOGP(DLMGCP, LOGL_NOTICE,
 				     "Unhandled SDP option: '%c'/%d on 0x%x\n",
-				     line[0], line[0], ENDPOINT_NUMBER(p->endp));
+				     line[0], line[0],
+				     ENDPOINT_NUMBER(p->endp));
 			else
 				LOGP(DLMGCP, LOGL_NOTICE,
 				     "Unhandled SDP option: '%c'/%d\n",
@@ -295,25 +294,24 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	/* Now select the primary and alt_codec */
 	for (i = 0; i < codecs_used && codecs_assigned < 2; ++i) {
 		struct mgcp_rtp_codec *codec = codecs_assigned == 0 ?
-					&rtp->codec : &rtp->alt_codec;
+		    &rtp->codec : &rtp->alt_codec;
 
 		if (endp->tcfg->no_audio_transcoding &&
-			!is_codec_compatible(endp, &codecs[i])) {
+		    !is_codec_compatible(endp, &codecs[i])) {
 			LOGP(DLMGCP, LOGL_NOTICE, "Skipping codec %s\n",
-				codecs[i].codec_name);
+			     codecs[i].codec_name);
 			continue;
 		}
 
 		mgcp_set_audio_info(p->cfg, codec,
-					codecs[i].payload_type,
-					codecs[i].map_line);
+				    codecs[i].payload_type, codecs[i].map_line);
 		codecs_assigned += 1;
 	}
 
 	if (codecs_assigned > 0) {
 		/* TODO/XXX: Store this per codec and derive it on use */
 		if (maxptime >= 0 && maxptime * rtp->codec.frame_duration_den >
-				rtp->codec.frame_duration_num * 1500) {
+		    rtp->codec.frame_duration_num * 1500) {
 			/* more than 1 frame */
 			rtp->packet_duration_ms = 0;
 		}
@@ -322,8 +320,9 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 		     "Got media info via SDP: port %d, payload %d (%s), "
 		     "duration %d, addr %s\n",
 		     ntohs(rtp->rtp_port), rtp->codec.payload_type,
-		     rtp->codec.subtype_name ? rtp->codec.subtype_name : "unknown",
-		     rtp->packet_duration_ms, inet_ntoa(rtp->addr));
+		     rtp->codec.subtype_name ? rtp->
+		     codec.subtype_name : "unknown", rtp->packet_duration_ms,
+		     inet_ntoa(rtp->addr));
 	}
 
 	talloc_free(tmp_ctx);
