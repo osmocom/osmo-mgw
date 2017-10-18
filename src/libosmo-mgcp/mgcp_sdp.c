@@ -175,7 +175,7 @@ static void codecs_update(void *ctx, struct sdp_rtp_map *codecs, int used,
 static int is_codec_compatible(const struct mgcp_endpoint *endp,
 			       const struct sdp_rtp_map *codec)
 {
-	char *bts_codec;
+	char *codec_str;
 	char audio_codec[64];
 
 	if (!codec->codec_name)
@@ -185,8 +185,8 @@ static int is_codec_compatible(const struct mgcp_endpoint *endp,
 	 * GSM, GSM/8000 and GSM/8000/1 should all be compatible.. let's go
 	 * by name first.
 	 */
-	bts_codec = endp->tcfg->audio_name;
-	if (sscanf(bts_codec, "%63[^/]/%*d/%*d", audio_codec) < 1)
+	codec_str = endp->tcfg->audio_name;
+	if (sscanf(codec_str, "%63[^/]/%*d/%*d", audio_codec) < 1)
 		return 0;
 
 	return strcasecmp(audio_codec, codec->codec_name) == 0;
