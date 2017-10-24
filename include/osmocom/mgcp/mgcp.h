@@ -37,31 +37,6 @@
 #define RTP_PORT_DEFAULT_RANGE_START 16002
 #define RTP_PORT_DEFAULT_RANGE_END RTP_PORT_DEFAULT_RANGE_START + 64
 
-/**
- * Calculate the RTP audio port for the given multiplex
- * and the direction. This allows a semi static endpoint
- * to port calculation removing the need for the BSC
- * and the MediaGateway to communicate.
- *
- * Port usage explained:
- *       base + (multiplex * 2) + 0 == local port to wait for network packets
- *       base + (multiplex * 2) + 1 == local port for rtcp
- *
- * The above port will receive packets from the BTS that need
- * to be patched and forwarded to the network.
- * The above port will receive packets from the network that
- * need to be patched and forwarded to the BTS.
- *
- * We assume to have a static BTS IP address so we can differentiate
- * network and BTS.
- *
- */
-static inline int rtp_calculate_port(int multiplex, int base)
-{
-	return base + (multiplex * 2);
-}
-
-
 /*
  * Handling of MGCP Endpoints and the MGCP Config
  */
@@ -236,22 +211,6 @@ void mgcp_trunk_set_keepalive(struct mgcp_trunk_config *tcfg, int interval);
  */
 struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg);
 
-/* adc helper */
-static inline int mgcp_timeslot_to_endpoint(int multiplex, int timeslot)
-{
-	if (timeslot == 0) {
-		LOGP(DLMGCP, LOGL_ERROR, "Timeslot should not be 0\n");
-		timeslot = 255;
-	}
-
-	return timeslot + (32 * multiplex);
-}
-
-static inline void mgcp_endpoint_to_timeslot(int endpoint, int *multiplex, int *timeslot)
-{
-	*multiplex = endpoint / 32;
-	*timeslot = endpoint % 32;
-}
 
 int mgcp_send_reset_ep(struct mgcp_endpoint *endp, int endpoint);
 int mgcp_send_reset_all(struct mgcp_config *cfg);
