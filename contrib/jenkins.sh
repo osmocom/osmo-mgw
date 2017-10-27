@@ -14,9 +14,9 @@ deps="$base/deps"
 inst="$deps/install"
 export deps inst
 
-mkdir "$deps" || true
-rm -rf "$inst"
+osmo-clean-workspace.sh
 
+mkdir "$deps" || true
 osmo-build-dep.sh libosmocore "" ac_cv_path_DOXYGEN=false
 
 verify_value_string_arrays_are_terminated.py $(find . -name "*.[hc]")
@@ -45,3 +45,5 @@ LD_LIBRARY_PATH="$inst/lib" \
   DISTCHECK_CONFIGURE_FLAGS="$MGCP --enable-vty-tests --enable-external-tests" \
   $MAKE distcheck \
   || cat-testlogs.sh
+
+osmo-clean-workspace.sh
