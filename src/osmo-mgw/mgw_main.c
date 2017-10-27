@@ -35,6 +35,7 @@
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/vty.h>
+#include <osmocom/mgcp/debug.h>
 
 #include <osmocom/core/application.h>
 #include <osmocom/core/msgb.h>
@@ -233,6 +234,12 @@ static struct vty_app_info vty_info = {
 
 static const struct log_info_cat log_categories[] = {
 	/* DLMGCP is provided by the MGCP library */
+	[DRTP] = {
+		  .name = "DRTP",
+		  .description = "RTP stream handling",
+		  .color = "\033[1;30m",
+		  .enabled = 1,.loglevel = LOGL_NOTICE,
+		  },
 };
 
 const struct log_info log_info = {
