@@ -39,9 +39,9 @@ AC_SEARCH_LIBS([dlopen], [dl dld], [LIBRARY_DL="$LIBS";LIBS=""])
 AC_SUBST(LIBRARY_DL)
 
 
-PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 0.9.5)
-PKG_CHECK_MODULES(LIBOSMOVTY, libosmovty >= 0.3.0)
-PKG_CHECK_MODULES(LIBOSMONETIF, libosmo-netif >= 0.0.1)
+PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 0.10.0)
+PKG_CHECK_MODULES(LIBOSMOVTY, libosmovty >= 0.10.0)
+PKG_CHECK_MODULES(LIBOSMONETIF, libosmo-netif >= 0.1.0)
 
 # Enable/disable transcoding within osmo-bsc_mgcp?
 AC_ARG_ENABLE([mgcp-transcoding], [AS_HELP_STRING([--enable-mgcp-transcoding], [Build the MGCP gateway with internal transcoding enabled.])],
