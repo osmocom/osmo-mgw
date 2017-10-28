@@ -8,7 +8,6 @@ AM_CFLAGS = \
 	-Wall \
 	$(LIBOSMOCORE_CFLAGS) \
 	$(LIBOSMOVTY_CFLAGS) \
-	$(LIBOSMONETIF_CFLAGS) \
 	$(LIBBCG729_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
 	$(NULL)
@@ -24,7 +23,6 @@ osmo_bsc_mgcp_SOURCES = \
 osmo_bsc_mgcp_LDADD = \
 	$(top_builddir)/src/libosmo-legacy-mgcp/libosmo-legacy-mgcp.la \
 	$(LIBOSMOCORE_LIBS) \
-	$(LIBOSMONETIF_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
 	$(LIBBCG729_LIBS) \
 	$(LIBRARY_GSM) \
