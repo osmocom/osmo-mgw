@@ -1,4 +1,4 @@
-/* MGCPGW client interface to quagga VTY */
+/* MGCP client interface to quagga VTY */
 /* (C) 2016 by sysmocom s.m.f.c. GmbH <info@sysmocom.de>
  * Based on OpenBSC interface to quagga VTY (libmsc/vty_interface_layer3.c)
  * (C) 2009 by Harald Welte <laforge@gnumonks.org>
@@ -29,14 +29,14 @@
 
 #include <osmocom/mgcp_client/mgcp_client.h>
 
-#define MGCPGW_STR "MGCP gateway configuration for RTP streams\n"
+#define MGW_STR "MGCP gateway configuration for RTP streams\n"
 
 void *global_mgcp_client_ctx = NULL;
 struct mgcp_client_conf *global_mgcp_client_conf = NULL;
 
-DEFUN(cfg_mgcpgw_local_ip, cfg_mgcpgw_local_ip_cmd,
-      "mgcpgw local-ip A.B.C.D",
-      MGCPGW_STR "local bind to connect to MGCP gateway with\n"
+DEFUN(cfg_mgw_local_ip, cfg_mgw_local_ip_cmd,
+      "mgw local-ip A.B.C.D",
+      MGW_STR "local bind to connect to MGCP gateway with\n"
       "local bind IP address\n")
 {
 	if (!global_mgcp_client_conf)
@@ -46,10 +46,14 @@ DEFUN(cfg_mgcpgw_local_ip, cfg_mgcpgw_local_ip_cmd,
 		talloc_strdup(global_mgcp_client_ctx, argv[0]);
 	return CMD_SUCCESS;
 }
+ALIAS_DEPRECATED(cfg_mgw_local_ip, cfg_mgcpgw_local_ip_cmd,
+		 "mgcpgw local-ip A.B.C.D",
+		 MGW_STR "local bind to connect to MGCP gateway with\n"
+		 "local bind IP address\n")
 
-DEFUN(cfg_mgcpgw_local_port, cfg_mgcpgw_local_port_cmd,
-      "mgcpgw local-port <0-65535>",
-      MGCPGW_STR "local bind to connect to MGCP gateway with\n"
+DEFUN(cfg_mgw_local_port, cfg_mgw_local_port_cmd,
+      "mgw local-port <0-65535>",
+      MGW_STR "local bind to connect to MGCP gateway with\n"
       "local bind port\n")
 {
 	if (!global_mgcp_client_conf)
@@ -57,10 +61,14 @@ DEFUN(cfg_mgcpgw_local_port, cfg_mgcpgw_local_port_cmd,
 	global_mgcp_client_conf->local_port = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
+ALIAS_DEPRECATED(cfg_mgw_local_port, cfg_mgcpgw_local_port_cmd,
+		 "mgcpgw local-port <0-65535>",
+		 MGW_STR "local bind to connect to MGCP gateway with\n"
+		 "local bind port\n")
 
-DEFUN(cfg_mgcpgw_remote_ip, cfg_mgcpgw_remote_ip_cmd,
-      "mgcpgw remote-ip A.B.C.D",
-      MGCPGW_STR "remote bind to connect to MGCP gateway with\n"
+DEFUN(cfg_mgw_remote_ip, cfg_mgw_remote_ip_cmd,
+      "mgw remote-ip A.B.C.D",
+      MGW_STR "remote bind to connect to MGCP gateway with\n"
       "remote bind IP address\n")
 {
 	if (!global_mgcp_client_conf)
@@ -70,10 +78,14 @@ DEFUN(cfg_mgcpgw_remote_ip, cfg_mgcpgw_remote_ip_cmd,
 		talloc_strdup(global_mgcp_client_ctx, argv[0]);
 	return CMD_SUCCESS;
 }
+ALIAS_DEPRECATED(cfg_mgw_remote_ip, cfg_mgcpgw_remote_ip_cmd,
+		 "mgcpgw remote-ip A.B.C.D",
+		 MGW_STR "remote bind to connect to MGCP gateway with\n"
+		 "remote bind IP address\n")
 
-DEFUN(cfg_mgcpgw_remote_port, cfg_mgcpgw_remote_port_cmd,
-      "mgcpgw remote-port <0-65535>",
-      MGCPGW_STR "remote bind to connect to MGCP gateway with\n"
+DEFUN(cfg_mgw_remote_port, cfg_mgw_remote_port_cmd,
+      "mgw remote-port <0-65535>",
+      MGW_STR "remote bind to connect to MGCP gateway with\n"
       "remote bind port\n")
 {
 	if (!global_mgcp_client_conf)
@@ -81,10 +93,14 @@ DEFUN(cfg_mgcpgw_remote_port, cfg_mgcpgw_remote_port_cmd,
 	global_mgcp_client_conf->remote_port = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
+ALIAS_DEPRECATED(cfg_mgw_remote_port, cfg_mgcpgw_remote_port_cmd,
+		 "mgcpgw remote-port <0-65535>",
+		 MGW_STR "remote bind to connect to MGCP gateway with\n"
+		 "remote bind port\n")
 
-DEFUN(cfg_mgcpgw_endpoint_range, cfg_mgcpgw_endpoint_range_cmd,
-      "mgcpgw endpoint-range <1-65534> <1-65534>",
-      MGCPGW_STR "usable range of endpoint identifiers\n"
+DEFUN(cfg_mgw_endpoint_range, cfg_mgw_endpoint_range_cmd,
+      "mgw endpoint-range <1-65534> <1-65534>",
+      MGW_STR "usable range of endpoint identifiers\n"
       "set first useable endpoint identifier\n"
       "set the last useable endpoint identifier\n")
 {
@@ -101,13 +117,18 @@ DEFUN(cfg_mgcpgw_endpoint_range, cfg_mgcpgw_endpoint_range_cmd,
 	global_mgcp_client_conf->last_endpoint = last_endpoint;
 	return CMD_SUCCESS;
 }
+ALIAS_DEPRECATED(cfg_mgw_endpoint_range, cfg_mgcpgw_endpoint_range_cmd,
+      "mgcpgw endpoint-range <1-65534> <1-65534>",
+      MGW_STR "usable range of endpoint identifiers\n"
+      "set first useable endpoint identifier\n"
+      "set the last useable endpoint identifier\n")
 
 #define BTS_START_STR "First UDP port allocated for the BTS side\n"
 #define UDP_PORT_STR "UDP Port number\n"
 DEFUN(cfg_mgcp_rtp_bts_base_port,
       cfg_mgcp_rtp_bts_base_port_cmd,
-      "mgcpgw bts-base <0-65534>",
-      MGCPGW_STR
+      "mgw bts-base <0-65534>",
+      MGW_STR
       BTS_START_STR
       UDP_PORT_STR)
 {
@@ -125,32 +146,32 @@ int mgcp_client_config_write(struct vty *vty, const char *indent)
 
 	addr = global_mgcp_client_conf->local_addr;
 	if (addr)
-		vty_out(vty, "%smgcpgw local-ip %s%s", indent, addr,
+		vty_out(vty, "%smgw local-ip %s%s", indent, addr,
 			VTY_NEWLINE);
 	port = global_mgcp_client_conf->local_port;
 	if (port >= 0)
-		vty_out(vty, "%smgcpgw local-port %u%s", indent,
+		vty_out(vty, "%smgw local-port %u%s", indent,
 			(uint16_t)port, VTY_NEWLINE);
 
 	addr = global_mgcp_client_conf->remote_addr;
 	if (addr)
-		vty_out(vty, "%smgcpgw remote-ip %s%s", indent, addr,
+		vty_out(vty, "%smgw remote-ip %s%s", indent, addr,
 			VTY_NEWLINE);
 	port = global_mgcp_client_conf->remote_port;
 	if (port >= 0)
-		vty_out(vty, "%smgcpgw remote-port %u%s", indent,
+		vty_out(vty, "%smgw remote-port %u%s", indent,
 			(uint16_t)port, VTY_NEWLINE);
 
 	first_endpoint = global_mgcp_client_conf->first_endpoint;
 	last_endpoint = global_mgcp_client_conf->last_endpoint;
 	if (last_endpoint != 0) {
-		vty_out(vty, "%smgcpgw endpoint-range %u %u%s", indent,
+		vty_out(vty, "%smgw endpoint-range %u %u%s", indent,
 			first_endpoint, last_endpoint, VTY_NEWLINE);
 	}
 
 	bts_base = global_mgcp_client_conf->bts_base;
 	if (bts_base) {
-		vty_out(vty, "%smgcpgw bts-base %u%s", indent,
+		vty_out(vty, "%smgw bts-base %u%s", indent,
 			bts_base, VTY_NEWLINE);
 	}
 
@@ -162,10 +183,18 @@ void mgcp_client_vty_init(void *talloc_ctx, int node, struct mgcp_client_conf *c
 	global_mgcp_client_ctx = talloc_ctx;
 	global_mgcp_client_conf = conf;
 
+	install_element(node, &cfg_mgw_local_ip_cmd);
+	install_element(node, &cfg_mgw_local_port_cmd);
+	install_element(node, &cfg_mgw_remote_ip_cmd);
+	install_element(node, &cfg_mgw_remote_port_cmd);
+	install_element(node, &cfg_mgw_endpoint_range_cmd);
+
+	/* deprecated 'mgcpgw' commands */
 	install_element(node, &cfg_mgcpgw_local_ip_cmd);
 	install_element(node, &cfg_mgcpgw_local_port_cmd);
 	install_element(node, &cfg_mgcpgw_remote_ip_cmd);
 	install_element(node, &cfg_mgcpgw_remote_port_cmd);
 	install_element(node, &cfg_mgcpgw_endpoint_range_cmd);
+
 	install_element(node, &cfg_mgcp_rtp_bts_base_port_cmd);
 }
