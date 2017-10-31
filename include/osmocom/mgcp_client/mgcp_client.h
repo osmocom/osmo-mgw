@@ -21,7 +21,6 @@ struct mgcp_client_conf {
 	int remote_port;
 	uint16_t first_endpoint;
 	uint16_t last_endpoint;
-	uint16_t bts_base;
 };
 
 typedef unsigned int mgcp_trans_id_t;

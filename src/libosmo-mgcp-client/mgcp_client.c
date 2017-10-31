@@ -45,7 +45,6 @@ void mgcp_client_conf_init(struct mgcp_client_conf *conf)
 		.remote_port = -1,
 		.first_endpoint = 0,
 		.last_endpoint = 0,
-		.bts_base = 0,
 	};
 }
 
@@ -383,7 +382,6 @@ struct mgcp_client *mgcp_client_init(void *ctx,
 
 	mgcp->actual.first_endpoint = conf->first_endpoint > 0 ? (uint16_t)conf->first_endpoint : 0;
 	mgcp->actual.last_endpoint = conf->last_endpoint > 0 ? (uint16_t)conf->last_endpoint : 0;
-	mgcp->actual.bts_base = conf->bts_base > 0 ? (uint16_t)conf->bts_base : 4000;
 
 	return mgcp;
 }
