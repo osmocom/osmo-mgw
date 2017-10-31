@@ -1156,7 +1156,6 @@ int mgcp_vty_init(void)
 	install_element(CONFIG_NODE, &cfg_mgcp_cmd);
 	install_node(&mgcp_node, config_write_mgcp);
 
-	vty_install_default(MGCP_NODE);
 	install_element(MGCP_NODE, &cfg_mgcp_local_ip_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_bind_ip_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_bind_port_cmd);
@@ -1204,7 +1203,6 @@ int mgcp_vty_init(void)
 
 	install_element(MGCP_NODE, &cfg_mgcp_trunk_cmd);
 	install_node(&trunk_node, config_write_trunk);
-	vty_install_default(TRUNK_NODE);
 	install_element(TRUNK_NODE, &cfg_trunk_rtp_keepalive_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_rtp_keepalive_once_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_no_rtp_keepalive_cmd);
