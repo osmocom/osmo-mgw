@@ -29,14 +29,14 @@
 
 #include <osmocom/mgcp_client/mgcp_client.h>
 
-#define MGW_STR "MGCP gateway configuration for RTP streams\n"
+#define MGW_STR "Configure MGCP connection to Media Gateway\n"
 
 void *global_mgcp_client_ctx = NULL;
 struct mgcp_client_conf *global_mgcp_client_conf = NULL;
 
 DEFUN(cfg_mgw_local_ip, cfg_mgw_local_ip_cmd,
       "mgw local-ip A.B.C.D",
-      MGW_STR "local bind to connect to MGCP gateway with\n"
+      MGW_STR "local bind to connect to MGW from\n"
       "local bind IP address\n")
 {
 	if (!global_mgcp_client_conf)
@@ -53,7 +53,7 @@ ALIAS_DEPRECATED(cfg_mgw_local_ip, cfg_mgcpgw_local_ip_cmd,
 
 DEFUN(cfg_mgw_local_port, cfg_mgw_local_port_cmd,
       "mgw local-port <0-65535>",
-      MGW_STR "local bind to connect to MGCP gateway with\n"
+      MGW_STR "local port to connect to MGW from\n"
       "local bind port\n")
 {
 	if (!global_mgcp_client_conf)
@@ -68,8 +68,8 @@ ALIAS_DEPRECATED(cfg_mgw_local_port, cfg_mgcpgw_local_port_cmd,
 
 DEFUN(cfg_mgw_remote_ip, cfg_mgw_remote_ip_cmd,
       "mgw remote-ip A.B.C.D",
-      MGW_STR "remote bind to connect to MGCP gateway with\n"
-      "remote bind IP address\n")
+      MGW_STR "remote IP address to reach the MGW at\n"
+      "remote IP address\n")
 {
 	if (!global_mgcp_client_conf)
 		return CMD_ERR_NOTHING_TODO;
@@ -85,8 +85,8 @@ ALIAS_DEPRECATED(cfg_mgw_remote_ip, cfg_mgcpgw_remote_ip_cmd,
 
 DEFUN(cfg_mgw_remote_port, cfg_mgw_remote_port_cmd,
       "mgw remote-port <0-65535>",
-      MGW_STR "remote bind to connect to MGCP gateway with\n"
-      "remote bind port\n")
+      MGW_STR "remote port to reach the MGW at\n"
+      "remote port\n")
 {
 	if (!global_mgcp_client_conf)
 		return CMD_ERR_NOTHING_TODO;
@@ -101,8 +101,8 @@ ALIAS_DEPRECATED(cfg_mgw_remote_port, cfg_mgcpgw_remote_port_cmd,
 DEFUN(cfg_mgw_endpoint_range, cfg_mgw_endpoint_range_cmd,
       "mgw endpoint-range <1-65534> <1-65534>",
       MGW_STR "usable range of endpoint identifiers\n"
-      "set first useable endpoint identifier\n"
-      "set the last useable endpoint identifier\n")
+      "set first usable endpoint identifier\n"
+      "set last usable endpoint identifier\n")
 {
 	uint16_t first_endpoint = atoi(argv[0]);
 	uint16_t last_endpoint = atoi(argv[1]);
