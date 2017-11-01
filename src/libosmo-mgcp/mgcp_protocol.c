@@ -666,10 +666,11 @@ mgcp_header_done:
 	if (p->cfg->change_cb)
 		p->cfg->change_cb(tcfg, ENDPOINT_NUMBER(endp), MGCP_ENDP_CRCX);
 
+	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
+	OSMO_ASSERT(tcfg->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
 	if (conn->conn->mode & MGCP_CONN_RECV_ONLY
-	    && tcfg->keepalive_interval != 0) {
+	    && tcfg->keepalive_interval != MGCP_KEEPALIVE_NEVER)
 		send_dummy(endp, conn);
-	}
 
 	LOGP(DLMGCP, LOGL_NOTICE,
 	     "CRCX: endpoint:%x connection successfully created\n",
@@ -815,8 +816,10 @@ mgcp_header_done:
 		p->cfg->change_cb(endp->tcfg, ENDPOINT_NUMBER(endp),
 				  MGCP_ENDP_MDCX);
 
-	if (conn->conn->mode & MGCP_CONN_RECV_ONLY &&
-	    endp->tcfg->keepalive_interval != 0)
+	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
+	OSMO_ASSERT(endp->tcfg->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
+	if (conn->conn->mode & MGCP_CONN_RECV_ONLY
+	    && endp->tcfg->keepalive_interval != MGCP_KEEPALIVE_NEVER)
 		send_dummy(endp, conn);
 
 	if (silent)
@@ -1051,10 +1054,25 @@ static void mgcp_keepalive_timer_cb(void *_tcfg)
 	struct mgcp_conn *conn;
 	int i;
 
-	LOGP(DLMGCP, LOGL_DEBUG, "Triggered trunk %d keepalive timer.\n",
+	LOGP(DLMGCP, LOGL_DEBUG, "triggered trunk %d keepalive timer\n",
 	     tcfg->trunk_nr);
 
-	if (tcfg->keepalive_interval <= 0)
+	/* Do not accept invalid configuration values
+	 * valid is MGCP_KEEPALIVE_NEVER, MGCP_KEEPALIVE_ONCE and
+	 * values greater 0 */
+	OSMO_ASSERT(tcfg->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
+
+	/* The dummy packet functionality has been disabled, we will exit
+	 * immediately, no further timer is scheduled, which means we will no
+	 * longer send dummy packets even when we did before */
+	if (tcfg->keepalive_interval == MGCP_KEEPALIVE_NEVER)
+		return;
+
+	/* In cases where only one dummy packet is sent, we do not need
+	 * the timer since the functions that handle the CRCX and MDCX are
+	 * triggering the sending of the dummy packet. So we behave like in
+	 * the  MGCP_KEEPALIVE_NEVER case */
+	if (tcfg->keepalive_interval == MGCP_KEEPALIVE_ONCE)
 		return;
 
 	/* Send walk over all endpoints and send out dummy packets through
@@ -1067,7 +1085,8 @@ static void mgcp_keepalive_timer_cb(void *_tcfg)
 		}
 	}
 
-	LOGP(DLMGCP, LOGL_DEBUG, "Rescheduling trunk %d keepalive timer.\n",
+	/* Schedule the keepalive timer for the next round */
+	LOGP(DLMGCP, LOGL_DEBUG, "rescheduling trunk %d keepalive timer\n",
 	     tcfg->trunk_nr);
 	osmo_timer_schedule(&tcfg->keepalive_timer, tcfg->keepalive_interval,
 			    0);

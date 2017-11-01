@@ -569,7 +569,7 @@ DEFUN(cfg_mgcp_no_rtp_keepalive,
       cfg_mgcp_no_rtp_keepalive_cmd,
       "no rtp keep-alive", NO_STR RTP_STR RTP_KEEPALIVE_STR)
 {
-	mgcp_trunk_set_keepalive(&g_cfg->trunk, 0);
+	mgcp_trunk_set_keepalive(&g_cfg->trunk, MGCP_KEEPALIVE_NEVER);
 	return CMD_SUCCESS;
 }
 

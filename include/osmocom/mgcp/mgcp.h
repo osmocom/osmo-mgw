@@ -98,7 +98,17 @@ struct mgcp_port_range {
 	int last_port;
 };
 
+/* There are up to three modes in which the keep-alive dummy packet can be
+ * sent. The beviour is controlled viw the keepalive_interval member of the
+ * trunk config. If that member is set to 0 (MGCP_KEEPALIVE_NEVER) no dummy-
+ * packet is sent at all and the timer that sends regular dummy packets
+ * is no longer scheduled. If the keepalive_interval is set to -1, only
+ * one dummy packet is sent when an CRCX or an MDCX is performed. No timer
+ * is scheduled. For all vales greater 0, the a timer is scheduled and the
+ * value is used as interval. See also mgcp_keepalive_timer_cb(),
+ * handle_modify_con(), and handle_create_con() */
 #define MGCP_KEEPALIVE_ONCE (-1)
+#define MGCP_KEEPALIVE_NEVER 0
 
 struct mgcp_trunk_config {
 	struct llist_head entry;
