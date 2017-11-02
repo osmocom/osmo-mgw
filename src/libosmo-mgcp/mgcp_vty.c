@@ -70,11 +70,13 @@ static int config_write_mgcp(struct vty *vty)
 	vty_out(vty, "  rtp net-range %u %u%s",
 		g_cfg->net_ports.range_start, g_cfg->net_ports.range_end,
 		VTY_NEWLINE);
-
 	if (g_cfg->net_ports.bind_addr)
 		vty_out(vty, "  rtp net-bind-ip %s%s",
 			g_cfg->net_ports.bind_addr, VTY_NEWLINE);
-
+	if (g_cfg->net_ports.bind_addr_probe)
+		vty_out(vty, "  rtp ip-probing%s", VTY_NEWLINE);
+	else
+		vty_out(vty, "  no rtp ip-probing%s", VTY_NEWLINE);
 	vty_out(vty, "  rtp ip-dscp %d%s", g_cfg->endp_dscp, VTY_NEWLINE);
 	if (g_cfg->trunk.keepalive_interval == MGCP_KEEPALIVE_ONCE)
 		vty_out(vty, "  rtp keep-alive once%s", VTY_NEWLINE);
@@ -317,6 +319,24 @@ DEFUN(cfg_mgcp_rtp_no_net_bind_ip,
 {
 	talloc_free(g_cfg->net_ports.bind_addr);
 	g_cfg->net_ports.bind_addr = NULL;
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_mgcp_rtp_net_bind_ip_probing,
+      cfg_mgcp_rtp_net_bind_ip_probing_cmd,
+      "rtp ip-probing",
+      RTP_STR "automatic rtp bind ip selection\n")
+{
+	g_cfg->net_ports.bind_addr_probe = true;
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_mgcp_rtp_no_net_bind_ip_probing,
+      cfg_mgcp_rtp_no_net_bind_ip_probing_cmd,
+      "no rtp ip-probing",
+      NO_STR RTP_STR "no automatic rtp bind ip selection\n")
+{
+	g_cfg->net_ports.bind_addr_probe = false;
 	return CMD_SUCCESS;
 }
 
@@ -1163,6 +1183,8 @@ int mgcp_vty_init(void)
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_net_range_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_net_bind_ip_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_no_net_bind_ip_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_rtp_net_bind_ip_probing_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_rtp_no_net_bind_ip_probing_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_ip_dscp_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_ip_tos_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_force_ptime_cmd);

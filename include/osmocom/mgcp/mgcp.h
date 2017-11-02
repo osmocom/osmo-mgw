@@ -96,6 +96,12 @@ struct mgcp_port_range {
 	int range_start;
 	int range_end;
 	int last_port;
+
+	/* set to true to enable automatic probing
+	 * of the local bind IP-Address, bind_addr
+	 * (or its fall back) is used when automatic
+	 * probing fails */
+	bool bind_addr_probe;
 };
 
 /* There are up to three modes in which the keep-alive dummy packet can be

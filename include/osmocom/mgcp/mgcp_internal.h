@@ -318,12 +318,4 @@ enum {
 
 #define PTYPE_UNDEFINED (-1)
 
-/*! get the ip-address where the mgw application is bound on.
- *  \param[in] endp mgcp endpoint, that holds a copy of the VTY parameters
- *  \returns pointer to a string that contains the source ip-address */
-static inline const char *mgcp_net_src_addr(struct mgcp_endpoint *endp)
-{
-	if (endp->cfg->net_ports.bind_addr)
-		return endp->cfg->net_ports.bind_addr;
-	return endp->cfg->source_addr;
-}
+void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn);

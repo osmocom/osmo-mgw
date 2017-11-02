@@ -203,13 +203,16 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 	int rc;
 	struct msgb *result;
 	char osmux_extension[strlen("\nX-Osmux: 255") + 1];
+	char local_ip_addr[INET_ADDRSTRLEN];
 
 	sdp = msgb_alloc_headroom(4096, 128, "sdp record");
 	if (!sdp)
 		return NULL;
 
-	if (!addr)
-		addr = mgcp_net_src_addr(endp);
+	if (!addr) {
+		mgcp_get_local_addr(local_ip_addr, conn);
+		addr = local_ip_addr;
+	}
 
 	if (conn->osmux.state == OSMUX_STATE_NEGOTIATING) {
 		sprintf(osmux_extension, "\nX-Osmux: %u", conn->osmux.cid);
@@ -597,12 +600,6 @@ mgcp_header_done:
 		goto error2;
 	}
 
-	mgcp_rtp_end_config(endp, 0, &conn->end);
-
-	if (allocate_port(endp, conn) != 0) {
-		goto error2;
-	}
-
 	/* Annotate Osmux circuit ID and set it to negotiating state until this
 	 * is fully set up from the dummy load. */
 	conn->osmux.state = OSMUX_STATE_DISABLED;
@@ -628,6 +625,12 @@ mgcp_header_done:
 	if (p->cfg->force_ptime) {
 		conn->end.packet_duration_ms = p->cfg->force_ptime;
 		conn->end.force_output_ptime = 1;
+	}
+
+	mgcp_rtp_end_config(endp, 0, &conn->end);
+
+	if (allocate_port(endp, conn) != 0) {
+		goto error2;
 	}
 
 	if (setup_rtp_processing(endp, conn) != 0) {

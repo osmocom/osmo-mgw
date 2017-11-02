@@ -32,6 +32,7 @@
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/select.h>
+#include <osmocom/core/socket.h>
 #include <osmocom/netif/rtp.h>
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_common.h>
@@ -51,6 +52,56 @@ enum {
 	MGCP_PROTO_RTP,
 	MGCP_PROTO_RTCP,
 };
+
+/*! Determine the local rtp bind IP-address.
+ *  \param[out] addr caller provided memory to store the resulting IP-Address
+ *  \param[in] endp mgcp endpoint, that holds a copy of the VTY parameters
+ *
+ *  The local bind IP-address is automatically selected by probing the
+ *  IP-Address of the interface that is pointing towards the remote IP-Address,
+ *  if no remote IP-Address is known yet, the statically configured
+ *  IP-Addresses are used as fallback. */
+void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
+{
+
+	struct mgcp_endpoint *endp;
+	int rc;
+	endp = conn->conn->endp;
+
+	/* Try probing the local IP-Address */
+	if (endp->cfg->net_ports.bind_addr_probe && conn->end.addr.s_addr != 0) {
+		rc = osmo_sock_local_ip(addr, inet_ntoa(conn->end.addr));
+		if (rc < 0)
+			LOGP(DRTP, LOGL_ERROR,
+			     "endpoint:%x CI:%i local interface auto detection failed, using configured addresses...\n",
+			     ENDPOINT_NUMBER(endp), conn->conn->id);
+		else {
+			LOGP(DRTP, LOGL_DEBUG,
+			     "endpoint:%x CI:%i selected local rtp bind ip %s by probing using remote ip %s\n",
+			     ENDPOINT_NUMBER(endp), conn->conn->id, addr,
+			     inet_ntoa(conn->end.addr));
+			return;
+		}
+	}
+
+	/* Select from preconfigured IP-Addresses */
+	if (endp->cfg->net_ports.bind_addr) {
+		/* Check there is a bind IP for the RTP traffic configured,
+		 * if so, use that IP-Address */
+		strncpy(addr, endp->cfg->net_ports.bind_addr, INET_ADDRSTRLEN);
+		LOGP(DRTP, LOGL_DEBUG,
+		     "endpoint:%x CI:%i using configured rtp bind ip as local bind ip %s\n",
+		     ENDPOINT_NUMBER(endp), conn->conn->id, addr);
+	} else {
+		/* No specific bind IP is configured for the RTP traffic, so
+		 * assume the IP where we listen for incoming MGCP messages
+		 * as bind IP */
+		strncpy(addr, endp->cfg->source_addr, INET_ADDRSTRLEN);
+		LOGP(DRTP, LOGL_DEBUG,
+		     "endpoint:%x CI:%i using mgcp bind ip as local rtp bind ip: %s\n",
+		     ENDPOINT_NUMBER(endp), conn->conn->id, addr);
+	}
+}
 
 /* This does not need to be a precision timestamp and
  * is allowed to wrap quite fast. The returned value is
@@ -1158,6 +1209,7 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 {
 	char name[512];
 	struct mgcp_rtp_end *end;
+	char local_ip_addr[INET_ADDRSTRLEN];
 
 	snprintf(name, sizeof(name), "%s-%u", conn->conn->name, conn->conn->id);
 	end = &conn->end;
@@ -1182,7 +1234,9 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 	end->rtcp.data = conn;
 	end->rtcp.cb = rtp_data_net;
 
-	return bind_rtp(endp->cfg, mgcp_net_src_addr(endp), end,
+	mgcp_get_local_addr(local_ip_addr, conn);
+
+	return bind_rtp(endp->cfg, local_ip_addr, end,
 			ENDPOINT_NUMBER(endp));
 }
 
