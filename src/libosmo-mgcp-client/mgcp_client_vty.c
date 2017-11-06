@@ -125,8 +125,8 @@ ALIAS_DEPRECATED(cfg_mgw_endpoint_range, cfg_mgcpgw_endpoint_range_cmd,
 
 #define BTS_START_STR "First UDP port allocated for the BTS side\n"
 #define UDP_PORT_STR "UDP Port number\n"
-DEFUN(cfg_mgcp_rtp_bts_base_port,
-      cfg_mgcp_rtp_bts_base_port_cmd,
+DEFUN(cfg_mgw_rtp_bts_base_port,
+      cfg_mgw_rtp_bts_base_port_cmd,
       "mgw bts-base <0-65534>",
       MGW_STR
       BTS_START_STR
@@ -135,6 +135,12 @@ DEFUN(cfg_mgcp_rtp_bts_base_port,
 	global_mgcp_client_conf->bts_base = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
+ALIAS_DEPRECATED(cfg_mgw_rtp_bts_base_port,
+      cfg_mgcpgw_rtp_bts_base_port_cmd,
+      "mgcpgw bts-base <0-65534>",
+      MGW_STR
+      BTS_START_STR
+      UDP_PORT_STR)
 
 int mgcp_client_config_write(struct vty *vty, const char *indent)
 {
@@ -188,6 +194,7 @@ void mgcp_client_vty_init(void *talloc_ctx, int node, struct mgcp_client_conf *c
 	install_element(node, &cfg_mgw_remote_ip_cmd);
 	install_element(node, &cfg_mgw_remote_port_cmd);
 	install_element(node, &cfg_mgw_endpoint_range_cmd);
+	install_element(node, &cfg_mgw_rtp_bts_base_port_cmd);
 
 	/* deprecated 'mgcpgw' commands */
 	install_element(node, &cfg_mgcpgw_local_ip_cmd);
@@ -195,6 +202,5 @@ void mgcp_client_vty_init(void *talloc_ctx, int node, struct mgcp_client_conf *c
 	install_element(node, &cfg_mgcpgw_remote_ip_cmd);
 	install_element(node, &cfg_mgcpgw_remote_port_cmd);
 	install_element(node, &cfg_mgcpgw_endpoint_range_cmd);
-
-	install_element(node, &cfg_mgcp_rtp_bts_base_port_cmd);
+	install_element(node, &cfg_mgcpgw_rtp_bts_base_port_cmd);
 }
