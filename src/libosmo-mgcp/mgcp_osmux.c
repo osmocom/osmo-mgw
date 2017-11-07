@@ -207,12 +207,18 @@ endpoint_lookup(struct mgcp_config *cfg, int cid,
 		case MGCP_DEST_NET:
 			/* FIXME: Get rid of CONN_ID_XXX! */
 			conn_net = mgcp_conn_get_rtp(endp, CONN_ID_NET);
-			this = &conn_net->end.addr;
+			if (conn_net)
+				this = &conn_net->end.addr;
+			else
+				this = NULL;
 			break;
 		case MGCP_DEST_BTS:
 			/* FIXME: Get rid of CONN_ID_XXX! */
 			conn_bts = mgcp_conn_get_rtp(endp, CONN_ID_BTS);
-			this = &conn_bts->end.addr;
+			if (conn_bts)
+				this = &conn_bts->end.addr;
+			else
+				this = NULL;
 			break;
 		default:
 			/* Should not ever happen */
@@ -222,7 +228,8 @@ endpoint_lookup(struct mgcp_config *cfg, int cid,
 
 		/* FIXME: Get rid of CONN_ID_XXX! */
 		conn_net = mgcp_conn_get_rtp(endp, CONN_ID_NET);
-		if (conn_net->osmux.cid == cid && this->s_addr == from_addr->s_addr)
+		if (conn_net && this && conn_net->osmux.cid == cid
+		    && this->s_addr == from_addr->s_addr)
 			return endp;
 	}
 
