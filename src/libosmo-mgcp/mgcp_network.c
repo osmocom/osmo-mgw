@@ -627,14 +627,20 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 
 /* Forward data to a debug tap. This is debug function that is intended for
  * debugging the voice traffic with tools like gstreamer */
-static int forward_data(int fd, struct mgcp_rtp_tap *tap, const char *buf,
-			int len)
+static void forward_data(int fd, struct mgcp_rtp_tap *tap, const char *buf,
+			 int len)
 {
-	if (!tap->enabled)
-		return 0;
+	int rc;
 
-	return sendto(fd, buf, len, 0,
-		      (struct sockaddr *)&tap->forward, sizeof(tap->forward));
+	if (!tap->enabled)
+		return;
+
+	rc = sendto(fd, buf, len, 0, (struct sockaddr *)&tap->forward,
+		    sizeof(tap->forward));
+
+	if (rc < 0)
+		LOGP(DRTP, LOGL_ERROR,
+		     "Forwarding tapped (debug) voice data failed.\n");
 }
 
 /*! Send RTP/RTCP data to a specified destination connection.
