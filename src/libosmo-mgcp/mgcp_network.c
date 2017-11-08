@@ -1054,7 +1054,7 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 
 	char buf[RTP_BUF_SIZE];
 	int proto;
-	int rc;
+	int len;
 
 	conn_src = (struct mgcp_conn_rtp *)fd->data;
 	OSMO_ASSERT(conn_src);
@@ -1065,20 +1065,20 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	     ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn_src->conn));
 
 	/* Receive packet */
-	rc = mgcp_recv(&proto, &addr, buf, sizeof(buf), fd);
-	if (rc < 0)
+	len = mgcp_recv(&proto, &addr, buf, sizeof(buf), fd);
+	if (len < 0)
 		return -1;
 
 	/* Check if the connection is in loopback mode, if yes, just send the
 	 * incoming data back to the origin */
 	if (conn_src->conn->mode == MGCP_CONN_LOOPBACK) {
 		return mgcp_send_rtp(proto, &addr, buf,
-				     sizeof(buf), conn_src, conn_src);
+				     len, conn_src, conn_src);
 	}
 
 	/* Execute endpoint specific implementation that handles the
 	 * dispatching of the RTP data */
-	return endp->type->dispatch_rtp_cb(proto, &addr, buf, sizeof(buf),
+	return endp->type->dispatch_rtp_cb(proto, &addr, buf, len,
 					   conn_src->conn);
 }
 
