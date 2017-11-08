@@ -67,11 +67,11 @@ static int config_write_mgcp(struct vty *vty)
 		vty_out(vty, "  local ip %s%s", g_cfg->local_ip, VTY_NEWLINE);
 	vty_out(vty, "  bind ip %s%s", g_cfg->source_addr, VTY_NEWLINE);
 	vty_out(vty, "  bind port %u%s", g_cfg->source_port, VTY_NEWLINE);
-	vty_out(vty, "  rtp net-range %u %u%s",
+	vty_out(vty, "  rtp port-range %u %u%s",
 		g_cfg->net_ports.range_start, g_cfg->net_ports.range_end,
 		VTY_NEWLINE);
 	if (g_cfg->net_ports.bind_addr)
-		vty_out(vty, "  rtp net-bind-ip %s%s",
+		vty_out(vty, "  rtp bind-ip %s%s",
 			g_cfg->net_ports.bind_addr, VTY_NEWLINE);
 	if (g_cfg->net_ports.bind_addr_probe)
 		vty_out(vty, "  rtp ip-probing%s", VTY_NEWLINE);
@@ -292,28 +292,37 @@ static void parse_range(struct mgcp_port_range *range, const char **argv)
 #define RANGE_START_STR "Start of the range of ports\n"
 #define RANGE_END_STR "End of the range of ports\n"
 
-DEFUN(cfg_mgcp_rtp_net_range,
-      cfg_mgcp_rtp_net_range_cmd,
-      "rtp net-range <0-65534> <0-65534>",
+DEFUN(cfg_mgcp_rtp_port_range,
+      cfg_mgcp_rtp_port_range_cmd,
+      "rtp port-range <0-65534> <0-65534>",
       RTP_STR "Range of ports to use for the NET side\n"
       RANGE_START_STR RANGE_END_STR)
 {
 	parse_range(&g_cfg->net_ports, argv);
 	return CMD_SUCCESS;
 }
+ALIAS_DEPRECATED(cfg_mgcp_rtp_port_range,
+		 cfg_mgcp_rtp_net_range_cmd,
+		 "rtp net-range <0-65534> <0-65534>",
+		 RTP_STR "Range of ports to use for the NET side\n"
+		 RANGE_START_STR RANGE_END_STR)
 
-DEFUN(cfg_mgcp_rtp_net_bind_ip,
-      cfg_mgcp_rtp_net_bind_ip_cmd,
-      "rtp net-bind-ip A.B.C.D",
+DEFUN(cfg_mgcp_rtp_bind_ip,
+      cfg_mgcp_rtp_bind_ip_cmd,
+      "rtp bind-ip A.B.C.D",
       RTP_STR "Bind endpoints facing the Network\n" "Address to bind to\n")
 {
 	osmo_talloc_replace_string(g_cfg, &g_cfg->net_ports.bind_addr, argv[0]);
 	return CMD_SUCCESS;
 }
+ALIAS_DEPRECATED(cfg_mgcp_rtp_bind_ip,
+		 cfg_mgcp_rtp_net_bind_ip_cmd,
+		 "rtp net-bind-ip A.B.C.D",
+		 RTP_STR "Bind endpoints facing the Network\n" "Address to bind to\n")
 
-DEFUN(cfg_mgcp_rtp_no_net_bind_ip,
-      cfg_mgcp_rtp_no_net_bind_ip_cmd,
-      "no rtp net-bind-ip",
+DEFUN(cfg_mgcp_rtp_no_bind_ip,
+      cfg_mgcp_rtp_no_bind_ip_cmd,
+      "no rtp bind-ip",
       NO_STR RTP_STR "Bind endpoints facing the Network\n"
       "Address to bind to\n")
 {
@@ -321,6 +330,11 @@ DEFUN(cfg_mgcp_rtp_no_net_bind_ip,
 	g_cfg->net_ports.bind_addr = NULL;
 	return CMD_SUCCESS;
 }
+ALIAS_DEPRECATED(cfg_mgcp_rtp_no_bind_ip,
+		 cfg_mgcp_rtp_no_net_bind_ip_cmd,
+		 "no rtp net-bind-ip",
+		 NO_STR RTP_STR "Bind endpoints facing the Network\n"
+		 "Address to bind to\n")
 
 DEFUN(cfg_mgcp_rtp_net_bind_ip_probing,
       cfg_mgcp_rtp_net_bind_ip_probing_cmd,
@@ -1182,8 +1196,11 @@ int mgcp_vty_init(void)
 	install_element(MGCP_NODE, &cfg_mgcp_bind_port_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_bind_early_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_net_range_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_rtp_port_range_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_net_bind_ip_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_rtp_bind_ip_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_no_net_bind_ip_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_rtp_no_bind_ip_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_net_bind_ip_probing_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_no_net_bind_ip_probing_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_ip_dscp_cmd);
