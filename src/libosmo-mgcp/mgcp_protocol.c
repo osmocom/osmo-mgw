@@ -853,12 +853,12 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 	struct mgcp_conn_rtp *conn = NULL;
 	uint32_t conn_id;
 
+	if (p->found != 0)
+		return create_err_response(NULL, error_code, "DLCX", p->trans);
+
 	LOGP(DLMGCP, LOGL_NOTICE,
 	     "DLCX: endpoint:%x deleting connection ...\n",
 	     ENDPOINT_NUMBER(endp));
-
-	if (p->found != 0)
-		return create_err_response(NULL, error_code, "DLCX", p->trans);
 
 	if (llist_count(&endp->conns) <= 0) {
 		LOGP(DLMGCP, LOGL_ERROR,
