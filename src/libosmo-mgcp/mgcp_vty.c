@@ -1269,18 +1269,6 @@ int mgcp_vty_init(void)
 	return 0;
 }
 
-static int allocate_trunk(struct mgcp_trunk_config *trunk)
-{
-	if (mgcp_endpoints_allocate(trunk) != 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Failed to allocate %d endpoints on trunk %d.\n",
-		     trunk->number_endpoints, trunk->trunk_nr);
-		return -1;
-	}
-
-	return 0;
-}
-
 int mgcp_parse_config(const char *config_file, struct mgcp_config *cfg,
 		      enum mgcp_role role)
 {
@@ -1304,17 +1292,18 @@ int mgcp_parse_config(const char *config_file, struct mgcp_config *cfg,
 		return -1;
 	}
 
-	if (allocate_trunk(&g_cfg->trunk) != 0) {
+	if (mgcp_endpoints_allocate(&g_cfg->trunk) != 0) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "Failed to initialize the virtual trunk.\n");
+		     "Failed to initialize the virtual trunk (%d endpoints)\n",
+		     g_cfg->trunk.number_endpoints);
 		return -1;
 	}
 
 	llist_for_each_entry(trunk, &g_cfg->trunks, entry) {
-		if (allocate_trunk(trunk) != 0) {
+		if (mgcp_endpoints_allocate(trunk) != 0) {
 			LOGP(DLMGCP, LOGL_ERROR,
-			     "Failed to initialize E1 trunk %d.\n",
-			     trunk->trunk_nr);
+			     "Failed to initialize trunk %d (%d endpoints)\n",
+			     trunk->trunk_nr, trunk->number_endpoints);
 			return -1;
 		}
 	}
