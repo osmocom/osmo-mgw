@@ -1170,7 +1170,7 @@ struct mgcp_trunk_config *mgcp_trunk_alloc(struct mgcp_config *cfg, int nr)
 	trunk->audio_payload = 126;
 	trunk->audio_send_ptime = 1;
 	trunk->audio_send_name = 1;
-	trunk->number_endpoints = 33;
+	trunk->vty_number_endpoints = 33;
 	trunk->omit_rtcp = 0;
 	mgcp_trunk_set_keepalive(trunk, MGCP_KEEPALIVE_ONCE);
 	llist_add_tail(&trunk->entry, &cfg->trunks);
@@ -1202,12 +1202,12 @@ int mgcp_endpoints_allocate(struct mgcp_trunk_config *tcfg)
 
 	tcfg->endpoints = _talloc_zero_array(tcfg->cfg,
 					     sizeof(struct mgcp_endpoint),
-					     tcfg->number_endpoints,
+					     tcfg->vty_number_endpoints,
 					     "endpoints");
 	if (!tcfg->endpoints)
 		return -1;
 
-	for (i = 0; i < tcfg->number_endpoints; ++i) {
+	for (i = 0; i < tcfg->vty_number_endpoints; ++i) {
 		INIT_LLIST_HEAD(&tcfg->endpoints[i].conns);
 		tcfg->endpoints[i].cfg = tcfg->cfg;
 		tcfg->endpoints[i].tcfg = tcfg;
@@ -1217,6 +1217,7 @@ int mgcp_endpoints_allocate(struct mgcp_trunk_config *tcfg)
 		tcfg->endpoints[i].type = &ep_typeset.rtp;
 	}
 
+	tcfg->number_endpoints = tcfg->vty_number_endpoints;
 	return 0;
 }
 

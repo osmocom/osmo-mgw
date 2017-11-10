@@ -151,6 +151,7 @@ struct mgcp_trunk_config {
 	int rtp_accept_all;
 
 	unsigned int number_endpoints;
+	int vty_number_endpoints;
 	struct mgcp_endpoint *endpoints;
 };
 

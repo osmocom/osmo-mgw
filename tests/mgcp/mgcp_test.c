@@ -563,9 +563,8 @@ static void test_messages(void)
 
 	cfg = mgcp_config_alloc();
 
-	cfg->trunk.number_endpoints = 64;
+	cfg->trunk.vty_number_endpoints = 64;
 	mgcp_endpoints_allocate(&cfg->trunk);
-
 	cfg->policy_cb = mgcp_test_policy_cb;
 
 	mgcp_endpoints_allocate(mgcp_trunk_alloc(cfg, 1));
@@ -685,7 +684,7 @@ static void test_retransmission(void)
 
 	cfg = mgcp_config_alloc();
 
-	cfg->trunk.number_endpoints = 64;
+	cfg->trunk.vty_number_endpoints = 64;
 	mgcp_endpoints_allocate(&cfg->trunk);
 
 	mgcp_endpoints_allocate(mgcp_trunk_alloc(cfg, 1));
@@ -737,7 +736,7 @@ static void test_rqnt_cb(void)
 	cfg = mgcp_config_alloc();
 	cfg->rqnt_cb = rqnt_cb;
 
-	cfg->trunk.number_endpoints = 64;
+	cfg->trunk.vty_number_endpoints = 64;
 	mgcp_endpoints_allocate(&cfg->trunk);
 
 	mgcp_endpoints_allocate(mgcp_trunk_alloc(cfg, 1));
@@ -1025,7 +1024,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 
 	endp.type = &ep_typeset.rtp;
 
-	trunk.number_endpoints = 1;
+	trunk.vty_number_endpoints = 1;
 	trunk.endpoints = &endp;
 	trunk.force_constant_ssrc = patch_ssrc;
 	trunk.force_aligned_timing = patch_ts;
@@ -1097,7 +1096,7 @@ static void test_multilple_codec(void)
 	printf("Testing multiple payload types\n");
 
 	cfg = mgcp_config_alloc();
-	cfg->trunk.number_endpoints = 64;
+	cfg->trunk.vty_number_endpoints = 64;
 	mgcp_endpoints_allocate(&cfg->trunk);
 	cfg->policy_cb = mgcp_test_policy_cb;
 	mgcp_endpoints_allocate(mgcp_trunk_alloc(cfg, 1));
@@ -1228,7 +1227,7 @@ static void test_no_cycle(void)
 	printf("Testing no sequence flow on initial packet\n");
 
 	cfg = mgcp_config_alloc();
-	cfg->trunk.number_endpoints = 64;
+	cfg->trunk.vty_number_endpoints = 64;
 	mgcp_endpoints_allocate(&cfg->trunk);
 
 	endp = &cfg->trunk.endpoints[1];
@@ -1274,7 +1273,7 @@ static void test_no_name(void)
 	printf("Testing no rtpmap name\n");
 	cfg = mgcp_config_alloc();
 
-	cfg->trunk.number_endpoints = 64;
+	cfg->trunk.vty_number_endpoints = 64;
 	cfg->trunk.audio_send_name = 0;
 	mgcp_endpoints_allocate(&cfg->trunk);
 

@@ -115,7 +115,7 @@ static int config_write_mgcp(struct vty *vty)
 		g_cfg->trunk.audio_send_name ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, "  loop %u%s", ! !g_cfg->trunk.audio_loop, VTY_NEWLINE);
 	vty_out(vty, "  number endpoints %u%s",
-		g_cfg->trunk.number_endpoints - 1, VTY_NEWLINE);
+		g_cfg->trunk.vty_number_endpoints - 1, VTY_NEWLINE);
 	vty_out(vty, "  %sallow-transcoding%s",
 		g_cfg->trunk.no_audio_transcoding ? "no " : "", VTY_NEWLINE);
 	if (g_cfg->call_agent_addr)
@@ -524,7 +524,7 @@ DEFUN(cfg_mgcp_number_endp,
       "Number options\n" "Endpoints available\n" "Number endpoints\n")
 {
 	/* + 1 as we start counting at one */
-	g_cfg->trunk.number_endpoints = atoi(argv[0]) + 1;
+	g_cfg->trunk.vty_number_endpoints = atoi(argv[0]) + 1;
 	return CMD_SUCCESS;
 }
 
