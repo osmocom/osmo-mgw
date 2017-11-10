@@ -1,3 +1,33 @@
+osmo-mgw (1.2.0) unstable; urgency=medium
+
+  [ Neels Hofmeyr ]
+  * jenkins: use osmo-clean-workspace.sh before and after build
+  * vty: skip installing cmds now always installed by default
+  * mgcp-client vty: use name 'mgw' instead of 'mgcpgw'
+  * mgcp client: vty: tweak doc strings
+
+  [ Philipp Maier ]
+  * sdp: refactoring sdp parser/generator
+  * cosmetic: rename bts_codec to codec_str
+  * cosmetic: fix coding style for mgcp_parse_sdp_data()
+  * cosmetic: fix commenting style
+  * cosmetic: correct whitespaces
+  * client: fix stderror logging in unit-test
+  * client: add unified function to generate MGCP messages
+  * client: add ip address parsing to the client
+  * protocol: allow wildcarded DLCX
+  * mgcp: remove port/timeslot calculator functions from  mgcp.h
+  * network: add separate log category
+  * cosmetic: make dummy packet handling more explicit
+  * network: autdetect rtp bind ip-address
+  * network: fix rtp packet length
+  * network: remove unused return code
+
+  [ Pau Espin Pedrol ]
+  * mgcp_client_vty.c: Fix VTY compatibility with 'mgcpgw bts-base'
+
+ -- Harald Welte <laforge@gnumonks.org>  Fri, 10 Nov 2017 11:10:23 +0900
+
 osmo-mgw (1.1.0) unstable; urgency=medium
 
   * New upstream release
