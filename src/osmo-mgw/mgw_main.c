@@ -280,7 +280,7 @@ int main(int argc, char **argv)
 
 	/* start telnet after reading config for vty_get_bind_addr() */
 	rc = telnet_init_dynif(tall_bsc_ctx, NULL,
-			       vty_get_bind_addr(), OSMO_VTY_PORT_BSC_MGCP);
+			       vty_get_bind_addr(), OSMO_VTY_PORT_MGW);
 	if (rc < 0)
 		return rc;
 
