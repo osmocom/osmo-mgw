@@ -16,7 +16,7 @@ Homepage: https://osmocom.org/projects/osmo-mgw
 Package: osmo-mgw
 Architecture: any
 Multi-Arch: foreign
-Depends: libosmo-mgcp0, ${misc:Depends}, ${shlibs:Depends}
+Depends: libosmo-mgcp1, ${misc:Depends}, ${shlibs:Depends}
 Description: OsmoMGW: Osmocom's Media Gateway for 2G and 3G circuit-switched mobile networks
 
 Package: libosmo-mgcp1
