@@ -64,11 +64,11 @@ static struct mgcp_trunk_config *reset_trunk;
 static int reset_endpoints = 0;
 static int daemonize = 0;
 
-const char *openbsc_copyright =
+const char *osmomgw_copyright =
 	"Copyright (C) 2009-2010 Holger Freyther and On-Waves\r\n"
 	"Copyright (C) 2017 by sysmocom s.f.m.c. GmbH <info@sysmocom.de>\r\n"
-	"Contributions by Daniel Willmann, Jan Lübbe, Stefan Schmidt\r\n"
-	"Dieter Spaar, Andreas Eversberg, Harald Welte\r\n\r\n"
+	"Contributions by Pablo Neira Ayuso, Jacob Erlbeck, Neels Hofmeyr\r\n"
+	"Philipp Maier\r\n\r\n"
 	"License AGPLv3+: GNU AGPL version 3 or later <http://gnu.org/licenses/agpl-3.0.html>\r\n"
 	"This is free software: you are free to change and redistribute it.\r\n"
 	"There is NO WARRANTY, to the extent permitted by law.\r\n";
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
 	if (!cfg)
 		return -1;
 
-	vty_info.copyright = openbsc_copyright;
+	vty_info.copyright = osmomgw_copyright;
 	vty_init(&vty_info);
 	logging_vty_add_cmds(NULL);
 	osmo_stats_vty_add_cmds(&log_info);
