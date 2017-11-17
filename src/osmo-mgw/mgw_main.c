@@ -45,6 +45,7 @@
 #include <osmocom/core/stats.h>
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/core/socket.h>
 
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/logging.h>
@@ -250,8 +251,8 @@ const struct log_info log_info = {
 
 int main(int argc, char **argv)
 {
-	struct sockaddr_in addr;
-	int on = 1, rc;
+	unsigned int flags;
+	int rc;
 
 	tall_bsc_ctx = talloc_named_const(NULL, 1, "mgcp-callagent");
 	msgb_talloc_ctx_init(tall_bsc_ctx, 0);
@@ -289,52 +290,26 @@ int main(int argc, char **argv)
 	cfg->reset_cb = mgcp_rsip_cb;
 
 	/* we need to bind a socket */
-	if (rc == 0) {
-		cfg->gw_fd.bfd.when = BSC_FD_READ;
-		cfg->gw_fd.bfd.cb = read_call_agent;
-		cfg->gw_fd.bfd.fd = socket(AF_INET, SOCK_DGRAM, 0);
-		if (cfg->gw_fd.bfd.fd < 0) {
-			perror("Gateway failed to listen");
-			return -1;
-		}
+	flags = OSMO_SOCK_F_BIND;
+	if (cfg->call_agent_addr)
+		flags |= OSMO_SOCK_F_CONNECT;
 
-		setsockopt(cfg->gw_fd.bfd.fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-
-		memset(&addr, 0, sizeof(addr));
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons(cfg->source_port);
-		inet_aton(cfg->source_addr, &addr.sin_addr);
-
-		if (bind(cfg->gw_fd.bfd.fd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
-			perror("Gateway failed to bind");
-			return -1;
-		}
-
-		cfg->gw_fd.bfd.data = msgb_alloc(4096, "mgcp-msg");
-		if (!cfg->gw_fd.bfd.data) {
-			fprintf(stderr, "Gateway memory error.\n");
-			return -1;
-		}
-
-		if (cfg->call_agent_addr) {
-			addr.sin_port = htons(2727);
-			inet_aton(cfg->call_agent_addr, &addr.sin_addr);
-			if (connect(cfg->gw_fd.bfd.fd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
-				LOGP(DLMGCP, LOGL_ERROR, "Failed to connect to: '%s'. errno: %d\n",
-				     cfg->call_agent_addr, errno);
-				close(cfg->gw_fd.bfd.fd);
-				cfg->gw_fd.bfd.fd = -1;
-				return -1;
-			}
-		}
-
-		if (osmo_fd_register(&cfg->gw_fd.bfd) != 0) {
-			LOGP(DLMGCP, LOGL_FATAL, "Failed to register the fd\n");
-			return -1;
-		}
-
-		LOGP(DLMGCP, LOGL_NOTICE, "Configured for MGCP.\n");
+	rc = osmo_sock_init2_ofd(&cfg->gw_fd.bfd, AF_INET, SOCK_DGRAM, IPPROTO_UDP,
+				cfg->source_addr, cfg->source_port,
+				cfg->call_agent_addr, cfg->call_agent_addr ? 2727 : 0, flags);
+	if (rc < 0) {
+		perror("Gateway failed to bind");
+		return -1;
 	}
+
+	cfg->gw_fd.bfd.cb = read_call_agent;
+	cfg->gw_fd.bfd.data = msgb_alloc(4096, "mgcp-msg");
+	if (!cfg->gw_fd.bfd.data) {
+		fprintf(stderr, "Gateway memory error.\n");
+		return -1;
+	}
+
+	LOGP(DLMGCP, LOGL_NOTICE, "Configured for MGCP.\n");
 
 	/* initialisation */
 	srand(time(NULL));

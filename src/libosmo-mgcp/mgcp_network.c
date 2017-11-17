@@ -27,7 +27,6 @@
 #include <errno.h>
 #include <time.h>
 #include <limits.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
 
 #include <osmocom/core/msgb.h>
@@ -1118,41 +1117,17 @@ int mgcp_set_ip_tos(int fd, int tos)
  *  \returns 0 on success, -1 on ERROR */
 int mgcp_create_bind(const char *source_addr, struct osmo_fd *fd, int port)
 {
-	struct sockaddr_in addr;
-	int on = 1;
+	int rc;
 
-	fd->fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (fd->fd < 0) {
-		LOGP(DRTP, LOGL_ERROR, "failed to create UDP port (%s:%i).\n",
-		     source_addr, port);
-		return -1;
-	} else {
-		LOGP(DRTP, LOGL_DEBUG,
-		     "created UDP port (%s:%i).\n", source_addr, port);
-	}
-
-	if (setsockopt(fd->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) != 0) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "failed to set socket options (%s:%i).\n", source_addr,
-		     port);
-		return -1;
-	}
-
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
-	inet_aton(source_addr, &addr.sin_addr);
-
-	if (bind(fd->fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		close(fd->fd);
-		fd->fd = -1;
+	rc = osmo_sock_init2(AF_INET, SOCK_DGRAM, IPPROTO_UDP, source_addr, port,
+			     NULL, 0, OSMO_SOCK_F_BIND);
+	if (rc < 0) {
 		LOGP(DRTP, LOGL_ERROR, "failed to bind UDP port (%s:%i).\n",
 		     source_addr, port);
 		return -1;
-	} else {
-		LOGP(DRTP, LOGL_DEBUG,
-		     "bound UDP port (%s:%i).\n", source_addr, port);
 	}
+	fd->fd = rc;
+	LOGP(DRTP, LOGL_DEBUG, "created socket + bound UDP port (%s:%i).\n", source_addr, port);
 
 	return 0;
 }

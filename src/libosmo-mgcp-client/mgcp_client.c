@@ -24,6 +24,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/byteswap.h>
+#include <osmocom/core/socket.h>
 
 #include <osmocom/mgcp_client/mgcp_client.h>
 #include <osmocom/mgcp_client/mgcp_client_internal.h>
@@ -445,7 +446,6 @@ struct mgcp_client *mgcp_client_init(void *ctx,
 
 int mgcp_client_connect(struct mgcp_client *mgcp)
 {
-	int on;
 	struct sockaddr_in addr;
 	struct osmo_wqueue *wq;
 	int rc;
@@ -457,46 +457,19 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 
 	wq = &mgcp->wq;
 
-	wq->bfd.fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (wq->bfd.fd < 0) {
-		LOGP(DLMGCP, LOGL_FATAL, "Failed to create UDP socket errno: %d\n", errno);
-		return -errno;
-	}
-
-	on = 1;
-	if (setsockopt(wq->bfd.fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
+	rc = osmo_sock_init2_ofd(&wq->bfd, AF_INET, SOCK_DGRAM, IPPROTO_UDP,
+				 mgcp->actual.local_addr, mgcp->actual.local_port,
+				 mgcp->actual.remote_addr, mgcp->actual.remote_port,
+				 OSMO_SOCK_F_BIND | OSMO_SOCK_F_CONNECT);
+	if (rc < 0) {
 		LOGP(DLMGCP, LOGL_FATAL,
-		     "Failed to initialize socket for MGCP GW: %s\n",
-		     strerror(errno));
-		rc = -errno;
+		     "Failed to initialize socket %s:%u -> %s:%u for MGCP GW: %s\n",
+		     mgcp->actual.local_addr, mgcp->actual.local_port,
+		     mgcp->actual.remote_addr, mgcp->actual.remote_port, strerror(errno));
 		goto error_close_fd;
 	}
 
-	/* bind socket */
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	inet_aton(mgcp->actual.local_addr, &addr.sin_addr);
-	addr.sin_port = htons(mgcp->actual.local_port);
-	if (bind(wq->bfd.fd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
-		LOGP(DLMGCP, LOGL_FATAL,
-		     "Failed to bind for MGCP GW to %s %u\n",
-		     mgcp->actual.local_addr, mgcp->actual.local_port);
-		rc = -errno;
-		goto error_close_fd;
-	}
-
-	/* connect to the remote */
 	inet_aton(mgcp->actual.remote_addr, &addr.sin_addr);
-	addr.sin_port = htons(mgcp->actual.remote_port);
-	if (connect(wq->bfd.fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		LOGP(DLMGCP, LOGL_FATAL,
-		     "Failed to connect to MGCP GW at %s %u: %s\n",
-		     mgcp->actual.remote_addr, mgcp->actual.remote_port,
-		     strerror(errno));
-		rc = -errno;
-		goto error_close_fd;
-	}
-
 	mgcp->remote_addr = htonl(addr.sin_addr.s_addr);
 
 	osmo_wqueue_init(wq, 10);
@@ -505,11 +478,6 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 	wq->read_cb = mgcp_do_read;
 	wq->write_cb = mgcp_do_write;
 
-	if (osmo_fd_register(&wq->bfd) != 0) {
-		LOGP(DLMGCP, LOGL_FATAL, "Failed to register BFD\n");
-		rc = -EIO;
-		goto error_close_fd;
-	}
 	LOGP(DLMGCP, LOGL_INFO, "MGCP GW connection: %s:%u -> %s:%u\n",
 	     mgcp->actual.local_addr, mgcp->actual.local_port,
 	     mgcp->actual.remote_addr, mgcp->actual.remote_port);
