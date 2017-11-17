@@ -73,7 +73,7 @@ const char *openbsc_copyright =
 	"This is free software: you are free to change and redistribute it.\r\n"
 	"There is NO WARRANTY, to the extent permitted by law.\r\n";
 
-static char *config_file = "mgcp.cfg";
+static char *config_file = "osmo-mgw.cfg";
 
 /* used by msgb and mgcp */
 void *tall_bsc_ctx = NULL;
