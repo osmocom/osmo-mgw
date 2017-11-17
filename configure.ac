@@ -43,6 +43,18 @@ PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 0.10.0)
 PKG_CHECK_MODULES(LIBOSMOVTY, libosmovty >= 0.10.0)
 PKG_CHECK_MODULES(LIBOSMONETIF, libosmo-netif >= 0.1.0)
 
+AC_ARG_ENABLE(sanitize,
+	[AS_HELP_STRING(
+		[--enable-sanitize],
+		[Compile with address sanitizer enabled],
+	)],
+	[sanitize=$enableval], [sanitize="no"])
+if test x"$sanitize" = x"yes"
+then
+	CFLAGS="$CFLAGS -fsanitize=address -fsanitize=undefined"
+	CPPFLAGS="$CPPFLAGS -fsanitize=address -fsanitize=undefined"
+fi
+
 # Enable/disable transcoding within osmo-bsc_mgcp?
 AC_ARG_ENABLE([mgcp-transcoding], [AS_HELP_STRING([--enable-mgcp-transcoding], [Build the MGCP gateway with internal transcoding enabled.])],
     [osmo_ac_mgcp_transcoding="$enableval"],[osmo_ac_mgcp_transcoding="no"])
