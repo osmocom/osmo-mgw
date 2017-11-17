@@ -133,7 +133,7 @@ static int mgcp_response_parse_head(struct mgcp_response *r, struct msgb *msg)
 
 	r->body = (char *)msg->data;
 
-        if (sscanf(r->body, "%3d %u %n",
+	if (sscanf(r->body, "%3d %u %n",
 		   &r->head.response_code, &r->head.trans_id,
 		   &comment_pos) != 2)
 		goto response_parse_failure;
@@ -176,7 +176,7 @@ static bool mgcp_line_is_valid(const char *line)
 /* Parse a line like "m=audio 16002 RTP/AVP 98" */
 static int mgcp_parse_audio_port(struct mgcp_response *r, const char *line)
 {
-        if (sscanf(line, "m=audio %hu",
+	if (sscanf(line, "m=audio %hu",
 		   &r->audio_port) != 1)
 		goto response_parse_failure;
 
@@ -325,7 +325,7 @@ static int mgcp_do_read(struct osmo_fd *fd)
 		LOGP(DLMGCP, LOGL_ERROR, "Too much data: %d\n", ret);
 		msgb_free(msg);
 		return -1;
-        }
+	}
 
 	msg->l2h = msgb_put(msg, ret);
 	ret = mgcp_client_rx(mgcp, msg);

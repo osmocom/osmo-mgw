@@ -195,33 +195,33 @@ static int read_call_agent(struct osmo_fd *fd, unsigned int what)
 
 int mgcp_vty_is_config_node(struct vty *vty, int node)
 {
-        switch (node) {
-        case CONFIG_NODE:
-                return 0;
+	switch (node) {
+	case CONFIG_NODE:
+		return 0;
 
-        default:
-                return 1;
-        }
+	default:
+		return 1;
+	}
 }
 
 int mgcp_vty_go_parent(struct vty *vty)
 {
-        switch (vty->node) {
-        case TRUNK_NODE:
-                vty->node = MGCP_NODE;
-                vty->index = NULL;
-                break;
-        case MGCP_NODE:
-        default:
-                if (mgcp_vty_is_config_node(vty, vty->node))
-                        vty->node = CONFIG_NODE;
-                else
-                        vty->node = ENABLE_NODE;
+	switch (vty->node) {
+	case TRUNK_NODE:
+		vty->node = MGCP_NODE;
+		vty->index = NULL;
+		break;
+	case MGCP_NODE:
+	default:
+		if (mgcp_vty_is_config_node(vty, vty->node))
+			vty->node = CONFIG_NODE;
+		else
+			vty->node = ENABLE_NODE;
 
-                vty->index = NULL;
-        }
+		vty->index = NULL;
+	}
 
-        return vty->node;
+	return vty->node;
 }
 
 
@@ -243,8 +243,8 @@ static const struct log_info_cat log_categories[] = {
 };
 
 const struct log_info log_info = {
-        .cat = log_categories,
-        .num_cat = ARRAY_SIZE(log_categories),
+	.cat = log_categories,
+	.num_cat = ARRAY_SIZE(log_categories),
 };
 
 int main(int argc, char **argv)
@@ -287,8 +287,8 @@ int main(int argc, char **argv)
 	 * mgcp-command "RSIP" (Reset in Progress) is received */
 	cfg->reset_cb = mgcp_rsip_cb;
 
-        /* we need to bind a socket */
-        if (rc == 0) {
+	/* we need to bind a socket */
+	if (rc == 0) {
 		cfg->gw_fd.bfd.when = BSC_FD_READ;
 		cfg->gw_fd.bfd.cb = read_call_agent;
 		cfg->gw_fd.bfd.fd = socket(AF_INET, SOCK_DGRAM, 0);

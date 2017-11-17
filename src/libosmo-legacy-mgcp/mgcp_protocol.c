@@ -372,8 +372,8 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 
 	display_mgcp_message(msg->l2h, msgb_l2len(msg), "Received message");
 
-        /* attempt to treat it as a response */
-        if (sscanf((const char *)&msg->l2h[0], "%3d %*s", &code) == 1) {
+	/* attempt to treat it as a response */
+	if (sscanf((const char *)&msg->l2h[0], "%3d %*s", &code) == 1) {
 		LOGP(DLMGCP, LOGL_DEBUG, "Response: Code: %d\n", code);
 		return NULL;
 	}

@@ -64,8 +64,8 @@ struct mgcp_msg {
 	char endpoint[MGCP_ENDPOINT_MAXLEN];
 	unsigned int call_id;
 	uint32_t conn_id;
-        uint16_t audio_port;
-        char *audio_ip;
+	uint16_t audio_port;
+	char *audio_ip;
 	enum mgcp_connection_mode conn_mode;
 };
 
