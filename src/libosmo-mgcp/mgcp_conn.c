@@ -235,7 +235,7 @@ void mgcp_conn_free_all(struct mgcp_endpoint *endp)
  *  \returns human readble string */
 char *mgcp_conn_dump(struct mgcp_conn *conn)
 {
-	static char str[256];
+	static char str[sizeof(conn->name)+256];
 
 	if (!conn) {
 		snprintf(str, sizeof(str), "(null connection)");
