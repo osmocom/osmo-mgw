@@ -4,6 +4,7 @@
 /*
  * (C) 2009-2011 by Holger Hans Peter Freyther <zecke@selfish.org>
  * (C) 2009-2011 by On-Waves
+ * (C) 2017 by sysmocom - s.f.m.c. GmbH, Author: Philipp Maier
  * All Rights Reserved
  *
  * This program is free software; you can redistribute it and/or modify
