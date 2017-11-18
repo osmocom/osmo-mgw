@@ -1083,6 +1083,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	}
 
 	force_monotonic_time_us = -1;
+	mgcp_conn_free_all(&endp);
 }
 
 static void test_multilple_codec(void)
