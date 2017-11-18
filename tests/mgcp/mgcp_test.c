@@ -1262,6 +1262,7 @@ static void test_no_cycle(void)
 	OSMO_ASSERT(conn->state.stats_cycles == UINT16_MAX + 1);
 	OSMO_ASSERT(conn->state.stats_max_seq == 0);
 
+	mgcp_release_endp(endp);
 	talloc_free(cfg);
 }
 
