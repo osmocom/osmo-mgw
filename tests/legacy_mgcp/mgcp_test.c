@@ -1212,7 +1212,7 @@ const struct log_info log_info = {
 
 int main(int argc, char **argv)
 {
-	msgb_talloc_ctx_init(NULL, 0);
+	void *msgb_ctx = msgb_talloc_ctx_init(NULL, 0);
 	osmo_init_logging(&log_info);
 
 	test_strline();
@@ -1231,6 +1231,9 @@ int main(int argc, char **argv)
 	test_no_name();
 	test_osmux_cid();
 
+	OSMO_ASSERT(talloc_total_size(msgb_ctx) == 0);
+	OSMO_ASSERT(talloc_total_blocks(msgb_ctx) == 1);
+	talloc_free(msgb_ctx);
 	printf("Done\n");
 	return EXIT_SUCCESS;
 }
