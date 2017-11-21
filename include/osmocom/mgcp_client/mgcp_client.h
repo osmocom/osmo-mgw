@@ -29,6 +29,7 @@ struct mgcp_response_head {
        int response_code;
        mgcp_trans_id_t trans_id;
        const char *comment;
+	char conn_id[MGCP_CONN_ID_LENGTH];
 };
 
 struct mgcp_response {
@@ -62,7 +63,7 @@ struct mgcp_msg {
 	uint32_t presence;
 	char endpoint[MGCP_ENDPOINT_MAXLEN];
 	unsigned int call_id;
-	uint32_t conn_id;
+	char *conn_id;
 	uint16_t audio_port;
 	char *audio_ip;
 	enum mgcp_connection_mode conn_mode;

@@ -43,7 +43,7 @@ int mgcp_check_param(const struct mgcp_endpoint *endp, const char *line);
 
 int mgcp_verify_call_id(struct mgcp_endpoint *endp, const char *callid);
 
-int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *ci);
+int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id);
 
 char *mgcp_strline(char *str, char **saveptr);
 
@@ -54,5 +54,3 @@ char *mgcp_strline(char *str, char **saveptr);
 #define for_each_non_empty_line(line, save)\
 	for (line = strtok_r(NULL, "\r\n", &save); line;\
 	     line = strtok_r(NULL, "\r\n", &save))
-
-int mgcp_parse_ci(uint32_t *conn_id, const char *ci);

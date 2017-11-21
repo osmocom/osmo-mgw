@@ -716,7 +716,7 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 
 	/* Add connection id */
 	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CONN_ID)
-		rc += msgb_printf(msg, "I: %u\r\n", mgcp_msg->conn_id);
+		rc += msgb_printf(msg, "I: %s\r\n", mgcp_msg->conn_id);
 
 	/* Add local connection options */
 	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CONN_ID

@@ -604,7 +604,7 @@ static void test_messages(void)
 		if (last_endpoint != -1) {
 			endp = &cfg->trunk.endpoints[last_endpoint];
 
-			conn = mgcp_conn_get_rtp(endp, 1);
+			conn = mgcp_conn_get_rtp(endp, "1");
 			if (conn) {
 				OSMO_ASSERT(conn);
 
@@ -1032,9 +1032,9 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	endp.tcfg = &trunk;
 
 	INIT_LLIST_HEAD(&endp.conns);
-	mgcp_conn_alloc(NULL, &endp, 4711, MGCP_CONN_TYPE_RTP,
+	mgcp_conn_alloc(NULL, &endp, "4711", MGCP_CONN_TYPE_RTP,
 			"test-connection");
-	conn = mgcp_conn_get_rtp(&endp, 4711);
+	conn = mgcp_conn_get_rtp(&endp, "4711");
 	OSMO_ASSERT(conn);
 
 	rtp = &conn->end;
@@ -1110,7 +1110,7 @@ static void test_multilple_codec(void)
 
 	OSMO_ASSERT(last_endpoint == 1);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, 4711);
+	conn = mgcp_conn_get_rtp(endp, "4711");
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 18);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == 97);
@@ -1124,7 +1124,7 @@ static void test_multilple_codec(void)
 
 	OSMO_ASSERT(last_endpoint == 2);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, 90210);
+	conn = mgcp_conn_get_rtp(endp, "90210");
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 18);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == 97);
@@ -1138,7 +1138,7 @@ static void test_multilple_codec(void)
 
 	OSMO_ASSERT(last_endpoint == 3);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, 815);
+	conn = mgcp_conn_get_rtp(endp, "0815");
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == -1);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == -1);
@@ -1152,7 +1152,7 @@ static void test_multilple_codec(void)
 
 	OSMO_ASSERT(last_endpoint == 4);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, 32168);
+	conn = mgcp_conn_get_rtp(endp, "32168");
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 18);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == -1);
@@ -1169,7 +1169,7 @@ static void test_multilple_codec(void)
 
 	OSMO_ASSERT(last_endpoint == 5);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, 3);
+	conn = mgcp_conn_get_rtp(endp, "3");
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 3);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == -1);
@@ -1181,7 +1181,7 @@ static void test_multilple_codec(void)
 	msgb_free(resp);
 	OSMO_ASSERT(last_endpoint == 5);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, 3);
+	conn = mgcp_conn_get_rtp(endp, "3");
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 3);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == -1);
@@ -1198,7 +1198,7 @@ static void test_multilple_codec(void)
 	talloc_free(endp->last_response);
 	talloc_free(endp->last_trans);
 	endp->last_response = endp->last_trans = NULL;
-	conn = mgcp_conn_get_rtp(endp, 3);
+	conn = mgcp_conn_get_rtp(endp, "3");
 	OSMO_ASSERT(!conn);
 
 	last_endpoint = -1;
@@ -1210,7 +1210,7 @@ static void test_multilple_codec(void)
 
 	OSMO_ASSERT(last_endpoint == 5);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, 3);
+	conn = mgcp_conn_get_rtp(endp, "3");
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 255);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == 0);
@@ -1232,9 +1232,9 @@ static void test_no_cycle(void)
 
 	endp = &cfg->trunk.endpoints[1];
 
-	mgcp_conn_alloc(NULL, endp, 4711, MGCP_CONN_TYPE_RTP,
+	mgcp_conn_alloc(NULL, endp, "4711", MGCP_CONN_TYPE_RTP,
 			"test-connection");
-	conn = mgcp_conn_get_rtp(endp, 4711);
+	conn = mgcp_conn_get_rtp(endp, "4711");
 	OSMO_ASSERT(conn);
 
 	OSMO_ASSERT(conn->state.stats_initialized == 0);

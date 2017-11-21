@@ -573,7 +573,7 @@ void osmux_disable_conn(struct mgcp_conn_rtp *conn)
 	if (conn->osmux.state != OSMUX_STATE_ENABLED)
 		return;
 
-	LOGP(DLMGCP, LOGL_INFO, "Releasing connection %u using Osmux CID %u\n",
+	LOGP(DLMGCP, LOGL_INFO, "Releasing connection %s using Osmux CID %u\n",
 	     conn->conn->id, conn->osmux.cid);
 	osmux_xfrm_input_close_circuit(conn->osmux.in, conn->osmux.cid);
 	conn->osmux.state = OSMUX_STATE_DISABLED;

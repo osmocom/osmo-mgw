@@ -30,8 +30,10 @@
 
 #define CI_UNUSED 0
 
-#define CONN_ID_BTS 0
-#define CONN_ID_NET 1
+/* FIXME: This this is only needed to compile the currently
+ * broken OSMUX support. Remove when fixed */
+#define CONN_ID_BTS "0"
+#define CONN_ID_NET "1"
 
 enum mgcp_trunk_type {
 	MGCP_TRUNK_VIRTUAL,
@@ -203,7 +205,7 @@ struct mgcp_conn {
 	enum mgcp_connection_mode mode_orig;
 
 	/*!< connection id to identify the conntion */
-	uint32_t id;
+	char id[MGCP_CONN_ID_LENGTH];
 
 	/*!< human readable name (vty, logging) */
 	char name[256];

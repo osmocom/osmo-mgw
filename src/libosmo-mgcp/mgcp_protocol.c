@@ -221,7 +221,7 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 		osmux_extension[0] = '\0';
 	}
 
-	rc = msgb_printf(sdp, "I: %u%s\n\n", conn->conn->id, osmux_extension);
+	rc = msgb_printf(sdp, "I: %s%s\n\n", conn->conn->id, osmux_extension);
 	if (rc < 0)
 		goto error;
 
@@ -443,12 +443,11 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 
 	const char *local_options = NULL;
 	const char *callid = NULL;
-	const char *ci = NULL;
 	const char *mode = NULL;
 	char *line;
 	int have_sdp = 0, osmux_cid = -1;
 	struct mgcp_conn_rtp *conn = NULL;
-	uint32_t conn_id;
+        const char *conn_id = NULL;
 	char conn_name[512];
 
 	LOGP(DLMGCP, LOGL_NOTICE, "CRCX: creating new connection ...\n");
@@ -469,7 +468,7 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 			callid = (const char *)line + 3;
 			break;
 		case 'I':
-			ci = (const char *)line + 3;
+			conn_id = (const char *)line + 3;
 			break;
 		case 'M':
 			mode = (const char *)line + 3;
@@ -511,7 +510,7 @@ mgcp_header_done:
 		return create_err_response(endp, 400, "CRCX", p->trans);
 	}
 
-	if (!ci) {
+	if (!conn_id) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:%x insufficient parameters, missing connection id\n",
 		     ENDPOINT_NUMBER(endp));
@@ -561,13 +560,6 @@ mgcp_header_done:
 	set_local_cx_options(endp->tcfg->endpoints, &endp->local_options,
 			     local_options);
 
-	if (mgcp_parse_ci(&conn_id, ci)) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "CRCX: endpoint:%x insufficient parameters, missing ci (connectionIdentifier)\n",
-		     ENDPOINT_NUMBER(endp));
-		return create_err_response(endp, 400, "CRCX", p->trans);
-	}
-
 	/* Only accept another connection when the connection ID is different. */
 	if (mgcp_conn_get_rtp(endp, conn_id)) {
 		LOGP(DLMGCP, LOGL_ERROR,
@@ -583,7 +575,7 @@ mgcp_header_done:
 		}
 	}
 
-	snprintf(conn_name, sizeof(conn_name), "%s-%u", callid, conn_id);
+	snprintf(conn_name, sizeof(conn_name), "%s-%s", callid, conn_id);
 	mgcp_conn_alloc(NULL, endp, conn_id, MGCP_CONN_TYPE_RTP,
 			conn_name);
 	conn = mgcp_conn_get_rtp(endp, conn_id);
@@ -664,7 +656,7 @@ mgcp_header_done:
 	}
 
 	LOGP(DLMGCP, LOGL_DEBUG,
-	     "CRCX: endpoint:%x Creating connection: CI: %u port: %u\n",
+	     "CRCX: endpoint:%x Creating connection: CI: %s port: %u\n",
 	     ENDPOINT_NUMBER(endp), conn->conn->id, conn->end.local_port);
 	if (p->cfg->change_cb)
 		p->cfg->change_cb(tcfg, ENDPOINT_NUMBER(endp), MGCP_ENDP_CRCX);
@@ -695,11 +687,10 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 	int silent = 0;
 	int have_sdp = 0;
 	char *line;
-	const char *ci = NULL;
 	const char *local_options = NULL;
 	const char *mode = NULL;
 	struct mgcp_conn_rtp *conn = NULL;
-	uint32_t conn_id;
+        const char *conn_id = NULL;
 
 	LOGP(DLMGCP, LOGL_NOTICE, "MDCX: modifying existing connection ...\n");
 
@@ -723,8 +714,8 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 				goto error3;
 			break;
 		case 'I':
-			ci = (const char *)line + 3;
-			if (mgcp_verify_ci(endp, ci) != 0)
+			conn_id = (const char *)line + 3;
+			if (mgcp_verify_ci(endp, conn_id) != 0)
 				goto error3;
 			break;
 		case 'L':
@@ -749,7 +740,7 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 	}
 
 mgcp_header_done:
-	if (mgcp_parse_ci(&conn_id, ci)) {
+	if (!conn_id) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "MDCX: endpoint:%x insufficient parameters, missing ci (connectionIdentifier)\n",
 		     ENDPOINT_NUMBER(endp));
@@ -849,9 +840,8 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 	int silent = 0;
 	char *line;
 	char stats[1048];
-	const char *ci = NULL;
+	const char *conn_id = NULL;
 	struct mgcp_conn_rtp *conn = NULL;
-	uint32_t conn_id;
 
 	if (p->found != 0)
 		return create_err_response(NULL, error_code, "DLCX", p->trans);
@@ -877,8 +867,8 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 				goto error3;
 			break;
 		case 'I':
-			ci = (const char *)line + 3;
-			if (mgcp_verify_ci(endp, ci) != 0)
+			conn_id = (const char *)line + 3;
+			if (mgcp_verify_ci(endp, conn_id) != 0)
 				goto error3;
 			break;
 		case 'Z':
@@ -919,7 +909,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 	/* When no connection id is supplied, we will interpret this as a
 	 * wildcarded DLCX and drop all connections at once. (See also
 	 * RFC3435 Section F.7) */
-	if (!ci) {
+	if (!conn_id) {
 		LOGP(DLMGCP, LOGL_NOTICE,
 		     "DLCX: endpoint:%x missing ci (connectionIdentifier), will remove all connections at once\n",
 		     ENDPOINT_NUMBER(endp));
@@ -930,14 +920,6 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 		 * as we assume that the client is not interested in
 		 * this case. */
 		return create_ok_response(endp, 200, "DLCX", p->trans);
-	}
-
-	/* Parse the connection id */
-	if (mgcp_parse_ci(&conn_id, ci)) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "DLCX: endpoint:%x insufficient parameters, invalid ci (connectionIdentifier)\n",
-		     ENDPOINT_NUMBER(endp));
-		return create_err_response(endp, 400, "DLCX", p->trans);
 	}
 
 	/* Find the connection */

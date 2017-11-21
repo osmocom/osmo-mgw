@@ -162,7 +162,7 @@ void test_mgcp_msg(void)
 		.endpoint = "23@mgw",
 		.audio_port = 1234,
 		.call_id = 47,
-		.conn_id = 11,
+		.conn_id = "11",
 		.conn_mode = MGCP_CONN_RECV_SEND
 	};
 

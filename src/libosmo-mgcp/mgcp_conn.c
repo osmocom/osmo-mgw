@@ -78,13 +78,21 @@ static void mgcp_rtp_conn_reset(struct mgcp_conn_rtp *conn)
  *  \param[in] type connection type (e.g. MGCP_CONN_TYPE_RTP)
  *  \returns pointer to allocated connection, NULL on error */
 struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
-				  uint32_t id, enum mgcp_conn_type type,
+				  const char *id, enum mgcp_conn_type type,
 				  char *name)
 {
 	struct mgcp_conn *conn;
 	OSMO_ASSERT(endp);
 	OSMO_ASSERT(endp->conns.next != NULL && endp->conns.prev != NULL);
 	OSMO_ASSERT(strlen(name) < sizeof(conn->name));
+
+	/* Id is a mandatory parameter */
+	if (!id)
+		return NULL;
+
+	/* Prevent over long id strings */
+	if (strlen(id) >= MGCP_CONN_ID_LENGTH)
+		return NULL;
 
 	/* Do not allow more then two connections */
 	if (llist_count(&endp->conns) >= endp->type->max_conns)
@@ -102,9 +110,9 @@ struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 	conn->type = type;
 	conn->mode = MGCP_CONN_NONE;
 	conn->mode_orig = MGCP_CONN_NONE;
-	conn->id = id;
 	conn->u.rtp.conn = conn;
 	strcpy(conn->name, name);
+	osmo_strlcpy(conn->id, id, sizeof(conn->id));
 
 	switch (type) {
 	case MGCP_CONN_TYPE_RTP:
@@ -126,15 +134,17 @@ struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
  *  \param[in] endp associated endpoint
  *  \param[in] id identification number of the connection
  *  \returns pointer to allocated connection, NULL if not found */
-struct mgcp_conn *mgcp_conn_get(struct mgcp_endpoint *endp, uint32_t id)
+struct mgcp_conn *mgcp_conn_get(struct mgcp_endpoint *endp, const char *id)
 {
 	OSMO_ASSERT(endp);
+	OSMO_ASSERT(id);
+	OSMO_ASSERT(strlen(id) < MGCP_CONN_ID_LENGTH);
 	OSMO_ASSERT(endp->conns.next != NULL && endp->conns.prev != NULL);
 
 	struct mgcp_conn *conn;
 
 	llist_for_each_entry(conn, &endp->conns, entry) {
-		if (conn->id == id)
+		if (strncmp(conn->id, id, sizeof(conn->id)) == 0)
 			return conn;
 	}
 
@@ -145,9 +155,12 @@ struct mgcp_conn *mgcp_conn_get(struct mgcp_endpoint *endp, uint32_t id)
  *  \param[in] endp associated endpoint
  *  \param[in] id identification number of the connection
  *  \returns pointer to allocated connection, NULL if not found */
-struct mgcp_conn_rtp *mgcp_conn_get_rtp(struct mgcp_endpoint *endp, uint32_t id)
+struct mgcp_conn_rtp *mgcp_conn_get_rtp(struct mgcp_endpoint *endp,
+					const char *id)
 {
 	OSMO_ASSERT(endp);
+	OSMO_ASSERT(id);
+	OSMO_ASSERT(strlen(id) < MGCP_CONN_ID_LENGTH);
 	OSMO_ASSERT(endp->conns.next != NULL && endp->conns.prev != NULL);
 
 	struct mgcp_conn *conn;
@@ -165,9 +178,11 @@ struct mgcp_conn_rtp *mgcp_conn_get_rtp(struct mgcp_endpoint *endp, uint32_t id)
 /*! free a connection by its ID.
  *  \param[in] endp associated endpoint
  *  \param[in] id identification number of the connection */
-void mgcp_conn_free(struct mgcp_endpoint *endp, uint32_t id)
+void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id)
 {
 	OSMO_ASSERT(endp);
+	OSMO_ASSERT(id);
+	OSMO_ASSERT(strlen(id) < MGCP_CONN_ID_LENGTH);
 	OSMO_ASSERT(endp->conns.next != NULL && endp->conns.prev != NULL);
 
 	struct mgcp_conn *conn;
@@ -235,7 +250,7 @@ void mgcp_conn_free_all(struct mgcp_endpoint *endp)
  *  \returns human readble string */
 char *mgcp_conn_dump(struct mgcp_conn *conn)
 {
-	static char str[sizeof(conn->name)+256];
+	static char str[sizeof(conn->name)+sizeof(conn->id)+256];
 
 	if (!conn) {
 		snprintf(str, sizeof(str), "(null connection)");
@@ -245,7 +260,7 @@ char *mgcp_conn_dump(struct mgcp_conn *conn)
 	switch (conn->type) {
 	case MGCP_CONN_TYPE_RTP:
 		/* Dump RTP connection */
-		snprintf(str, sizeof(str), "(%s/rtp, id:%u, ip:%s, "
+		snprintf(str, sizeof(str), "(%s/rtp, id:0x%s, ip:%s, "
 			 "rtp:%u rtcp:%u)",
 			 conn->name,
 			 conn->id,

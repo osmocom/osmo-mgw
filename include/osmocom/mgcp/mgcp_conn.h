@@ -28,12 +28,12 @@
 #include <inttypes.h>
 
 struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
-				  uint32_t id, enum mgcp_conn_type type,
+				  const char *id, enum mgcp_conn_type type,
 				  char *name);
-struct mgcp_conn *mgcp_conn_get(struct mgcp_endpoint *endp, uint32_t id);
+struct mgcp_conn *mgcp_conn_get(struct mgcp_endpoint *endp, const char *id);
 struct mgcp_conn_rtp *mgcp_conn_get_rtp(struct mgcp_endpoint *endp,
-					uint32_t id);
-void mgcp_conn_free(struct mgcp_endpoint *endp, uint32_t id);
+					const char *id);
+void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id);
 void mgcp_conn_free_oldest(struct mgcp_endpoint *endp);
 void mgcp_conn_free_all(struct mgcp_endpoint *endp);
 char *mgcp_conn_dump(struct mgcp_conn *conn);

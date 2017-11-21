@@ -24,3 +24,4 @@
 # If any interfaces have been removed or changed since the last public release, a=0.
 #
 #library	what		description / commit summary line
+libosmo-mgcp	API/ABI change	parse and represent connection identifiers as hex strings

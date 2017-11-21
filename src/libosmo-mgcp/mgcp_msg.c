@@ -330,21 +330,39 @@ int mgcp_verify_call_id(struct mgcp_endpoint *endp, const char *callid)
   * \param[in] endp pointer to endpoint
   * \param{in] connection id to verify
   * \returns 1 when connection id seems plausible, 0 on error */
-int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *ci)
+int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 {
-	uint32_t id;
-
-	if (!endp)
+	/* Check for null identifiers */
+	if (!conn_id) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "endpoint:%x invalid ConnectionIdentifier (missing)\n",
+		     ENDPOINT_NUMBER(endp));
 		return -1;
+	}
 
-	id = strtoul(ci, NULL, 10);
+	/* Check for empty connection identifiers */
+	if (strlen(conn_id) == 0) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "endpoint:%x invalid ConnectionIdentifier (empty)\n",
+		     ENDPOINT_NUMBER(endp));
+		return -1;
+	}
 
-	if (mgcp_conn_get(endp, id))
+	/* Check for over long connection identifiers */
+	if (strlen(conn_id) > MGCP_CONN_ID_LENGTH) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "endpoint:%x invalid ConnectionIdentifier (too long) 0x%s\n",
+		     ENDPOINT_NUMBER(endp), conn_id);
+		return -1;
+	}
+
+	/* Check if connection exists */
+	if (mgcp_conn_get(endp, conn_id))
 		return 0;
 
 	LOGP(DLMGCP, LOGL_ERROR,
-	     "endpoint:%x No connection found under ConnectionIdentifier %u\n",
-	     ENDPOINT_NUMBER(endp), id);
+	     "endpoint:%x no connection found under ConnectionIdentifier 0x%s\n",
+	     ENDPOINT_NUMBER(endp), conn_id);
 
 	return -1;
 }
@@ -385,21 +403,4 @@ char *mgcp_strline(char *str, char **saveptr)
 	}
 
 	return result;
-}
-
-/*! Parse CI from a given string.
-  * \param[out] caller provided memory to store the result
-  * \param{in] string containing the connection id
-  * \returns 0 on success, -1 on error */
-int mgcp_parse_ci(uint32_t *conn_id, const char *ci)
-{
-
-	OSMO_ASSERT(conn_id);
-
-	if (!ci)
-		return -1;
-
-	*conn_id = strtoul(ci, NULL, 10);
-
-	return 0;
 }

@@ -365,7 +365,7 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 
 	rc = msgb_printf(sdp,
 			 "v=0\r\n"
-			 "o=- %u 23 IN IP4 %s\r\n"
+			 "o=- %s 23 IN IP4 %s\r\n"
 			 "s=-\r\n"
 			 "c=IN IP4 %s\r\n"
 			 "t=0 0\r\n", conn->conn->id, addr, addr);

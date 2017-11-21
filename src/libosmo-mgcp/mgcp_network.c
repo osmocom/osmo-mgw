@@ -73,11 +73,11 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 		rc = osmo_sock_local_ip(addr, inet_ntoa(conn->end.addr));
 		if (rc < 0)
 			LOGP(DRTP, LOGL_ERROR,
-			     "endpoint:%x CI:%i local interface auto detection failed, using configured addresses...\n",
+			     "endpoint:%x CI:%s local interface auto detection failed, using configured addresses...\n",
 			     ENDPOINT_NUMBER(endp), conn->conn->id);
 		else {
 			LOGP(DRTP, LOGL_DEBUG,
-			     "endpoint:%x CI:%i selected local rtp bind ip %s by probing using remote ip %s\n",
+			     "endpoint:%x CI:%s selected local rtp bind ip %s by probing using remote ip %s\n",
 			     ENDPOINT_NUMBER(endp), conn->conn->id, addr,
 			     inet_ntoa(conn->end.addr));
 			return;
@@ -90,7 +90,7 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 		 * if so, use that IP-Address */
 		strncpy(addr, endp->cfg->net_ports.bind_addr, INET_ADDRSTRLEN);
 		LOGP(DRTP, LOGL_DEBUG,
-		     "endpoint:%x CI:%i using configured rtp bind ip as local bind ip %s\n",
+		     "endpoint:%x CI:%s using configured rtp bind ip as local bind ip %s\n",
 		     ENDPOINT_NUMBER(endp), conn->conn->id, addr);
 	} else {
 		/* No specific bind IP is configured for the RTP traffic, so
@@ -98,7 +98,7 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 		 * as bind IP */
 		strncpy(addr, endp->cfg->source_addr, INET_ADDRSTRLEN);
 		LOGP(DRTP, LOGL_DEBUG,
-		     "endpoint:%x CI:%i using mgcp bind ip as local rtp bind ip: %s\n",
+		     "endpoint:%x CI:%s using mgcp bind ip as local rtp bind ip: %s\n",
 		     ENDPOINT_NUMBER(endp), conn->conn->id, addr);
 	}
 }
@@ -1217,7 +1217,7 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 	struct mgcp_rtp_end *end;
 	char local_ip_addr[INET_ADDRSTRLEN];
 
-	snprintf(name, sizeof(name), "%s-%u", conn->conn->name, conn->conn->id);
+	snprintf(name, sizeof(name), "%s-%s", conn->conn->name, conn->conn->id);
 	end = &conn->end;
 
 	if (end->rtp.fd != -1 || end->rtcp.fd != -1) {

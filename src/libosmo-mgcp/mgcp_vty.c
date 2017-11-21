@@ -970,7 +970,7 @@ DEFUN(tap_rtp,
 	struct mgcp_trunk_config *trunk;
 	struct mgcp_endpoint *endp;
 	struct mgcp_conn_rtp *conn;
-	uint32_t conn_id;
+        const char *conn_id = NULL;
 
 	trunk = find_trunk(g_cfg, atoi(argv[0]));
 	if (!trunk) {
@@ -994,11 +994,11 @@ DEFUN(tap_rtp,
 
 	endp = &trunk->endpoints[endp_no];
 
-	conn_id = strtoul(argv[2], NULL, 10);
+	conn_id = argv[2];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	if (!conn) {
-		vty_out(vty, "Conn ID %s/%d is invalid.%s",
-			argv[2], conn_id, VTY_NEWLINE);
+		vty_out(vty, "Conn ID %s is invalid.%s",
+			conn_id, VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
