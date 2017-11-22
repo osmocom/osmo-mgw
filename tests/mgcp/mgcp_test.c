@@ -82,27 +82,27 @@ static void test_strline(void)
 
 #define MDCX3 \
 	"MDCX 18983215 1@mgw MGCP 1.0\r\n" \
-	"I: 1\n"
+	"I: %s\n"
 
 #define MDCX3_RET \
 	"200 18983215 OK\r\n" \
-	"I: 1\n" \
+	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
-	"m=audio 16002 RTP/AVP 128\r\n" \
-	"a=rtpmap:128 GSM-EFR/8000\r\n" \
+	"m=audio 16002 RTP/AVP 97\r\n" \
+	"a=rtpmap:97 GSM-EFR/8000\r\n" \
 	"a=ptime:40\r\n"
 
 #define MDCX3A_RET \
 	"200 18983215 OK\r\n" \
-	"I: 1\n" \
+	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
@@ -112,15 +112,15 @@ static void test_strline(void)
 
 #define MDCX3_FMTP_RET \
 	"200 18983215 OK\r\n" \
-	"I: 1\n" \
+	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
-	"m=audio 16006 RTP/AVP 128\r\n" \
-	"a=rtpmap:128 GSM-EFR/8000\r\n" \
+	"m=audio 16006 RTP/AVP 97\r\n" \
+	"a=rtpmap:97 GSM-EFR/8000\r\n" \
 	"a=fmtp:126 0/1/2\r\n" \
 	"a=ptime:40\r\n"
 
@@ -128,11 +128,11 @@ static void test_strline(void)
 	"MDCX 18983216 1@mgw MGCP 1.0\r\n" \
 	"M: sendrecv\r" \
 	"C: 2\r\n" \
-	"I: 1\r\n" \
+	"I: %s\r\n" \
 	"L: p:20, a:AMR, nt:IN\r\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
 	"m=audio 4441 RTP/AVP 99\r\n" \
@@ -141,10 +141,10 @@ static void test_strline(void)
 
 #define MDCX4_RET(Ident) \
 	"200 " Ident " OK\r\n" \
-	"I: 1\n" \
+	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
@@ -154,10 +154,10 @@ static void test_strline(void)
 
 #define MDCX4_RO_RET(Ident) \
 	"200 " Ident " OK\r\n" \
-	"I: 1\n" \
+	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
@@ -169,11 +169,11 @@ static void test_strline(void)
 	"MDCX 18983217 1@mgw MGCP 1.0\r\n" \
 	"M: sendrecv\r" \
 	"C: 2\r\n" \
-	"I: 1\r\n" \
+	"I: %s\r\n" \
 	"L: p:20-40, a:AMR, nt:IN\r\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
 	"m=audio 4441 RTP/AVP 99\r\n" \
@@ -184,11 +184,11 @@ static void test_strline(void)
 	"MDCX 18983218 1@mgw MGCP 1.0\r\n" \
 	"M: sendrecv\r" \
 	"C: 2\r\n" \
-	"I: 1\r\n" \
+	"I: %s\r\n" \
 	"L: p:20-20, a:AMR, nt:IN\r\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
 	"m=audio 4441 RTP/AVP 99\r\n" \
@@ -199,11 +199,11 @@ static void test_strline(void)
 	"MDCX 18983219 1@mgw MGCP 1.0\r\n" \
 	"M: sendrecv\r" \
 	"C: 2\r\n" \
-	"I: 1\r\n" \
+	"I: %s\r\n" \
 	"L: a:AMR, nt:IN\r\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
 	"m=audio 4441 RTP/AVP 99\r\n" \
@@ -214,11 +214,11 @@ static void test_strline(void)
 	"MDCX 18983220 1@mgw MGCP 1.0\r\n" \
 	"M: sendonly\r" \
 	"C: 2\r\n" \
-	"I: 1\r\n" \
+	"I: %s\r\n" \
 	"L: p:20, a:AMR, nt:IN\r\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
 	"m=audio 4441 RTP/AVP 99\r\n" \
@@ -229,7 +229,7 @@ static void test_strline(void)
 	"MDCX 18983221 1@mgw MGCP 1.0\r\n" \
 	"M: recvonly\r" \
 	"C: 2\r\n" \
-	"I: 1\r\n" \
+	"I: %s\r\n" \
 	"L: p:20, a:AMR, nt:IN\r\n"
 
 #define SHORT2	"CRCX 1"
@@ -242,7 +242,6 @@ static void test_strline(void)
 	"CRCX 2 1@mgw MGCP 1.0\r\n" \
 	"M: recvonly\r\n" \
 	"C: 2\r\n" \
-	"I: 1\r\n" \
 	"L: p:20\r\n" \
 	"\r\n" \
 	"v=0\r\n" \
@@ -253,10 +252,10 @@ static void test_strline(void)
 
 #define CRCX_RET \
 	"200 2 OK\r\n" \
-	"I: 1\n" \
+	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
@@ -266,10 +265,10 @@ static void test_strline(void)
 
 #define CRCX_RET_NO_RTPMAP \
 	"200 2 OK\r\n" \
-	"I: 1\n" \
+	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
@@ -278,10 +277,10 @@ static void test_strline(void)
 
 #define CRCX_FMTP_RET \
 	"200 2 OK\r\n" \
-	"I: 1\n" \
+	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
@@ -294,7 +293,6 @@ static void test_strline(void)
 	"CRCX 2 1@mgw MGCP 1.0\r" \
 	"M: recvonly\r" \
 	"C: 2\r\n" \
-	"I: 1\n" \
 	"\n" \
 	"v=0\r" \
 	"c=IN IP4 123.12.12.123\r" \
@@ -303,10 +301,10 @@ static void test_strline(void)
 
 #define CRCX_ZYN_RET \
 	"200 2 OK\r\n" \
-	"I: 1\n" \
+	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
-	"o=- 1 23 IN IP4 0.0.0.0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
@@ -316,7 +314,7 @@ static void test_strline(void)
 
 #define DLCX \
 	"DLCX 7 1@mgw MGCP 1.0\r\n" \
-	"I: 1\r\n" \
+	"I: %s\r\n" \
 	"C: 2\r\n"
 
 #define DLCX_RET \
@@ -343,7 +341,6 @@ static void test_strline(void)
 
 #define CRCX_MULT_1 \
 	"CRCX 2 1@mgw MGCP 1.0\r\n" \
-	"I: 4711\r\n" \
 	"M: recvonly\r\n" \
 	"C: 2\r\n" \
 	"X\r\n" \
@@ -358,7 +355,6 @@ static void test_strline(void)
 
 #define CRCX_MULT_2 \
 	"CRCX 2 2@mgw MGCP 1.0\r\n" \
-	"I: 90210\r\n" \
 	"M: recvonly\r\n" \
 	"C: 2\r\n" \
 	"X\r\n" \
@@ -374,7 +370,6 @@ static void test_strline(void)
 
 #define CRCX_MULT_3 \
 	"CRCX 2 3@mgw MGCP 1.0\r\n" \
-	"I: 0815\r\n" \
 	"M: recvonly\r\n" \
 	"C: 2\r\n" \
 	"X\r\n" \
@@ -390,7 +385,6 @@ static void test_strline(void)
 
 #define CRCX_MULT_4 \
 	"CRCX 2 4@mgw MGCP 1.0\r\n" \
-	"I: 32168\r\n" \
 	"M: recvonly\r\n" \
 	"C: 2\r\n" \
 	"X\r\n" \
@@ -407,7 +401,6 @@ static void test_strline(void)
 #define CRCX_MULT_GSM_EXACT \
 	"CRCX 259260421 5@mgw MGCP 1.0\r\n" \
 	"C: 1355c6041e\r\n" \
-	"I: 3\r\n" \
 	"L: p:20, a:GSM, nt:IN\r\n" \
 	"M: recvonly\r\n" \
 	"\r\n" \
@@ -432,7 +425,7 @@ static void test_strline(void)
 #define MDCX_NAT_DUMMY \
 	"MDCX 23 5@mgw MGCP 1.0\r\n" \
 	"C: 1355c6041e\r\n" \
-	"I: 3\r\n" \
+	"I: %s\r\n" \
 	"\r\n" \
 	"c=IN IP4 8.8.8.8\r\n" \
 	"m=audio 16434 RTP/AVP 255\r\n"
@@ -482,12 +475,20 @@ static const struct mgcp_test retransmit[] = {
 	{"DLCX", DLCX, DLCX_RET},
 };
 
-static struct msgb *create_msg(const char *str)
+static struct msgb *create_msg(const char *str, const char *conn_id)
 {
 	struct msgb *msg;
+	int len;
+
+	printf("creating message from statically defined input:\n");
+	printf("---------8<---------\n%s\n---------8<---------\n", str);
 
 	msg = msgb_alloc_headroom(4096, 128, "MGCP msg");
-	int len = sprintf((char *)msg->data, "%s", str);
+	if (conn_id && strlen(conn_id))
+		len = sprintf((char *)msg->data, str, conn_id, conn_id);
+	else
+		len = sprintf((char *)msg->data, "%s", str);
+
 	msg->l2h = msgb_put(msg, len);
 	return msg;
 }
@@ -554,18 +555,95 @@ static void test_values(void)
 		    MGCP_CONN_RECV_SEND);
 }
 
+/* Extract a connection ID from a response (CRCX) */
+static int get_conn_id_from_response(uint8_t *resp, char *conn_id,
+				     unsigned int conn_id_len)
+{
+	char *conn_id_ptr;
+	int i;
+
+	conn_id_ptr = strstr((char *)resp, "I: ");
+	if (!conn_id_ptr)
+		return -EINVAL;
+
+	memset(conn_id, 0, conn_id_len);
+	memcpy(conn_id, conn_id_ptr + 3, 32);
+
+	for (i = 0; i < conn_id_len; i++) {
+		if (conn_id[i] == '\n' || conn_id[i] == '\r')
+			conn_id[i] = '\0';
+	}
+
+	/* A valid conn_id must at least contain one digit, and must
+	 * not exceed a length of 32 digits */
+	OSMO_ASSERT(strlen(conn_id) <= 32);
+	OSMO_ASSERT(strlen(conn_id) > 0);
+
+	return 0;
+}
+
+/* Check response, automatically patch connection ID if needed */
+static int check_response(uint8_t *resp, const char *exp_resp)
+{
+	char exp_resp_patched[4096];
+	const char *exp_resp_ptr;
+	char conn_id[256];
+
+	printf("checking response:\n");
+
+	/* If the expected response is intened to be patched
+	 * (%s placeholder inside) we will patch it with the
+	 * connection identifier we just received from the
+	 * real response. This is necessary because the CI
+	 * is generated by the mgcp code on CRCX and we can
+	 * not know it in advance */
+	if (strstr(exp_resp, "%s")) {
+		if (get_conn_id_from_response(resp, conn_id, sizeof(conn_id)) ==
+		    0) {
+			sprintf(exp_resp_patched, exp_resp, conn_id, conn_id);
+			exp_resp_ptr = exp_resp_patched;
+			printf
+			    ("using message with patched conn_id for comparison\n");
+		} else {
+			printf
+			    ("patching conn_id failed, using message as statically defined for comparison\n");
+			exp_resp_ptr = exp_resp;
+		}
+	} else {
+		printf("using message as statically defined for comparison\n");
+		exp_resp_ptr = exp_resp;
+	}
+
+	if (strcmp((char *)resp, exp_resp_ptr) != 0) {
+		printf("Unexpected response, please check!\n");
+		printf
+		    ("Got:\n---------8<---------\n%s\n---------8<---------\n\n",
+		     resp);
+		printf
+		    ("Expected:\n---------8<---------\n%s\n---------8<---------\n",
+		     exp_resp_ptr);
+		return -EINVAL;
+	}
+
+	printf("Response matches our expectations.\n");
+	return 0;
+}
+
 static void test_messages(void)
 {
 	struct mgcp_config *cfg;
 	struct mgcp_endpoint *endp;
 	int i;
 	struct mgcp_conn_rtp *conn = NULL;
+	char last_conn_id[256];
 
 	cfg = mgcp_config_alloc();
 
 	cfg->trunk.vty_number_endpoints = 64;
 	mgcp_endpoints_allocate(&cfg->trunk);
 	cfg->policy_cb = mgcp_test_policy_cb;
+
+	memset(last_conn_id, 0, sizeof(last_conn_id));
 
 	mgcp_endpoints_allocate(mgcp_trunk_alloc(cfg, 1));
 
@@ -574,6 +652,7 @@ static void test_messages(void)
 		struct msgb *inp;
 		struct msgb *msg;
 
+		printf("\n================================================\n");
 		printf("Testing %s\n", t->name);
 
 		last_endpoint = -1;
@@ -582,7 +661,7 @@ static void test_messages(void)
 		osmo_talloc_replace_string(cfg, &cfg->trunk.audio_fmtp_extra,
 					   t->extra_fmtp);
 
-		inp = create_msg(t->req);
+		inp = create_msg(t->req, last_conn_id);
 		msg = mgcp_handle_message(cfg, inp);
 		msgb_free(inp);
 		if (!t->exp_resp) {
@@ -591,11 +670,15 @@ static void test_messages(void)
 				       (char *)msg->data);
 				OSMO_ASSERT(false);
 			}
-		} else if (strcmp((char *)msg->data, t->exp_resp) != 0) {
-			printf("%s failed.\nExpected:\n%s\nGot:\n%s\n",
-			       t->name, t->exp_resp, (char *) msg->data);
+		} else if (check_response(msg->data, t->exp_resp) != 0) {
+			printf("%s failed.\n", t->name);
 			OSMO_ASSERT(false);
 		}
+
+		if (msg)
+			get_conn_id_from_response(msg->data, last_conn_id,
+						  sizeof(last_conn_id));
+
 		msgb_free(msg);
 
 		if (dummy_packets)
@@ -656,7 +739,7 @@ static void test_messages(void)
 		}
 
 		/* Check detected payload type */
-		if (t->ptype != PTYPE_IGNORE) {
+		if (conn && t->ptype != PTYPE_IGNORE) {
 			OSMO_ASSERT(last_endpoint != -1);
 			endp = &cfg->trunk.endpoints[last_endpoint];
 
@@ -681,11 +764,14 @@ static void test_retransmission(void)
 {
 	struct mgcp_config *cfg;
 	int i;
+	char last_conn_id[256];
 
 	cfg = mgcp_config_alloc();
 
 	cfg->trunk.vty_number_endpoints = 64;
 	mgcp_endpoints_allocate(&cfg->trunk);
+
+	memset(last_conn_id, 0, sizeof(last_conn_id));
 
 	mgcp_endpoints_allocate(mgcp_trunk_alloc(cfg, 1));
 
@@ -694,24 +780,30 @@ static void test_retransmission(void)
 		struct msgb *inp;
 		struct msgb *msg;
 
+		printf("\n================================================\n");
 		printf("Testing %s\n", t->name);
 
-		inp = create_msg(t->req);
+		inp = create_msg(t->req, last_conn_id);
 		msg = mgcp_handle_message(cfg, inp);
 
 		msgb_free(inp);
-		if (strcmp((char *)msg->data, t->exp_resp) != 0) {
+		if (check_response(msg->data, t->exp_resp) != 0) {
 			printf("%s failed '%s'\n", t->name, (char *)msg->data);
 			OSMO_ASSERT(false);
 		}
+
+		if (msg && strcmp(t->name, CRCX))
+			get_conn_id_from_response(msg->data, last_conn_id,
+						  sizeof(last_conn_id));
+
 		msgb_free(msg);
 
 		/* Retransmit... */
 		printf("Re-transmitting %s\n", t->name);
-		inp = create_msg(t->req);
+		inp = create_msg(t->req, last_conn_id);
 		msg = mgcp_handle_message(cfg, inp);
 		msgb_free(inp);
-		if (strcmp((char *)msg->data, t->exp_resp) != 0) {
+		if (check_response(msg->data, t->exp_resp) != 0) {
 			printf("%s failed '%s'\n", t->name, (char *)msg->data);
 			OSMO_ASSERT(false);
 		}
@@ -732,6 +824,7 @@ static void test_rqnt_cb(void)
 {
 	struct mgcp_config *cfg;
 	struct msgb *inp, *msg;
+	char conn_id[256];
 
 	cfg = mgcp_config_alloc();
 	cfg->rqnt_cb = rqnt_cb;
@@ -741,12 +834,16 @@ static void test_rqnt_cb(void)
 
 	mgcp_endpoints_allocate(mgcp_trunk_alloc(cfg, 1));
 
-	inp = create_msg(CRCX);
-	msgb_free(mgcp_handle_message(cfg, inp));
+	inp = create_msg(CRCX, NULL);
+	msg = mgcp_handle_message(cfg, inp);
+	OSMO_ASSERT(msg);
+	OSMO_ASSERT(get_conn_id_from_response(msg->data, conn_id,
+					      sizeof(conn_id)) == 0);
+	msgb_free(msg);
 	msgb_free(inp);
 
 	/* send the RQNT and check for the CB */
-	inp = create_msg(RQNT);
+	inp = create_msg(RQNT, conn_id);
 	msg = mgcp_handle_message(cfg, inp);
 	if (strncmp((const char *)msg->l2h, "200", 3) != 0) {
 		printf("FAILED: message is not 200. '%s'\n", msg->l2h);
@@ -761,7 +858,7 @@ static void test_rqnt_cb(void)
 	msgb_free(msg);
 	msgb_free(inp);
 
-	inp = create_msg(DLCX);
+	inp = create_msg(DLCX, conn_id);
 	msgb_free(mgcp_handle_message(cfg, inp));
 	msgb_free(inp);
 	talloc_free(cfg);
@@ -864,7 +961,7 @@ static void test_mgcp_stats(void)
 	int loss;
 	int rc;
 
-	msg = create_msg(DLCX_RET);
+	msg = create_msg(DLCX_RET, NULL);
 	rc = mgcp_parse_stats(msg, &bps, &bos, &pr, &_or, &loss, &jitter);
 	printf("Parsing result: %d\n", rc);
 	if (bps != 0 || bos != 0 || pr != 0 || _or != 0 || loss != 0
@@ -874,7 +971,7 @@ static void test_mgcp_stats(void)
 
 	msg =
 	    create_msg
-	    ("250 7 OK\r\nP: PS=10, OS=20, PR=30, OR=40, PL=-3, JI=40\r\n");
+		("250 7 OK\r\nP: PS=10, OS=20, PR=30, OR=40, PL=-3, JI=40\r\n", NULL);
 	rc = mgcp_parse_stats(msg, &bps, &bos, &pr, &_or, &loss, &jitter);
 	printf("Parsing result: %d\n", rc);
 	if (bps != 10 || bos != 20 || pr != 30 || _or != 40 || loss != -3
@@ -1013,6 +1110,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	int last_in_ts_err_cnt = 0;
 	int last_out_ts_err_cnt = 0;
 	struct mgcp_conn_rtp *conn = NULL;
+	struct mgcp_conn *_conn = NULL;
 
 	printf("Testing packet error detection%s%s.\n",
 	       patch_ssrc ? ", patch SSRC" : "",
@@ -1032,9 +1130,10 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	endp.tcfg = &trunk;
 
 	INIT_LLIST_HEAD(&endp.conns);
-	mgcp_conn_alloc(NULL, &endp, "4711", MGCP_CONN_TYPE_RTP,
-			"test-connection");
-	conn = mgcp_conn_get_rtp(&endp, "4711");
+	_conn = mgcp_conn_alloc(NULL, &endp, MGCP_CONN_TYPE_RTP,
+				"test-connection");
+	OSMO_ASSERT(_conn);
+	conn = mgcp_conn_get_rtp(&endp, _conn->id);
 	OSMO_ASSERT(conn);
 
 	rtp = &conn->end;
@@ -1092,6 +1191,7 @@ static void test_multilple_codec(void)
 	struct msgb *inp, *resp;
 	struct in_addr addr;
 	struct mgcp_conn_rtp *conn = NULL;
+	char conn_id[256];
 
 	printf("Testing multiple payload types\n");
 
@@ -1103,85 +1203,95 @@ static void test_multilple_codec(void)
 
 	/* Allocate endpoint 1@mgw with two codecs */
 	last_endpoint = -1;
-	inp = create_msg(CRCX_MULT_1);
+	inp = create_msg(CRCX_MULT_1, NULL);
 	resp = mgcp_handle_message(cfg, inp);
+	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
+					      sizeof(conn_id)) == 0);
 	msgb_free(inp);
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 1);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, "4711");
+	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 18);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == 97);
 
 	/* Allocate 2@mgw with three codecs, last one ignored */
 	last_endpoint = -1;
-	inp = create_msg(CRCX_MULT_2);
+	inp = create_msg(CRCX_MULT_2, NULL);
 	resp = mgcp_handle_message(cfg, inp);
+	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
+					      sizeof(conn_id)) == 0);
 	msgb_free(inp);
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 2);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, "90210");
+	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 18);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == 97);
 
 	/* Allocate 3@mgw with no codecs, check for PT == -1 */
 	last_endpoint = -1;
-	inp = create_msg(CRCX_MULT_3);
+	inp = create_msg(CRCX_MULT_3, NULL);
 	resp = mgcp_handle_message(cfg, inp);
+	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
+					      sizeof(conn_id)) == 0);
 	msgb_free(inp);
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 3);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, "0815");
+	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == -1);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == -1);
 
 	/* Allocate 4@mgw with a single codec */
 	last_endpoint = -1;
-	inp = create_msg(CRCX_MULT_4);
+	inp = create_msg(CRCX_MULT_4, NULL);
 	resp = mgcp_handle_message(cfg, inp);
+	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
+					      sizeof(conn_id)) == 0);
 	msgb_free(inp);
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 4);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, "32168");
+	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 18);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == -1);
 
 	/* Allocate 5@mgw at select GSM.. */
 	last_endpoint = -1;
-	inp = create_msg(CRCX_MULT_GSM_EXACT);
+	inp = create_msg(CRCX_MULT_GSM_EXACT, NULL);
 	talloc_free(cfg->trunk.audio_name);
 	cfg->trunk.audio_name = "GSM/8000";
 	cfg->trunk.no_audio_transcoding = 1;
 	resp = mgcp_handle_message(cfg, inp);
+	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
+					      sizeof(conn_id)) == 0);
 	msgb_free(inp);
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 5);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, "3");
+	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 3);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == -1);
 
-	inp = create_msg(MDCX_NAT_DUMMY);
+	inp = create_msg(MDCX_NAT_DUMMY, conn_id);
 	last_endpoint = -1;
 	resp = mgcp_handle_message(cfg, inp);
 	msgb_free(inp);
 	msgb_free(resp);
 	OSMO_ASSERT(last_endpoint == 5);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, "3");
+	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 3);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == -1);
@@ -1198,19 +1308,21 @@ static void test_multilple_codec(void)
 	talloc_free(endp->last_response);
 	talloc_free(endp->last_trans);
 	endp->last_response = endp->last_trans = NULL;
-	conn = mgcp_conn_get_rtp(endp, "3");
+	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(!conn);
 
 	last_endpoint = -1;
-	inp = create_msg(CRCX_MULT_GSM_EXACT);
+	inp = create_msg(CRCX_MULT_GSM_EXACT, NULL);
 	cfg->trunk.no_audio_transcoding = 0;
 	resp = mgcp_handle_message(cfg, inp);
+	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
+					      sizeof(conn_id)) == 0);
 	msgb_free(inp);
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 5);
 	endp = &cfg->trunk.endpoints[last_endpoint];
-	conn = mgcp_conn_get_rtp(endp, "3");
+	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 255);
 	OSMO_ASSERT(conn->end.alt_codec.payload_type == 0);
@@ -1223,6 +1335,7 @@ static void test_no_cycle(void)
 	struct mgcp_config *cfg;
 	struct mgcp_endpoint *endp;
 	struct mgcp_conn_rtp *conn = NULL;
+	struct mgcp_conn *_conn = NULL;
 
 	printf("Testing no sequence flow on initial packet\n");
 
@@ -1232,9 +1345,10 @@ static void test_no_cycle(void)
 
 	endp = &cfg->trunk.endpoints[1];
 
-	mgcp_conn_alloc(NULL, endp, "4711", MGCP_CONN_TYPE_RTP,
-			"test-connection");
-	conn = mgcp_conn_get_rtp(endp, "4711");
+	_conn = mgcp_conn_alloc(NULL, endp, MGCP_CONN_TYPE_RTP,
+				"test-connection");
+	OSMO_ASSERT(_conn);
+	conn = mgcp_conn_get_rtp(endp, _conn->id);
 	OSMO_ASSERT(conn);
 
 	OSMO_ASSERT(conn->state.stats_initialized == 0);
@@ -1281,9 +1395,10 @@ static void test_no_name(void)
 
 	mgcp_endpoints_allocate(mgcp_trunk_alloc(cfg, 1));
 
-	inp = create_msg(CRCX);
+	inp = create_msg(CRCX, NULL);
 	msg = mgcp_handle_message(cfg, inp);
-	if (strcmp((char *)msg->data, CRCX_RET_NO_RTPMAP) != 0) {
+
+	if (check_response(msg->data, CRCX_RET_NO_RTPMAP) != 0) {
 		printf("FAILED: there should not be a RTPMAP: %s\n",
 		       (char *)msg->data);
 		OSMO_ASSERT(false);

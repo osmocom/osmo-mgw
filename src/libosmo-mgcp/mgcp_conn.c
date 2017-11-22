@@ -25,6 +25,46 @@
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/mgcp_common.h>
 #include <osmocom/mgcp/mgcp_ep.h>
+#include <osmocom/gsm/gsm_utils.h>
+#include <ctype.h>
+
+/* Allocate a new connection identifier. According to RFC3435, they must
+ * be unique only within the scope of the endpoint. */
+static int mgcp_alloc_id(struct mgcp_endpoint *endp, char *id)
+{
+	int i;
+	int k;
+	int rc;
+	uint8_t id_bin[16];
+	char *id_hex;
+
+	/* Generate a connection id that is unique for the current endpoint.
+	 * Technically a counter would be sufficient, but in order to
+	 * be able to find a specific connection in large logfiles and to
+	 * prevent unintentional connections we assign the connection
+	 * identifiers randomly from a reasonable large number space */
+	for (i = 0; i < 32; i++) {
+		rc = osmo_get_rand_id(id_bin, sizeof(id_bin));
+		if (rc < 0)
+			return rc;
+
+		id_hex = osmo_hexdump_nospc(id_bin, sizeof(id_bin));
+		for (k = 0; k < strlen(id_hex); k++)
+			id_hex[k] = toupper(id_hex[k]);
+
+		/* ensure that the generated conn_id is unique
+		 * for this endpoint */
+		if (!mgcp_conn_get_rtp(endp, id_hex)) {
+			osmo_strlcpy(id, id_hex, MGCP_CONN_ID_LENGTH);
+			return 0;
+		}
+	}
+
+	LOGP(DLMGCP, LOGL_ERROR, "endpoint:%x, unable to generate a unique connectionIdentifier\n",
+	     ENDPOINT_NUMBER(endp));
+
+	return -1;
+}
 
 /* Reset codec state and free memory */
 static void mgcp_rtp_codec_reset(struct mgcp_rtp_codec *codec)
@@ -78,28 +118,17 @@ static void mgcp_rtp_conn_reset(struct mgcp_conn_rtp *conn)
  *  \param[in] type connection type (e.g. MGCP_CONN_TYPE_RTP)
  *  \returns pointer to allocated connection, NULL on error */
 struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
-				  const char *id, enum mgcp_conn_type type,
-				  char *name)
+				  enum mgcp_conn_type type, char *name)
 {
 	struct mgcp_conn *conn;
+	int rc;
+
 	OSMO_ASSERT(endp);
 	OSMO_ASSERT(endp->conns.next != NULL && endp->conns.prev != NULL);
 	OSMO_ASSERT(strlen(name) < sizeof(conn->name));
 
-	/* Id is a mandatory parameter */
-	if (!id)
-		return NULL;
-
-	/* Prevent over long id strings */
-	if (strlen(id) >= MGCP_CONN_ID_LENGTH)
-		return NULL;
-
 	/* Do not allow more then two connections */
 	if (llist_count(&endp->conns) >= endp->type->max_conns)
-		return NULL;
-
-	/* Prevent duplicate connection IDs */
-	if (mgcp_conn_get(endp, id))
 		return NULL;
 
 	/* Create new connection and add it to the list */
@@ -112,7 +141,11 @@ struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 	conn->mode_orig = MGCP_CONN_NONE;
 	conn->u.rtp.conn = conn;
 	strcpy(conn->name, name);
-	osmo_strlcpy(conn->id, id, sizeof(conn->id));
+	rc = mgcp_alloc_id(endp, conn->id);
+	if (rc < 0) {
+		talloc_free(conn);
+		return NULL;
+	}
 
 	switch (type) {
 	case MGCP_CONN_TYPE_RTP:

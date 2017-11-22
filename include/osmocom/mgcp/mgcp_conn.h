@@ -28,8 +28,7 @@
 #include <inttypes.h>
 
 struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
-				  const char *id, enum mgcp_conn_type type,
-				  char *name);
+				  enum mgcp_conn_type type, char *name);
 struct mgcp_conn *mgcp_conn_get(struct mgcp_endpoint *endp, const char *id);
 struct mgcp_conn_rtp *mgcp_conn_get_rtp(struct mgcp_endpoint *endp,
 					const char *id);

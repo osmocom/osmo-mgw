@@ -447,7 +447,7 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 	char *line;
 	int have_sdp = 0, osmux_cid = -1;
 	struct mgcp_conn_rtp *conn = NULL;
-        const char *conn_id = NULL;
+	struct mgcp_conn *_conn = NULL;
 	char conn_name[512];
 
 	LOGP(DLMGCP, LOGL_NOTICE, "CRCX: creating new connection ...\n");
@@ -468,7 +468,10 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 			callid = (const char *)line + 3;
 			break;
 		case 'I':
-			conn_id = (const char *)line + 3;
+			/* It is illegal to send a connection identifier
+			 * together with a CRCX, the MGW will assign the
+			 * connection identifier by itself on CRCX */
+			return create_err_response(NULL, 523, "CRCX", p->trans);
 			break;
 		case 'M':
 			mode = (const char *)line + 3;
@@ -506,13 +509,6 @@ mgcp_header_done:
 	if (!mode) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:%x insufficient parameters, missing mode\n",
-		     ENDPOINT_NUMBER(endp));
-		return create_err_response(endp, 400, "CRCX", p->trans);
-	}
-
-	if (!conn_id) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "CRCX: endpoint:%x insufficient parameters, missing connection id\n",
 		     ENDPOINT_NUMBER(endp));
 		return create_err_response(endp, 400, "CRCX", p->trans);
 	}
@@ -560,32 +556,17 @@ mgcp_header_done:
 	set_local_cx_options(endp->tcfg->endpoints, &endp->local_options,
 			     local_options);
 
-	/* Only accept another connection when the connection ID is different. */
-	if (mgcp_conn_get_rtp(endp, conn_id)) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "CRCX: endpoint:%x there is already a connection with id %u present!\n",
-		     conn_id, ENDPOINT_NUMBER(endp));
-		if (tcfg->force_realloc) {
-			/* Ignore the existing connection by just freeing it */
-			mgcp_conn_free(endp, conn_id);
-		} else {
-			/* There is already a connection with that ID present,
-			 * leave everything as it is and return with an error. */
-			return create_err_response(endp, 400, "CRCX", p->trans);
-		}
-	}
-
-	snprintf(conn_name, sizeof(conn_name), "%s-%s", callid, conn_id);
-	mgcp_conn_alloc(NULL, endp, conn_id, MGCP_CONN_TYPE_RTP,
-			conn_name);
-	conn = mgcp_conn_get_rtp(endp, conn_id);
-	if (!conn) {
+	snprintf(conn_name, sizeof(conn_name), "%s", callid);
+	_conn = mgcp_conn_alloc(NULL, endp, MGCP_CONN_TYPE_RTP, conn_name);
+	if (!_conn) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:%x unable to allocate RTP connection\n",
 		     ENDPOINT_NUMBER(endp));
 		goto error2;
 
 	}
+	conn = mgcp_conn_get_rtp(endp, _conn->id);
+	OSMO_ASSERT(conn);
 
 	if (mgcp_parse_conn_mode(mode, endp, conn->conn) != 0) {
 		error_code = 517;

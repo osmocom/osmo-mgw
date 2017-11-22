@@ -257,6 +257,58 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 	return 0;
 }
 
+/* Parse a line like "I: 0cedfd5a19542d197af9afe5231f1d61" */
+static int mgcp_parse_conn_id(struct mgcp_response *r, const char *line)
+{
+	if (strlen(line) < 4)
+		goto response_parse_failure;
+
+	if (memcmp("I: ", line, 3) != 0)
+		goto response_parse_failure;
+
+	osmo_strlcpy(r->head.conn_id, line + 3, sizeof(r->head.conn_id));
+	return 0;
+
+response_parse_failure:
+	LOGP(DLMGCP, LOGL_ERROR,
+	     "Failed to parse MGCP response (connectionIdentifier)\n");
+	return -EINVAL;
+}
+
+/* Parse MGCP parameters of the response */
+static int parse_head_params(struct mgcp_response *r)
+{
+	char *line;
+	int rc = 0;
+	OSMO_ASSERT(r->body);
+	char *data = r->body;
+	char *data_end = strstr(r->body, "\n\n");
+
+	/* Protect SDP body, for_each_non_empty_line() will
+	 * only parse until it hits \0 mark. */
+	if (data_end)
+		*data_end = '\0';
+
+	for_each_non_empty_line(line, data) {
+		switch (line[0]) {
+		case 'I':
+			rc = mgcp_parse_conn_id(r, line);
+			if (rc)
+				goto exit;
+			break;
+		default:
+			/* skip unhandled parameters */
+			break;
+		}
+	}
+exit:
+	/* Restore original state */
+	if (data_end)
+		*data_end = '\n';
+
+	return rc;
+}
+
 static struct mgcp_response_pending *mgcp_client_response_pending_get(
 					 struct mgcp_client *mgcp,
 					 struct mgcp_response *r)
@@ -287,7 +339,13 @@ int mgcp_client_rx(struct mgcp_client *mgcp, struct msgb *msg)
 
 	rc = mgcp_response_parse_head(&r, msg);
 	if (rc) {
-		LOGP(DLMGCP, LOGL_ERROR, "Cannot parse MGCP response\n");
+		LOGP(DLMGCP, LOGL_ERROR, "Cannot parse MGCP response (head)\n");
+		return -1;
+	}
+
+	rc = parse_head_params(&r);
+	if (rc) {
+		LOGP(DLMGCP, LOGL_ERROR, "Cannot parse MGCP response (head parameters)\n");
 		return -1;
 	}
 
@@ -648,7 +706,6 @@ struct msgb *mgcp_msg_dlcx(struct mgcp_client *mgcp, uint16_t rtp_endpoint,
 
 #define MGCP_CRCX_MANDATORY (MGCP_MSG_PRESENCE_ENDPOINT | \
 			     MGCP_MSG_PRESENCE_CALL_ID | \
-			     MGCP_MSG_PRESENCE_CONN_ID | \
 			     MGCP_MSG_PRESENCE_CONN_MODE)
 #define MGCP_MDCX_MANDATORY (MGCP_MSG_PRESENCE_ENDPOINT | \
 			     MGCP_MSG_PRESENCE_CONN_ID)
@@ -719,8 +776,7 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		rc += msgb_printf(msg, "I: %s\r\n", mgcp_msg->conn_id);
 
 	/* Add local connection options */
-	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CONN_ID
-	    && mgcp_msg->verb == MGCP_VERB_CRCX)
+	if (mgcp_msg->verb == MGCP_VERB_CRCX)
 		rc += msgb_printf(msg, "L: p:20, a:AMR, nt:IN\r\n");
 
 	/* Add mode */

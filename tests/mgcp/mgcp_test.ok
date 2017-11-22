@@ -11,87 +11,550 @@ line: 'mixed (4 lines)'
 line: ''
 line: ''
 line: ''
+
+================================================
 Testing AUEP1
+creating message from statically defined input:
+---------8<---------
+AUEP 158663169 ds/e1-1/2@172.16.6.66 MGCP 1.0
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing AUEP2
+creating message from statically defined input:
+---------8<---------
+AUEP 18983213 ds/e1-2/1@172.16.6.66 MGCP 1.0
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing MDCX1
+creating message from statically defined input:
+---------8<---------
+MDCX 18983213 ds/e1-3/1@172.16.6.66 MGCP 1.0
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing MDCX2
+creating message from statically defined input:
+---------8<---------
+MDCX 18983214 ds/e1-1/2@172.16.6.66 MGCP 1.0
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing CRCX
+creating message from statically defined input:
+---------8<---------
+CRCX 2 1@mgw MGCP 1.0
+M: recvonly
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP 97
+a=rtpmap:97 GSM-EFR/8000
+a=ptime:40
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
 Dummy packets: 2
-Detected packet duration: 40
-Requested packetetization period: 20-20
-Connection mode: 1: RECV
+
+================================================
 Testing MDCX3
+creating message from statically defined input:
+---------8<---------
+MDCX 18983215 1@mgw MGCP 1.0
+I: %s
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
 Dummy packets: 2
-Detected packet duration: 40
-Requested packetization period not set
-Connection mode: 1: RECV
+
+================================================
 Testing MDCX4
+creating message from statically defined input:
+---------8<---------
+MDCX 18983216 1@mgw MGCP 1.0
+M: sendrecvC: 2
+I: %s
+L: p:20, a:AMR, nt:IN
+
+v=0
+o=- %s 23 IN IP4 0.0.0.0
+c=IN IP4 0.0.0.0
+t=0 0
+m=audio 4441 RTP/AVP 99
+a=rtpmap:99 AMR/8000
+a=ptime:40
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
 Dummy packets: 2
-Detected packet duration: 40
-Requested packetetization period: 20-20
-Connection mode: 3: SEND RECV
+
+================================================
 Testing MDCX4_PT1
+creating message from statically defined input:
+---------8<---------
+MDCX 18983217 1@mgw MGCP 1.0
+M: sendrecvC: 2
+I: %s
+L: p:20-40, a:AMR, nt:IN
+
+v=0
+o=- %s 23 IN IP4 0.0.0.0
+c=IN IP4 0.0.0.0
+t=0 0
+m=audio 4441 RTP/AVP 99
+a=rtpmap:99 AMR/8000
+a=ptime:40
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
 Dummy packets: 2
-Detected packet duration: 40
-Requested packetetization period: 20-40
-Connection mode: 3: SEND RECV
+
+================================================
 Testing MDCX4_PT2
+creating message from statically defined input:
+---------8<---------
+MDCX 18983218 1@mgw MGCP 1.0
+M: sendrecvC: 2
+I: %s
+L: p:20-20, a:AMR, nt:IN
+
+v=0
+o=- %s 23 IN IP4 0.0.0.0
+c=IN IP4 0.0.0.0
+t=0 0
+m=audio 4441 RTP/AVP 99
+a=rtpmap:99 AMR/8000
+a=ptime:40
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
 Dummy packets: 2
-Detected packet duration: 40
-Requested packetetization period: 20-20
-Connection mode: 3: SEND RECV
+
+================================================
 Testing MDCX4_PT3
+creating message from statically defined input:
+---------8<---------
+MDCX 18983219 1@mgw MGCP 1.0
+M: sendrecvC: 2
+I: %s
+L: a:AMR, nt:IN
+
+v=0
+o=- %s 23 IN IP4 0.0.0.0
+c=IN IP4 0.0.0.0
+t=0 0
+m=audio 4441 RTP/AVP 99
+a=rtpmap:99 AMR/8000
+a=ptime:40
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
 Dummy packets: 2
-Detected packet duration: 40
-Requested packetization period not set
-Connection mode: 3: SEND RECV
+
+================================================
 Testing MDCX4_SO
-Detected packet duration: 40
-Requested packetetization period: 20-20
-Connection mode: 2: SEND
+creating message from statically defined input:
+---------8<---------
+MDCX 18983220 1@mgw MGCP 1.0
+M: sendonlyC: 2
+I: %s
+L: p:20, a:AMR, nt:IN
+
+v=0
+o=- %s 23 IN IP4 0.0.0.0
+c=IN IP4 0.0.0.0
+t=0 0
+m=audio 4441 RTP/AVP 99
+a=rtpmap:99 AMR/8000
+a=ptime:40
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+
+================================================
 Testing MDCX4_RO
+creating message from statically defined input:
+---------8<---------
+MDCX 18983221 1@mgw MGCP 1.0
+M: recvonlyC: 2
+I: %s
+L: p:20, a:AMR, nt:IN
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
 Dummy packets: 2
-Detected packet duration: 40
-Requested packetetization period: 20-20
-Connection mode: 1: RECV
+
+================================================
 Testing DLCX
+creating message from statically defined input:
+---------8<---------
+DLCX 7 1@mgw MGCP 1.0
+I: %s
+C: 2
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing CRCX_ZYN
+creating message from statically defined input:
+---------8<---------
+CRCX 2 1@mgw MGCP 1.0M: recvonlyC: 2
+
+v=0c=IN IP4 123.12.12.123m=audio 5904 RTP/AVP 97a=rtpmap:97 GSM-EFR/8000
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
 Dummy packets: 2
-Detected packet duration: 20
-Requested packetization period not set
-Connection mode: 1: RECV
+
+================================================
 Testing EMPTY
+creating message from statically defined input:
+---------8<---------
+
+
+---------8<---------
+
+================================================
 Testing SHORT1
+creating message from statically defined input:
+---------8<---------
+CRCX 
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing SHORT2
+creating message from statically defined input:
+---------8<---------
+CRCX 1
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing SHORT3
+creating message from statically defined input:
+---------8<---------
+CRCX 1 1@mgw
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing SHORT4
+creating message from statically defined input:
+---------8<---------
+CRCX 1 1@mgw MGCP
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing RQNT1
+creating message from statically defined input:
+---------8<---------
+RQNT 186908780 1@mgw MGCP 1.0
+X: B244F267488
+S: D/9
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing RQNT2
+creating message from statically defined input:
+---------8<---------
+RQNT 186908781 1@mgw MGCP 1.0
+X: ADD4F26746F
+R: D/[0-9#*](N), G/ft, fxr/t38
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing DLCX
+creating message from statically defined input:
+---------8<---------
+DLCX 7 1@mgw MGCP 1.0
+I: %s
+C: 2
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing CRCX
+creating message from statically defined input:
+---------8<---------
+CRCX 2 1@mgw MGCP 1.0
+M: recvonly
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP 97
+a=rtpmap:97 GSM-EFR/8000
+a=ptime:40
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
 Dummy packets: 2
-Detected packet duration: 40
-Requested packetetization period: 20-20
-Connection mode: 1: RECV
+
+================================================
 Testing MDCX3
+creating message from statically defined input:
+---------8<---------
+MDCX 18983215 1@mgw MGCP 1.0
+I: %s
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
 Dummy packets: 2
-Detected packet duration: 40
-Requested packetization period not set
-Connection mode: 1: RECV
+
+================================================
 Testing DLCX
+creating message from statically defined input:
+---------8<---------
+DLCX 7 1@mgw MGCP 1.0
+I: %s
+C: 2
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing CRCX
+creating message from statically defined input:
+---------8<---------
+CRCX 2 1@mgw MGCP 1.0
+M: recvonly
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP 97
+a=rtpmap:97 GSM-EFR/8000
+a=ptime:40
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
 Re-transmitting CRCX
+creating message from statically defined input:
+---------8<---------
+CRCX 2 1@mgw MGCP 1.0
+M: recvonly
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP 97
+a=rtpmap:97 GSM-EFR/8000
+a=ptime:40
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+
+================================================
 Testing RQNT1
+creating message from statically defined input:
+---------8<---------
+RQNT 186908780 1@mgw MGCP 1.0
+X: B244F267488
+S: D/9
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
 Re-transmitting RQNT1
+creating message from statically defined input:
+---------8<---------
+RQNT 186908780 1@mgw MGCP 1.0
+X: B244F267488
+S: D/9
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing RQNT2
+creating message from statically defined input:
+---------8<---------
+RQNT 186908781 1@mgw MGCP 1.0
+X: ADD4F26746F
+R: D/[0-9#*](N), G/ft, fxr/t38
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
 Re-transmitting RQNT2
+creating message from statically defined input:
+---------8<---------
+RQNT 186908781 1@mgw MGCP 1.0
+X: ADD4F26746F
+R: D/[0-9#*](N), G/ft, fxr/t38
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+
+================================================
 Testing MDCX3
+creating message from statically defined input:
+---------8<---------
+MDCX 18983215 1@mgw MGCP 1.0
+I: %s
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
 Re-transmitting MDCX3
+creating message from statically defined input:
+---------8<---------
+MDCX 18983215 1@mgw MGCP 1.0
+I: %s
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+
+================================================
 Testing DLCX
+creating message from statically defined input:
+---------8<---------
+DLCX 7 1@mgw MGCP 1.0
+I: %s
+C: 2
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
 Re-transmitting DLCX
+creating message from statically defined input:
+---------8<---------
+DLCX 7 1@mgw MGCP 1.0
+I: %s
+C: 2
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
 Testing packet loss calculation.
+creating message from statically defined input:
+---------8<---------
+CRCX 2 1@mgw MGCP 1.0
+M: recvonly
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP 97
+a=rtpmap:97 GSM-EFR/8000
+a=ptime:40
+
+---------8<---------
+creating message from statically defined input:
+---------8<---------
+RQNT 186908780 1@mgw MGCP 1.0
+X: B244F267488
+S: D/9
+
+---------8<---------
+creating message from statically defined input:
+---------8<---------
+DLCX 7 1@mgw MGCP 1.0
+I: %s
+C: 2
+
+---------8<---------
 Testing stat parsing
+creating message from statically defined input:
+---------8<---------
+250 7 OK
+P: PS=0, OS=0, PR=0, OR=0, PL=0, JI=0
+X-Osmo-CP: EC TI=0, TO=0
+
+---------8<---------
 Parsing result: 0
+creating message from statically defined input:
+---------8<---------
+250 7 OK
+P: PS=10, OS=20, PR=30, OR=40, PL=-3, JI=40
+
+---------8<---------
 Parsing result: 0
 Testing packet error detection, patch SSRC.
 Output SSRC changed to 11223344
@@ -466,6 +929,156 @@ In TS: 160320, dTS: 160, Seq: 1002
 Out TS change: 160, dTS: 160, Seq change: 1, TS Err change: in +0, out +0
 Stats: Jitter = 0, Transit = -144000
 Testing multiple payload types
+creating message from statically defined input:
+---------8<---------
+CRCX 2 1@mgw MGCP 1.0
+M: recvonly
+C: 2
+X
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP 18 97
+a=rtpmap:18 G729/8000
+a=rtpmap:97 GSM-EFR/8000
+a=ptime:40
+
+---------8<---------
+creating message from statically defined input:
+---------8<---------
+CRCX 2 2@mgw MGCP 1.0
+M: recvonly
+C: 2
+X
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP 18 97 101
+a=rtpmap:18 G729/8000
+a=rtpmap:97 GSM-EFR/8000
+a=rtpmap:101 FOO/8000
+a=ptime:40
+
+---------8<---------
+creating message from statically defined input:
+---------8<---------
+CRCX 2 3@mgw MGCP 1.0
+M: recvonly
+C: 2
+X
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP
+a=rtpmap:18 G729/8000
+a=rtpmap:97 GSM-EFR/8000
+a=rtpmap:101 FOO/8000
+a=ptime:40
+
+---------8<---------
+creating message from statically defined input:
+---------8<---------
+CRCX 2 4@mgw MGCP 1.0
+M: recvonly
+C: 2
+X
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP 18
+a=rtpmap:18 G729/8000
+a=rtpmap:97 GSM-EFR/8000
+a=rtpmap:101 FOO/8000
+a=ptime:40
+
+---------8<---------
+creating message from statically defined input:
+---------8<---------
+CRCX 259260421 5@mgw MGCP 1.0
+C: 1355c6041e
+L: p:20, a:GSM, nt:IN
+M: recvonly
+
+v=0
+o=- 1439038275 1439038275 IN IP4 192.168.181.247
+s=-
+c=IN IP4 192.168.181.247
+t=0 0
+m=audio 29084 RTP/AVP 255 0 8 3 18 4 96 97 101
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=rtpmap:3 gsm/8000
+a=rtpmap:18 G729/8000
+a=fmtp:18 annexb=no
+a=rtpmap:4 G723/8000
+a=rtpmap:96 iLBC/8000
+a=fmtp:96 mode=20
+a=rtpmap:97 iLBC/8000
+a=fmtp:97 mode=30
+a=rtpmap:101 telephone-event/8000
+a=fmtp:101 0-15
+a=recvonly
+
+---------8<---------
+creating message from statically defined input:
+---------8<---------
+MDCX 23 5@mgw MGCP 1.0
+C: 1355c6041e
+I: %s
+
+c=IN IP4 8.8.8.8
+m=audio 16434 RTP/AVP 255
+
+---------8<---------
+creating message from statically defined input:
+---------8<---------
+CRCX 259260421 5@mgw MGCP 1.0
+C: 1355c6041e
+L: p:20, a:GSM, nt:IN
+M: recvonly
+
+v=0
+o=- 1439038275 1439038275 IN IP4 192.168.181.247
+s=-
+c=IN IP4 192.168.181.247
+t=0 0
+m=audio 29084 RTP/AVP 255 0 8 3 18 4 96 97 101
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=rtpmap:3 gsm/8000
+a=rtpmap:18 G729/8000
+a=fmtp:18 annexb=no
+a=rtpmap:4 G723/8000
+a=rtpmap:96 iLBC/8000
+a=fmtp:96 mode=20
+a=rtpmap:97 iLBC/8000
+a=fmtp:97 mode=30
+a=rtpmap:101 telephone-event/8000
+a=fmtp:101 0-15
+a=recvonly
+
+---------8<---------
 Testing no sequence flow on initial packet
 Testing no rtpmap name
+creating message from statically defined input:
+---------8<---------
+CRCX 2 1@mgw MGCP 1.0
+M: recvonly
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP 97
+a=rtpmap:97 GSM-EFR/8000
+a=ptime:40
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
 Done
