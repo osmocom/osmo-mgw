@@ -88,7 +88,7 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 	if (endp->cfg->net_ports.bind_addr) {
 		/* Check there is a bind IP for the RTP traffic configured,
 		 * if so, use that IP-Address */
-		strncpy(addr, endp->cfg->net_ports.bind_addr, INET_ADDRSTRLEN);
+		osmo_strlcpy(addr, endp->cfg->net_ports.bind_addr, INET_ADDRSTRLEN);
 		LOGP(DRTP, LOGL_DEBUG,
 		     "endpoint:%x CI:%s using configured rtp bind ip as local bind ip %s\n",
 		     ENDPOINT_NUMBER(endp), conn->conn->id, addr);
@@ -96,7 +96,7 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 		/* No specific bind IP is configured for the RTP traffic, so
 		 * assume the IP where we listen for incoming MGCP messages
 		 * as bind IP */
-		strncpy(addr, endp->cfg->source_addr, INET_ADDRSTRLEN);
+		osmo_strlcpy(addr, endp->cfg->source_addr, INET_ADDRSTRLEN);
 		LOGP(DRTP, LOGL_DEBUG,
 		     "endpoint:%x CI:%s using mgcp bind ip as local rtp bind ip: %s\n",
 		     ENDPOINT_NUMBER(endp), conn->conn->id, addr);

@@ -46,14 +46,14 @@ static struct msgb *mgcp_from_str(const char *head, const char *params)
 	l = strlen(head);
 	msg->l2h = msgb_put(msg, l);
 	data = (char*)msgb_l2(msg);
-	strncpy(data, head, l);
+	osmo_strlcpy(data, head, l);
 
 	data = (char*)msgb_put(msg, 1);
 	*data = '\n';
 
 	l = strlen(params);
 	data = (char*)msgb_put(msg, l);
-	strncpy(data, params, l);
+	osmo_strlcpy(data, params, l);
 
 	return msg;
 }
@@ -66,7 +66,7 @@ static struct msgb *from_str(const char *str)
 	char *data;
 	msg->l2h = msgb_put(msg, l);
 	data = (char*)msgb_l2(msg);
-	strncpy(data, str, l);
+	osmo_strlcpy(data, str, l);
 	return msg;
 }
 

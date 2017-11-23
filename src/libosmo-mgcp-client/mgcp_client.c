@@ -200,8 +200,7 @@ static int mgcp_parse_audio_ip(struct mgcp_response *r, const char *line)
 		goto response_parse_failure;
 
 	/* Extract IP-Address */
-	strncpy(r->audio_ip, line + 9, sizeof(r->audio_ip));
-	r->audio_ip[sizeof(r->audio_ip) - 1] = '\0';
+	osmo_strlcpy(r->audio_ip, line + 9, sizeof(r->audio_ip));
 
 	/* Check IP-Address */
 	if (inet_aton(r->audio_ip, &ip_test) == 0)
@@ -397,7 +396,7 @@ static int mgcp_do_write(struct osmo_fd *fd, struct msgb *msg)
 	unsigned int l = msg->len < sizeof(strbuf) ? msg->len : sizeof(strbuf);
 	unsigned int i;
 
-	strncpy(strbuf, (const char*)msg->data, l);
+	osmo_strlcpy(strbuf, (const char*)msg->data, l);
 	for (i = 0; i < sizeof(strbuf); i++) {
 		if (strbuf[i] == '\n' || strbuf[i] == '\r') {
 			strbuf[i] = '\0';

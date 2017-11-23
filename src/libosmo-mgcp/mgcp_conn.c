@@ -29,7 +29,8 @@
 #include <ctype.h>
 
 /* Allocate a new connection identifier. According to RFC3435, they must
- * be unique only within the scope of the endpoint. */
+ * be unique only within the scope of the endpoint. (Caller must provide
+ * memory for id) */
 static int mgcp_alloc_id(struct mgcp_endpoint *endp, char *id)
 {
 	int i;
@@ -140,7 +141,7 @@ struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 	conn->mode = MGCP_CONN_NONE;
 	conn->mode_orig = MGCP_CONN_NONE;
 	conn->u.rtp.conn = conn;
-	strcpy(conn->name, name);
+	osmo_strlcpy(conn->name, name, sizeof(conn->name));
 	rc = mgcp_alloc_id(endp, conn->id);
 	if (rc < 0) {
 		talloc_free(conn);
