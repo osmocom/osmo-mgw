@@ -61,7 +61,7 @@ static int mgcp_alloc_id(struct mgcp_endpoint *endp, char *id)
 		}
 	}
 
-	LOGP(DLMGCP, LOGL_ERROR, "endpoint:%x, unable to generate a unique connectionIdentifier\n",
+	LOGP(DLMGCP, LOGL_ERROR, "endpoint:0x%x, unable to generate a unique connectionIdentifier\n",
 	     ENDPOINT_NUMBER(endp));
 
 	return -1;

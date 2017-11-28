@@ -534,7 +534,7 @@ mgcp_header_done:
 	 * callids match up so that we are sure that this is our call */
 	if (endp->callid && mgcp_verify_call_id(endp, callid)) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "CRCX: endpoint:%x allready seized by other call (%s)\n",
+		     "CRCX: endpoint:0x%x allready seized by other call (%s)\n",
 		     ENDPOINT_NUMBER(endp), endp->callid);
 		if (tcfg->force_realloc)
 			/* This is not our call, toss everything by releasing
@@ -560,7 +560,7 @@ mgcp_header_done:
 	_conn = mgcp_conn_alloc(NULL, endp, MGCP_CONN_TYPE_RTP, conn_name);
 	if (!_conn) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "CRCX: endpoint:%x unable to allocate RTP connection\n",
+		     "CRCX: endpoint:0x%x unable to allocate RTP connection\n",
 		     ENDPOINT_NUMBER(endp));
 		goto error2;
 
@@ -581,7 +581,7 @@ mgcp_header_done:
 		conn->osmux.state = OSMUX_STATE_NEGOTIATING;
 	} else if (endp->cfg->osmux == OSMUX_USAGE_ONLY) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "CRCX: endpoint:%x osmux only and no osmux offered\n",
+		     "CRCX: endpoint:0x%x osmux only and no osmux offered\n",
 		     ENDPOINT_NUMBER(endp));
 		goto error2;
 	}
@@ -608,7 +608,7 @@ mgcp_header_done:
 
 	if (setup_rtp_processing(endp, conn) != 0) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "CRCX: endpoint:%x could not start RTP processing!\n",
+		     "CRCX: endpoint:0x%x could not start RTP processing!\n",
 		     ENDPOINT_NUMBER(endp));
 		goto error2;
 	}
@@ -621,7 +621,7 @@ mgcp_header_done:
 		switch (rc) {
 		case MGCP_POLICY_REJECT:
 			LOGP(DLMGCP, LOGL_NOTICE,
-			     "CRCX: endpoint:%x CRCX rejected by policy\n",
+			     "CRCX: endpoint:0x%x CRCX rejected by policy\n",
 			     ENDPOINT_NUMBER(endp));
 			mgcp_release_endp(endp);
 			return create_err_response(endp, 400, "CRCX", p->trans);
@@ -637,7 +637,7 @@ mgcp_header_done:
 	}
 
 	LOGP(DLMGCP, LOGL_DEBUG,
-	     "CRCX: endpoint:%x Creating connection: CI: %s port: %u\n",
+	     "CRCX: endpoint:0x%x Creating connection: CI: %s port: %u\n",
 	     ENDPOINT_NUMBER(endp), conn->conn->id, conn->end.local_port);
 	if (p->cfg->change_cb)
 		p->cfg->change_cb(tcfg, ENDPOINT_NUMBER(endp), MGCP_ENDP_CRCX);
@@ -649,13 +649,13 @@ mgcp_header_done:
 		send_dummy(endp, conn);
 
 	LOGP(DLMGCP, LOGL_NOTICE,
-	     "CRCX: endpoint:%x connection successfully created\n",
+	     "CRCX: endpoint:0x%x connection successfully created\n",
 	     ENDPOINT_NUMBER(endp));
 	return create_response_with_sdp(endp, conn, "CRCX", p->trans);
 error2:
 	mgcp_release_endp(endp);
 	LOGP(DLMGCP, LOGL_NOTICE,
-	     "CRCX: endpoint:%x unable to create connection resource error\n",
+	     "CRCX: endpoint:0x%x unable to create connection resource error\n",
 	     ENDPOINT_NUMBER(endp));
 	return create_err_response(endp, error_code, "CRCX", p->trans);
 }
@@ -680,7 +680,7 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 
 	if (llist_count(&endp->conns) <= 0) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "MDCX: endpoint:%x endpoint is not holding a connection.\n",
+		     "MDCX: endpoint:0x%x endpoint is not holding a connection.\n",
 		     ENDPOINT_NUMBER(endp));
 		return create_err_response(endp, 400, "MDCX", p->trans);
 	}
@@ -714,7 +714,7 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 			break;
 		default:
 			LOGP(DLMGCP, LOGL_NOTICE,
-			     "MDCX: endpoint:%x Unhandled MGCP option: '%c'/%d\n",
+			     "MDCX: endpoint:0x%x Unhandled MGCP option: '%c'/%d\n",
 			     ENDPOINT_NUMBER(endp), line[0], line[0]);
 			break;
 		}
@@ -723,7 +723,7 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 mgcp_header_done:
 	if (!conn_id) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "MDCX: endpoint:%x insufficient parameters, missing ci (connectionIdentifier)\n",
+		     "MDCX: endpoint:0x%x insufficient parameters, missing ci (connectionIdentifier)\n",
 		     ENDPOINT_NUMBER(endp));
 		return create_err_response(endp, 400, "MDCX", p->trans);
 	}
@@ -762,7 +762,7 @@ mgcp_header_done:
 		switch (rc) {
 		case MGCP_POLICY_REJECT:
 			LOGP(DLMGCP, LOGL_NOTICE,
-			     "MDCX: endpoint:%x rejected by policy\n",
+			     "MDCX: endpoint:0x%x rejected by policy\n",
 			     ENDPOINT_NUMBER(endp));
 			if (silent)
 				goto out_silent;
@@ -771,7 +771,7 @@ mgcp_header_done:
 		case MGCP_POLICY_DEFER:
 			/* stop processing */
 			LOGP(DLMGCP, LOGL_DEBUG,
-			     "MDCX: endpoint:%x defered by policy\n",
+			     "MDCX: endpoint:0x%x defered by policy\n",
 			     ENDPOINT_NUMBER(endp));
 			return NULL;
 			break;
@@ -785,7 +785,7 @@ mgcp_header_done:
 
 	/* modify */
 	LOGP(DLMGCP, LOGL_DEBUG,
-	     "MDCX: endpoint:%x modified conn:%s\n",
+	     "MDCX: endpoint:0x%x modified conn:%s\n",
 	     ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn->conn));
 	if (p->cfg->change_cb)
 		p->cfg->change_cb(endp->tcfg, ENDPOINT_NUMBER(endp),
@@ -801,14 +801,14 @@ mgcp_header_done:
 		goto out_silent;
 
 	LOGP(DLMGCP, LOGL_NOTICE,
-	     "MDCX: endpoint:%x connection successfully modified\n",
+	     "MDCX: endpoint:0x%x connection successfully modified\n",
 	     ENDPOINT_NUMBER(endp));
 	return create_response_with_sdp(endp, conn, "MDCX", p->trans);
 error3:
 	return create_err_response(endp, error_code, "MDCX", p->trans);
 
 out_silent:
-	LOGP(DLMGCP, LOGL_DEBUG, "MDCX: endpoint:%x silent exit\n",
+	LOGP(DLMGCP, LOGL_DEBUG, "MDCX: endpoint:0x%x silent exit\n",
 	     ENDPOINT_NUMBER(endp));
 	return NULL;
 }
@@ -828,12 +828,12 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 		return create_err_response(NULL, error_code, "DLCX", p->trans);
 
 	LOGP(DLMGCP, LOGL_NOTICE,
-	     "DLCX: endpoint:%x deleting connection ...\n",
+	     "DLCX: endpoint:0x%x deleting connection ...\n",
 	     ENDPOINT_NUMBER(endp));
 
 	if (llist_count(&endp->conns) <= 0) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "DLCX: endpoint:%x endpoint is not holding a connection.\n",
+		     "DLCX: endpoint:0x%x endpoint is not holding a connection.\n",
 		     ENDPOINT_NUMBER(endp));
 		return create_err_response(endp, 400, "DLCX", p->trans);
 	}
@@ -857,7 +857,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 			break;
 		default:
 			LOGP(DLMGCP, LOGL_NOTICE,
-			     "DLCX: endpoint:%x Unhandled MGCP option: '%c'/%d\n",
+			     "DLCX: endpoint:0x%x Unhandled MGCP option: '%c'/%d\n",
 			     ENDPOINT_NUMBER(endp), line[0], line[0]);
 			break;
 		}
@@ -871,7 +871,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 		switch (rc) {
 		case MGCP_POLICY_REJECT:
 			LOGP(DLMGCP, LOGL_NOTICE,
-			     "DLCX: endpoint:%x rejected by policy\n",
+			     "DLCX: endpoint:0x%x rejected by policy\n",
 			     ENDPOINT_NUMBER(endp));
 			if (silent)
 				goto out_silent;
@@ -892,7 +892,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 	 * RFC3435 Section F.7) */
 	if (!conn_id) {
 		LOGP(DLMGCP, LOGL_NOTICE,
-		     "DLCX: endpoint:%x missing ci (connectionIdentifier), will remove all connections at once\n",
+		     "DLCX: endpoint:0x%x missing ci (connectionIdentifier), will remove all connections at once\n",
 		     ENDPOINT_NUMBER(endp));
 
 		mgcp_release_endp(endp);
@@ -912,11 +912,11 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 	mgcp_format_stats(stats, sizeof(stats), conn->conn);
 
 	/* delete connection */
-	LOGP(DLMGCP, LOGL_DEBUG, "DLCX: endpoint:%x deleting conn:%s\n",
+	LOGP(DLMGCP, LOGL_DEBUG, "DLCX: endpoint:0x%x deleting conn:%s\n",
 	     ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn->conn));
 	mgcp_conn_free(endp, conn_id);
 	LOGP(DLMGCP, LOGL_NOTICE,
-	     "DLCX: endpoint:%x connection successfully deleted\n",
+	     "DLCX: endpoint:0x%x connection successfully deleted\n",
 	     ENDPOINT_NUMBER(endp));
 
 	/* When all connections are closed, the endpoint will be released
@@ -924,7 +924,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 	if (llist_count(&endp->conns) <= 0) {
 		mgcp_release_endp(endp);
 		LOGP(DLMGCP, LOGL_DEBUG,
-		     "DLCX: endpoint:%x endpoint released\n",
+		     "DLCX: endpoint:0x%x endpoint released\n",
 		     ENDPOINT_NUMBER(endp));
 	}
 
@@ -940,7 +940,7 @@ error3:
 	return create_err_response(endp, error_code, "DLCX", p->trans);
 
 out_silent:
-	LOGP(DLMGCP, LOGL_DEBUG, "DLCX: endpoint:%x silent exit\n",
+	LOGP(DLMGCP, LOGL_DEBUG, "DLCX: endpoint:0x%x silent exit\n",
 	     ENDPOINT_NUMBER(endp));
 	return NULL;
 }
@@ -1188,7 +1188,7 @@ int mgcp_endpoints_allocate(struct mgcp_trunk_config *tcfg)
  *  \param[in] endp endpoint to release */
 void mgcp_release_endp(struct mgcp_endpoint *endp)
 {
-	LOGP(DLMGCP, LOGL_DEBUG, "Releasing endpoint:%x\n",
+	LOGP(DLMGCP, LOGL_DEBUG, "Releasing endpoint:0x%x\n",
 	     ENDPOINT_NUMBER(endp));
 
 	/* Normally this function should only be called wehen

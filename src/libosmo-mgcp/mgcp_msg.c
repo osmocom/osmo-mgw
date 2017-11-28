@@ -82,7 +82,7 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 
 	if (!mode) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint:%x missing connection mode\n",
+		     "endpoint:0x%x missing connection mode\n",
 		     ENDPOINT_NUMBER(endp));
 		return -1;
 	}
@@ -101,7 +101,7 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 		conn->mode = MGCP_CONN_LOOPBACK;
 	else {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint:%x unknown connection mode: '%s'\n",
+		     "endpoint:0x%x unknown connection mode: '%s'\n",
 		     ENDPOINT_NUMBER(endp), mode);
 		ret = -1;
 	}
@@ -113,16 +113,16 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 	}
 
 	LOGP(DLMGCP, LOGL_DEBUG,
-	     "endpoint:%x conn:%s\n",
+	     "endpoint:0x%x conn:%s\n",
 	     ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn));
 
 	LOGP(DLMGCP, LOGL_DEBUG,
-	     "endpoint:%x connection mode '%s' %d\n",
+	     "endpoint:0x%x connection mode '%s' %d\n",
 	     ENDPOINT_NUMBER(endp), mode, conn->mode);
 
 	/* Special handling für RTP connections */
 	if (conn->type == MGCP_CONN_TYPE_RTP) {
-		LOGP(DLMGCP, LOGL_DEBUG, "endpoint:%x output_enabled %d\n",
+		LOGP(DLMGCP, LOGL_DEBUG, "endpoint:0x%x output_enabled %d\n",
 		     ENDPOINT_NUMBER(endp), conn->u.rtp.end.output_enabled);
 	}
 
@@ -318,7 +318,7 @@ int mgcp_verify_call_id(struct mgcp_endpoint *endp, const char *callid)
 
 	if (strcmp(endp->callid, callid) != 0) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint:%x CallIDs does not match '%s' != '%s'\n",
+		     "endpoint:0x%x CallIDs does not match '%s' != '%s'\n",
 		     ENDPOINT_NUMBER(endp), endp->callid, callid);
 		return -1;
 	}
@@ -335,7 +335,7 @@ int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 	/* Check for null identifiers */
 	if (!conn_id) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint:%x invalid ConnectionIdentifier (missing)\n",
+		     "endpoint:0x%x invalid ConnectionIdentifier (missing)\n",
 		     ENDPOINT_NUMBER(endp));
 		return -1;
 	}
@@ -343,7 +343,7 @@ int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 	/* Check for empty connection identifiers */
 	if (strlen(conn_id) == 0) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint:%x invalid ConnectionIdentifier (empty)\n",
+		     "endpoint:0x%x invalid ConnectionIdentifier (empty)\n",
 		     ENDPOINT_NUMBER(endp));
 		return -1;
 	}
@@ -351,7 +351,7 @@ int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 	/* Check for over long connection identifiers */
 	if (strlen(conn_id) > MGCP_CONN_ID_LENGTH) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint:%x invalid ConnectionIdentifier (too long) 0x%s\n",
+		     "endpoint:0x%x invalid ConnectionIdentifier (too long) 0x%s\n",
 		     ENDPOINT_NUMBER(endp), conn_id);
 		return -1;
 	}
@@ -361,7 +361,7 @@ int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 		return 0;
 
 	LOGP(DLMGCP, LOGL_ERROR,
-	     "endpoint:%x no connection found under ConnectionIdentifier 0x%s\n",
+	     "endpoint:0x%x no connection found under ConnectionIdentifier 0x%s\n",
 	     ENDPOINT_NUMBER(endp), conn_id);
 
 	return -1;
