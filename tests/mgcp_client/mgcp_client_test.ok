@@ -59,4 +59,23 @@ RSIP 5 23@mgw MGCP 1.0
 
 Overfolow test:
 
+
+test_mgcp_client_cancel():
+composed:
+-----
+CRCX 1 23@mgw MGCP 1.0
+C: 2f
+I: 11
+L: p:20, a:AMR, nt:IN
+M: sendrecv
+
+-----
+composed response:
+-----
+200 1 OK
+I: 1
+
+v=0
+
+-----
 Done

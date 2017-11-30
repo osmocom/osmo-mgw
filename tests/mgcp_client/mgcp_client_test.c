@@ -24,6 +24,7 @@
 #include <osmocom/core/application.h>
 #include <osmocom/mgcp_client/mgcp_client.h>
 #include <osmocom/mgcp_client/mgcp_client_internal.h>
+#include <errno.h>
 
 void *ctx;
 
@@ -73,7 +74,7 @@ static struct msgb *from_str(const char *str)
 static struct mgcp_client_conf conf;
 struct mgcp_client *mgcp = NULL;
 
-static void reply_to(mgcp_trans_id_t trans_id, int code, const char *comment,
+static int reply_to(mgcp_trans_id_t trans_id, int code, const char *comment,
 		     int conn_id, const char *params)
 {
 	static char compose[4096 - 128];
@@ -87,7 +88,7 @@ static void reply_to(mgcp_trans_id_t trans_id, int code, const char *comment,
 
 	printf("composed response:\n-----\n%s\n-----\n",
 	       compose);
-	mgcp_client_rx(mgcp, from_str(compose));
+	return mgcp_client_rx(mgcp, from_str(compose));
 }
 
 void test_response_cb(struct mgcp_response *response, void *priv)
@@ -225,6 +226,51 @@ void test_mgcp_msg(void)
 	msgb_free(msg);
 }
 
+void test_mgcp_client_cancel()
+{
+	mgcp_trans_id_t trans_id;
+	struct msgb *msg;
+	struct mgcp_msg mgcp_msg = {
+		.verb = MGCP_VERB_CRCX,
+		.audio_ip = "192.168.100.23",
+		.endpoint = "23@mgw",
+		.audio_port = 1234,
+		.call_id = 47,
+		.conn_id = 11,
+		.conn_mode = MGCP_CONN_RECV_SEND,
+		.presence = (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID
+			     | MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE),
+	};
+
+	printf("\n%s():\n", __func__);
+	fprintf(stderr, "\n%s():\n", __func__);
+
+	if (mgcp)
+		talloc_free(mgcp);
+	mgcp = mgcp_client_init(ctx, &conf);
+
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	trans_id = mgcp_msg_trans_id(msg);
+	fprintf(stderr, "- composed msg with trans_id=%u\n", trans_id);
+
+	fprintf(stderr, "- not in queue yet, cannot cancel yet\n");
+	OSMO_ASSERT(mgcp_client_cancel(mgcp, trans_id) == -ENOENT);
+
+	fprintf(stderr, "- enqueue\n");
+	dummy_mgcp_send(msg);
+
+	fprintf(stderr, "- cancel succeeds\n");
+	OSMO_ASSERT(mgcp_client_cancel(mgcp, trans_id) == 0);
+
+	fprintf(stderr, "- late response gets discarded\n");
+	OSMO_ASSERT(reply_to(trans_id, 200, "OK", 1, "v=0\r\n") == -ENOENT);
+
+	fprintf(stderr, "- canceling again does nothing\n");
+	OSMO_ASSERT(mgcp_client_cancel(mgcp, trans_id) == -ENOENT);
+
+	fprintf(stderr, "%s() done\n", __func__);
+}
+
 static const struct log_info_cat log_categories[] = {
 };
 
@@ -244,10 +290,13 @@ int main(int argc, char **argv)
 	log_set_use_color(osmo_stderr_target, 0);
 	log_set_print_category(osmo_stderr_target, 1);
 
+	log_set_category_filter(osmo_stderr_target, DLMGCP, 1, LOGL_DEBUG);
+
 	mgcp_client_conf_init(&conf);
 
 	test_crcx();
 	test_mgcp_msg();
+	test_mgcp_client_cancel();
 
 	printf("Done\n");
 	fprintf(stderr, "Done\n");

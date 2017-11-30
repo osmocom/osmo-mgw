@@ -1,2 +1,15 @@
 DLMGCP message buffer to small, can not generate MGCP message
+
+test_mgcp_client_cancel():
+- composed msg with trans_id=1
+- not in queue yet, cannot cancel yet
+DLMGCP Cannot cancel, no such transaction: 1
+- enqueue
+- cancel succeeds
+DLMGCP Canceled transaction 1
+- late response gets discarded
+DLMGCP Cannot find matching MGCP transaction for trans_id 1
+- canceling again does nothing
+DLMGCP Cannot cancel, no such transaction: 1
+test_mgcp_client_cancel() done
 Done

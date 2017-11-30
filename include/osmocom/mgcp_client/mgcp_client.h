@@ -93,6 +93,7 @@ int mgcp_response_parse_params(struct mgcp_response *r);
 
 int mgcp_client_tx(struct mgcp_client *mgcp, struct msgb *msg,
 		   mgcp_response_cb_t response_cb, void *priv);
+int mgcp_client_cancel(struct mgcp_client *mgcp, mgcp_trans_id_t trans_id);
 
 enum mgcp_connection_mode;
 
@@ -111,6 +112,7 @@ struct msgb *mgcp_msg_dlcx(struct mgcp_client *mgcp, uint16_t rtp_endpoint,
 OSMO_DEPRECATED("Use mgcp_msg_gen() instead");
 
 struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg);
+mgcp_trans_id_t mgcp_msg_trans_id(struct msgb *msg);
 
 extern const struct value_string mgcp_client_connection_mode_strs[];
 static inline const char *mgcp_client_cmode_name(enum mgcp_connection_mode mode)
