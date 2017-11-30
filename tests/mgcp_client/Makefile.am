@@ -37,3 +37,6 @@ mgcp_client_test_LDADD = \
 	$(LIBRARY_DL) \
 	$(LIBOSMONETIF_LIBS) \
 	$(NULL)
+
+update_exp:
+	$(builddir)/mgcp_client_test >$(srcdir)/mgcp_client_test.ok 2>$(srcdir)/mgcp_client_test.err
