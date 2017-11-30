@@ -124,10 +124,6 @@ struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 	struct mgcp_conn *conn;
 	int rc;
 
-	OSMO_ASSERT(endp);
-	OSMO_ASSERT(endp->conns.next != NULL && endp->conns.prev != NULL);
-	OSMO_ASSERT(strlen(name) < sizeof(conn->name));
-
 	/* Do not allow more then two connections */
 	if (llist_count(&endp->conns) >= endp->type->max_conns)
 		return NULL;
@@ -170,11 +166,6 @@ struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
  *  \returns pointer to allocated connection, NULL if not found */
 struct mgcp_conn *mgcp_conn_get(struct mgcp_endpoint *endp, const char *id)
 {
-	OSMO_ASSERT(endp);
-	OSMO_ASSERT(id);
-	OSMO_ASSERT(strlen(id) < MGCP_CONN_ID_LENGTH);
-	OSMO_ASSERT(endp->conns.next != NULL && endp->conns.prev != NULL);
-
 	struct mgcp_conn *conn;
 
 	llist_for_each_entry(conn, &endp->conns, entry) {
@@ -192,11 +183,6 @@ struct mgcp_conn *mgcp_conn_get(struct mgcp_endpoint *endp, const char *id)
 struct mgcp_conn_rtp *mgcp_conn_get_rtp(struct mgcp_endpoint *endp,
 					const char *id)
 {
-	OSMO_ASSERT(endp);
-	OSMO_ASSERT(id);
-	OSMO_ASSERT(strlen(id) < MGCP_CONN_ID_LENGTH);
-	OSMO_ASSERT(endp->conns.next != NULL && endp->conns.prev != NULL);
-
 	struct mgcp_conn *conn;
 
 	conn = mgcp_conn_get(endp, id);
@@ -214,11 +200,6 @@ struct mgcp_conn_rtp *mgcp_conn_get_rtp(struct mgcp_endpoint *endp,
  *  \param[in] id identification number of the connection */
 void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id)
 {
-	OSMO_ASSERT(endp);
-	OSMO_ASSERT(id);
-	OSMO_ASSERT(strlen(id) < MGCP_CONN_ID_LENGTH);
-	OSMO_ASSERT(endp->conns.next != NULL && endp->conns.prev != NULL);
-
 	struct mgcp_conn *conn;
 
 	conn = mgcp_conn_get(endp, id);
@@ -246,9 +227,6 @@ void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id)
  *  \param[in] endp associated endpoint */
 void mgcp_conn_free_oldest(struct mgcp_endpoint *endp)
 {
-	OSMO_ASSERT(endp);
-	OSMO_ASSERT(endp->conns.next != NULL && endp->conns.prev != NULL);
-
 	struct mgcp_conn *conn;
 
 	if (llist_empty(&endp->conns))
@@ -265,9 +243,6 @@ void mgcp_conn_free_oldest(struct mgcp_endpoint *endp)
  *  \param[in] endp associated endpoint */
 void mgcp_conn_free_all(struct mgcp_endpoint *endp)
 {
-	OSMO_ASSERT(endp);
-	OSMO_ASSERT(endp->conns.next != NULL && endp->conns.prev != NULL);
-
 	struct mgcp_conn *conn;
 	struct mgcp_conn *conn_tmp;
 
