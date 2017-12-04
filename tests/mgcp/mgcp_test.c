@@ -788,7 +788,7 @@ static void test_retransmission(void)
 		msg = mgcp_handle_message(cfg, inp);
 
 		msgb_free(inp);
-		if (check_response(msg->data, t->exp_resp) != 0) {
+		if (msg && check_response(msg->data, t->exp_resp) != 0) {
 			printf("%s failed '%s'\n", t->name, (char *)msg->data);
 			OSMO_ASSERT(false);
 		}
@@ -799,7 +799,8 @@ static void test_retransmission(void)
 			OSMO_ASSERT(rc == 0);
 		}
 
-		msgb_free(msg);
+		if (msg)
+			msgb_free(msg);
 
 		/* Retransmit... */
 		printf("Re-transmitting %s\n", t->name);
