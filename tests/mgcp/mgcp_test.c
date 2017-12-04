@@ -685,7 +685,8 @@ static void test_messages(void)
 				printf("(response does not contain a connection id)\n");
 		}
 
-		msgb_free(msg);
+		if (msg)
+			msgb_free(msg);
 
 		if (dummy_packets)
 			printf("Dummy packets: %d\n", dummy_packets);
