@@ -765,6 +765,7 @@ static void test_retransmission(void)
 	struct mgcp_config *cfg;
 	int i;
 	char last_conn_id[256];
+	int rc;
 
 	cfg = mgcp_config_alloc();
 
@@ -792,9 +793,11 @@ static void test_retransmission(void)
 			OSMO_ASSERT(false);
 		}
 
-		if (msg && strcmp(t->name, CRCX))
-			get_conn_id_from_response(msg->data, last_conn_id,
-						  sizeof(last_conn_id));
+		if (msg && strcmp(t->name, "CRCX") == 0) {
+		        rc = get_conn_id_from_response(msg->data, last_conn_id,
+						       sizeof(last_conn_id));
+			OSMO_ASSERT(rc == 0);
+		}
 
 		msgb_free(msg);
 
