@@ -22,6 +22,7 @@ AUEP 158663169 ds/e1-1/2@172.16.6.66 MGCP 1.0
 checking response:
 using message as statically defined for comparison
 Response matches our expectations.
+(response contains a connection id)
 
 ================================================
 Testing AUEP2
@@ -33,6 +34,7 @@ AUEP 18983213 ds/e1-2/1@172.16.6.66 MGCP 1.0
 checking response:
 using message as statically defined for comparison
 Response matches our expectations.
+(response contains a connection id)
 
 ================================================
 Testing MDCX1
@@ -44,6 +46,7 @@ MDCX 18983213 ds/e1-3/1@172.16.6.66 MGCP 1.0
 checking response:
 using message as statically defined for comparison
 Response matches our expectations.
+(response contains a connection id)
 
 ================================================
 Testing MDCX2
@@ -55,6 +58,7 @@ MDCX 18983214 ds/e1-1/2@172.16.6.66 MGCP 1.0
 checking response:
 using message as statically defined for comparison
 Response matches our expectations.
+(response contains a connection id)
 
 ================================================
 Testing CRCX
@@ -75,6 +79,7 @@ a=ptime:40
 checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
+(response does not contain a connection id)
 Dummy packets: 2
 
 ================================================
@@ -88,6 +93,7 @@ I: %s
 checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
+(response does not contain a connection id)
 Dummy packets: 2
 
 ================================================
@@ -111,6 +117,7 @@ a=ptime:40
 checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
+(response does not contain a connection id)
 Dummy packets: 2
 
 ================================================
@@ -134,6 +141,7 @@ a=ptime:40
 checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
+(response does not contain a connection id)
 Dummy packets: 2
 
 ================================================
@@ -157,6 +165,7 @@ a=ptime:40
 checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
+(response does not contain a connection id)
 Dummy packets: 2
 
 ================================================
@@ -180,6 +189,7 @@ a=ptime:40
 checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
+(response does not contain a connection id)
 Dummy packets: 2
 
 ================================================
@@ -203,6 +213,7 @@ a=ptime:40
 checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
+(response does not contain a connection id)
 
 ================================================
 Testing MDCX4_RO
@@ -217,6 +228,7 @@ L: p:20, a:AMR, nt:IN
 checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
+(response does not contain a connection id)
 Dummy packets: 2
 
 ================================================
@@ -231,6 +243,7 @@ C: 2
 checking response:
 using message as statically defined for comparison
 Response matches our expectations.
+(response contains a connection id)
 
 ================================================
 Testing CRCX_ZYN
@@ -243,6 +256,7 @@ v=0c=IN IP4 123.12.12.123m=audio 5904 RTP/AVP 97a=rtpmap:97 GSM-EFR/8000
 checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
+(response does not contain a connection id)
 Dummy packets: 2
 
 ================================================
@@ -263,6 +277,7 @@ CRCX
 checking response:
 using message as statically defined for comparison
 Response matches our expectations.
+(response contains a connection id)
 
 ================================================
 Testing SHORT2
@@ -273,6 +288,7 @@ CRCX 1
 checking response:
 using message as statically defined for comparison
 Response matches our expectations.
+(response contains a connection id)
 
 ================================================
 Testing SHORT3
@@ -283,6 +299,7 @@ CRCX 1 1@mgw
 checking response:
 using message as statically defined for comparison
 Response matches our expectations.
+(response contains a connection id)
 
 ================================================
 Testing SHORT4
@@ -293,6 +310,7 @@ CRCX 1 1@mgw MGCP
 checking response:
 using message as statically defined for comparison
 Response matches our expectations.
+(response contains a connection id)
 
 ================================================
 Testing RQNT1
@@ -306,6 +324,7 @@ S: D/9
 checking response:
 using message as statically defined for comparison
 Response matches our expectations.
+(response contains a connection id)
 
 ================================================
 Testing RQNT2
@@ -319,6 +338,7 @@ R: D/[0-9#*](N), G/ft, fxr/t38
 checking response:
 using message as statically defined for comparison
 Response matches our expectations.
+(response contains a connection id)
 
 ================================================
 Testing DLCX
@@ -332,6 +352,7 @@ C: 2
 checking response:
 using message as statically defined for comparison
 Response matches our expectations.
+(response contains a connection id)
 
 ================================================
 Testing CRCX
@@ -352,6 +373,7 @@ a=ptime:40
 checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
+(response does not contain a connection id)
 Dummy packets: 2
 
 ================================================
@@ -365,6 +387,7 @@ I: %s
 checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
+(response does not contain a connection id)
 Dummy packets: 2
 
 ================================================
@@ -379,6 +402,7 @@ C: 2
 checking response:
 using message as statically defined for comparison
 Response matches our expectations.
+(response contains a connection id)
 
 ================================================
 Testing CRCX

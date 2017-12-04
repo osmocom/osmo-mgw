@@ -636,6 +636,7 @@ static void test_messages(void)
 	int i;
 	struct mgcp_conn_rtp *conn = NULL;
 	char last_conn_id[256];
+	int rc;
 
 	cfg = mgcp_config_alloc();
 
@@ -675,9 +676,14 @@ static void test_messages(void)
 			OSMO_ASSERT(false);
 		}
 
-		if (msg)
-			get_conn_id_from_response(msg->data, last_conn_id,
-						  sizeof(last_conn_id));
+		if (msg) {
+			rc = get_conn_id_from_response(msg->data, last_conn_id,
+						       sizeof(last_conn_id));
+			if (rc)
+				printf("(response contains a connection id)\n");
+			else
+				printf("(response does not contain a connection id)\n");
+		}
 
 		msgb_free(msg);
 
