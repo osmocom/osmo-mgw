@@ -789,8 +789,15 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	}
 
 	/* Add endpoint name */
-	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_ENDPOINT)
+	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_ENDPOINT) {
+		if (strlen(mgcp_msg->endpoint) <= 0) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "Empty endpoint name, can not generate MGCP message\n");
+			msgb_free(msg);
+			return NULL;
+		}
 		rc += msgb_printf(msg, " %s", mgcp_msg->endpoint);
+	}
 
 	/* Add protocol version */
 	rc += msgb_printf(msg, " MGCP 1.0\r\n");
@@ -800,8 +807,15 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		rc += msgb_printf(msg, "C: %x\r\n", mgcp_msg->call_id);
 
 	/* Add connection id */
-	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CONN_ID)
+	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CONN_ID) {
+		if (strlen(mgcp_msg->conn_id) <= 0) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "Empty connection id, can not generate MGCP message\n");
+			msgb_free(msg);
+			return NULL;
+		}
 		rc += msgb_printf(msg, "I: %s\r\n", mgcp_msg->conn_id);
+	}
 
 	/* Add local connection options */
 	if (mgcp_msg->verb == MGCP_VERB_CRCX)
@@ -816,6 +830,18 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	/* Add RTP address and port (SDP) */
 	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_IP
 	    && mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_PORT) {
+		if (mgcp_msg->audio_port == 0) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "Invalid port number, can not generate MGCP message\n");
+			msgb_free(msg);
+			return NULL;
+		}
+		if (strlen(mgcp_msg->audio_ip) <= 0) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "Empty ip address, can not generate MGCP message\n");
+			msgb_free(msg);
+			return NULL;
+		}
 		rc += msgb_printf(msg, "\r\n");
 		rc += msgb_printf(msg, "c=IN IP4 %s\r\n", mgcp_msg->audio_ip);
 		rc +=
