@@ -180,6 +180,9 @@ static int mgcp_parse_audio_port(struct mgcp_response *r, const char *line)
 		   &r->audio_port) != 1)
 		goto response_parse_failure;
 
+	if (r->audio_port == 0)
+		goto response_parse_failure;
+
 	return 0;
 
 response_parse_failure:
