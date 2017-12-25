@@ -71,13 +71,16 @@ struct mgcp_rtp_state {
 	struct mgcp_rtp_stream_state out_stream;
 
 	/* jitter and packet loss calculation */
-	int stats_initialized;
-	uint16_t stats_base_seq;
-	uint16_t stats_max_seq;
-	uint32_t stats_ssrc;
-	uint32_t stats_jitter;
-	int32_t stats_transit;
-	int stats_cycles;
+	struct {
+		int initialized;
+		uint16_t base_seq;
+		uint16_t max_seq;
+		uint32_t ssrc;
+		uint32_t jitter;
+		int32_t transit;
+		int cycles;
+	} stats;
+
 	bool patched_first_rtp_payload; /* FIXME: drop this, see OS#2459 */
 };
 

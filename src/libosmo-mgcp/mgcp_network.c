@@ -434,14 +434,14 @@ void mgcp_rtp_annex_count(struct mgcp_endpoint *endp,
 	int32_t d;
 
 	/* initialize or re-initialize */
-	if (!state->stats_initialized || state->stats_ssrc != ssrc) {
-		state->stats_initialized = 1;
-		state->stats_base_seq = seq;
-		state->stats_max_seq = seq - 1;
-		state->stats_ssrc = ssrc;
-		state->stats_jitter = 0;
-		state->stats_transit = transit;
-		state->stats_cycles = 0;
+	if (!state->stats.initialized || state->stats.ssrc != ssrc) {
+		state->stats.initialized = 1;
+		state->stats.base_seq = seq;
+		state->stats.max_seq = seq - 1;
+		state->stats.ssrc = ssrc;
+		state->stats.jitter = 0;
+		state->stats.transit = transit;
+		state->stats.cycles = 0;
 	} else {
 		uint16_t udelta;
 
@@ -452,10 +452,10 @@ void mgcp_rtp_annex_count(struct mgcp_endpoint *endp,
 		 * It can't wrap during the initialization so let's
 		 * skip it here. The Appendix A probably doesn't have
 		 * this issue because of the probation. */
-		udelta = seq - state->stats_max_seq;
+		udelta = seq - state->stats.max_seq;
 		if (udelta < RTP_MAX_DROPOUT) {
-			if (seq < state->stats_max_seq)
-				state->stats_cycles += RTP_SEQ_MOD;
+			if (seq < state->stats.max_seq)
+				state->stats.cycles += RTP_SEQ_MOD;
 		} else if (udelta <= RTP_SEQ_MOD - RTP_MAX_MISORDER) {
 			LOGP(DRTP, LOGL_NOTICE,
 			     "RTP seqno made a very large jump on 0x%x delta: %u\n",
@@ -467,12 +467,12 @@ void mgcp_rtp_annex_count(struct mgcp_endpoint *endp,
 	 * taken closer to the read function. This was taken from the
 	 * Appendix A of RFC 3550. Timestamp and arrival_time have a 1/rate
 	 * resolution. */
-	d = transit - state->stats_transit;
-	state->stats_transit = transit;
+	d = transit - state->stats.transit;
+	state->stats.transit = transit;
 	if (d < 0)
 		d = -d;
-	state->stats_jitter += d - ((state->stats_jitter + 8) >> 4);
-	state->stats_max_seq = seq;
+	state->stats.jitter += d - ((state->stats.jitter + 8) >> 4);
+	state->stats.max_seq = seq;
 }
 
 /* The RFC 3550 Appendix A assumes there are multiple sources but

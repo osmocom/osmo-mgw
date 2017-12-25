@@ -916,10 +916,10 @@ static void test_packet_loss_calc(void)
 		memset(&state, 0, sizeof(state));
 		memset(&rtp, 0, sizeof(rtp));
 
-		state.stats_initialized = 1;
-		state.stats_base_seq = pl_test_dat[i].base_seq;
-		state.stats_max_seq = pl_test_dat[i].max_seq;
-		state.stats_cycles = pl_test_dat[i].cycles;
+		state.stats.initialized = 1;
+		state.stats.base_seq = pl_test_dat[i].base_seq;
+		state.stats.max_seq = pl_test_dat[i].max_seq;
+		state.stats.cycles = pl_test_dat[i].cycles;
 
 		rtp.packets_rx = pl_test_dat[i].packets;
 		calc_loss(&state, &rtp, &expected, &loss);
@@ -1183,7 +1183,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 		       state.out_stream.err_ts_counter - last_out_ts_err_cnt);
 
 		printf("Stats: Jitter = %u, Transit = %d\n",
-		       calc_jitter(&state), state.stats_transit);
+		       calc_jitter(&state), state.stats.transit);
 
 		last_in_ts_err_cnt = state.in_stream.err_ts_counter;
 		last_out_ts_err_cnt = state.out_stream.err_ts_counter;
@@ -1362,29 +1362,29 @@ static void test_no_cycle(void)
 	conn = mgcp_conn_get_rtp(endp, _conn->id);
 	OSMO_ASSERT(conn);
 
-	OSMO_ASSERT(conn->state.stats_initialized == 0);
+	OSMO_ASSERT(conn->state.stats.initialized == 0);
 
 	mgcp_rtp_annex_count(endp, &conn->state, 0, 0, 2342);
-	OSMO_ASSERT(conn->state.stats_initialized == 1);
-	OSMO_ASSERT(conn->state.stats_cycles == 0);
-	OSMO_ASSERT(conn->state.stats_max_seq == 0);
+	OSMO_ASSERT(conn->state.stats.initialized == 1);
+	OSMO_ASSERT(conn->state.stats.cycles == 0);
+	OSMO_ASSERT(conn->state.stats.max_seq == 0);
 
 	mgcp_rtp_annex_count(endp, &conn->state, 1, 0, 2342);
-	OSMO_ASSERT(conn->state.stats_initialized == 1);
-	OSMO_ASSERT(conn->state.stats_cycles == 0);
-	OSMO_ASSERT(conn->state.stats_max_seq == 1);
+	OSMO_ASSERT(conn->state.stats.initialized == 1);
+	OSMO_ASSERT(conn->state.stats.cycles == 0);
+	OSMO_ASSERT(conn->state.stats.max_seq == 1);
 
 	/* now jump.. */
 	mgcp_rtp_annex_count(endp, &conn->state, UINT16_MAX, 0, 2342);
-	OSMO_ASSERT(conn->state.stats_initialized == 1);
-	OSMO_ASSERT(conn->state.stats_cycles == 0);
-	OSMO_ASSERT(conn->state.stats_max_seq == UINT16_MAX);
+	OSMO_ASSERT(conn->state.stats.initialized == 1);
+	OSMO_ASSERT(conn->state.stats.cycles == 0);
+	OSMO_ASSERT(conn->state.stats.max_seq == UINT16_MAX);
 
 	/* and wrap */
 	mgcp_rtp_annex_count(endp, &conn->state, 0, 0, 2342);
-	OSMO_ASSERT(conn->state.stats_initialized == 1);
-	OSMO_ASSERT(conn->state.stats_cycles == UINT16_MAX + 1);
-	OSMO_ASSERT(conn->state.stats_max_seq == 0);
+	OSMO_ASSERT(conn->state.stats.initialized == 1);
+	OSMO_ASSERT(conn->state.stats.cycles == UINT16_MAX + 1);
+	OSMO_ASSERT(conn->state.stats.max_seq == 0);
 
 	mgcp_release_endp(endp);
 	talloc_free(cfg);

@@ -30,10 +30,10 @@ void calc_loss(struct mgcp_rtp_state *state,
 			struct mgcp_rtp_end *end, uint32_t *expected,
 			int *loss)
 {
-	*expected = state->stats_cycles + state->stats_max_seq;
-	*expected = *expected - state->stats_base_seq + 1;
+	*expected = state->stats.cycles + state->stats.max_seq;
+	*expected = *expected - state->stats.base_seq + 1;
 
-	if (!state->stats_initialized) {
+	if (!state->stats.initialized) {
 		*expected = 0;
 		*loss = 0;
 		return;
@@ -56,9 +56,9 @@ void calc_loss(struct mgcp_rtp_state *state,
 /* Helper function for mgcp_format_stats_rtp() to calculate jitter */
 uint32_t calc_jitter(struct mgcp_rtp_state *state)
 {
-	if (!state->stats_initialized)
+	if (!state->stats.initialized)
 		return 0;
-	return state->stats_jitter >> 4;
+	return state->stats.jitter >> 4;
 }
 
 /* Generate statistics for an RTP connection */
