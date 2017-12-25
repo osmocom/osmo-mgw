@@ -231,7 +231,7 @@ static int check_rtp_timestamp(struct mgcp_endpoint *endp,
 			     "on 0x%x SSRC: %u timestamp: %u "
 			     "from %s:%d\n",
 			     text, seq,
-			     state->timestamp_offset, state->seq_offset,
+			     state->patch.timestamp_offset, state->patch.seq_offset,
 			     ENDPOINT_NUMBER(endp), sstate->ssrc, timestamp,
 			     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 		}
@@ -325,15 +325,15 @@ static int adjust_rtp_timestamp_offset(struct mgcp_endpoint *endp,
 	out_timestamp = state->out_stream.last_timestamp + delta_seq * tsdelta;
 	timestamp_offset = out_timestamp - in_timestamp;
 
-	if (state->timestamp_offset != timestamp_offset) {
-		state->timestamp_offset = timestamp_offset;
+	if (state->patch.timestamp_offset != timestamp_offset) {
+		state->patch.timestamp_offset = timestamp_offset;
 
 		LOGP(DRTP, LOGL_NOTICE,
 		     "Timestamp offset change on 0x%x SSRC: %u "
 		     "SeqNo delta: %d, TS offset: %d, "
 		     "from %s:%d\n",
 		     ENDPOINT_NUMBER(endp), state->in_stream.ssrc,
-		     delta_seq, state->timestamp_offset,
+		     delta_seq, state->patch.timestamp_offset,
 		     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 	}
 
@@ -354,11 +354,11 @@ static int align_rtp_timestamp_offset(struct mgcp_endpoint *endp,
 	/* Align according to: T + Toffs - Tlast = k * Tptime */
 
 	ts_error = ts_alignment_error(&state->out_stream, ptime,
-				      timestamp + state->timestamp_offset);
+				      timestamp + state->patch.timestamp_offset);
 
 	/* If there is an alignment error, we have to compensate it */
 	if (ts_error) {
-		state->timestamp_offset += ptime - ts_error;
+		state->patch.timestamp_offset += ptime - ts_error;
 
 		LOGP(DRTP, LOGL_NOTICE,
 		     "Corrected timestamp alignment error of %d on 0x%x SSRC: %u "
@@ -366,7 +366,7 @@ static int align_rtp_timestamp_offset(struct mgcp_endpoint *endp,
 		     "from %s:%d\n",
 		     ts_error,
 		     ENDPOINT_NUMBER(endp), state->in_stream.ssrc,
-		     state->timestamp_offset, inet_ntoa(addr->sin_addr),
+		     state->patch.timestamp_offset, inet_ntoa(addr->sin_addr),
 		     ntohs(addr->sin_port));
 	}
 
@@ -375,7 +375,7 @@ static int align_rtp_timestamp_offset(struct mgcp_endpoint *endp,
 	 * here would point to a serous problem with the alingnment
 	 * error computation fuction */
 	ts_check = ts_alignment_error(&state->out_stream, ptime,
-				      timestamp + state->timestamp_offset);
+				      timestamp + state->patch.timestamp_offset);
 	OSMO_ASSERT(ts_check == 0);
 
 	/* Return alignment error before compensation */
@@ -508,7 +508,7 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 	if (!state->initialized) {
 		state->initialized = 1;
 		state->in_stream.last_seq = seq - 1;
-		state->in_stream.ssrc = state->orig_ssrc = ssrc;
+		state->in_stream.ssrc = state->patch.orig_ssrc = ssrc;
 		state->in_stream.last_tsdelta = 0;
 		state->packet_duration =
 		    mgcp_rtp_packet_duration(endp, rtp_end);
@@ -519,7 +519,7 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 		     "endpoint:0x%x initializing stream, SSRC: %u timestamp: %u "
 		     "pkt-duration: %d, from %s:%d\n",
 		     ENDPOINT_NUMBER(endp), state->in_stream.ssrc,
-		     state->seq_offset, state->packet_duration,
+		     state->patch.seq_offset, state->packet_duration,
 		     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 		if (state->packet_duration == 0) {
 			state->packet_duration =
@@ -543,7 +543,7 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 			int16_t delta_seq;
 
 			/* Always increment seqno by 1 */
-			state->seq_offset =
+			state->patch.seq_offset =
 			    (state->out_stream.last_seq + 1) - seq;
 
 			/* Estimate number of packets that would have been sent */
@@ -555,8 +555,8 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 			adjust_rtp_timestamp_offset(endp, state, rtp_end, addr,
 						    delta_seq, timestamp);
 
-			state->patch_ssrc = 1;
-			ssrc = state->orig_ssrc;
+			state->patch.patch_ssrc = 1;
+			ssrc = state->patch.orig_ssrc;
 			if (rtp_end->force_constant_ssrc != -1)
 				rtp_end->force_constant_ssrc -= 1;
 
@@ -565,7 +565,7 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 			     "SeqNo offset: %d, TS offset: %d "
 			     "from %s:%d\n",
 			     ENDPOINT_NUMBER(endp), state->in_stream.ssrc,
-			     state->seq_offset, state->timestamp_offset,
+			     state->patch.seq_offset, state->patch.timestamp_offset,
 			     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 		}
 
@@ -576,8 +576,8 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 				    addr, seq, timestamp, "input",
 				    &state->in_stream.last_tsdelta);
 
-		if (state->patch_ssrc)
-			ssrc = state->orig_ssrc;
+		if (state->patch.patch_ssrc)
+			ssrc = state->patch.orig_ssrc;
 	}
 
 	/* Save before patching */
@@ -592,15 +592,15 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 					   timestamp);
 
 	/* Store the updated SSRC back to the packet */
-	if (state->patch_ssrc)
+	if (state->patch.patch_ssrc)
 		rtp_hdr->ssrc = htonl(ssrc);
 
 	/* Apply the offset and store it back to the packet.
 	 * This won't change anything if the offset is 0, so the conditional is
 	 * omitted. */
-	seq += state->seq_offset;
+	seq += state->patch.seq_offset;
 	rtp_hdr->sequence = htons(seq);
-	timestamp += state->timestamp_offset;
+	timestamp += state->patch.timestamp_offset;
 	rtp_hdr->timestamp = htonl(timestamp);
 
 	/* Check again, whether the timestamps are still valid */

@@ -50,14 +50,21 @@ struct mgcp_rtp_stream_state {
 };
 
 struct mgcp_rtp_state {
+	/* has this state structure been initialized? */
 	int initialized;
-	int patch_ssrc;
 
-	uint32_t orig_ssrc;
+	struct {
+		/* are we patching the SSRC value? */
+		int patch_ssrc;
+		/* original SSRC (to which we shall patch any different SSRC) */
+		uint32_t orig_ssrc;
+		/* offset to apply on the sequence number */
+		int seq_offset;
+		/* offset to apply on the timestamp number */
+		int32_t timestamp_offset;
+	} patch;
 
-	int seq_offset;
-
-	int32_t  timestamp_offset;
+	/* duration of a packet (FIXME: in which unit?) */
 	uint32_t packet_duration;
 
 	struct mgcp_rtp_stream_state in_stream;
