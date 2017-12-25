@@ -217,7 +217,7 @@ struct mgcp_conn {
 	/*!< copy of the mode to restore the original setting (VTY) */
 	enum mgcp_connection_mode mode_orig;
 
-	/*!< connection id to identify the conntion */
+	/*!< connection id to identify the connection */
 	char id[MGCP_CONN_ID_LENGTH];
 
 	/*!< human readable name (vty, logging) */

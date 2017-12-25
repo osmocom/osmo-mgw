@@ -249,9 +249,9 @@ void mgcp_conn_free_all(struct mgcp_endpoint *endp)
 	return;
 }
 
-/*! dump basic connection information to human readble string.
+/*! dump basic connection information to human readable string.
  *  \param[in] conn to dump
- *  \returns human readble string */
+ *  \returns human readable string */
 char *mgcp_conn_dump(struct mgcp_conn *conn)
 {
 	static char str[sizeof(conn->name)+sizeof(conn->id)+256];

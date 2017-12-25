@@ -142,7 +142,7 @@ osmux_handle_alloc(struct mgcp_config *cfg, struct in_addr *addr, int rem_port)
 }
 
 /* Lookup existing handle for a specified address, if the handle can not be
- * foud a the function will automatically allocate one */
+ * found, the function will automatically allocate one */
 static struct osmux_in_handle *
 osmux_handle_lookup(struct mgcp_config *cfg, struct in_addr *addr, int rem_port)
 {

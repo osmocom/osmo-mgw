@@ -372,8 +372,8 @@ static int align_rtp_timestamp_offset(struct mgcp_endpoint *endp,
 
 	/* Check we really managed to compensate the timestamp
 	 * offset. There should not be any remaining error, failing
-	 * here would point to a serous problem with the alingnment
-	 * error computation fuction */
+	 * here would point to a serous problem with the alignment
+	 * error computation function */
 	ts_check = ts_alignment_error(&state->out_stream, ptime,
 				      timestamp + state->patch.timestamp_offset);
 	OSMO_ASSERT(ts_check == 0);
@@ -387,7 +387,7 @@ static int align_rtp_timestamp_offset(struct mgcp_endpoint *endp,
  *  \param[in] destination RTP end
  *  \param[in,out] pointer to buffer with voice data
  *  \param[in] voice data length
- *  \param[in] maxmimum size of caller provided voice data buffer
+ *  \param[in] maximum size of caller provided voice data buffer
  *  \returns ignores input parameters, return always 0 */
 int mgcp_rtp_processing_default(struct mgcp_endpoint *endp,
 				struct mgcp_rtp_end *dst_end,

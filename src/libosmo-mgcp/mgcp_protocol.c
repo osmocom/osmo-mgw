@@ -317,10 +317,10 @@ static struct msgb *handle_audit_endpoint(struct mgcp_parse_data *p)
 		return create_ok_response(p->endp, 200, "AUEP", p->trans);
 }
 
-/* Try to find a free port by attemting to bind on it. Also handle the
+/* Try to find a free port by attempting to bind on it. Also handle the
  * counter that points on the next free port. Since we have a pointer
- * to the next free port, binding should work on the first attemt,
- * neverless, try at least the next 200 ports before giving up */
+ * to the next free port, binding should work on the first attempt,
+ * nevertheless, try at least the next 200 ports before giving up */
 static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 {
 	int i;
@@ -356,7 +356,7 @@ static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 }
 
 /* Set the LCO from a string (see RFC 3435).
- * The string is stored in the 'string' field. A NULL string is handled excatlyy
+ * The string is stored in the 'string' field. A NULL string is handled exactly
  * like an empty string, the 'string' field is never NULL after this function
  * has been called. */
 static void set_local_cx_options(void *ctx, struct mgcp_lco *lco,
@@ -548,7 +548,7 @@ mgcp_header_done:
 	}
 
 	/* Set the callid, creation of another connection will only be possible
-	 * when the callid matches up. (Connections are distinuished by their
+	 * when the callid matches up. (Connections are distinguished by their
 	 * connection ids) */
 	endp->callid = talloc_strdup(tcfg->endpoints, callid);
 
@@ -1013,7 +1013,7 @@ static struct msgb *handle_noti_req(struct mgcp_parse_data *p)
 }
 
 /* Connection keepalive timer, will take care that dummy packets are send
- * regulary, so that NAT connections stay open */
+ * regularly, so that NAT connections stay open */
 static void mgcp_keepalive_timer_cb(void *_tcfg)
 {
 	struct mgcp_trunk_config *tcfg = _tcfg;
@@ -1184,14 +1184,14 @@ int mgcp_endpoints_allocate(struct mgcp_trunk_config *tcfg)
 	return 0;
 }
 
-/*! relase endpoint, all open connections are closed.
+/*! release endpoint, all open connections are closed.
  *  \param[in] endp endpoint to release */
 void mgcp_release_endp(struct mgcp_endpoint *endp)
 {
 	LOGP(DLMGCP, LOGL_DEBUG, "Releasing endpoint:0x%x\n",
 	     ENDPOINT_NUMBER(endp));
 
-	/* Normally this function should only be called wehen
+	/* Normally this function should only be called when
 	 * all connections have been removed already. In case
 	 * that there are still connections open (e.g. when
 	 * RSIP is executed), free them all at once. */
