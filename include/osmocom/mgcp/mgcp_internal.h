@@ -97,11 +97,14 @@ struct mgcp_rtp_codec {
 
 struct mgcp_rtp_end {
 	/* statistics */
-	unsigned int packets_rx;
-	unsigned int octets_rx;
-	unsigned int packets_tx;
-	unsigned int octets_tx;
-	unsigned int dropped_packets;
+	struct {
+		unsigned int packets_rx;
+		unsigned int octets_rx;
+		unsigned int packets_tx;
+		unsigned int octets_tx;
+		unsigned int dropped_packets;
+	} stats;
+
 	struct in_addr addr;
 
 	/* in network byte order */

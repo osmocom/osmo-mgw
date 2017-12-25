@@ -43,8 +43,8 @@ void calc_loss(struct mgcp_rtp_state *state,
 	 * Make sure the sign is correct and use the biggest
 	 * positive/negative number that fits.
 	 */
-	*loss = *expected - end->packets_rx;
-	if (*expected < end->packets_rx) {
+	*loss = *expected - end->stats.packets_rx;
+	if (*expected < end->stats.packets_rx) {
 		if (*loss > 0)
 			*loss = INT_MIN;
 	} else {
@@ -74,8 +74,8 @@ static void mgcp_format_stats_rtp(char *str, size_t str_len,
 
 	nchars = snprintf(str, str_len,
 			  "\r\nP: PS=%u, OS=%u, PR=%u, OR=%u, PL=%d, JI=%u",
-			  conn->end.packets_tx, conn->end.octets_tx,
-			  conn->end.packets_rx, conn->end.octets_rx,
+			  conn->end.stats.packets_tx, conn->end.stats.octets_tx,
+			  conn->end.stats.packets_rx, conn->end.stats.octets_rx,
 			  ploss, jitter);
 	if (nchars < 0 || nchars >= str_len)
 		goto truncate;

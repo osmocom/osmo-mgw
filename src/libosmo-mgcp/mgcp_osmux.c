@@ -255,8 +255,8 @@ static void scheduled_tx_net_cb(struct msgb *msg, void *data)
 		.sin_port = conn_net->end.rtp_port,
 	};
 
-	conn_bts->end.octets_tx += msg->len;
-	conn_bts->end.packets_tx++;
+	conn_bts->end.stats.octets_tx += msg->len;
+	conn_bts->end.stats.packets_tx++;
 
 	/* Send RTP data to NET */
 	/* FIXME: Get rid of conn_bts and conn_net! */
@@ -282,8 +282,8 @@ static void scheduled_tx_bts_cb(struct msgb *msg, void *data)
 		.sin_port = conn_bts->end.rtp_port,
 	};
 
-	conn_net->end.octets_tx += msg->len;
-	conn_net->end.packets_tx++;
+	conn_net->end.stats.octets_tx += msg->len;
+	conn_net->end.stats.packets_tx++;
 
 	/* Send RTP data to BTS */
 	/* FIXME: Get rid of conn_bts and conn_net! */

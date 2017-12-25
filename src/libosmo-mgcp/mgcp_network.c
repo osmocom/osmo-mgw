@@ -693,7 +693,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	dest_name = conn_dst->conn->name;
 
 	if (!rtp_end->output_enabled) {
-		rtp_end->dropped_packets += 1;
+		rtp_end->stats.dropped_packets += 1;
 		LOGP(DRTP, LOGL_DEBUG,
 		     "endpoint:0x%x output disabled, drop to %s %s "
 		     "rtp_port:%u rtcp_port:%u\n",
@@ -748,8 +748,8 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 			if (len <= 0)
 				return len;
 
-			conn_dst->end.packets_tx += 1;
-			conn_dst->end.octets_tx += len;
+			conn_dst->end.stats.packets_tx += 1;
+			conn_dst->end.stats.octets_tx += len;
 
 			nbytes += len;
 			buflen = cont;
@@ -768,8 +768,8 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 				    &rtp_end->addr,
 				    rtp_end->rtcp_port, buf, len);
 
-		conn_dst->end.packets_tx += 1;
-		conn_dst->end.octets_tx += len;
+		conn_dst->end.stats.packets_tx += 1;
+		conn_dst->end.stats.octets_tx += len;
 
 		return len;
 	}
@@ -929,8 +929,8 @@ static int mgcp_recv(int *proto, struct sockaddr_in *addr, char *buf,
 	}
 
 	/* Increment RX statistics */
-	conn->end.packets_rx += 1;
-	conn->end.octets_rx += rc;
+	conn->end.stats.packets_rx += 1;
+	conn->end.stats.octets_rx += rc;
 
 	/* Forward a copy of the RTP data to a debug ip/port */
 	forward_data(fd->fd, &conn->tap_in, buf, rc);

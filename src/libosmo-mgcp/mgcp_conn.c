@@ -93,12 +93,7 @@ static void mgcp_rtp_conn_reset(struct mgcp_conn_rtp *conn)
 
 	end->rtp.fd = -1;
 	end->rtcp.fd = -1;
-	end->local_port = 0;
-	end->packets_rx = 0;
-	end->octets_rx = 0;
-	end->packets_tx = 0;
-	end->octets_tx = 0;
-	end->dropped_packets = 0;
+	memset(&end->stats, 0, sizeof(end->stats));
 	end->rtp_port = end->rtcp_port = 0;
 	talloc_free(end->fmtp_extra);
 	end->fmtp_extra = NULL;

@@ -921,7 +921,7 @@ static void test_packet_loss_calc(void)
 		state.stats.max_seq = pl_test_dat[i].max_seq;
 		state.stats.cycles = pl_test_dat[i].cycles;
 
-		rtp.packets_rx = pl_test_dat[i].packets;
+		rtp.stats.packets_rx = pl_test_dat[i].packets;
 		calc_loss(&state, &rtp, &expected, &loss);
 
 		if (loss != pl_test_dat[i].loss
