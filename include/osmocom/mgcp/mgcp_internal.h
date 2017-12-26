@@ -95,6 +95,7 @@ struct mgcp_rtp_codec {
 	char *subtype_name;
 };
 
+/* 'mgcp_rtp_end': basically a wrapper around the RTP+RTCP ports */
 struct mgcp_rtp_end {
 	/* statistics */
 	struct {
@@ -105,6 +106,7 @@ struct mgcp_rtp_end {
 		unsigned int dropped_packets;
 	} stats;
 
+	/* local IP address of the RTP socket */
 	struct in_addr addr;
 
 	/* in network byte order */
@@ -118,23 +120,30 @@ struct mgcp_rtp_end {
 	int  frames_per_packet;
 	uint32_t packet_duration_ms;
 	char *fmtp_extra;
+	/* are we transmitting packets (1) or dropping (0) outbound packets */
 	int output_enabled;
+	/* FIXME: This parameter can be set + printed, but is nowhere used! */
 	int force_output_ptime;
 
 	/* RTP patching */
 	int force_constant_ssrc; /* -1: always, 0: don't, 1: once */
+	/* should we perform align_rtp_timestamp_offset() (1) or not (0) */
 	int force_aligned_timing;
+	/* FIXME: not used anymore, used to be [external] transcoding related */
 	void *rtp_process_data;
 
 	/* Each end has a separate socket for RTP and RTCP */
 	struct osmo_fd rtp;
 	struct osmo_fd rtcp;
 
+	/* local UDP port number of the RTP socket; RTCP is +1 */
 	int local_port;
 };
 
 struct mgcp_rtp_tap {
+	/* is this tap active (1) or not (0) */
 	int enabled;
+	/* IP/port to which we're forwarding the tapped data */
 	struct sockaddr_in forward;
 };
 
@@ -170,7 +179,7 @@ struct mgcp_conn_rtp {
 	/* Sequence bits */
 	struct mgcp_rtp_state state;
 
-	/* taps for the rtp connection */
+	/* taps for the rtp connection; one per direction */
 	struct mgcp_rtp_tap tap_in;
 	struct mgcp_rtp_tap tap_out;
 
