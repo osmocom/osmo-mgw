@@ -287,6 +287,12 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 		return do_retransmission(pdata.endp);
 	}
 
+	/* check for general parser failure */
+	if (pdata.found < 0) {
+		LOGP(DLMGCP, LOGL_NOTICE, "%s: failed to find the endpoint\n", msg->l2h);
+		return create_err_response(NULL, -pdata.found, (const char *) msg->l2h, pdata.trans);
+	}
+
 	for (i = 0; i < ARRAY_SIZE(mgcp_requests); ++i) {
 		if (strncmp
 		    (mgcp_requests[i].name, (const char *)&msg->l2h[0],
@@ -308,13 +314,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 static struct msgb *handle_audit_endpoint(struct mgcp_parse_data *p)
 {
 	LOGP(DLMGCP, LOGL_NOTICE, "AUEP: auditing endpoint ...\n");
-
-	if (p->found != 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "AUEP: failed to find the endpoint.\n");
-		return create_err_response(NULL, 500, "AUEP", p->trans);
-	} else
-		return create_ok_response(p->endp, 200, "AUEP", p->trans);
+	return create_ok_response(p->endp, 200, "AUEP", p->trans);
 }
 
 /* Try to find a free port by attempting to bind on it. Also handle the
@@ -451,9 +451,6 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 	char conn_name[512];
 
 	LOGP(DLMGCP, LOGL_NOTICE, "CRCX: creating new connection ...\n");
-
-	if (p->found != 0)
-		return create_err_response(NULL, 510, "CRCX", p->trans);
 
 	/* parse CallID C: and LocalParameters L: */
 	for_each_line(line, p->save) {
@@ -675,9 +672,6 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 
 	LOGP(DLMGCP, LOGL_NOTICE, "MDCX: modifying existing connection ...\n");
 
-	if (p->found != 0)
-		return create_err_response(NULL, 510, "MDCX", p->trans);
-
 	if (llist_count(&endp->conns) <= 0) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "MDCX: endpoint:0x%x endpoint is not holding a connection.\n",
@@ -824,9 +818,6 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 	const char *conn_id = NULL;
 	struct mgcp_conn_rtp *conn = NULL;
 
-	if (p->found != 0)
-		return create_err_response(NULL, error_code, "DLCX", p->trans);
-
 	LOGP(DLMGCP, LOGL_NOTICE,
 	     "DLCX: endpoint:0x%x deleting connection ...\n",
 	     ENDPOINT_NUMBER(endp));
@@ -958,12 +949,6 @@ static struct msgb *handle_rsip(struct mgcp_parse_data *p)
 
 	LOGP(DLMGCP, LOGL_NOTICE, "RSIP: resetting all endpoints ...\n");
 
-	if (p->found != 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "RSIP: failed to find the endpoint.\n");
-		return NULL;
-	}
-
 	if (p->cfg->reset_cb)
 		p->cfg->reset_cb(p->endp->tcfg);
 	return NULL;
@@ -988,9 +973,6 @@ static struct msgb *handle_noti_req(struct mgcp_parse_data *p)
 	char tone = CHAR_MAX;
 
 	LOGP(DLMGCP, LOGL_NOTICE, "RQNT: processing request for notification ...\n");
-
-	if (p->found != 0)
-		return create_err_response(NULL, 400, "RQNT", p->trans);
 
 	for_each_line(line, p->save) {
 		switch (line[0]) {

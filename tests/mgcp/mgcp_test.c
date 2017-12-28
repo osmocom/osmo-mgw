@@ -76,7 +76,7 @@ static void test_strline(void)
 #define SHORT_RET "510 000000 FAIL\r\n"
 
 #define MDCX_WRONG_EP "MDCX 18983213 ds/e1-3/1@172.16.6.66 MGCP 1.0\r\n"
-#define MDCX_ERR_RET "510 18983213 FAIL\r\n"
+#define MDCX_ERR_RET "500 18983213 FAIL\r\n"
 #define MDCX_UNALLOCATED "MDCX 18983214 ds/e1-1/2@172.16.6.66 MGCP 1.0\r\n"
 #define MDCX_RET "400 18983214 FAIL\r\n"
 

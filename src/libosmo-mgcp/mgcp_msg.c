@@ -230,21 +230,21 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 			if (!pdata->endp) {
 				LOGP(DLMGCP, LOGL_ERROR,
 				     "Unable to find Endpoint `%s'\n", elem);
-				return -1;
+				return -500;
 			}
 			break;
 		case 2:
 			if (strcmp("MGCP", elem)) {
 				LOGP(DLMGCP, LOGL_ERROR,
 				     "MGCP header parsing error\n");
-				return -1;
+				return -510;
 			}
 			break;
 		case 3:
 			if (strcmp("1.0", elem)) {
 				LOGP(DLMGCP, LOGL_ERROR, "MGCP version `%s' "
 				     "not supported\n", elem);
-				return -1;
+				return -528;
 			}
 			break;
 		}
@@ -255,7 +255,7 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 		LOGP(DLMGCP, LOGL_ERROR, "MGCP status line too short.\n");
 		pdata->trans = "000000";
 		pdata->endp = NULL;
-		return -1;
+		return -510;
 	}
 
 	return 0;
