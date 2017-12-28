@@ -273,7 +273,6 @@ struct mgcp_parse_data {
 	struct mgcp_endpoint *endp;
 	char *trans;
 	char *save;
-	int found;
 };
 
 int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,

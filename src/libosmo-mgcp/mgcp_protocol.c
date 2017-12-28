@@ -252,7 +252,7 @@ static void send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 {
 	struct mgcp_parse_data pdata;
-	int i, code, handled = 0;
+	int rc, i, code, handled = 0;
 	struct msgb *resp = NULL;
 	char *data;
 
@@ -280,7 +280,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 	memset(&pdata, 0, sizeof(pdata));
 	pdata.cfg = cfg;
 	data = mgcp_strline((char *)msg->l3h, &pdata.save);
-	pdata.found = mgcp_parse_header(&pdata, data);
+	rc = mgcp_parse_header(&pdata, data);
 	if (pdata.endp && pdata.trans
 	    && pdata.endp->last_trans
 	    && strcmp(pdata.endp->last_trans, pdata.trans) == 0) {
@@ -288,9 +288,9 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 	}
 
 	/* check for general parser failure */
-	if (pdata.found < 0) {
+	if (rc < 0) {
 		LOGP(DLMGCP, LOGL_NOTICE, "%s: failed to find the endpoint\n", msg->l2h);
-		return create_err_response(NULL, -pdata.found, (const char *) msg->l2h, pdata.trans);
+		return create_err_response(NULL, -rc, (const char *) msg->l2h, pdata.trans);
 	}
 
 	for (i = 0; i < ARRAY_SIZE(mgcp_requests); ++i) {
@@ -500,14 +500,14 @@ mgcp_header_done:
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:%x insufficient parameters, missing callid\n",
 		     ENDPOINT_NUMBER(endp));
-		return create_err_response(endp, 400, "CRCX", p->trans);
+		return create_err_response(endp, 516, "CRCX", p->trans);
 	}
 
 	if (!mode) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:%x insufficient parameters, missing mode\n",
 		     ENDPOINT_NUMBER(endp));
-		return create_err_response(endp, 400, "CRCX", p->trans);
+		return create_err_response(endp, 517, "CRCX", p->trans);
 	}
 
 	/* Check if we are able to accept the creation of another connection */
@@ -523,7 +523,7 @@ mgcp_header_done:
 		} else {
 			/* There is no more room for a connection, leave
 			 * everything as it is and return with an error */
-			return create_err_response(endp, 400, "CRCX", p->trans);
+			return create_err_response(endp, 540, "CRCX", p->trans);
 		}
 	}
 
@@ -685,13 +685,17 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 
 		switch (line[0]) {
 		case 'C':
-			if (mgcp_verify_call_id(endp, line + 3) != 0)
+			if (mgcp_verify_call_id(endp, line + 3) != 0) {
+				error_code = 516;
 				goto error3;
+			}
 			break;
 		case 'I':
 			conn_id = (const char *)line + 3;
-			if (mgcp_verify_ci(endp, conn_id) != 0)
+			if (mgcp_verify_ci(endp, conn_id) != 0) {
+				error_code = 515;
 				goto error3;
+			}
 			break;
 		case 'L':
 			local_options = (const char *)line + 3;
@@ -719,7 +723,7 @@ mgcp_header_done:
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "MDCX: endpoint:0x%x insufficient parameters, missing ci (connectionIdentifier)\n",
 		     ENDPOINT_NUMBER(endp));
-		return create_err_response(endp, 400, "MDCX", p->trans);
+		return create_err_response(endp, 515, "MDCX", p->trans);
 	}
 
 	conn = mgcp_conn_get_rtp(endp, conn_id);
@@ -826,7 +830,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "DLCX: endpoint:0x%x endpoint is not holding a connection.\n",
 		     ENDPOINT_NUMBER(endp));
-		return create_err_response(endp, 400, "DLCX", p->trans);
+		return create_err_response(endp, 515, "DLCX", p->trans);
 	}
 
 	for_each_line(line, p->save) {
@@ -835,13 +839,17 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 
 		switch (line[0]) {
 		case 'C':
-			if (mgcp_verify_call_id(endp, line + 3) != 0)
+			if (mgcp_verify_call_id(endp, line + 3) != 0) {
+				error_code = 516;
 				goto error3;
+			}
 			break;
 		case 'I':
 			conn_id = (const char *)line + 3;
-			if (mgcp_verify_ci(endp, conn_id) != 0)
+			if (mgcp_verify_ci(endp, conn_id) != 0) {
+				error_code = 515;
 				goto error3;
+			}
 			break;
 		case 'Z':
 			silent = strcmp("noanswer", line + 3) == 0;
