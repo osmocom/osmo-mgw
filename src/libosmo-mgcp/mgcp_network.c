@@ -184,8 +184,9 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 
 failed:
 	LOGP(DRTP, LOGL_ERROR,
-	     "endpoint:0x%x Failed to send dummy %s packet.\n",
-	     ENDPOINT_NUMBER(endp), was_rtcp ? "RTCP" : "RTP");
+	     "endpoint:0x%x Failed to send dummy %s packet. 0x%x %d.\n",
+	     ENDPOINT_NUMBER(endp), was_rtcp ? "RTCP" : "RTP", conn->end.addr, conn->end.rtcp_port);
+	LOGP(DRTP, LOGL_ERROR, "endpoint: 0x%x : dump %s", ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn->conn));
 
 	return -1;
 }
