@@ -905,7 +905,7 @@ static int mgcp_recv(int *proto, struct sockaddr_in *addr, char *buf,
 	*proto = fd == &conn->end.rtp ? MGCP_PROTO_RTP : MGCP_PROTO_RTCP;
 
 	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x ", ENDPOINT_NUMBER(endp));
-	LOGPC(DRTP, LOGL_DEBUG, "receiveing from %s %s %d\n",
+	LOGPC(DRTP, LOGL_DEBUG, "receiving from %s %s %d\n",
 	      conn->conn->name, inet_ntoa(addr->sin_addr),
 	      ntohs(addr->sin_port));
 	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x conn:%s\n", ENDPOINT_NUMBER(endp),
