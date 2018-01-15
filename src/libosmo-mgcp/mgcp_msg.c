@@ -181,6 +181,30 @@ static struct mgcp_endpoint *find_e1_endpoint(struct mgcp_config *cfg,
 	return &tcfg->endpoints[endp];
 }
 
+/* Find an endpoint that is not in use. Do this by going through the endpoint
+ * array, check the callid. A callid nullpointer indicates that the endpoint
+ * is free */
+static struct mgcp_endpoint *find_free_endpoint(struct mgcp_endpoint *endpoints,
+						unsigned int number_endpoints)
+{
+	struct mgcp_endpoint *endp;
+	unsigned int i;
+
+	for (i = 0; i < number_endpoints; i++) {
+		if (endpoints[i].callid == NULL) {
+			endp = &endpoints[i];
+			LOGP(DLMGCP, LOGL_DEBUG,
+			     "endpoint:0x%x found free endpoint\n",
+			     ENDPOINT_NUMBER(endp));
+			endp->wildcarded_crcx = true;
+			return endp;
+		}
+	}
+
+	LOGP(DLMGCP, LOGL_ERROR, "Not able to find a free endpoint");
+	return NULL;
+}
+
 /* Check if the domain name, which is supplied with the endpoint name
  * matches the configuration. */
 static int check_domain_name(struct mgcp_config *cfg, const char *mgcp)
@@ -212,6 +236,11 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 
 	if (strncmp(mgcp, "ds/e1", 5) == 0)
 		return find_e1_endpoint(cfg, mgcp);
+
+	if (strncmp(mgcp, "*", 1) == 0) {
+		return find_free_endpoint(cfg->trunk.endpoints,
+					  cfg->trunk.number_endpoints);
+	}
 
 	gw = strtoul(mgcp, &endptr, 16);
 	if (gw < cfg->trunk.number_endpoints && endptr[0] == '@')

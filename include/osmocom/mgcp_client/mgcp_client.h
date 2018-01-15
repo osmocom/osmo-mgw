@@ -31,6 +31,7 @@ struct mgcp_response_head {
 	mgcp_trans_id_t trans_id;
 	const char *comment;
 	char conn_id[MGCP_CONN_ID_LENGTH];
+	char endpoint[MGCP_ENDPOINT_MAXLEN];
 };
 
 struct mgcp_response {

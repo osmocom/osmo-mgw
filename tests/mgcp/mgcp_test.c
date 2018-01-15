@@ -86,7 +86,6 @@ static void test_strline(void)
 
 #define MDCX3_RET \
 	"200 18983215 OK\r\n" \
-	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
@@ -99,7 +98,6 @@ static void test_strline(void)
 
 #define MDCX3A_RET \
 	"200 18983215 OK\r\n" \
-	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
@@ -112,7 +110,6 @@ static void test_strline(void)
 
 #define MDCX3_FMTP_RET \
 	"200 18983215 OK\r\n" \
-	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
@@ -141,7 +138,6 @@ static void test_strline(void)
 
 #define MDCX4_RET(Ident) \
 	"200 " Ident " OK\r\n" \
-	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
@@ -154,7 +150,6 @@ static void test_strline(void)
 
 #define MDCX4_RO_RET(Ident) \
 	"200 " Ident " OK\r\n" \
-	"I: %s\n" \
 	"\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
@@ -561,25 +556,39 @@ static int get_conn_id_from_response(uint8_t *resp, char *conn_id,
 {
 	char *conn_id_ptr;
 	int i;
+	bool got_conn_id = false;
 
+	/* First try to get the conn_id from the I: parameter */
 	conn_id_ptr = strstr((char *)resp, "I: ");
-	if (!conn_id_ptr)
-		return -EINVAL;
-
-	memset(conn_id, 0, conn_id_len);
-	memcpy(conn_id, conn_id_ptr + 3, 32);
-
-	for (i = 0; i < conn_id_len; i++) {
-		if (conn_id[i] == '\n' || conn_id[i] == '\r')
-			conn_id[i] = '\0';
+	if (conn_id_ptr) {
+		memset(conn_id, 0, conn_id_len);
+		memcpy(conn_id, conn_id_ptr + 3, 32);
+		got_conn_id = true;
+	} else {
+		/* Alternatively try to extract the conn_id from the o=- SDP
+		 * parameter */
+		conn_id_ptr = strstr((char *)resp, "o=- ");
+		if(conn_id_ptr) {
+			memset(conn_id, 0, conn_id_len);
+			memcpy(conn_id, conn_id_ptr + 4, 32);
+			got_conn_id = true;
+		}
 	}
 
-	/* A valid conn_id must at least contain one digit, and must
-	 * not exceed a length of 32 digits */
-	OSMO_ASSERT(strlen(conn_id) <= 32);
-	OSMO_ASSERT(strlen(conn_id) > 0);
+	if (got_conn_id) {
+		for (i = 0; i < conn_id_len; i++) {
+			if (conn_id[i] == '\n' || conn_id[i] == '\r')
+				conn_id[i] = '\0';
+		}
 
-	return 0;
+		/* A valid conn_id must at least contain one digit, and must
+		 * not exceed a length of 32 digits */
+		OSMO_ASSERT(strlen(conn_id) <= 32);
+		OSMO_ASSERT(strlen(conn_id) > 0);
+
+		return 0;
+	}
+	return -EINVAL;
 }
 
 /* Check response, automatically patch connection ID if needed */

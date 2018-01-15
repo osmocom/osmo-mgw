@@ -146,8 +146,6 @@ static int mgcp_response_parse_head(struct mgcp_response *r, struct msgb *msg)
 	/* Mark the end of the comment */
 	*end = '\0';
 	r->body = end + 1;
-	if (r->body[0] == '\n')
-		r->body ++;
 	return 0;
 
 response_parse_failure:
@@ -247,6 +245,10 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 	OSMO_ASSERT(r->body);
 	char *data = mgcp_find_section_end(r->body);
 
+	/* Warning: This function performs a destructive parsing on r->body.
+	 * Since this function is called at the very end of the persing
+	 * process, destructive parsing is acceptable. */
+
 	if (!data) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "MGCP response: cannot find start of parameters\n");
@@ -282,21 +284,29 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 	return 0;
 }
 
-/* Parse a line like "I: 0cedfd5a19542d197af9afe5231f1d61" */
-static int mgcp_parse_conn_id(struct mgcp_response *r, const char *line)
+/* Parse a line like "X: something" */
+static int mgcp_parse_head_param(char *result, unsigned int result_len,
+				 char label, const char *line)
 {
+	char label_string[4];
+
+	/* Detect empty parameters */
 	if (strlen(line) < 4)
 		goto response_parse_failure;
 
-	if (memcmp("I: ", line, 3) != 0)
+	/* Check if the label matches */
+	snprintf(label_string, sizeof(label_string), "%c: ", label);
+	if (memcmp(label_string, line, 3) != 0)
 		goto response_parse_failure;
 
-	osmo_strlcpy(r->head.conn_id, line + 3, sizeof(r->head.conn_id));
+	/* Copy payload part of the string to destinations (the label string
+	 * is always 3 chars long) */
+	osmo_strlcpy(result, line + 3, result_len);
 	return 0;
 
 response_parse_failure:
 	LOGP(DLMGCP, LOGL_ERROR,
-	     "Failed to parse MGCP response (connectionIdentifier)\n");
+	     "Failed to parse MGCP response (parameter label: %c)\n", label);
 	return -EINVAL;
 }
 
@@ -306,18 +316,37 @@ static int parse_head_params(struct mgcp_response *r)
 	char *line;
 	int rc = 0;
 	OSMO_ASSERT(r->body);
-	char *data = r->body;
-	char *data_end = mgcp_find_section_end(r->body);
+	char *data;
+	char *data_ptr;
+	char *data_end;
 
-	/* Protect SDP body, for_each_non_empty_line() will
-	 * only parse until it hits \0 mark. */
+	/* Since this functions performs a destructive parsing, we create a
+	 * local copy of the body data */
+	data = talloc_zero_size(NULL, strlen(r->body)+1);
+	OSMO_ASSERT(data);
+	data_ptr = data;
+	osmo_strlcpy(data, r->body, strlen(r->body));
+
+	/* If there is an SDP body attached, prevent for_each_non_empty_line()
+	 * into running in there, we are not yet interested in the parameters
+	 * stored there. */
+	data_end = mgcp_find_section_end(data);	
 	if (data_end)
 		*data_end = '\0';
 
-	for_each_non_empty_line(line, data) {
+	for_each_non_empty_line(line, data_ptr) {
 		switch (line[0]) {
+		case 'Z':
+			rc = mgcp_parse_head_param(r->head.endpoint,
+						   sizeof(r->head.endpoint),
+						   'Z', line);
+			if (rc)
+				goto exit;
+			break;
 		case 'I':
-			rc = mgcp_parse_conn_id(r, line);
+			rc = mgcp_parse_head_param(r->head.conn_id,
+						   sizeof(r->head.conn_id),
+						   'I', line);
 			if (rc)
 				goto exit;
 			break;
@@ -327,10 +356,7 @@ static int parse_head_params(struct mgcp_response *r)
 		}
 	}
 exit:
-	/* Restore original state */
-	if (data_end)
-		*data_end = '\n';
-
+	talloc_free(data);
 	return rc;
 }
 

@@ -260,6 +260,10 @@ struct mgcp_endpoint {
 	/* fields for re-transmission */
 	char *last_trans;
 	char *last_response;
+
+	/* Memorize if this endpoint was choosen by the MGW (wildcarded, true)
+	 * or if the user has choosen the particular endpoint explicitly */
+	bool wildcarded_crcx;
 };
 
 

@@ -192,11 +192,32 @@ static struct msgb *create_err_response(struct mgcp_endpoint *endp,
 	return create_resp(endp, code, " FAIL", msg, trans, NULL, NULL);
 }
 
+/* Add MGCP parameters to a message buffer */
+static int add_params(struct msgb *msg, const struct mgcp_endpoint *endp,
+		      const struct mgcp_conn_rtp *conn)
+{
+	int rc;
+
+	if (endp->wildcarded_crcx) {
+		rc = msgb_printf(msg, "Z: %u@%s\n", ENDPOINT_NUMBER(endp),
+				 endp->cfg->domain);
+		if (rc < 0)
+			return -EINVAL;
+	}
+
+	rc = msgb_printf(msg, "I: %s\n", conn->conn->id);
+	if (rc < 0)
+		return -EINVAL;
+
+	return 0;
+}
+
 /* Format MGCP response string (with SDP attached) */
 static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 					     struct mgcp_conn_rtp *conn,
 					     const char *msg,
-					     const char *trans_id)
+					     const char *trans_id,
+					     bool add_conn_params)
 {
 	const char *addr = endp->cfg->local_ip;
 	struct msgb *sdp;
@@ -221,7 +242,14 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 		osmux_extension[0] = '\0';
 	}
 
-	rc = msgb_printf(sdp, "I: %s%s\n\n", conn->conn->id, osmux_extension);
+	/* Attach optional connection parameters */
+	if (add_conn_params) {
+		rc = add_params(sdp, endp, conn);
+		if (rc < 0)
+			goto error;
+	}
+
+	rc = msgb_printf(sdp, "%s\n", osmux_extension);
 	if (rc < 0)
 		goto error;
 
@@ -648,7 +676,7 @@ mgcp_header_done:
 	LOGP(DLMGCP, LOGL_NOTICE,
 	     "CRCX: endpoint:0x%x connection successfully created\n",
 	     ENDPOINT_NUMBER(endp));
-	return create_response_with_sdp(endp, conn, "CRCX", p->trans);
+	return create_response_with_sdp(endp, conn, "CRCX", p->trans, true);
 error2:
 	mgcp_release_endp(endp);
 	LOGP(DLMGCP, LOGL_NOTICE,
@@ -801,7 +829,7 @@ mgcp_header_done:
 	LOGP(DLMGCP, LOGL_NOTICE,
 	     "MDCX: endpoint:0x%x connection successfully modified\n",
 	     ENDPOINT_NUMBER(endp));
-	return create_response_with_sdp(endp, conn, "MDCX", p->trans);
+	return create_response_with_sdp(endp, conn, "MDCX", p->trans, false);
 error3:
 	return create_err_response(endp, error_code, "MDCX", p->trans);
 
@@ -1196,6 +1224,7 @@ void mgcp_release_endp(struct mgcp_endpoint *endp)
 	endp->local_options.string = NULL;
 	talloc_free(endp->local_options.codec);
 	endp->local_options.codec = NULL;
+	endp->wildcarded_crcx = false;
 }
 
 static int send_agent(struct mgcp_config *cfg, const char *buf, int len)
