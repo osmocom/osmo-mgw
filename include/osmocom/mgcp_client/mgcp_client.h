@@ -55,9 +55,6 @@ enum mgcp_verb {
 #define MGCP_MSG_PRESENCE_AUDIO_PORT	0x0010
 #define MGCP_MSG_PRESENCE_CONN_MODE	0x0020
 
-/* See also RFC3435 section 3.2.1.3 */
-#define MGCP_ENDPOINT_MAXLEN (255*2+1+1)
-
 struct mgcp_msg {
 	enum mgcp_verb verb;
 	/* See MGCP_MSG_PRESENCE_* constants */

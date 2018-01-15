@@ -72,4 +72,8 @@ static inline int mgcp_msg_terminate_nul(struct msgb *msg)
  * (see also RFC3435 2.1.3.2 Names of Connections) */
 #define MGCP_CONN_ID_LENGTH 32+1
 
+/* String length of Endpoint Identifiers.
+/  (see also RFC3435 section 3.2.1.3) */
+#define MGCP_ENDPOINT_MAXLEN (255*2+1+1)
+
 #endif
