@@ -1072,6 +1072,8 @@ struct mgcp_config *mgcp_config_alloc(void)
 		return NULL;
 	}
 
+	osmo_strlcpy(cfg->domain, "mgw", sizeof(cfg->domain));
+
 	cfg->net_ports.range_start = RTP_PORT_DEFAULT_RANGE_START;
 	cfg->net_ports.range_end = RTP_PORT_DEFAULT_RANGE_END;
 	cfg->net_ports.last_port = cfg->net_ports.range_start;
@@ -1208,13 +1210,16 @@ static int send_agent(struct mgcp_config *cfg, const char *buf, int len)
  *  \returns 0 on success, -1 on error */
 int mgcp_send_reset_all(struct mgcp_config *cfg)
 {
+	char buf[MGCP_ENDPOINT_MAXLEN + 128];
+	int len;
 	int rc;
 
-	static const char mgcp_reset[] = {
-		"RSIP 1 *@mgw MGCP 1.0\r\n"
-	};
+	len = snprintf(buf, sizeof(buf),
+		       "RSIP 1 *@%s MGCP 1.0\r\n", cfg->domain);
+	if (len < 0)
+		return -1;
 
-	rc = send_agent(cfg, mgcp_reset, sizeof mgcp_reset - 1);
+	rc = send_agent(cfg, buf, len);
 	if (rc <= 0)
 		return -1;
 
@@ -1228,12 +1233,12 @@ int mgcp_send_reset_all(struct mgcp_config *cfg)
  *  \returns 0 on success, -1 on error */
 int mgcp_send_reset_ep(struct mgcp_endpoint *endp, int endpoint)
 {
-	char buf[128];
+	char buf[MGCP_ENDPOINT_MAXLEN + 128];
 	int len;
 	int rc;
 
 	len = snprintf(buf, sizeof(buf),
-		       "RSIP 39 %x@mgw MGCP 1.0\r\n", endpoint);
+		       "RSIP 39 %x@%s MGCP 1.0\r\n", endpoint, endp->cfg->domain);
 	if (len < 0)
 		return -1;
 

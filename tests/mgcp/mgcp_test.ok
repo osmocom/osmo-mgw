@@ -16,7 +16,7 @@ line: ''
 Testing AUEP1
 creating message from statically defined input:
 ---------8<---------
-AUEP 158663169 ds/e1-1/2@172.16.6.66 MGCP 1.0
+AUEP 158663169 ds/e1-1/2@mgw MGCP 1.0
 
 ---------8<---------
 checking response:
@@ -28,7 +28,7 @@ Response matches our expectations.
 Testing AUEP2
 creating message from statically defined input:
 ---------8<---------
-AUEP 18983213 ds/e1-2/1@172.16.6.66 MGCP 1.0
+AUEP 18983213 ds/e1-2/1@mgw MGCP 1.0
 
 ---------8<---------
 checking response:
@@ -40,7 +40,7 @@ Response matches our expectations.
 Testing MDCX1
 creating message from statically defined input:
 ---------8<---------
-MDCX 18983213 ds/e1-3/1@172.16.6.66 MGCP 1.0
+MDCX 18983213 ds/e1-3/1@mgw MGCP 1.0
 
 ---------8<---------
 checking response:
@@ -52,7 +52,7 @@ Response matches our expectations.
 Testing MDCX2
 creating message from statically defined input:
 ---------8<---------
-MDCX 18983214 ds/e1-1/2@172.16.6.66 MGCP 1.0
+MDCX 18983214 ds/e1-1/2@mgw MGCP 1.0
 
 ---------8<---------
 checking response:

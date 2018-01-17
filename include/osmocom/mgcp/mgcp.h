@@ -212,6 +212,8 @@ struct mgcp_config {
 	 * message.
 	 */
 	uint16_t osmux_dummy;
+	/* domain name of the media gateway */
+	char domain[255+1];
 };
 
 /* config management */

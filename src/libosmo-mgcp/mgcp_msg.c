@@ -181,6 +181,22 @@ static struct mgcp_endpoint *find_e1_endpoint(struct mgcp_config *cfg,
 	return &tcfg->endpoints[endp];
 }
 
+/* Check if the domain name, which is supplied with the endpoint name
+ * matches the configuration. */
+static int check_domain_name(struct mgcp_config *cfg, const char *mgcp)
+{
+	char *domain_to_check;
+
+	domain_to_check = strstr(mgcp, "@");
+	if (!domain_to_check)
+		return -EINVAL;
+
+	if (strcmp(domain_to_check+1, cfg->domain) != 0)
+		return -EINVAL;
+
+	return 0;
+}
+
 /* Search the endpoint pool for the endpoint that had been selected via the
  * MGCP message (helper function for mgcp_analyze_header()) */
 static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
@@ -188,6 +204,11 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 {
 	char *endptr = NULL;
 	unsigned int gw = INT_MAX;
+
+	if (check_domain_name(cfg, mgcp)) {
+		LOGP(DLMGCP, LOGL_ERROR, "Wrong domain name '%s'\n", mgcp);
+		return NULL;
+	}
 
 	if (strncmp(mgcp, "ds/e1", 5) == 0)
 		return find_e1_endpoint(cfg, mgcp);

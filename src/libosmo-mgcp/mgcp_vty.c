@@ -63,6 +63,7 @@ struct cmd_node trunk_node = {
 static int config_write_mgcp(struct vty *vty)
 {
 	vty_out(vty, "mgcp%s", VTY_NEWLINE);
+	vty_out(vty, "  domain %s%s", g_cfg->domain, VTY_NEWLINE);
 	if (g_cfg->local_ip)
 		vty_out(vty, "  local ip %s%s", g_cfg->local_ip, VTY_NEWLINE);
 	vty_out(vty, "  bind ip %s%s", g_cfg->source_addr, VTY_NEWLINE);
@@ -1179,6 +1180,14 @@ DEFUN(cfg_mgcp_osmux_dummy,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_mgcp_domain,
+      cfg_mgcp_domain_cmd,
+      "domain NAME", "domain\n" "qualified domain name\n")
+{
+	osmo_strlcpy(g_cfg->domain, argv[0], sizeof(g_cfg->domain));
+	return CMD_SUCCESS;
+}
+
 int mgcp_vty_init(void)
 {
 	install_element_ve(&show_mgcp_cmd);
@@ -1240,6 +1249,7 @@ int mgcp_vty_init(void)
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_dummy_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_allow_transcoding_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_no_allow_transcoding_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_domain_cmd);
 
 	install_element(MGCP_NODE, &cfg_mgcp_trunk_cmd);
 	install_node(&trunk_node, config_write_trunk);
