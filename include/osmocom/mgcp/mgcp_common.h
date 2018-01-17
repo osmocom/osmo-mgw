@@ -76,4 +76,7 @@ static inline int mgcp_msg_terminate_nul(struct msgb *msg)
 /  (see also RFC3435 section 3.2.1.3) */
 #define MGCP_ENDPOINT_MAXLEN (255*2+1+1)
 
+/* A prefix to denote the virtual trunk (RTP on both ends) */
+#define MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK "rtpbridge/"
+
 #endif

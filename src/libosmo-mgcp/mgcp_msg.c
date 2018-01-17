@@ -228,20 +228,38 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 {
 	char *endptr = NULL;
 	unsigned int gw = INT_MAX;
+	const char *endpoint_number_str;
 
+	/* Check if the domainname in the request is correct */
 	if (check_domain_name(cfg, mgcp)) {
 		LOGP(DLMGCP, LOGL_ERROR, "Wrong domain name '%s'\n", mgcp);
 		return NULL;
 	}
 
+	/* Check if the E1 trunk is requested */
 	if (strncmp(mgcp, "ds/e1", 5) == 0)
 		return find_e1_endpoint(cfg, mgcp);
 
-	if (strncmp(mgcp, "*", 1) == 0) {
-		return find_free_endpoint(cfg->trunk.endpoints,
-					  cfg->trunk.number_endpoints);
+	/* Check if the virtual trunk is addressed (new, correct way with prefix) */
+	if (strncmp
+	    (mgcp, MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK,
+	     strlen(MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK)) == 0) {
+		endpoint_number_str =
+		    mgcp + strlen(MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK);
+		if (endpoint_number_str[0] == '*') {
+			return find_free_endpoint(cfg->trunk.endpoints,
+						  cfg->trunk.number_endpoints);
+		}
+
+		gw = strtoul(endpoint_number_str, &endptr, 16);
+		if (gw < cfg->trunk.number_endpoints && endptr[0] == '@')
+			return &cfg->trunk.endpoints[gw];
 	}
 
+	/* Deprecated method without prefix */
+	LOGP(DLMGCP, LOGL_NOTICE,
+	     "Addressing virtual trunk without prefix (deprecated), please use %s: '%s'\n",
+	     MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK, mgcp);
 	gw = strtoul(mgcp, &endptr, 16);
 	if (gw < cfg->trunk.number_endpoints && endptr[0] == '@')
 		return &cfg->trunk.endpoints[gw];
