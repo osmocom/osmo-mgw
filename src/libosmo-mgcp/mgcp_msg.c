@@ -193,7 +193,7 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 		return find_e1_endpoint(cfg, mgcp);
 
 	gw = strtoul(mgcp, &endptr, 16);
-	if (gw > 0 && gw < cfg->trunk.number_endpoints && endptr[0] == '@')
+	if (gw < cfg->trunk.number_endpoints && endptr[0] == '@')
 		return &cfg->trunk.endpoints[gw];
 
 	LOGP(DLMGCP, LOGL_ERROR, "Not able to find the endpoint: '%s'\n", mgcp);
