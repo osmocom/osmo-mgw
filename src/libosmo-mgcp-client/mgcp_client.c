@@ -219,12 +219,33 @@ response_parse_failure:
 	return -EINVAL;
 }
 
+/* A new section is marked by a double line break, check a few more
+ * patterns as there may be variants */
+static char *mgcp_find_section_end(char *string)
+{
+	char *rc;
+
+	rc = strstr(string, "\n\n");
+	if (rc)
+		return rc;
+
+	rc = strstr(string, "\n\r\n\r");
+	if (rc)
+		return rc;
+
+	rc = strstr(string, "\r\n\r\n");
+	if (rc)
+		return rc;
+
+	return NULL;
+}
+
 int mgcp_response_parse_params(struct mgcp_response *r)
 {
 	char *line;
 	int rc;
 	OSMO_ASSERT(r->body);
-	char *data = strstr(r->body, "\n\n");
+	char *data = mgcp_find_section_end(r->body);
 
 	if (!data) {
 		LOGP(DLMGCP, LOGL_ERROR,
@@ -286,7 +307,7 @@ static int parse_head_params(struct mgcp_response *r)
 	int rc = 0;
 	OSMO_ASSERT(r->body);
 	char *data = r->body;
-	char *data_end = strstr(r->body, "\n\n");
+	char *data_end = mgcp_find_section_end(r->body);
 
 	/* Protect SDP body, for_each_non_empty_line() will
 	 * only parse until it hits \0 mark. */
