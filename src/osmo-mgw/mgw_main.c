@@ -309,7 +309,8 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	LOGP(DLMGCP, LOGL_NOTICE, "Configured for MGCP.\n");
+	LOGP(DLMGCP, LOGL_NOTICE, "Configured for MGCP, listen on %s:%u\n",
+	     cfg->source_addr, cfg->source_port);
 
 	/* initialisation */
 	srand(time(NULL));
