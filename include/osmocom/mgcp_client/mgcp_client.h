@@ -29,7 +29,7 @@ typedef unsigned int mgcp_trans_id_t;
 struct mgcp_response_head {
 	int response_code;
 	mgcp_trans_id_t trans_id;
-	const char *comment;
+	char comment[MGCP_COMMENT_MAXLEN];
 	char conn_id[MGCP_CONN_ID_LENGTH];
 	char endpoint[MGCP_ENDPOINT_MAXLEN];
 };

@@ -139,13 +139,12 @@ static int mgcp_response_parse_head(struct mgcp_response *r, struct msgb *msg)
 		   &comment_pos) != 2)
 		goto response_parse_failure;
 
-	r->head.comment = r->body + comment_pos;
+	osmo_strlcpy(r->head.comment, r->body + comment_pos, sizeof(r->head.comment));
 	end = strchr(r->head.comment, '\r');
 	if (!end)
 		goto response_parse_failure;
 	/* Mark the end of the comment */
 	*end = '\0';
-	r->body = end + 1;
 	return 0;
 
 response_parse_failure:
