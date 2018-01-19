@@ -244,24 +244,25 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 	int rc;
 	OSMO_ASSERT(r->body);
 	char *data = mgcp_find_section_end(r->body);
+	char *data_ptr;
 
-	/* Warning: This function performs a destructive parsing on r->body.
-	 * Since this function is called at the very end of the persing
-	 * process, destructive parsing is acceptable. */
+	/* Since this functions performs a destructive parsing, we create a
+	 * local copy of the body data */
+	data = talloc_zero_size(NULL, strlen(r->body)+1);
+	OSMO_ASSERT(data);
+	data_ptr = data;
+	osmo_strlcpy(data, r->body, strlen(r->body));
 
+	/* Find beginning of the parameter (SDP) section */
+	data_ptr = mgcp_find_section_end(data);
 	if (!data) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "MGCP response: cannot find start of parameters\n");
-		return -EINVAL;
+		rc = -EINVAL;
+		goto exit;
 	}
 
-	/* Advance to after the \n\n, replace the second \n with \0. That's
-	 * where the parameters start. */
-	data ++;
-	*data = '\0';
-	data ++;
-
-	for_each_non_empty_line(line, data) {
+	for_each_non_empty_line(line, data_ptr) {
 		if (!mgcp_line_is_valid(line))
 			return -EINVAL;
 
@@ -269,19 +270,23 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 		case 'm':
 			rc = mgcp_parse_audio_port(r, line);
 			if (rc)
-				return rc;
+				goto exit;
 			break;
 		case 'c':
 			rc = mgcp_parse_audio_ip(r, line);
 			if (rc)
-				return rc;
+				goto exit;
 			break;
 		default:
 			/* skip unhandled parameters */
 			break;
 		}
 	}
-	return 0;
+
+	rc = 0;
+exit:
+	talloc_free(data);
+	return rc;
 }
 
 /* Parse a line like "X: something" */
