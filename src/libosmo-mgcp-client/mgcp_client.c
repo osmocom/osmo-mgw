@@ -36,6 +36,8 @@
 #include <unistd.h>
 #include <string.h>
 
+/*! Initalize MGCP client configuration struct with default values.
+ *  \param[out] conf Client configuration.*/
 void mgcp_client_conf_init(struct mgcp_client_conf *conf)
 {
 	/* NULL and -1 default to MGCP_CLIENT_*_DEFAULT values */
@@ -62,7 +64,9 @@ static bool endpoint_in_use(uint16_t id, struct mgcp_client *client)
 	return false;
 }
 
-/* Find and seize an unsused endpoint id */
+/*! Pick next free endpoint ID.
+ *  \param[in,out] client MGCP client descriptor.
+ *  \returns 0 on success, -EINVAL on error. */
 int mgcp_client_next_endpoint(struct mgcp_client *client)
 {
 	int i;
@@ -95,6 +99,9 @@ int mgcp_client_next_endpoint(struct mgcp_client *client)
 	return -EINVAL;
 }
 
+/*! Release a seized endpoint ID to make it available again for other calls.
+ *  \param[in] id Endpoint ID
+ *  \param[in,out] client MGCP client descriptor. */
 /* Release a seized endpoint id to make it available again for other calls */
 void mgcp_client_release_endpoint(uint16_t id, struct mgcp_client *client)
 {
@@ -237,6 +244,9 @@ static char *mgcp_find_section_end(char *string)
 	return NULL;
 }
 
+/*! Parse body (SDP) parameters of the MGCP response
+ *  \param[in,out] r Response data
+ *  \returns 0 on success, -EINVAL on error. */
 int mgcp_response_parse_params(struct mgcp_response *r)
 {
 	char *line;
@@ -498,6 +508,9 @@ struct mgcp_client *mgcp_client_init(void *ctx,
 	return mgcp;
 }
 
+/*! Initalize client connection (opens socket only, no request is sent yet)
+ *  \param[in,out] mgcp MGCP client descriptor.
+ *  \returns 0 on success, -EINVAL on error. */
 int mgcp_client_connect(struct mgcp_client *mgcp)
 {
 	struct sockaddr_in addr;
@@ -543,17 +556,25 @@ error_close_fd:
 	return rc;
 }
 
+/*! Get the IP-Aaddress of the associated MGW as string.
+ *  \param[in] mgcp MGCP client descriptor.
+ *  \returns a pointer to the address string. */
 const char *mgcp_client_remote_addr_str(struct mgcp_client *mgcp)
 {
 	return mgcp->actual.remote_addr;
 }
 
+/*! Get the IP-Port of the associated MGW.
+ *  \param[in] mgcp MGCP client descriptor.
+ *  \returns port number. */
 uint16_t mgcp_client_remote_port(struct mgcp_client *mgcp)
 {
 	return mgcp->actual.remote_port;
 }
 
-/* Return the MGCP GW binary IPv4 address in network byte order. */
+/*! Get the IP-Aaddress of the associated MGW as its numeric representation.
+ *  \param[in] mgcp MGCP client descriptor.
+ *  \returns IP-Address as 32 bit integer (network byte order) */
 uint32_t mgcp_client_remote_addr_n(struct mgcp_client *mgcp)
 {
 	return mgcp->remote_addr;
@@ -626,29 +647,32 @@ mgcp_tx_error:
 	return -1;
 }
 
-/* Cancel a pending transaction.
+/*! Cancel a pending transaction.
+ *  \param[in] mgcp MGCP client descriptor.
+ *  \param[in,out] trans_id Transaction id.
+ *  \returns 0 on success, -ENOENT on error.
+ *
  * Should a priv pointer passed to mgcp_client_tx() become invalid, this function must be called. In
  * practical terms, if the caller of mgcp_client_tx() wishes to tear down a transaction without having
  * received a response this function must be called. The trans_id can be obtained by calling
- * mgcp_msg_trans_id() on the msgb produced by mgcp_msg_gen().
- */
+ * mgcp_msg_trans_id() on the msgb produced by mgcp_msg_gen(). */
 int mgcp_client_cancel(struct mgcp_client *mgcp, mgcp_trans_id_t trans_id)
 {
 	struct mgcp_response_pending *pending = mgcp_client_response_pending_get(mgcp, trans_id);
 	if (!pending) {
-		/* INFO is sufficient, it is not harmful to cancel a transaction twice. */
+		/*! Note: it is not harmful to cancel a transaction twice. */
 		LOGP(DLMGCP, LOGL_INFO, "Cannot cancel, no such transaction: %u\n", trans_id);
 		return -ENOENT;
 	}
 	LOGP(DLMGCP, LOGL_INFO, "Canceled transaction %u\n", trans_id);
 	talloc_free(pending);
 	return 0;
-	/* We don't really need to clean up the wqueue: In all sane cases, the msgb has already been sent
-	 * out and is no longer in the wqueue. If it still is in the wqueue, then sending MGCP messages
-	 * per se is broken and the program should notice so by a full wqueue. Even if this was called
-	 * before we had a chance to send out the message and it is still going to be sent, we will just
-	 * ignore the reply to it later. Removing a msgb from the wqueue here would just introduce more
-	 * bug surface in terms of failing to update wqueue API's counters or some such.
+	/*! We don't really need to clean up the wqueue: In all sane cases, the msgb has already been sent
+	 *  out and is no longer in the wqueue. If it still is in the wqueue, then sending MGCP messages
+	 *  per se is broken and the program should notice so by a full wqueue. Even if this was called
+	 *  before we had a chance to send out the message and it is still going to be sent, we will just
+	 *  ignore the reply to it later. Removing a msgb from the wqueue here would just introduce more
+	 *  bug surface in terms of failing to update wqueue API's counters or some such.
 	 */
 }
 
@@ -764,6 +788,10 @@ struct msgb *mgcp_msg_dlcx(struct mgcp_client *mgcp, uint16_t rtp_endpoint,
 #define MGCP_AUEP_MANDATORY (MGCP_MSG_PRESENCE_ENDPOINT)
 #define MGCP_RSIP_MANDATORY 0	/* none */
 
+/*! Generate an MGCP message
+ *  \param[in] mgcp MGCP client descriptor.
+ *  \param[in] mgcp_msg Message description
+ *  \returns message buffer on success, NULL on error. */
 struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 {
 	mgcp_trans_id_t trans_id = mgcp_client_next_trans_id(mgcp);
@@ -908,12 +936,17 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	return msg;
 }
 
-/* Retrieve the MGCP transaction ID from a msgb generated by mgcp_msg_gen() */
+/*! Retrieve the MGCP transaction ID from a msgb generated by mgcp_msg_gen()
+ *  \param[in] msg message buffer
+ *  \returns Transaction id. */
 mgcp_trans_id_t mgcp_msg_trans_id(struct msgb *msg)
 {
 	return (mgcp_trans_id_t)msg->cb[MSGB_CB_MGCP_TRANS_ID];
 }
 
+/*! Get the configuration parameters a given MGCP client instance
+ *  \param[in] mgcp MGCP client descriptor.
+ *  \returns configuration */
 struct mgcp_client_conf *mgcp_client_conf_actual(struct mgcp_client *mgcp)
 {
 	return &mgcp->actual;
