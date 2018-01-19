@@ -1242,8 +1242,6 @@ int mgcp_send_reset_ep(struct mgcp_endpoint *endp, int endpoint)
 	if (len < 0)
 		return -1;
 
-	buf[sizeof(buf) - 1] = '\0';
-
 	rc = send_agent(endp->cfg, buf, len);
 	if (rc <= 0)
 		return -1;
