@@ -86,7 +86,7 @@ static void test_strline(void)
 
 #define MDCX3_RET \
 	"200 18983215 OK\r\n" \
-	"\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
@@ -98,7 +98,7 @@ static void test_strline(void)
 
 #define MDCX3A_RET \
 	"200 18983215 OK\r\n" \
-	"\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
@@ -110,7 +110,7 @@ static void test_strline(void)
 
 #define MDCX3_FMTP_RET \
 	"200 18983215 OK\r\n" \
-	"\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
@@ -138,7 +138,7 @@ static void test_strline(void)
 
 #define MDCX4_RET(Ident) \
 	"200 " Ident " OK\r\n" \
-	"\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
@@ -150,7 +150,7 @@ static void test_strline(void)
 
 #define MDCX4_RO_RET(Ident) \
 	"200 " Ident " OK\r\n" \
-	"\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
@@ -247,8 +247,8 @@ static void test_strline(void)
 
 #define CRCX_RET \
 	"200 2 OK\r\n" \
-	"I: %s\n" \
-	"\n" \
+	"I: %s\r\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
@@ -260,8 +260,8 @@ static void test_strline(void)
 
 #define CRCX_RET_NO_RTPMAP \
 	"200 2 OK\r\n" \
-	"I: %s\n" \
-	"\n" \
+	"I: %s\r\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
@@ -272,8 +272,8 @@ static void test_strline(void)
 
 #define CRCX_FMTP_RET \
 	"200 2 OK\r\n" \
-	"I: %s\n" \
-	"\n" \
+	"I: %s\r\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \
@@ -296,8 +296,8 @@ static void test_strline(void)
 
 #define CRCX_ZYN_RET \
 	"200 2 OK\r\n" \
-	"I: %s\n" \
-	"\n" \
+	"I: %s\r\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"s=-\r\n" \

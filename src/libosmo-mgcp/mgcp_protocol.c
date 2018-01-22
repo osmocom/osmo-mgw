@@ -201,14 +201,14 @@ static int add_params(struct msgb *msg, const struct mgcp_endpoint *endp,
 	/* NOTE: Only in the virtual trunk we allow dynamic endpoint names */
 	if (endp->wildcarded_crcx
 	    && endp->tcfg->trunk_type == MGCP_TRUNK_VIRTUAL) {
-		rc = msgb_printf(msg, "Z: %s%u@%s\n",
+		rc = msgb_printf(msg, "Z: %s%u@%s\r\n",
 				 MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK,
 				 ENDPOINT_NUMBER(endp), endp->cfg->domain);
 		if (rc < 0)
 			return -EINVAL;
 	}
 
-	rc = msgb_printf(msg, "I: %s\n", conn->conn->id);
+	rc = msgb_printf(msg, "I: %s\r\n", conn->conn->id);
 	if (rc < 0)
 		return -EINVAL;
 
@@ -254,13 +254,13 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 
 	/* Attach optional OSMUX parameters */
 	if (conn->osmux.state == OSMUX_STATE_NEGOTIATING) {
-		rc = msgb_printf(sdp, "%s\n", osmux_extension);
+		rc = msgb_printf(sdp, "%s\r\n", osmux_extension);
 		if (rc < 0)
 			goto error;
 	}
 
 	/* Attach line break to separate the parameters from the SDP block */
-	rc = msgb_printf(sdp, "\n");
+	rc = msgb_printf(sdp, "\r\n");
 
 	rc = mgcp_write_response_sdp(endp, conn, sdp, addr);
 	if (rc < 0)
