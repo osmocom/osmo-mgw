@@ -226,7 +226,7 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 	struct msgb *sdp;
 	int rc;
 	struct msgb *result;
-	char osmux_extension[strlen("\nX-Osmux: 255") + 1];
+	char osmux_extension[strlen("X-Osmux: 255") + 1];
 	char local_ip_addr[INET_ADDRSTRLEN];
 
 	sdp = msgb_alloc_headroom(4096, 128, "sdp record");
@@ -239,7 +239,7 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 	}
 
 	if (conn->osmux.state == OSMUX_STATE_NEGOTIATING) {
-		sprintf(osmux_extension, "\nX-Osmux: %u", conn->osmux.cid);
+		sprintf(osmux_extension, "X-Osmux: %u", conn->osmux.cid);
 		conn->osmux.state = OSMUX_STATE_ACTIVATING;
 	} else {
 		osmux_extension[0] = '\0';
@@ -252,9 +252,15 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 			goto error;
 	}
 
-	rc = msgb_printf(sdp, "%s\n", osmux_extension);
-	if (rc < 0)
-		goto error;
+	/* Attach optional OSMUX parameters */
+	if (conn->osmux.state == OSMUX_STATE_NEGOTIATING) {
+		rc = msgb_printf(sdp, "%s\n", osmux_extension);
+		if (rc < 0)
+			goto error;
+	}
+
+	/* Attach line break to separate the parameters from the SDP block */
+	rc = msgb_printf(sdp, "\n");
 
 	rc = mgcp_write_response_sdp(endp, conn, sdp, addr);
 	if (rc < 0)
