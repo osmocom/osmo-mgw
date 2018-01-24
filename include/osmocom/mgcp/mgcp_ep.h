@@ -28,9 +28,9 @@ struct mgcp_conn;
 
 /* Callback type for RTP dispatcher functions
    (e.g mgcp_dispatch_rtp_bridge_cb, see below) */
-typedef int (*mgcp_dispatch_rtp_cb) (int proto, struct sockaddr_in * addr,
+typedef int (*mgcp_dispatch_rtp_cb) (int proto, struct sockaddr_in *addr,
 				     char *buf, unsigned int buf_size,
-				     struct mgcp_conn * conn);
+				     struct mgcp_conn *conn);
 
 /*! MGCP endpoint properties */
 struct mgcp_endpoint_type {
