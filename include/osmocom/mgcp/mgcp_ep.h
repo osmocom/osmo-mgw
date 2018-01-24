@@ -25,6 +25,7 @@
 
 struct sockaddr_in;
 struct mgcp_conn;
+struct mgcp_endpoint;
 
 /* Callback type for RTP dispatcher functions
    (e.g mgcp_dispatch_rtp_bridge_cb, see below) */
@@ -48,3 +49,5 @@ struct mgcp_endpoint_typeset {
 
 /*! static MGCP endpoint typeset (pre-initalized, read-only) */
 extern const struct mgcp_endpoint_typeset ep_typeset;
+
+void mgcp_release_endp(struct mgcp_endpoint *endp);

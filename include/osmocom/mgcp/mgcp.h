@@ -222,7 +222,6 @@ int mgcp_parse_config(const char *config_file, struct mgcp_config *cfg,
 		      enum mgcp_role role);
 int mgcp_vty_init(void);
 int mgcp_endpoints_allocate(struct mgcp_trunk_config *cfg);
-void mgcp_release_endp(struct mgcp_endpoint *endp);
 void mgcp_trunk_set_keepalive(struct mgcp_trunk_config *tcfg, int interval);
 
 /*
