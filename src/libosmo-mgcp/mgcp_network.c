@@ -1043,6 +1043,25 @@ int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
 
 }
 
+/*! cleanup an endpoint when a connection on an RTP bridge endpoint is removed.
+ *  \param[in] endp Endpoint on which the connection resides.
+ *  \param[in] conn Connection that is about to be removed (ignored).
+ *  \returns 0 on success, -1 on ERROR. */
+void mgcp_cleanup_rtp_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *conn)
+{
+	struct mgcp_conn *conn_cleanup;
+
+	/* In mgcp_dispatch_rtp_bridge_cb() we use conn->priv to cache the
+	 * pointer to the destination connection, so that we do not have
+	 * to go through the list every time an RTP packet arrives. To prevent
+	 * a use-after-free situation we invalidate this information for all
+	 * connections present when one connection is removed from the
+	 * endpoint. */
+	llist_for_each_entry(conn_cleanup, &endp->conns, entry) {
+		conn_cleanup->priv = NULL;
+	}
+}
+
 /* Handle incoming RTP data from NET */
 static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 {

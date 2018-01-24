@@ -201,6 +201,12 @@ void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id)
 	if (!conn)
 		return;
 
+	/* Run endpoint cleanup action. By this we inform the endpoint about
+	 * the removal of the connection and allow it to clean up its inner
+	 * state accordingly */
+	if (endp->type->cleanup_cb)
+		endp->type->cleanup_cb(endp, conn);
+
 	switch (conn->type) {
 	case MGCP_CONN_TYPE_RTP:
 		osmux_disable_conn(&conn->u.rtp);

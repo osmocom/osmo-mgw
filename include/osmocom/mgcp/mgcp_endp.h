@@ -33,6 +33,13 @@ typedef int (*mgcp_dispatch_rtp_cb) (int proto, struct sockaddr_in *addr,
 				     char *buf, unsigned int buf_size,
 				     struct mgcp_conn *conn);
 
+/* Callback type for endpoint specific cleanup actions. This function
+ * is automatically executed when a connection is freed (see mgcp_conn_free()
+ * in mgcp_conn.c). Depending on the type of the endpoint there may be endpoint
+ * specific things to take care of once a connection has been removed. */
+typedef void (*mgcp_cleanup_cp) (struct mgcp_endpoint *endp,
+				 struct mgcp_conn *conn);
+
 /*! MGCP endpoint properties */
 struct mgcp_endpoint_type {
 	/*!< maximum number of connections */
@@ -40,6 +47,9 @@ struct mgcp_endpoint_type {
 
 	/*!< callback that defines how to dispatch incoming RTP data */
 	mgcp_dispatch_rtp_cb dispatch_rtp_cb;
+
+	/*!< callback that implements endpoint specific cleanup actions */
+	mgcp_cleanup_cp cleanup_cb;
 };
 
 /*! MGCP endpoint typeset */

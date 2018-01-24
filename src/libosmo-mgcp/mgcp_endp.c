@@ -28,7 +28,8 @@
 const struct mgcp_endpoint_typeset ep_typeset = {
 	/* Specify endpoint properties for RTP endpoint */
 	.rtp.max_conns = 2,
-	.rtp.dispatch_rtp_cb = mgcp_dispatch_rtp_bridge_cb
+	.rtp.dispatch_rtp_cb = mgcp_dispatch_rtp_bridge_cb,
+	.rtp.cleanup_cb = mgcp_cleanup_rtp_bridge_cb
 };
 
 /*! release endpoint, all open connections are closed.
