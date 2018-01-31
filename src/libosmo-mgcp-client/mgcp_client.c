@@ -363,6 +363,13 @@ static int parse_head_params(struct mgcp_response *r)
 				rc = -EINVAL;
 				goto exit;
 			}
+
+			/* A specific endpoint identifier returned by the MGW
+			 * must contain an @ character */
+			if (strstr(r->head.endpoint, "@") == NULL) {
+				rc = -EINVAL;
+				goto exit;
+			}
 			break;
 		case 'I':
 			rc = mgcp_parse_head_param(r->head.conn_id,
