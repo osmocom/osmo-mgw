@@ -257,7 +257,7 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 
 	/* Since this functions performs a destructive parsing, we create a
 	 * local copy of the body data */
-	data = talloc_zero_size(NULL, strlen(r->body)+1);
+	data = talloc_zero_size(r, strlen(r->body)+1);
 	OSMO_ASSERT(data);
 	data_ptr = data;
 	osmo_strlcpy(data, r->body, strlen(r->body));
@@ -336,7 +336,7 @@ static int parse_head_params(struct mgcp_response *r)
 
 	/* Since this functions performs a destructive parsing, we create a
 	 * local copy of the body data */
-	data = talloc_zero_size(NULL, strlen(r->body)+1);
+	data = talloc_zero_size(r, strlen(r->body)+1);
 	OSMO_ASSERT(data);
 	data_ptr = data;
 	osmo_strlcpy(data, r->body, strlen(r->body));
@@ -410,32 +410,42 @@ static struct mgcp_response_pending *mgcp_client_response_pending_get(
  */
 int mgcp_client_rx(struct mgcp_client *mgcp, struct msgb *msg)
 {
-	struct mgcp_response r = { 0 };
+	struct mgcp_response *r;
 	struct mgcp_response_pending *pending;
 	int rc;
 
-	rc = mgcp_response_parse_head(&r, msg);
+	r = talloc_zero(mgcp, struct mgcp_response);
+	OSMO_ASSERT(r);
+
+	rc = mgcp_response_parse_head(r, msg);
 	if (rc) {
 		LOGP(DLMGCP, LOGL_ERROR, "Cannot parse MGCP response (head)\n");
-		return -1;
+		rc = 1;
+		goto error;
 	}
 
-	rc = parse_head_params(&r);
+	rc = parse_head_params(r);
 	if (rc) {
 		LOGP(DLMGCP, LOGL_ERROR, "Cannot parse MGCP response (head parameters)\n");
-		return -1;
+		rc = 1;
+		goto error;
 	}
 
-	pending = mgcp_client_response_pending_get(mgcp, r.head.trans_id);
+	pending = mgcp_client_response_pending_get(mgcp, r->head.trans_id);
 	if (!pending) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "Cannot find matching MGCP transaction for trans_id %d\n",
-		     r.head.trans_id);
-		return -ENOENT;
+		     r->head.trans_id);
+		rc = -ENOENT;
+		goto error;
 	}
 
-	mgcp_client_handle_response(mgcp, pending, &r);
-	return 0;
+	mgcp_client_handle_response(mgcp, pending, r);
+	rc = 0;
+
+error:
+	talloc_free(r);
+	return rc;
 }
 
 static int mgcp_do_read(struct osmo_fd *fd)
