@@ -889,9 +889,6 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		/* Add SDP protocol version */
 		rc += msgb_printf(msg, "v=0\r\n");
 
-		/* Add session name (none) */
-		rc += msgb_printf(msg, "s=-\r\n");
-
 		/* Determine local IP-Address */
 		if (osmo_sock_local_ip(local_ip, mgcp->actual.remote_addr) < 0) {
 			LOGP(DLMGCP, LOGL_ERROR,
@@ -903,6 +900,9 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		/* Add owner/creator (SDP) */
 		rc += msgb_printf(msg, "o=- %x 23 IN IP4 %s\r\n",
 				  mgcp_msg->call_id, local_ip);
+
+		/* Add session name (none) */
+		rc += msgb_printf(msg, "s=-\r\n");
 
 		/* Add RTP address and port */
 		if (mgcp_msg->audio_port == 0) {
@@ -918,12 +918,13 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 			return NULL;
 		}
 		rc += msgb_printf(msg, "c=IN IP4 %s\r\n", mgcp_msg->audio_ip);
-		rc +=
-		    msgb_printf(msg, "m=audio %u RTP/AVP 255\r\n",
-				mgcp_msg->audio_port);
 
 		/* Add time description, active time (SDP) */
 		rc += msgb_printf(msg, "t=0 0\r\n");
+
+		rc +=
+		    msgb_printf(msg, "m=audio %u RTP/AVP 255\r\n",
+				mgcp_msg->audio_port);
 	}
 
 	if (rc != 0) {

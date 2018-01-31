@@ -44,11 +44,11 @@ I: 11
 M: sendrecv
 
 v=0
-s=-
 o=- 2f 23 IN IP4 127.0.0.1
+s=-
 c=IN IP4 192.168.100.23
-m=audio 1234 RTP/AVP 255
 t=0 0
+m=audio 1234 RTP/AVP 255
 
 Generated DLCX message:
 DLCX 3 23@mgw MGCP 1.0
