@@ -356,6 +356,13 @@ static int parse_head_params(struct mgcp_response *r)
 						   'Z', line);
 			if (rc)
 				goto exit;
+
+			/* A specific endpoint identifier returned by the MGW
+			 * must not contain any wildcard characters */
+			if (strstr(r->head.endpoint, "*") != NULL) {
+				rc = -EINVAL;
+				goto exit;
+			}
 			break;
 		case 'I':
 			rc = mgcp_parse_head_param(r->head.conn_id,
