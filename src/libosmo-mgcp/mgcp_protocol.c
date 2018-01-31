@@ -396,7 +396,7 @@ static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
  * The string is stored in the 'string' field. A NULL string is handled exactly
  * like an empty string, the 'string' field is never NULL after this function
  * has been called. */
-static void set_local_cx_options(void *ctx, struct mgcp_lco *lco,
+static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 				 const char *options)
 {
 	char *p_opt, *a_opt;
@@ -420,6 +420,15 @@ static void set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 	LOGP(DLMGCP, LOGL_DEBUG,
 	     "local CX options: lco->pkt_period_max: %i, lco->codec: %s\n",
 	     lco->pkt_period_max, lco->codec);
+
+	/* Check if the packetization fits the 20ms raster */
+	if (lco->pkt_period_min % 20 && lco->pkt_period_max % 20) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "local CX options: packetization interval is not a multiple of 20ms!\n");
+		return 535;
+	}
+
+	return 0;
 }
 
 void mgcp_rtp_end_config(struct mgcp_endpoint *endp, int expect_ssrc_change,
@@ -486,6 +495,7 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 	struct mgcp_conn_rtp *conn = NULL;
 	struct mgcp_conn *_conn = NULL;
 	char conn_name[512];
+	int rc;
 
 	LOGP(DLMGCP, LOGL_NOTICE, "CRCX: creating new connection ...\n");
 
@@ -587,8 +597,14 @@ mgcp_header_done:
 	endp->callid = talloc_strdup(tcfg->endpoints, callid);
 
 	/* Extract audio codec information */
-	set_local_cx_options(endp->tcfg->endpoints, &endp->local_options,
-			     local_options);
+	rc = set_local_cx_options(endp->tcfg->endpoints, &endp->local_options,
+				  local_options);
+	if (rc != 0) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "CRCX: endpoint:%x inavlid local connection options!\n",
+		     ENDPOINT_NUMBER(endp));
+		return create_err_response(endp, rc, "CRCX", p->trans);
+	}
 
 	snprintf(conn_name, sizeof(conn_name), "%s", callid);
 	_conn = mgcp_conn_alloc(NULL, endp, MGCP_CONN_TYPE_RTP, conn_name);
@@ -706,6 +722,7 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 	const char *mode = NULL;
 	struct mgcp_conn_rtp *conn = NULL;
         const char *conn_id = NULL;
+	int rc;
 
 	LOGP(DLMGCP, LOGL_NOTICE, "MDCX: modifying existing connection ...\n");
 
@@ -778,8 +795,14 @@ mgcp_header_done:
 	if (have_sdp)
 		mgcp_parse_sdp_data(endp, conn, p);
 
-	set_local_cx_options(endp->tcfg->endpoints, &endp->local_options,
-			     local_options);
+	rc = set_local_cx_options(endp->tcfg->endpoints, &endp->local_options,
+				  local_options);
+	if (rc != 0) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "MDCX: endpoint:%x inavlid local connection options!\n",
+		     ENDPOINT_NUMBER(endp));
+		return create_err_response(endp, rc, "MDCX", p->trans);
+	}
 
 	if (!have_sdp && endp->local_options.codec)
 		mgcp_set_audio_info(p->cfg, &conn->end.codec,
