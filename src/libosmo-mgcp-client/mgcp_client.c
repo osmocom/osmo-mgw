@@ -862,6 +862,14 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 			msgb_free(msg);
 			return NULL;
 		}
+
+		if (strstr(mgcp_msg->endpoint, "@") == NULL) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "Endpoint name (%s) lacks separator (@), can not generate MGCP message\n",
+			     mgcp_msg->endpoint);
+			msgb_free(msg);
+		}
+
 		rc += msgb_printf(msg, " %s", mgcp_msg->endpoint);
 	}
 
