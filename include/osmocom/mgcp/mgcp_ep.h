@@ -85,4 +85,5 @@ struct mgcp_endpoint {
 /*! Extract endpoint number for a given endpoint */
 #define ENDPOINT_NUMBER(endp) abs((int)(endp - endp->tcfg->endpoints))
 
-void mgcp_release_endp(struct mgcp_endpoint *endp);
+void mgcp_endp_release(struct mgcp_endpoint *endp);
+

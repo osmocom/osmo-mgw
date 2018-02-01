@@ -1324,7 +1324,7 @@ static void test_multilple_codec(void)
 
 	/* Free the previous endpoint and the data and
 	 * check if the connection really vanished... */
-	mgcp_release_endp(endp);
+	mgcp_endp_release(endp);
 	talloc_free(endp->last_response);
 	talloc_free(endp->last_trans);
 	endp->last_response = endp->last_trans = NULL;
@@ -1395,7 +1395,7 @@ static void test_no_cycle(void)
 	OSMO_ASSERT(conn->state.stats.cycles == UINT16_MAX + 1);
 	OSMO_ASSERT(conn->state.stats.max_seq == 0);
 
-	mgcp_release_endp(endp);
+	mgcp_endp_release(endp);
 	talloc_free(cfg);
 }
 
@@ -1426,7 +1426,7 @@ static void test_no_name(void)
 	msgb_free(inp);
 	msgb_free(msg);
 
-	mgcp_release_endp(&cfg->trunk.endpoints[1]);
+	mgcp_endp_release(&cfg->trunk.endpoints[1]);
 	talloc_free(cfg);
 }
 

@@ -583,7 +583,7 @@ mgcp_header_done:
 		if (tcfg->force_realloc)
 			/* This is not our call, toss everything by releasing
 			 * the entire endpoint. (rude!) */
-			mgcp_release_endp(endp);
+			mgcp_endp_release(endp);
 		else {
 			/* This is not our call, leave everything as it is and
 			 * return with an error. */
@@ -673,7 +673,7 @@ mgcp_header_done:
 			LOGP(DLMGCP, LOGL_NOTICE,
 			     "CRCX: endpoint:0x%x CRCX rejected by policy\n",
 			     ENDPOINT_NUMBER(endp));
-			mgcp_release_endp(endp);
+			mgcp_endp_release(endp);
 			return create_err_response(endp, 400, "CRCX", p->trans);
 			break;
 		case MGCP_POLICY_DEFER:
@@ -703,7 +703,7 @@ mgcp_header_done:
 	     ENDPOINT_NUMBER(endp));
 	return create_response_with_sdp(endp, conn, "CRCX", p->trans, true);
 error2:
-	mgcp_release_endp(endp);
+	mgcp_endp_release(endp);
 	LOGP(DLMGCP, LOGL_NOTICE,
 	     "CRCX: endpoint:0x%x unable to create connection resource error\n",
 	     ENDPOINT_NUMBER(endp));
@@ -954,7 +954,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 		     "DLCX: endpoint:0x%x missing ci (connectionIdentifier), will remove all connections at once\n",
 		     ENDPOINT_NUMBER(endp));
 
-		mgcp_release_endp(endp);
+		mgcp_endp_release(endp);
 
 		/* Note: In this case we do not return any statistics,
 		 * as we assume that the client is not interested in
@@ -981,7 +981,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 	/* When all connections are closed, the endpoint will be released
 	 * in order to be ready to be used by another call. */
 	if (llist_count(&endp->conns) <= 0) {
-		mgcp_release_endp(endp);
+		mgcp_endp_release(endp);
 		LOGP(DLMGCP, LOGL_DEBUG,
 		     "DLCX: endpoint:0x%x endpoint released\n",
 		     ENDPOINT_NUMBER(endp));

@@ -33,7 +33,7 @@ const struct mgcp_endpoint_typeset ep_typeset = {
 
 /*! release endpoint, all open connections are closed.
  *  \param[in] endp endpoint to release */
-void mgcp_release_endp(struct mgcp_endpoint *endp)
+void mgcp_endp_release(struct mgcp_endpoint *endp)
 {
 	LOGP(DLMGCP, LOGL_DEBUG, "Releasing endpoint:0x%x\n",
 	     ENDPOINT_NUMBER(endp));

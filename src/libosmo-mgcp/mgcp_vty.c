@@ -1048,7 +1048,7 @@ DEFUN(free_endp, free_endp_cmd,
 	}
 
 	endp = &trunk->endpoints[endp_no];
-	mgcp_release_endp(endp);
+	mgcp_endp_release(endp);
 	return CMD_SUCCESS;
 }
 
