@@ -201,7 +201,7 @@ static int add_params(struct msgb *msg, const struct mgcp_endpoint *endp,
 	/* NOTE: Only in the virtual trunk we allow dynamic endpoint names */
 	if (endp->wildcarded_crcx
 	    && endp->tcfg->trunk_type == MGCP_TRUNK_VIRTUAL) {
-		rc = msgb_printf(msg, "Z: %s%u@%s\r\n",
+		rc = msgb_printf(msg, "Z: %s%x@%s\r\n",
 				 MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK,
 				 ENDPOINT_NUMBER(endp), endp->cfg->domain);
 		if (rc < 0)
