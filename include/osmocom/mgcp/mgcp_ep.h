@@ -50,4 +50,39 @@ struct mgcp_endpoint_typeset {
 /*! static MGCP endpoint typeset (pre-initalized, read-only) */
 extern const struct mgcp_endpoint_typeset ep_typeset;
 
+/*! MGCP endpoint model */
+struct mgcp_endpoint {
+
+	/*!< Call identifier string (as supplied by the call agant) */
+	char *callid;
+
+	/*!< Local connection options (see mgcp_intermal.h) */
+	struct mgcp_lco local_options;
+
+	/*!< List with connections active on this endpoint */
+	struct llist_head conns;
+
+	/*!< Backpointer to the MGW configuration */
+	struct mgcp_config *cfg;
+
+	/*!< Backpointer to the Trunk specific configuration */
+	struct mgcp_trunk_config *tcfg;
+
+	/*!< Endpoint properties (see above) */
+	const struct mgcp_endpoint_type *type;
+
+	/*!< Last MGCP transmission (in case re-transmission is required) */
+	char *last_trans;
+
+	/*!< Last MGCP response (in case re-transmission is required) */
+	char *last_response;
+
+	/*!< Memorize if this endpoint was choosen by the MGW (wildcarded, true)
+	 *   or if the user has choosen the particular endpoint explicitly. */
+	bool wildcarded_crcx;
+};
+
+/*! Extract endpoint number for a given endpoint */
+#define ENDPOINT_NUMBER(endp) abs((int)(endp - endp->tcfg->endpoints))
+
 void mgcp_release_endp(struct mgcp_endpoint *endp);

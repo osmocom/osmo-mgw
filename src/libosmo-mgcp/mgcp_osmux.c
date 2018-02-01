@@ -24,6 +24,7 @@
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/osmux.h>
 #include <osmocom/mgcp/mgcp_conn.h>
+#include <osmocom/mgcp/mgcp_ep.h>
 
 static struct osmo_fd osmux_fd;
 

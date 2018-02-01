@@ -24,6 +24,7 @@
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/mgcp_msg.h>
+#include <osmocom/mgcp/mgcp_ep.h>
 
 #include <errno.h>
 

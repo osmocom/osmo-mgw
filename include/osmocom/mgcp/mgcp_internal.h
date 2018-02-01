@@ -245,29 +245,9 @@ struct mgcp_conn {
 
 struct mgcp_endpoint_type;
 
-struct mgcp_endpoint {
-	char *callid;
-	struct mgcp_lco local_options;
-
-	struct llist_head conns;
-
-	/* backpointer */
-	struct mgcp_config *cfg;
-	struct mgcp_trunk_config *tcfg;
-
-	const struct mgcp_endpoint_type *type;
-
-	/* fields for re-transmission */
-	char *last_trans;
-	char *last_response;
-
-	/* Memorize if this endpoint was choosen by the MGW (wildcarded, true)
-	 * or if the user has choosen the particular endpoint explicitly */
-	bool wildcarded_crcx;
-};
 
 
-#define ENDPOINT_NUMBER(endp) abs((int)(endp - endp->tcfg->endpoints))
+
 
 /**
  * Internal structure while parsing a request
