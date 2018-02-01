@@ -224,11 +224,15 @@ static int check_domain_name(struct mgcp_config *cfg, const char *mgcp)
 /* Search the endpoint pool for the endpoint that had been selected via the
  * MGCP message (helper function for mgcp_analyze_header()) */
 static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
-					   const char *mgcp)
+					   const char *mgcp,
+					   int *cause)
 {
 	char *endptr = NULL;
 	unsigned int gw = INT_MAX;
 	const char *endpoint_number_str;
+	struct mgcp_endpoint *endp;
+
+	*cause = 0;
 
 	/* Check if the domainname in the request is correct */
 	if (check_domain_name(cfg, mgcp)) {
@@ -237,8 +241,12 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 	}
 
 	/* Check if the E1 trunk is requested */
-	if (strncmp(mgcp, "ds/e1", 5) == 0)
-		return find_e1_endpoint(cfg, mgcp);
+	if (strncmp(mgcp, "ds/e1", 5) == 0) {
+		endp = find_e1_endpoint(cfg, mgcp);
+		if (!endp)
+			*cause = -500;
+		return endp;
+	}
 
 	/* Check if the virtual trunk is addressed (new, correct way with prefix) */
 	if (strncmp
@@ -247,10 +255,12 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 		endpoint_number_str =
 		    mgcp + strlen(MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK);
 		if (endpoint_number_str[0] == '*') {
-			return find_free_endpoint(cfg->trunk.endpoints,
+			endp = find_free_endpoint(cfg->trunk.endpoints,
 						  cfg->trunk.number_endpoints);
+			if (!endp)
+				*cause = -403;
+			return endp;
 		}
-
 		gw = strtoul(endpoint_number_str, &endptr, 16);
 		if (gw < cfg->trunk.number_endpoints && endptr[0] == '@')
 			return &cfg->trunk.endpoints[gw];
@@ -265,6 +275,7 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 		return &cfg->trunk.endpoints[gw];
 
 	LOGP(DLMGCP, LOGL_ERROR, "Not able to find the endpoint: '%s'\n", mgcp);
+	*cause = -500;
 	return NULL;
 }
 
@@ -277,6 +288,7 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 {
 	int i = 0;
 	char *elem, *save = NULL;
+	int cause;
 
 	/*! This function will parse the header part of the received
 	 *  MGCP message. The parsing results are stored in pdata.
@@ -294,11 +306,11 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 			pdata->trans = elem;
 			break;
 		case 1:
-			pdata->endp = find_endpoint(pdata->cfg, elem);
+			pdata->endp = find_endpoint(pdata->cfg, elem, &cause);
 			if (!pdata->endp) {
 				LOGP(DLMGCP, LOGL_ERROR,
 				     "Unable to find Endpoint `%s'\n", elem);
-				return -500;
+				return cause;
 			}
 			break;
 		case 2:
