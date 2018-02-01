@@ -27,7 +27,7 @@
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/vty.h>
 #include <osmocom/mgcp/mgcp_conn.h>
-#include <osmocom/mgcp/mgcp_ep.h>
+#include <osmocom/mgcp/mgcp_endp.h>
 
 #include <string.h>
 

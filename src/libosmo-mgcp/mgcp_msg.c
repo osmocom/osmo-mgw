@@ -28,7 +28,7 @@
 #include <osmocom/mgcp/mgcp_common.h>
 #include <osmocom/mgcp/mgcp_msg.h>
 #include <osmocom/mgcp/mgcp_conn.h>
-#include <osmocom/mgcp/mgcp_ep.h>
+#include <osmocom/mgcp/mgcp_endp.h>
 
 /*! Display an mgcp message on the log output.
  *  \param[in] message mgcp message string

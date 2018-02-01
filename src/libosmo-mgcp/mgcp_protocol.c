@@ -38,7 +38,7 @@
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/mgcp_stat.h>
 #include <osmocom/mgcp/mgcp_msg.h>
-#include <osmocom/mgcp/mgcp_ep.h>
+#include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_sdp.h>
 
 struct mgcp_request {

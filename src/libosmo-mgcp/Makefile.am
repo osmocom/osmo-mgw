@@ -42,7 +42,7 @@ libosmo_mgcp_la_SOURCES = \
 	mgcp_msg.c \
 	mgcp_conn.c \
 	mgcp_stat.c \
-	mgcp_ep.c \
+	mgcp_endp.c \
 	$(NULL)
 
 libosmo_mgcp_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(MGCP_LIBVERSION)

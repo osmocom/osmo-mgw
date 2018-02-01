@@ -37,7 +37,7 @@
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/vty.h>
 #include <osmocom/mgcp/debug.h>
-#include <osmocom/mgcp/mgcp_ep.h>
+#include <osmocom/mgcp/mgcp_endp.h>
 
 #include <osmocom/core/application.h>
 #include <osmocom/core/msgb.h>

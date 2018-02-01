@@ -22,7 +22,7 @@
  */
 
 #include <osmocom/mgcp/mgcp_internal.h>
-#include <osmocom/mgcp/mgcp_ep.h>
+#include <osmocom/mgcp/mgcp_endp.h>
 
 /* Endpoint typeset definition */
 const struct mgcp_endpoint_typeset ep_typeset = {

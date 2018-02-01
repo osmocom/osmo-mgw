@@ -39,7 +39,7 @@
 #include <osmocom/mgcp/mgcp_stat.h>
 #include <osmocom/mgcp/osmux.h>
 #include <osmocom/mgcp/mgcp_conn.h>
-#include <osmocom/mgcp/mgcp_ep.h>
+#include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/debug.h>
 
 #define RTP_SEQ_MOD		(1 << 16)
