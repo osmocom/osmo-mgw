@@ -79,7 +79,7 @@ struct mgcp_endpoint {
 
 	/*!< Memorize if this endpoint was choosen by the MGW (wildcarded, true)
 	 *   or if the user has choosen the particular endpoint explicitly. */
-	bool wildcarded_crcx;
+	bool wildcarded_req;
 };
 
 /*! Extract endpoint number for a given endpoint */

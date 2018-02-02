@@ -143,6 +143,7 @@ static struct mgcp_endpoint *find_e1_endpoint(struct mgcp_config *cfg,
 	char *rest = NULL;
 	struct mgcp_trunk_config *tcfg;
 	int trunk, endp;
+	struct mgcp_endpoint *endp_ptr;
 
 	trunk = strtoul(mgcp + 6, &rest, 10);
 	if (rest == NULL || rest[0] != '/' || trunk < 1) {
@@ -179,7 +180,9 @@ static struct mgcp_endpoint *find_e1_endpoint(struct mgcp_config *cfg,
 		return NULL;
 	}
 
-	return &tcfg->endpoints[endp];
+	endp_ptr = &tcfg->endpoints[endp];
+	endp_ptr->wildcarded_req = false;
+	return endp_ptr;
 }
 
 /* Find an endpoint that is not in use. Do this by going through the endpoint
@@ -197,7 +200,7 @@ static struct mgcp_endpoint *find_free_endpoint(struct mgcp_endpoint *endpoints,
 			LOGP(DLMGCP, LOGL_DEBUG,
 			     "endpoint:0x%x found free endpoint\n",
 			     ENDPOINT_NUMBER(endp));
-			endp->wildcarded_crcx = true;
+			endp->wildcarded_req = true;
 			return endp;
 		}
 	}
@@ -263,8 +266,11 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 			return endp;
 		}
 		gw = strtoul(endpoint_number_str, &endptr, 16);
-		if (gw < cfg->trunk.number_endpoints && endptr[0] == '@')
-			return &cfg->trunk.endpoints[gw];
+		if (gw < cfg->trunk.number_endpoints && endptr[0] == '@') {
+			endp = &cfg->trunk.endpoints[gw];
+			endp->wildcarded_req = false;
+			return endp;
+		}
 	}
 
 	/* Deprecated method without prefix */
@@ -272,8 +278,11 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 	     "Addressing virtual trunk without prefix (deprecated), please use %s: '%s'\n",
 	     MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK, mgcp);
 	gw = strtoul(mgcp, &endptr, 16);
-	if (gw < cfg->trunk.number_endpoints && endptr[0] == '@')
-		return &cfg->trunk.endpoints[gw];
+	if (gw < cfg->trunk.number_endpoints && endptr[0] == '@') {
+		endp = &cfg->trunk.endpoints[gw];
+		endp->wildcarded_req = false;
+		return endp;
+	}
 
 	LOGP(DLMGCP, LOGL_ERROR, "Not able to find the endpoint: '%s'\n", mgcp);
 	*cause = -500;

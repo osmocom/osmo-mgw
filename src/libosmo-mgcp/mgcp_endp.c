@@ -51,5 +51,5 @@ void mgcp_endp_release(struct mgcp_endpoint *endp)
 	endp->local_options.string = NULL;
 	talloc_free(endp->local_options.codec);
 	endp->local_options.codec = NULL;
-	endp->wildcarded_crcx = false;
+	endp->wildcarded_req = false;
 }
