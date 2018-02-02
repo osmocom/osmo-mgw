@@ -604,7 +604,8 @@ mgcp_header_done:
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:%x inavlid local connection options!\n",
 		     ENDPOINT_NUMBER(endp));
-		return create_err_response(endp, rc, "CRCX", p->trans);
+		error_code = rc;
+		goto error2;
 	}
 
 	snprintf(conn_name, sizeof(conn_name), "%s", callid);
@@ -803,7 +804,8 @@ mgcp_header_done:
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "MDCX: endpoint:%x inavlid local connection options!\n",
 		     ENDPOINT_NUMBER(endp));
-		return create_err_response(endp, rc, "MDCX", p->trans);
+		error_code = rc;
+		goto error3;
 	}
 
 	if (!have_sdp && endp->local_options.codec)
