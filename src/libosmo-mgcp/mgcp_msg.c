@@ -202,7 +202,7 @@ static struct mgcp_endpoint *find_free_endpoint(struct mgcp_endpoint *endpoints,
 		}
 	}
 
-	LOGP(DLMGCP, LOGL_ERROR, "Not able to find a free endpoint");
+	LOGP(DLMGCP, LOGL_ERROR, "Not able to find a free endpoint\n");
 	return NULL;
 }
 
