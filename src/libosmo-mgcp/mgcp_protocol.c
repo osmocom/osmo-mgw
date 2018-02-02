@@ -739,6 +739,14 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 
 	LOGP(DLMGCP, LOGL_NOTICE, "MDCX: modifying existing connection ...\n");
 
+	/* Prohibit wildcarded requests */
+	if (endp->wildcarded_req) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "MDCX: endpoint:0x%x wildcarded endpoint names not supported.\n",
+		     ENDPOINT_NUMBER(endp));
+		return create_err_response(endp, 507, "MDCX", p->trans);
+	}
+
 	if (llist_count(&endp->conns) <= 0) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "MDCX: endpoint:0x%x endpoint is not holding a connection.\n",
@@ -911,6 +919,14 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 	LOGP(DLMGCP, LOGL_NOTICE,
 	     "DLCX: endpoint:0x%x deleting connection ...\n",
 	     ENDPOINT_NUMBER(endp));
+
+	/* Prohibit wildcarded requests */
+	if (endp->wildcarded_req) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "DLCX: endpoint:0x%x wildcarded endpoint names not supported.\n",
+		     ENDPOINT_NUMBER(endp));
+		return create_err_response(endp, 507, "DLCX", p->trans);
+	}
 
 	if (llist_count(&endp->conns) <= 0) {
 		LOGP(DLMGCP, LOGL_ERROR,
