@@ -654,6 +654,17 @@ mgcp_header_done:
 
 	mgcp_rtp_end_config(endp, 0, &conn->end);
 
+	/* check connection mode setting */
+	if (conn->conn->mode != MGCP_CONN_LOOPBACK
+	    && conn->conn->mode != MGCP_CONN_RECV_ONLY
+	    && conn->end.rtp_port == 0) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "CRCX: endpoint:%x selected connection mode type requires an opposite end!\n",
+		     ENDPOINT_NUMBER(endp));
+		error_code = 527;
+		goto error2;
+	}
+
 	if (allocate_port(endp, conn) != 0) {
 		goto error2;
 	}
@@ -811,6 +822,17 @@ mgcp_header_done:
 	if (!have_sdp && endp->local_options.codec)
 		mgcp_set_audio_info(p->cfg, &conn->end.codec,
 				    PTYPE_UNDEFINED, endp->local_options.codec);
+
+	/* check connection mode setting */
+	if (conn->conn->mode != MGCP_CONN_LOOPBACK
+	    && conn->conn->mode != MGCP_CONN_RECV_ONLY
+	    && conn->end.rtp_port == 0) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "MDCX: endpoint:%x selected connection mode type requires an opposite end!\n",
+		     ENDPOINT_NUMBER(endp));
+		error_code = 527;
+		goto error3;
+	}
 
 	if (setup_rtp_processing(endp, conn) != 0)
 		goto error3;
