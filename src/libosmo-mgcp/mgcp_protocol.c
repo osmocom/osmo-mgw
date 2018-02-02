@@ -535,6 +535,7 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 			LOGP(DLMGCP, LOGL_NOTICE,
 			     "CRCX: endpoint:%x unhandled option: '%c'/%d\n",
 			     ENDPOINT_NUMBER(endp), *line, *line);
+			return create_err_response(NULL, 539, "CRCX", p->trans);
 			break;
 		}
 	}
@@ -768,6 +769,7 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 			LOGP(DLMGCP, LOGL_NOTICE,
 			     "MDCX: endpoint:0x%x Unhandled MGCP option: '%c'/%d\n",
 			     ENDPOINT_NUMBER(endp), line[0], line[0]);
+			return create_err_response(NULL, 539, "MDCX", p->trans);
 			break;
 		}
 	}
@@ -918,6 +920,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 			LOGP(DLMGCP, LOGL_NOTICE,
 			     "DLCX: endpoint:0x%x Unhandled MGCP option: '%c'/%d\n",
 			     ENDPOINT_NUMBER(endp), line[0], line[0]);
+			return create_err_response(NULL, 539, "DLCX", p->trans);
 			break;
 		}
 	}
