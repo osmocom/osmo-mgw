@@ -8,6 +8,8 @@ AM_CFLAGS = \
 	-Wall \
 	-ggdb3 \
 	$(LIBOSMOCORE_CFLAGS) \
+	$(LIBOSMOVTY_CFLAGS) \
+	$(LIBOSMOGSM_CFLAGS) \
 	$(LIBOSMONETIF_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
 	$(NULL)
@@ -29,9 +31,10 @@ mgcp_test_SOURCES = \
 	$(NULL)
 
 mgcp_test_LDADD = \
-	$(top_builddir)/src/libosmo-mgcp/libosmo-mgcp.la \
+	$(top_builddir)/src/libosmo-mgcp/libosmo-mgcp.a \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
+	$(LIBOSMOGSM_LIBS) \
 	$(LIBRARY_DL) \
 	$(LIBOSMONETIF_LIBS) \
 	-lm  \

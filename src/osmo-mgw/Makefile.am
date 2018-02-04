@@ -8,6 +8,7 @@ AM_CFLAGS = \
 	-Wall \
 	$(LIBOSMOCORE_CFLAGS) \
 	$(LIBOSMOVTY_CFLAGS) \
+	$(LIBOSMOGSM_CFLAGS) \
 	$(LIBOSMONETIF_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
 	$(NULL)
@@ -21,8 +22,9 @@ osmo_mgw_SOURCES = \
 	$(NULL)
 
 osmo_mgw_LDADD = \
-	$(top_builddir)/src/libosmo-mgcp/libosmo-mgcp.la \
+	$(top_builddir)/src/libosmo-mgcp/libosmo-mgcp.a \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
+	$(LIBOSMOGSM_LIBS) \
 	$(LIBOSMONETIF_LIBS) \
 	$(NULL)

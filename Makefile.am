@@ -20,7 +20,6 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = \
 	libosmo-legacy-mgcp.pc \
 	libosmo-mgcp-client.pc \
-	libosmo-mgcp.pc \
 	$(NULL)
 
 BUILT_SOURCES = $(top_srcdir)/.version

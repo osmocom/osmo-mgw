@@ -21,19 +21,15 @@ AM_LDFLAGS = \
 	$(COVERAGE_LDFLAGS) \
 	$(NULL)
 
-# This is not at all related to the release version, but a range of supported
-# API versions. Read TODO_RELEASE in the source tree's root!
-MGCP_LIBVERSION=1:0:0
-
-lib_LTLIBRARIES = \
-	libosmo-mgcp.la \
+noinst_LIBRARIES = \
+	libosmo-mgcp.a \
 	$(NULL)
 
 noinst_HEADERS = \
 	g711common.h \
 	$(NULL)
 
-libosmo_mgcp_la_SOURCES = \
+libosmo_mgcp_a_SOURCES = \
 	mgcp_protocol.c \
 	mgcp_network.c \
 	mgcp_vty.c \
@@ -44,5 +40,3 @@ libosmo_mgcp_la_SOURCES = \
 	mgcp_stat.c \
 	mgcp_endp.c \
 	$(NULL)
-
-libosmo_mgcp_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(MGCP_LIBVERSION)

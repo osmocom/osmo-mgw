@@ -1,4 +1,0 @@
-usr/include/osmocom/mgcp
-usr/lib/*/libosmo-mgcp.so
-usr/lib/*/libosmo-mgcp.a
-usr/lib/*/pkgconfig/libosmo-mgcp.pc
