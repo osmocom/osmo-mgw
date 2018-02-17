@@ -53,6 +53,7 @@
 #include <osmocom/vty/ports.h>
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/stats.h>
+#include <osmocom/vty/misc.h>
 
 #include "../../bscconfig.h"
 
@@ -256,6 +257,8 @@ int main(int argc, char **argv)
 	int rc;
 
 	tall_bsc_ctx = talloc_named_const(NULL, 1, "mgcp-callagent");
+	vty_info.tall_ctx = tall_bsc_ctx;
+
 	msgb_talloc_ctx_init(tall_bsc_ctx, 0);
 
 	osmo_init_ignore_signals();
@@ -268,6 +271,7 @@ int main(int argc, char **argv)
 	vty_info.copyright = osmomgw_copyright;
 	vty_init(&vty_info);
 	logging_vty_add_cmds(NULL);
+	osmo_talloc_vty_add_cmds();
 	osmo_stats_vty_add_cmds(&log_info);
 	mgcp_vty_init();
 
