@@ -23,6 +23,7 @@
  */
 
 #include <osmocom/mgcp/mgcp_stat.h>
+#include <osmocom/mgcp/mgcp_endp.h>
 #include <limits.h>
 
 /* Helper function for mgcp_format_stats_rtp() to calculate packet loss */
@@ -83,21 +84,23 @@ static void mgcp_format_stats_rtp(char *str, size_t str_len,
 	str += nchars;
 	str_len -= nchars;
 
-	/* Error Counter */
-	nchars = snprintf(str, str_len,
-			  "\r\nX-Osmo-CP: EC TI=%u, TO=%u",
-			  conn->state.in_stream.err_ts_counter,
-			  conn->state.out_stream.err_ts_counter);
-	if (nchars < 0 || nchars >= str_len)
-		goto truncate;
+	if (conn->conn->endp->cfg->osmux != OSMUX_USAGE_OFF) {
+		/* Error Counter */
+		nchars = snprintf(str, str_len,
+				  "\r\nX-Osmo-CP: EC TI=%u, TO=%u",
+				  conn->state.in_stream.err_ts_counter,
+				  conn->state.out_stream.err_ts_counter);
+		if (nchars < 0 || nchars >= str_len)
+			goto truncate;
 
-	str += nchars;
-	str_len -= nchars;
+		str += nchars;
+		str_len -= nchars;
 
-	if (conn->osmux.state == OSMUX_STATE_ENABLED) {
-		snprintf(str, str_len,
-			 "\r\nX-Osmux-ST: CR=%u, BR=%u",
-			 conn->osmux.stats.chunks, conn->osmux.stats.octets);
+		if (conn->osmux.state == OSMUX_STATE_ENABLED) {
+			snprintf(str, str_len,
+				 "\r\nX-Osmux-ST: CR=%u, BR=%u",
+				 conn->osmux.stats.chunks, conn->osmux.stats.octets);
+		}
 	}
 
 truncate:

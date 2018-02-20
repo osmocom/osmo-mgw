@@ -569,7 +569,6 @@ creating message from statically defined input:
 ---------8<---------
 250 7 OK
 P: PS=0, OS=0, PR=0, OR=0, PL=0, JI=0
-X-Osmo-CP: EC TI=0, TO=0
 
 ---------8<---------
 Parsing result: 0

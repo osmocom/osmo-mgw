@@ -314,7 +314,9 @@ static void test_strline(void)
 
 #define DLCX_RET \
 	"250 7 OK\r\n" \
-	"P: PS=0, OS=0, PR=0, OR=0, PL=0, JI=0\r\n" \
+	"P: PS=0, OS=0, PR=0, OR=0, PL=0, JI=0\r\n"
+
+ #define DLCX_RET_OSMUX DLCX_RET \
 	"X-Osmo-CP: EC TI=0, TO=0\r\n"
 
 #define RQNT \
