@@ -18,6 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 #include <string.h>
 
 #include <osmocom/core/msgb.h>
