@@ -12,4 +12,58 @@ DLMGCP Cannot find matching MGCP transaction for trans_id 1
 - canceling again does nothing
 DLMGCP Cannot cancel, no such transaction: 1
 test_mgcp_client_cancel() done
+
+test_sdp_section_start() test [0]:
+body: ""
+got rc=0
+FAIL: Expected rc=-22
+got audio_port=0
+
+test_sdp_section_start() test [1]:
+body: "\n\n"
+got rc=0
+got audio_port=0
+
+test_sdp_section_start() test [2]:
+body: "\r\n\r\n"
+got rc=0
+got audio_port=0
+
+test_sdp_section_start() test [3]:
+body: "\n\r\n\r"
+got rc=0
+got audio_port=0
+
+test_sdp_section_start() test [4]:
+body: "some mgcp header data\r\nand header params\n\nm=audio 23\r\n"
+got rc=0
+got audio_port=23
+
+test_sdp_section_start() test [5]:
+body: "some mgcp header data\r\nand header params\r\n\r\nm=audio 23\r\n"
+got rc=0
+got audio_port=23
+
+test_sdp_section_start() test [6]:
+body: "some mgcp header data\r\nand header params\n\r\n\rm=audio 23\r\n"
+got rc=0
+got audio_port=23
+
+test_sdp_section_start() test [7]:
+body: "some mgcp header data\r\nand header params\n\r\nm=audio 23\r\n"
+got rc=0
+FAIL: Expected rc=-22
+got audio_port=0
+
+test_sdp_section_start() test [8]:
+body: "some mgcp header data\r\nand header params\r\n\rm=audio 23\r\n"
+got rc=0
+FAIL: Expected rc=-22
+got audio_port=0
+
+test_sdp_section_start() test [9]:
+body: "some mgcp header data\r\nand header params\n\r\rm=audio 23\r\n"
+got rc=0
+FAIL: Expected rc=-22
+got audio_port=0
 Done

@@ -82,4 +82,24 @@ I: 1
 v=0
 
 -----
+
+test_sdp_section_start() test [0]:
+
+test_sdp_section_start() test [1]:
+
+test_sdp_section_start() test [2]:
+
+test_sdp_section_start() test [3]:
+
+test_sdp_section_start() test [4]:
+
+test_sdp_section_start() test [5]:
+
+test_sdp_section_start() test [6]:
+
+test_sdp_section_start() test [7]:
+
+test_sdp_section_start() test [8]:
+
+test_sdp_section_start() test [9]:
 Done

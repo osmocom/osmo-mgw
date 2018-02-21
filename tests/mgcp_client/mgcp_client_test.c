@@ -271,6 +271,111 @@ void test_mgcp_client_cancel()
 	fprintf(stderr, "%s() done\n", __func__);
 }
 
+struct sdp_section_start_test {
+	const char *body;
+	int expect_rc;
+	struct mgcp_response expect_params;
+};
+
+static struct sdp_section_start_test sdp_section_start_tests[] = {
+	{
+		.body = "",
+		.expect_rc = -EINVAL,
+	},
+	{
+		.body = "\n\n",
+	},
+	{
+		.body = "\r\n\r\n",
+	},
+	{
+		.body = "\n\r\n\r",
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\n\n"
+			"m=audio 23\r\n",
+		.expect_params = {
+			.audio_port = 23,
+		},
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\r\n\r\n"
+			"m=audio 23\r\n",
+		.expect_params = {
+			.audio_port = 23,
+		},
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\n\r\n\r"
+			"m=audio 23\r\n",
+		.expect_params = {
+			.audio_port = 23,
+		},
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\n\r\n"
+			"m=audio 23\r\n",
+		.expect_rc = -EINVAL,
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\r\n\r"
+			"m=audio 23\r\n",
+		.expect_rc = -EINVAL,
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\n\r\r"
+			"m=audio 23\r\n",
+		.expect_rc = -EINVAL,
+	},
+};
+
+void test_sdp_section_start()
+{
+	int i;
+	int failures = 0;
+
+	for (i = 0; i < ARRAY_SIZE(sdp_section_start_tests); i++) {
+		int rc;
+		struct sdp_section_start_test *t = &sdp_section_start_tests[i];
+		struct mgcp_response *r = talloc_zero(ctx, struct mgcp_response);
+
+		r->body = talloc_strdup(r, t->body);
+
+		printf("\n%s() test [%d]:\n", __func__, i);
+		fprintf(stderr, "\n%s() test [%d]:\n", __func__, i);
+		fprintf(stderr, "body: \"%s\"\n", osmo_escape_str(r->body, -1));
+
+		rc = mgcp_response_parse_params(r);
+
+		fprintf(stderr, "got rc=%d\n", rc);
+		if (rc != t->expect_rc) {
+			fprintf(stderr, "FAIL: Expected rc=%d\n", t->expect_rc);
+			failures++;
+		}
+		if (rc) {
+			talloc_free(r);
+			continue;
+		}
+
+		fprintf(stderr, "got audio_port=%u\n", t->expect_params.audio_port);
+		if (r->audio_port != t->expect_params.audio_port) {
+			fprintf(stderr, "FAIL: Expected audio_port=%u\n", t->expect_params.audio_port);
+			failures++;
+		}
+		talloc_free(r);
+	}
+
+	/* Expecting failures due to known bugs, will be resolved in a subsequent commit.
+	OSMO_ASSERT(!failures);
+	*/
+}
+
 static const struct log_info_cat log_categories[] = {
 };
 
@@ -297,6 +402,7 @@ int main(int argc, char **argv)
 	test_crcx();
 	test_mgcp_msg();
 	test_mgcp_client_cancel();
+	test_sdp_section_start();
 
 	printf("Done\n");
 	fprintf(stderr, "Done\n");
