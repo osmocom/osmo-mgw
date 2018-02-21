@@ -251,25 +251,26 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 {
 	char *line;
 	int rc;
-	OSMO_ASSERT(r->body);
-	char *data = mgcp_find_section_end(r->body);
+	char *data;
 	char *data_ptr;
 
 	/* Since this functions performs a destructive parsing, we create a
 	 * local copy of the body data */
-	data = talloc_zero_size(r, strlen(r->body)+1);
+	OSMO_ASSERT(r->body);
+	data = talloc_strdup(r, r->body);
 	OSMO_ASSERT(data);
-	data_ptr = data;
-	osmo_strlcpy(data, r->body, strlen(r->body));
 
 	/* Find beginning of the parameter (SDP) section */
 	data_ptr = mgcp_find_section_end(data);
 	if (!data) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "MGCP response: cannot find start of parameters\n");
+		     "MGCP response: cannot find start of SDP parameters\n");
 		rc = -EINVAL;
 		goto exit;
 	}
+
+	/* data_ptr now points to the beginning of the section-end-marker; for_each_non_empty_line()
+	 * skips any \r and \n characters for free, so we don't need to skip the marker. */
 
 	for_each_non_empty_line(line, data_ptr) {
 		if (!mgcp_line_is_valid(line))
