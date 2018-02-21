@@ -371,9 +371,7 @@ void test_sdp_section_start()
 		talloc_free(r);
 	}
 
-	/* Expecting failures due to known bugs, will be resolved in a subsequent commit.
 	OSMO_ASSERT(!failures);
-	*/
 }
 
 static const struct log_info_cat log_categories[] = {

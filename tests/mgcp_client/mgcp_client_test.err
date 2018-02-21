@@ -15,9 +15,8 @@ test_mgcp_client_cancel() done
 
 test_sdp_section_start() test [0]:
 body: ""
-got rc=0
-FAIL: Expected rc=-22
-got audio_port=0
+DLMGCP MGCP response: cannot find start of SDP parameters
+got rc=-22
 
 test_sdp_section_start() test [1]:
 body: "\n\n"
@@ -51,19 +50,16 @@ got audio_port=23
 
 test_sdp_section_start() test [7]:
 body: "some mgcp header data\r\nand header params\n\r\nm=audio 23\r\n"
-got rc=0
-FAIL: Expected rc=-22
-got audio_port=0
+DLMGCP MGCP response: cannot find start of SDP parameters
+got rc=-22
 
 test_sdp_section_start() test [8]:
 body: "some mgcp header data\r\nand header params\r\n\rm=audio 23\r\n"
-got rc=0
-FAIL: Expected rc=-22
-got audio_port=0
+DLMGCP MGCP response: cannot find start of SDP parameters
+got rc=-22
 
 test_sdp_section_start() test [9]:
 body: "some mgcp header data\r\nand header params\n\r\rm=audio 23\r\n"
-got rc=0
-FAIL: Expected rc=-22
-got audio_port=0
+DLMGCP MGCP response: cannot find start of SDP parameters
+got rc=-22
 Done
