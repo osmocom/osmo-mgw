@@ -25,6 +25,7 @@
 #include <talloc.h>
 
 #include <osmocom/vty/command.h>
+#include <osmocom/vty/misc.h>
 #include <osmocom/core/utils.h>
 
 #include <osmocom/mgcp_client/mgcp_client.h>
@@ -203,4 +204,6 @@ void mgcp_client_vty_init(void *talloc_ctx, int node, struct mgcp_client_conf *c
 	install_element(node, &cfg_mgcpgw_remote_port_cmd);
 	install_element(node, &cfg_mgcpgw_endpoint_range_cmd);
 	install_element(node, &cfg_mgcpgw_rtp_bts_base_port_cmd);
+
+	osmo_fsm_vty_add_cmds();
 }
