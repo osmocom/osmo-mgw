@@ -94,6 +94,16 @@ enum bsc_mgcp_fsm_evt {
 	EV_DLCX_RESP,
 };
 
+static const struct value_string fsm_mgcp_client_evt_names[] = {
+	OSMO_VALUE_STRING(EV_CRCX),
+	OSMO_VALUE_STRING(EV_CRCX_RESP),
+	OSMO_VALUE_STRING(EV_MDCX),
+	OSMO_VALUE_STRING(EV_MDCX_RESP),
+	OSMO_VALUE_STRING(EV_DLCX),
+	OSMO_VALUE_STRING(EV_DLCX_RESP),
+	{0, NULL}
+};
+
 static struct msgb *make_crcx_msg_bind(struct mgcp_ctx *mgcp_ctx)
 {
 	struct mgcp_msg mgcp_msg;
@@ -533,6 +543,7 @@ static struct osmo_fsm fsm_mgcp_client = {
 	.num_states = ARRAY_SIZE(fsm_mgcp_client_states),
 	.timer_cb = fsm_timeout_cb,
 	.cleanup = fsm_cleanup_cb,
+	.event_names = fsm_mgcp_client_evt_names,
 };
 
 /*! allocate FSM, and create a new connection on the MGW.
