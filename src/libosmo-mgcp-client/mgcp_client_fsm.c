@@ -77,7 +77,7 @@ struct mgcp_ctx {
 #define MGCP_MGW_TIMEOUT 4	/* in seconds */
 #define MGCP_MGW_TIMEOUT_TIMER_NR 1
 
-enum fsm_bsc_mgcp_states {
+enum fsm_mgcp_client_states {
 	ST_CRCX,
 	ST_CRCX_RESP,
 	ST_READY,
@@ -85,7 +85,7 @@ enum fsm_bsc_mgcp_states {
 	ST_DLCX_RESP,
 };
 
-enum bsc_mgcp_fsm_evt {
+enum fsm_mgcp_client_evt {
 	EV_CRCX,
 	EV_CRCX_RESP,
 	EV_MDCX,
