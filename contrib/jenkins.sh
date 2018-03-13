@@ -37,7 +37,7 @@ set -x
 
 cd "$base"
 autoreconf --install --force
-./configure $MGCP --enable-vty-tests --enable-external-tests
+./configure $MGCP --enable-vty-tests --enable-external-tests --enable-werror
 $MAKE $PARALLEL_MAKE
 LD_LIBRARY_PATH="$inst/lib" $MAKE check \
   || cat-testlogs.sh
