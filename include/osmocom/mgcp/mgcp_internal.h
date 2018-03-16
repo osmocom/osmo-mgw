@@ -27,6 +27,7 @@
 #include <osmocom/core/select.h>
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/core/linuxlist.h>
+#include <osmocom/core/counter.h>
 
 #define CI_UNUSED 0
 

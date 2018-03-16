@@ -83,8 +83,8 @@ static void mgcp_rtp_codec_reset(struct mgcp_rtp_codec *codec)
 	talloc_free(codec->audio_name);
 }
 
-/* Reset states, free memory, set defaults and reset codec state */
-static void mgcp_rtp_conn_reset(struct mgcp_conn_rtp *conn)
+/* Initialize rtp connection struct with default values */
+static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn)
 {
 	struct mgcp_rtp_end *end = &conn->end;
 
@@ -141,7 +141,7 @@ struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 
 	switch (type) {
 	case MGCP_CONN_TYPE_RTP:
-		mgcp_rtp_conn_reset(&conn->u.rtp);
+		mgcp_rtp_conn_init(&conn->u.rtp);
 		break;
 	default:
 		/* NOTE: This should never be called with an
