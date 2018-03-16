@@ -110,6 +110,14 @@ static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn 
 	mgcp_rtp_codec_init(&end->alt_codec);
 }
 
+/* Cleanup rtp connection struct */
+static void mgcp_rtp_conn_cleanup(struct mgcp_conn_rtp *conn_rtp)
+{
+	osmux_disable_conn(conn_rtp);
+	osmux_release_cid(conn_rtp);
+	mgcp_free_rtp_port(&conn_rtp->end);
+}
+
 /*! allocate a new connection list entry.
  *  \param[in] ctx talloc context
  *  \param[in] endp associated endpoint
@@ -211,9 +219,7 @@ void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id)
 
 	switch (conn->type) {
 	case MGCP_CONN_TYPE_RTP:
-		osmux_disable_conn(&conn->u.rtp);
-		osmux_release_cid(&conn->u.rtp);
-		mgcp_free_rtp_port(&conn->u.rtp.end);
+		mgcp_rtp_conn_cleanup(&conn->u.rtp);
 		break;
 	default:
 		/* NOTE: This should never be called with an
