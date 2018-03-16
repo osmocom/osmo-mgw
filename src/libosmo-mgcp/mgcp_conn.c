@@ -84,12 +84,15 @@ static void mgcp_rtp_codec_reset(struct mgcp_rtp_codec *codec)
 }
 
 /* Initialize rtp connection struct with default values */
-static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn)
+static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *conn)
 {
-	struct mgcp_rtp_end *end = &conn->end;
+	struct mgcp_rtp_end *end = &conn_rtp->end;
 
-	conn->type = MGCP_RTP_DEFAULT;
-	conn->osmux.allocated_cid = -1;
+	conn_rtp->type = MGCP_RTP_DEFAULT;
+	conn_rtp->osmux.allocated_cid = -1;
+
+	/* backpointer to the generic part of the connection */
+	conn->u.rtp.conn = conn;
 
 	end->rtp.fd = -1;
 	end->rtcp.fd = -1;
@@ -131,7 +134,6 @@ struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 	conn->type = type;
 	conn->mode = MGCP_CONN_NONE;
 	conn->mode_orig = MGCP_CONN_NONE;
-	conn->u.rtp.conn = conn;
 	osmo_strlcpy(conn->name, name, sizeof(conn->name));
 	rc = mgcp_alloc_id(endp, conn->id);
 	if (rc < 0) {
@@ -141,7 +143,7 @@ struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 
 	switch (type) {
 	case MGCP_CONN_TYPE_RTP:
-		mgcp_rtp_conn_init(&conn->u.rtp);
+		mgcp_rtp_conn_init(&conn->u.rtp, conn);
 		break;
 	default:
 		/* NOTE: This should never be called with an
