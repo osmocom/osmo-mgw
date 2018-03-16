@@ -68,7 +68,7 @@ static int mgcp_alloc_id(struct mgcp_endpoint *endp, char *id)
 }
 
 /* Reset codec state and free memory */
-static void mgcp_rtp_codec_reset(struct mgcp_rtp_codec *codec)
+static void mgcp_rtp_codec_init(struct mgcp_rtp_codec *codec)
 {
 	codec->payload_type = -1;
 	codec->subtype_name = NULL;
@@ -106,8 +106,8 @@ static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn 
 	end->packet_duration_ms = DEFAULT_RTP_AUDIO_PACKET_DURATION_MS;
 	end->output_enabled = 0;
 
-	mgcp_rtp_codec_reset(&end->codec);
-	mgcp_rtp_codec_reset(&end->alt_codec);
+	mgcp_rtp_codec_init(&end->codec);
+	mgcp_rtp_codec_init(&end->alt_codec);
 }
 
 /*! allocate a new connection list entry.
