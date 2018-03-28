@@ -222,7 +222,7 @@ static int check_rtp_timestamp(struct mgcp_endpoint *endp,
 
 	if (seq == sstate->last_seq) {
 		if (timestamp != sstate->last_timestamp) {
-			sstate->err_ts_counter += 1;
+			rate_ctr_inc(sstate->err_ts_ctr);
 			LOGP(DRTP, LOGL_ERROR,
 			     "The %s timestamp delta is != 0 but the sequence "
 			     "number %d is the same, "
@@ -272,7 +272,7 @@ static int check_rtp_timestamp(struct mgcp_endpoint *endp,
 	    ts_alignment_error(sstate, state->packet_duration, timestamp);
 
 	if (timestamp_error) {
-		sstate->err_ts_counter += 1;
+		rate_ctr_inc(sstate->err_ts_ctr);
 		LOGP(DRTP, LOGL_NOTICE,
 		     "The %s timestamp has an alignment error of %d "
 		     "on 0x%x SSRC: %u "
@@ -505,13 +505,16 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 	mgcp_rtp_annex_count(endp, state, seq, transit, ssrc);
 
 	if (!state->initialized) {
+		/* FIXME: Move this initialization to mgcp.conn.c */
 		state->initialized = 1;
 		state->in_stream.last_seq = seq - 1;
 		state->in_stream.ssrc = state->patch.orig_ssrc = ssrc;
 		state->in_stream.last_tsdelta = 0;
 		state->packet_duration =
 		    mgcp_rtp_packet_duration(endp, rtp_end);
-		state->out_stream = state->in_stream;
+		state->out_stream.last_seq = seq - 1;
+		state->out_stream.ssrc = state->patch.orig_ssrc = ssrc;
+		state->out_stream.last_tsdelta = 0;
 		state->out_stream.last_timestamp = timestamp;
 		state->out_stream.ssrc = ssrc - 1;	/* force output SSRC change */
 		LOGP(DRTP, LOGL_INFO,
