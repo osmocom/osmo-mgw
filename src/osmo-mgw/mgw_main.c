@@ -262,7 +262,7 @@ int main(int argc, char **argv)
 	msgb_talloc_ctx_init(tall_bsc_ctx, 0);
 
 	osmo_init_ignore_signals();
-	osmo_init_logging(&log_info);
+	osmo_init_logging2(tall_bsc_ctx, &log_info);
 
 	cfg = mgcp_config_alloc();
 	if (!cfg)

@@ -1214,8 +1214,9 @@ const struct log_info log_info = {
 
 int main(int argc, char **argv)
 {
-	void *msgb_ctx = msgb_talloc_ctx_init(NULL, 0);
-	osmo_init_logging(&log_info);
+	void *ctx = talloc_named_const(NULL, 0, "mgcp_test");
+	void *msgb_ctx = msgb_talloc_ctx_init(ctx, 0);
+	osmo_init_logging2(ctx, &log_info);
 
 	test_strline();
 	test_values();

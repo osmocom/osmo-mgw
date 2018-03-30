@@ -588,7 +588,8 @@ const struct log_info log_info = {
 int main(int argc, char **argv)
 {
 	int rc;
-	osmo_init_logging(&log_info);
+	void *ctx = talloc_named_const(NULL, 0, "mgcp_transcoding_test");
+	osmo_init_logging2(ctx, &log_info);
 
 	printf("=== Transcoding Good Cases ===\n");
 
