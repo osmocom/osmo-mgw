@@ -1,3 +1,9 @@
+osmo-mgw (1.2.1) unstable; urgency=medium
+  [ Harald Welte ]
+  * debian: fix osmo-mgw, it should depend on libosmo-mgcp1, not 0
+
+ -- Harald Welte <laforge@gnumonks.org>  Fri, 13 Apr 2018 08:43:29 +0200
+
 osmo-mgw (1.2.0) unstable; urgency=medium
 
   [ Neels Hofmeyr ]
