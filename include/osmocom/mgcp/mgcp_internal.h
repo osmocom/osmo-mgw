@@ -28,7 +28,6 @@
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/counter.h>
-#include <osmocom/core/rate_ctr.h>
 
 #define CI_UNUSED 0
 
@@ -46,7 +45,7 @@ struct mgcp_rtp_stream_state {
 	uint32_t ssrc;
 	uint16_t last_seq;
 	uint32_t last_timestamp;
-	struct rate_ctr *err_ts_ctr;
+	uint32_t err_ts_counter;
 	int32_t last_tsdelta;
 	uint32_t last_arrival_time;
 };
@@ -203,8 +202,6 @@ struct mgcp_conn_rtp {
 			uint32_t octets;
 		} stats;
 	} osmux;
-
-	struct rate_ctr_group *rate_ctr_group;
 };
 
 /*! Connection type, specifies which member of the union "u" in mgcp_conn

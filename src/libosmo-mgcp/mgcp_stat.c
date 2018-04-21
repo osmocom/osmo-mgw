@@ -87,9 +87,9 @@ static void mgcp_format_stats_rtp(char *str, size_t str_len,
 	if (conn->conn->endp->cfg->osmux != OSMUX_USAGE_OFF) {
 		/* Error Counter */
 		nchars = snprintf(str, str_len,
-				  "\r\nX-Osmo-CP: EC TI=%lu, TO=%lu",
-				  conn->state.in_stream.err_ts_ctr->current,
-				  conn->state.out_stream.err_ts_ctr->current);
+				  "\r\nX-Osmo-CP: EC TI=%u, TO=%u",
+				  conn->state.in_stream.err_ts_counter,
+				  conn->state.out_stream.err_ts_counter);
 		if (nchars < 0 || nchars >= str_len)
 			goto truncate;
 
