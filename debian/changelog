@@ -1,3 +1,128 @@
+osmo-mgw (1.3.0) unstable; urgency=medium
+
+  [ Pau Espin Pedrol ]
+  * contrib: Add osmo-mgw systemd service
+  * legacy: mgcp_protocol: Don't print osmux stats if it is off
+  * mgcp_stat: Don't print osmux stats if it is off
+
+  [ Neels Hofmeyr ]
+  * fix segfault: DLCX for unknown endpoint: dont try to log NULL endpoint
+  * MGCP endpoints: parse as decimal, not hex
+  * add --enable-sanitize config option
+  * legacy_mgcp: mgcp_test: sanitize: free msgb_ctx
+  * mgcp_test: test_packet_error_detection: sanitize: free all conns
+  * mgcp_test: test_no_cycle: sanitize: free endp
+  * mgcp_test: sanitize: free msgb_ctx
+  * mgcp_client: don't configure "bts base"
+  * Revert "mgcp_client: don't configure "bts base"" until osmo-msc is ready
+  * mgcp_client: add transaction cleanup
+  * mgcp_client_test makefile: add update_exp target
+  * cosmetic: mgcp_network: typo in log
+  * osmo-mgw: Add talloc context introspection via VTY
+  * mgcp_client: show failure by MGCP SDP section parsing test
+  * mgcp_client: cosmetic: clean up SDP params parsing
+  * mgcp_client: detect SDP section-start parsing errors
+  * compiler warning: ignore deprecated in mgcp_client_test.c
+  * configure: add --enable-werror
+  * jenkins.sh: add --enable-werror to configure flags
+  * cosmetic: mgcp, legacy_mgcp: drop unused vty.h definitions
+  * use osmo_init_logging2() with proper talloc ctx
+
+  [ Philipp Maier ]
+  * osmux: fix nullpointer dereference
+  * cosmetic: guard dead osmux vty code with ifdef
+  * cosmetic: remove prefix "net" from rtp related vty commands
+  * doc: update sample config file
+  * cosmetic: use correct VTY port number constant
+  * vty: simplify endpoint allocation
+  * vty: do not change number_endpoints at runtime
+  * MGCP: Connection Identifiers are hex strings
+  * libosmo-mgcp: Connection Identifiers are allocated by MGW, not CA
+  * client: use osmo_strlcpy instead of strncpy
+  * cosmetic: fix sourcecode formatting
+  * cosmetic: clearly mark endpoint numbers as hex
+  * client: use string as connection identifier
+  * conn: remove assertions
+  * mgcp_test: fix wrong strcmp() parameters
+  * mgcp_test: fix nullpointer dereference
+  * mgcp_test: add returncode check
+  * mgcp_test: fix possible double free
+  * mcgp_client: mgcp_msg_gen(): add checks to verify params
+  * network: use originating RTP packet address for loopback
+  * client: mgcp_response_parse_params: check rtp port
+  * mgcp: allow endpoints beginning from zero
+  * client/common: move constant MGCP_ENDPOINT_MAXLEN
+  * mgcp: make domain name configurable
+  * cosmetic: protocol: remove unnecessary nul termination
+  * client: do not insist on \n\n when parsing MGCP messages
+  * main: display mgcp ip/port
+  * client: make callid in MDCX mandatory
+  * client: add missing mandatory SDP fields
+  * mgcp: permit wildcarded endpoint assignment (CRCX)
+  * mgcp: add prefix to virtual trunk
+  * client: eliminate destructive parameter parsing
+  * client: eliminate destructive head parsing
+  * cosmetic: client: add doxygen comments
+  * protocol: fix problem with line break and OSMUX
+  * protocol: fix missing carriage return
+  * client: fix sdp parameter ordering
+  * protocol: check the packetization in local cx options
+  * cosmetic: remove spaces from pointer symbol
+  * client: Do not accept endpoint ids with wildcards in responses
+  * client: do not accept endpoint ids without @ character in responses
+  * client: prohibit endpoint ids without @ character
+  * protocol: on wildcarded CRCX return endpoint number as hex
+  * msg: fix response code on exhausted endp resources
+  * cosmetic: move mgcp_release_endp() to mgcp_ep.c
+  * client: use heap to store mgcp_response
+  * ep: move endpoint struct and define to mgcp_ep.h
+  * cosmetic: rename mgcp_release_endp to mgcp_endp_release
+  * cosmetic: rename mgcp_ep.c/h to mgcp_endp.c/h
+  * protocol: reject DLCX/CRCX/MDCX on unsupported parameters
+  * protocol: exit cleanly when local cx options check fails
+  * cosmetic: Add missing \n on log line
+  * protocol: check requested connection mode
+  * protocol: fix tagging of wildcarded requests
+  * protocol: prohibit wildcarded requests for MDCX and DLCX
+  * mgcp: fix use-after-free and add callback for endpoint cleanup
+  * client: add an optional FSM interface
+  * mgcp_client_fsm: Add FSM event names
+  * cosmetic: mgcp_client_fsm: rename enums
+  * cosmetic: rename function .._conn_reset() to .._conn_init()
+  * mgcp_conn: do not touch u.rtp in mgcp_conn_alloc()
+  * cosmetic: rename .._codec_reset() to .._codec_init()
+  * mgcp_conn: add function mgcp_rtp_conn_cleanup()
+  * stats: use libosmocore rate counter for in/out_stream.err_ts_counter
+
+  [ Alexander Couzens ]
+  * debian/control: correct library dependency of osmo-mgw against libosmo-mgcp1
+  * debian: include systemd service osmo-mgw.service
+  * Revert "stats: use libosmocore rate counter for in/out_stream.err_ts_counter"
+
+  [ Harald Welte ]
+  * cosmetic: fix whitespaces; we use tabs for indentation
+  * Fix possible buffer overflow in mgcp_conn_dump()
+  * osmo-mgw: Update copyright statement
+  * osmo-mgw: Config file is osmo-mgw.cfg, and not mgcp.cfg
+  * osmo-mgw: Fix copyright notice
+  * strct mgcp_rtp_state: Group + document struct members related to patching
+  * mgcp_rtp_state: grup 'stats' members into sub-structure
+  * mgcp_rtp_end: Group statistics members into 'stats' sub-struct
+  * libosmo-mgcp: Cosmetic spelling fixes in comments
+  * mgcp_msg: We must parse endpoint numbers as hex, not decimal!
+  * mgcp_internal.h: document more struct members with comments
+  * centralize handling of common errors like "endpoint not found"
+  * Return proper MGCP Error codes, as per spec
+  * osmo-mgw: Use libosmocore socket abstraction
+  * osmo-bsc_mgcp: Add LIBOSMONETIF_{CFLAGS,LIBS}
+  * libosmo-mgcp-client is GPLv2+, not AGPLv3+
+  * Turn libosmo-mgcp into local, non-installed library
+
+  [ Stefan Sperling ]
+  * enable osmo_fsm vty commands in libosmo-mgcp-client vty
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Thu, 03 May 2018 17:40:35 +0200
+
 osmo-mgw (1.2.0) unstable; urgency=medium
 
   [ Neels Hofmeyr ]

@@ -20,7 +20,7 @@ AM_LDFLAGS = \
 
 # This is not at all related to the release version, but a range of supported
 # API versions. Read TODO_RELEASE in the source tree's root!
-MGCP_CLIENT_LIBVERSION=2:0:0
+MGCP_CLIENT_LIBVERSION=3:0:0
 
 lib_LTLIBRARIES = \
 	libosmo-mgcp-client.la \

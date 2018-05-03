@@ -24,6 +24,3 @@
 # If any interfaces have been removed or changed since the last public release, a=0.
 #
 #library		what		description / commit summary line
-libosmo-mgcp		API/ABI change	parse and represent connection identifiers as hex strings
-libosmo-mgcp		API/ABI change	connection identifiers are assigned by the server, not CA
-libosmo-mgcp-client	API/ABI change	parse and store connection identifier in response
