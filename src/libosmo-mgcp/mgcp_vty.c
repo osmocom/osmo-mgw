@@ -160,15 +160,16 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_rtp_state *state,
 	struct mgcp_rtp_codec *codec = &end->codec;
 
 	vty_out(vty,
-		"   Timestamp Errs: %d->%d%s"
+		"   Timestamp Errs: %lu->%lu%s"
 		"   Dropped Packets: %d%s"
 		"   Payload Type: %d Rate: %u Channels: %d %s"
 		"   Frame Duration: %u Frame Denominator: %u%s"
 		"   FPP: %d Packet Duration: %u%s"
 		"   FMTP-Extra: %s Audio-Name: %s Sub-Type: %s%s"
 		"   Output-Enabled: %d Force-PTIME: %d%s",
-		state->in_stream.err_ts_counter,
-		state->out_stream.err_ts_counter, VTY_NEWLINE,
+		state->in_stream.err_ts_ctr->current,
+		state->out_stream.err_ts_ctr->current,
+	        VTY_NEWLINE,
 		end->stats.dropped_packets, VTY_NEWLINE,
 		codec->payload_type, codec->rate, codec->channels, VTY_NEWLINE,
 		codec->frame_duration_num, codec->frame_duration_den,

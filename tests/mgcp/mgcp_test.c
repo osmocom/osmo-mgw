@@ -1129,10 +1129,12 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	uint32_t last_ssrc = 0;
 	uint32_t last_timestamp = 0;
 	uint32_t last_seqno = 0;
-	int last_in_ts_err_cnt = 0;
-	int last_out_ts_err_cnt = 0;
+	uint64_t last_in_ts_err_cnt = 0;
+	uint64_t last_out_ts_err_cnt = 0;
 	struct mgcp_conn_rtp *conn = NULL;
 	struct mgcp_conn *_conn = NULL;
+	struct rate_ctr test_ctr_in;
+	struct rate_ctr test_ctr_out;
 
 	printf("Testing packet error detection%s%s.\n",
 	       patch_ssrc ? ", patch SSRC" : "",
@@ -1141,6 +1143,11 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	memset(&trunk, 0, sizeof(trunk));
 	memset(&endp, 0, sizeof(endp));
 	memset(&state, 0, sizeof(state));
+
+	memset(&test_ctr_in, 0, sizeof(test_ctr_in));
+	memset(&test_ctr_out, 0, sizeof(test_ctr_out));
+	state.in_stream.err_ts_ctr = &test_ctr_in;
+	state.out_stream.err_ts_ctr = &test_ctr_out;
 
 	endp.type = &ep_typeset.rtp;
 
@@ -1186,18 +1193,18 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 		       state.in_stream.last_tsdelta, state.in_stream.last_seq);
 
 		printf("Out TS change: %d, dTS: %d, Seq change: %d, "
-		       "TS Err change: in %+d, out %+d\n",
+		       "TS Err change: in +%u, out +%u\n",
 		       state.out_stream.last_timestamp - last_timestamp,
 		       state.out_stream.last_tsdelta,
 		       state.out_stream.last_seq - last_seqno,
-		       state.in_stream.err_ts_counter - last_in_ts_err_cnt,
-		       state.out_stream.err_ts_counter - last_out_ts_err_cnt);
+		       (unsigned int) (state.in_stream.err_ts_ctr->current - last_in_ts_err_cnt),
+		       (unsigned int) (state.out_stream.err_ts_ctr->current - last_out_ts_err_cnt));
 
 		printf("Stats: Jitter = %u, Transit = %d\n",
 		       calc_jitter(&state), state.stats.transit);
 
-		last_in_ts_err_cnt = state.in_stream.err_ts_counter;
-		last_out_ts_err_cnt = state.out_stream.err_ts_counter;
+		last_in_ts_err_cnt = state.in_stream.err_ts_ctr->current;
+		last_out_ts_err_cnt = state.out_stream.err_ts_ctr->current;
 		last_timestamp = state.out_stream.last_timestamp;
 		last_seqno = state.out_stream.last_seq;
 	}

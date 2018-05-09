@@ -26,7 +26,28 @@
 #include <osmocom/mgcp/mgcp_common.h>
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/gsm/gsm_utils.h>
+#include <osmocom/core/rate_ctr.h>
 #include <ctype.h>
+
+enum {
+	IN_STREAM_ERR_TSTMP_CTR,
+	OUT_STREAM_ERR_TSTMP_CTR,
+};
+
+static const struct rate_ctr_desc rate_ctr_desc[] = {
+	[IN_STREAM_ERR_TSTMP_CTR] = {"stream_err_tstmp:in", "Inbound rtp-stream timestamp errors."},
+	[OUT_STREAM_ERR_TSTMP_CTR] = {"stream_err_tstmp:out", "Outbound rtp-stream timestamp errors."},
+};
+
+
+const static struct rate_ctr_group_desc rate_ctr_group_desc = {
+	.group_name_prefix = "conn_rtp",
+	.group_description = "rtp connection statistics",
+	.class_id = 1,
+	.num_ctr = 2,
+	.ctr_desc = rate_ctr_desc
+};
+
 
 /* Allocate a new connection identifier. According to RFC3435, they must
  * be unique only within the scope of the endpoint. (Caller must provide
@@ -87,6 +108,10 @@ static void mgcp_rtp_codec_init(struct mgcp_rtp_codec *codec)
 static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *conn)
 {
 	struct mgcp_rtp_end *end = &conn_rtp->end;
+	/* FIXME: Each new rate counter group requires an unique index. At the
+	 * moment we generate this index using this counter, but perhaps there
+	 * is a more concious way to assign the indexes. */
+	static unsigned int rate_ctr_index = 0;
 
 	conn_rtp->type = MGCP_RTP_DEFAULT;
 	conn_rtp->osmux.allocated_cid = -1;
@@ -108,6 +133,11 @@ static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn 
 
 	mgcp_rtp_codec_init(&end->codec);
 	mgcp_rtp_codec_init(&end->alt_codec);
+
+	conn_rtp->rate_ctr_group = rate_ctr_group_alloc(conn, &rate_ctr_group_desc, rate_ctr_index);
+	conn_rtp->state.in_stream.err_ts_ctr = &conn_rtp->rate_ctr_group->ctr[IN_STREAM_ERR_TSTMP_CTR];
+	conn_rtp->state.out_stream.err_ts_ctr = &conn_rtp->rate_ctr_group->ctr[OUT_STREAM_ERR_TSTMP_CTR];
+	rate_ctr_index++;
 }
 
 /* Cleanup rtp connection struct */
@@ -116,6 +146,7 @@ static void mgcp_rtp_conn_cleanup(struct mgcp_conn_rtp *conn_rtp)
 	osmux_disable_conn(conn_rtp);
 	osmux_release_cid(conn_rtp);
 	mgcp_free_rtp_port(&conn_rtp->end);
+	rate_ctr_group_free(conn_rtp->rate_ctr_group);
 }
 
 /*! allocate a new connection list entry.

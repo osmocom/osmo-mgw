@@ -222,7 +222,7 @@ static int check_rtp_timestamp(struct mgcp_endpoint *endp,
 
 	if (seq == sstate->last_seq) {
 		if (timestamp != sstate->last_timestamp) {
-			sstate->err_ts_counter += 1;
+			rate_ctr_inc(sstate->err_ts_ctr);
 			LOGP(DRTP, LOGL_ERROR,
 			     "The %s timestamp delta is != 0 but the sequence "
 			     "number %d is the same, "
@@ -272,7 +272,7 @@ static int check_rtp_timestamp(struct mgcp_endpoint *endp,
 	    ts_alignment_error(sstate, state->packet_duration, timestamp);
 
 	if (timestamp_error) {
-		sstate->err_ts_counter += 1;
+		rate_ctr_inc(sstate->err_ts_ctr);
 		LOGP(DRTP, LOGL_NOTICE,
 		     "The %s timestamp has an alignment error of %d "
 		     "on 0x%x SSRC: %u "
