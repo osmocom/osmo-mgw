@@ -511,7 +511,9 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 		state->in_stream.last_tsdelta = 0;
 		state->packet_duration =
 		    mgcp_rtp_packet_duration(endp, rtp_end);
-		state->out_stream = state->in_stream;
+		state->out_stream.last_seq = seq - 1;
+		state->out_stream.ssrc = state->patch.orig_ssrc = ssrc;
+		state->out_stream.last_tsdelta = 0;
 		state->out_stream.last_timestamp = timestamp;
 		state->out_stream.ssrc = ssrc - 1;	/* force output SSRC change */
 		LOGP(DRTP, LOGL_INFO,
