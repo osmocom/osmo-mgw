@@ -322,7 +322,6 @@ int osmux_read_from_bsc_nat_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct msgb *msg;
 	struct osmux_hdr *osmuxh;
-	struct llist_head list;
 	struct sockaddr_in addr;
 	struct mgcp_config *cfg = ofd->data;
 	uint32_t rem;
@@ -359,8 +358,7 @@ int osmux_read_from_bsc_nat_cb(struct osmo_fd *ofd, unsigned int what)
 		conn_bts->osmux.stats.chunks++;
 		rem = msg->len;
 
-		osmux_xfrm_output(osmuxh, &conn_bts->osmux.out, &list);
-		osmux_tx_sched(&list, scheduled_tx_bts_cb, endp);
+		osmux_xfrm_output_sched(&conn_bts->osmux.out, osmuxh);
 	}
 out:
 	msgb_free(msg);
@@ -426,7 +424,6 @@ int osmux_read_from_bsc_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct msgb *msg;
 	struct osmux_hdr *osmuxh;
-	struct llist_head list;
 	struct sockaddr_in addr;
 	struct mgcp_config *cfg = ofd->data;
 	uint32_t rem;
@@ -463,8 +460,7 @@ int osmux_read_from_bsc_cb(struct osmo_fd *ofd, unsigned int what)
 		conn_net->osmux.stats.chunks++;
 		rem = msg->len;
 
-		osmux_xfrm_output(osmuxh, &conn_net->osmux.out, &list);
-		osmux_tx_sched(&list, scheduled_tx_net_cb, endp);
+		osmux_xfrm_output_sched(&conn_net->osmux.out, osmuxh);
 	}
 out:
 	msgb_free(msg);
@@ -553,9 +549,13 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 	switch (endp->cfg->role) {
 		case MGCP_BSC_NAT:
 			conn->type = MGCP_OSMUX_BSC_NAT;
+			osmux_xfrm_output_set_tx_cb(&conn->osmux.out,
+							scheduled_tx_net_cb, endp);
 			break;
 		case MGCP_BSC:
 			conn->type = MGCP_OSMUX_BSC;
+			osmux_xfrm_output_set_tx_cb(&conn->osmux.out,
+							scheduled_tx_bts_cb, endp);
 			break;
 	}
 
@@ -576,6 +576,11 @@ void osmux_disable_conn(struct mgcp_conn_rtp *conn)
 
 	LOGP(DLMGCP, LOGL_INFO, "Releasing connection %s using Osmux CID %u\n",
 	     conn->conn->id, conn->osmux.cid);
+
+	/* We are closing, we don't need pending RTP packets to be transmitted */
+	osmux_xfrm_output_set_tx_cb(&conn->osmux.out, NULL, NULL);
+	osmux_xfrm_output_flush(&conn->osmux.out);
+
 	osmux_xfrm_input_close_circuit(conn->osmux.in, conn->osmux.cid);
 	conn->osmux.state = OSMUX_STATE_DISABLED;
 	conn->osmux.cid = -1;
