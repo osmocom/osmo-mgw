@@ -205,10 +205,10 @@ static int is_codec_compatible(const struct mgcp_endpoint *endp,
  *  \param[in] endp trunk endpoint.
  *  \param[out] conn associated rtp connection.
  *  \param[out] caller provided memory to store the parsing results.
- *  \returns 0 on success, -1 on failure.
+ *  \returns 1 when codecs are assigned, 0 when no codecs are assigned.
  *
  *  Note: In conn (conn->end) the function returns the packet duration,
- *  the rtp port and the rtcp port */
+ *  rtp port, rtcp port and the assigned codecs (codec and alt_codec). */
 int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 			struct mgcp_conn_rtp *conn,
 			struct mgcp_parse_data *p)
