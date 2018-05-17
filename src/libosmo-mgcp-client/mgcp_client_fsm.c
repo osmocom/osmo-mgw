@@ -548,7 +548,7 @@ static struct osmo_fsm fsm_mgcp_client = {
 
 /*! allocate FSM, and create a new connection on the MGW.
  *  \param[in] mgcp MGCP client descriptor.
- *  \param[in] mgcpparent_fi Parent FSM instance.
+ *  \param[in] parent_fi Parent FSM instance.
  *  \param[in] parent_term_evt Event to be sent to parent when terminating.
  *  \param[in] parent_evt Event to be sent to parent when operation is done.
  *  \param[in] conn_peer Connection parameters (ip, port...).
