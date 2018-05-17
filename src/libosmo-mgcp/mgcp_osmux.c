@@ -326,7 +326,7 @@ int osmux_read_from_bsc_nat_cb(struct osmo_fd *ofd, unsigned int what)
 	struct sockaddr_in addr;
 	struct mgcp_config *cfg = ofd->data;
 	uint32_t rem;
-	struct mgcp_conn_rtp *conn_net = NULL;
+	struct mgcp_conn_rtp *conn_bts = NULL;
 
 	msg = osmux_recv(ofd, &addr);
 	if (!msg)
@@ -345,8 +345,8 @@ int osmux_read_from_bsc_nat_cb(struct osmo_fd *ofd, unsigned int what)
 				       &addr.sin_addr, MGCP_DEST_NET);
 
 		/* FIXME: Get rid of CONN_ID_XXX! */
-		conn_net = mgcp_conn_get_rtp(endp, CONN_ID_NET);
-		if (!conn_net)
+		conn_bts = mgcp_conn_get_rtp(endp, CONN_ID_BTS);
+		if (!conn_bts)
 			goto out;
 
 		if (!endp) {
@@ -355,11 +355,11 @@ int osmux_read_from_bsc_nat_cb(struct osmo_fd *ofd, unsigned int what)
 			     osmuxh->circuit_id);
 			goto out;
 		}
-		conn_net->osmux.stats.octets += osmux_chunk_length(msg, rem);
-		conn_net->osmux.stats.chunks++;
+		conn_bts->osmux.stats.octets += osmux_chunk_length(msg, rem);
+		conn_bts->osmux.stats.chunks++;
 		rem = msg->len;
 
-		osmux_xfrm_output(osmuxh, &conn_net->osmux.out, &list);
+		osmux_xfrm_output(osmuxh, &conn_bts->osmux.out, &list);
 		osmux_tx_sched(&list, scheduled_tx_bts_cb, endp);
 	}
 out:
