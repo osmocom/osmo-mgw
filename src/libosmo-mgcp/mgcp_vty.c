@@ -282,13 +282,6 @@ DEFUN(cfg_mgcp_bind_early,
 	return CMD_WARNING;
 }
 
-static void parse_range(struct mgcp_port_range *range, const char **argv)
-{
-	range->range_start = atoi(argv[0]);
-	range->range_end = atoi(argv[1]);
-	range->last_port = g_cfg->net_ports.range_start;
-}
-
 #define RTP_STR "RTP configuration\n"
 #define UDP_PORT_STR "UDP Port number\n"
 #define NET_START_STR "First UDP port allocated\n"
@@ -297,11 +290,38 @@ static void parse_range(struct mgcp_port_range *range, const char **argv)
 
 DEFUN(cfg_mgcp_rtp_port_range,
       cfg_mgcp_rtp_port_range_cmd,
-      "rtp port-range <0-65534> <0-65534>",
+      "rtp port-range <1024-65534> <1025-65535>",
       RTP_STR "Range of ports to use for the NET side\n"
       RANGE_START_STR RANGE_END_STR)
 {
-	parse_range(&g_cfg->net_ports, argv);
+	int start;
+	int end;
+
+	start = atoi(argv[0]);
+	end = atoi(argv[1]);
+
+	if (end < start) {
+		vty_out(vty, "range end port (%i) must be greater than the range start port (%i)!%s",
+			end, start, VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	if (start & 1) {
+		vty_out(vty, "range must begin at an even port number, autocorrecting port (%i) to: %i%s",
+			start, start & 0xFFFE, VTY_NEWLINE);
+		start &= 0xFFFE;
+	}
+
+	if ((end & 1) == 0) {
+		vty_out(vty, "range must end at an odd port number, autocorrecting port (%i) to: %i%s",
+			end, end | 1, VTY_NEWLINE);
+		end |= 1;
+	}
+
+	g_cfg->net_ports.range_start = start;
+	g_cfg->net_ports.range_end = end;
+	g_cfg->net_ports.last_port = g_cfg->net_ports.range_start;
+
 	return CMD_SUCCESS;
 }
 ALIAS_DEPRECATED(cfg_mgcp_rtp_port_range,
