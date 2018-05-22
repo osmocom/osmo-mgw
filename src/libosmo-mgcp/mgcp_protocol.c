@@ -356,13 +356,15 @@ static struct msgb *handle_audit_endpoint(struct mgcp_parse_data *p)
 
 /* Try to find a free port by attempting to bind on it. Also handle the
  * counter that points on the next free port. Since we have a pointer
- * to the next free port, binding should work on the first attempt,
- * nevertheless, try at least the next 200 ports before giving up */
+ * to the next free port, binding should in work on the first attempt in
+ * general. In case of failure the next port is tryed until the whole port
+ * range is tryed once. */
 static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 {
 	int i;
 	struct mgcp_rtp_end *end;
 	struct mgcp_port_range *range;
+	unsigned int tries;
 
 	OSMO_ASSERT(conn);
 	end = &conn->end;
@@ -371,7 +373,8 @@ static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	range = &endp->cfg->net_ports;
 
 	/* attempt to find a port */
-	for (i = 0; i < 200; ++i) {
+	tries = (range->range_end - range->range_start) / 2;
+	for (i = 0; i < tries; ++i) {
 		int rc;
 
 		if (range->last_port >= range->range_end)
@@ -387,8 +390,8 @@ static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	}
 
 	LOGP(DLMGCP, LOGL_ERROR,
-	     "Allocating a RTP/RTCP port failed 200 times 0x%x.\n",
-	     ENDPOINT_NUMBER(endp));
+	     "Allocating a RTP/RTCP port failed %u times 0x%x.\n",
+	     tries, ENDPOINT_NUMBER(endp));
 	return -1;
 }
 
