@@ -21,7 +21,6 @@
  */
 
 #pragma once
-#include <osmocom/mgcp/mgcp_sdp.h>
 
 int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 			struct mgcp_conn_rtp *conn,
