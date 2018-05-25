@@ -132,7 +132,6 @@ static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn 
 	end->output_enabled = 0;
 
 	mgcp_rtp_codec_init(&end->codec);
-	mgcp_rtp_codec_init(&end->alt_codec);
 
 	conn_rtp->rate_ctr_group = rate_ctr_group_alloc(conn, &rate_ctr_group_desc, rate_ctr_index);
 	conn_rtp->state.in_stream.err_ts_ctr = &conn_rtp->rate_ctr_group->ctr[IN_STREAM_ERR_TSTMP_CTR];

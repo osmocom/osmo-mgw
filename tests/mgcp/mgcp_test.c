@@ -1244,7 +1244,6 @@ static void test_multilple_codec(void)
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 18);
-	OSMO_ASSERT(conn->end.alt_codec.payload_type == 97);
 
 	/* Allocate 2@mgw with three codecs, last one ignored */
 	last_endpoint = -1;
@@ -1260,7 +1259,6 @@ static void test_multilple_codec(void)
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 18);
-	OSMO_ASSERT(conn->end.alt_codec.payload_type == 97);
 
 	/* Allocate 3@mgw with no codecs, check for PT == -1 */
 	last_endpoint = -1;
@@ -1276,7 +1274,6 @@ static void test_multilple_codec(void)
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == -1);
-	OSMO_ASSERT(conn->end.alt_codec.payload_type == -1);
 
 	/* Allocate 4@mgw with a single codec */
 	last_endpoint = -1;
@@ -1292,7 +1289,6 @@ static void test_multilple_codec(void)
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 18);
-	OSMO_ASSERT(conn->end.alt_codec.payload_type == -1);
 
 	/* Allocate 5@mgw at select GSM.. */
 	last_endpoint = -1;
@@ -1311,7 +1307,6 @@ static void test_multilple_codec(void)
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 3);
-	OSMO_ASSERT(conn->end.alt_codec.payload_type == -1);
 
 	inp = create_msg(MDCX_NAT_DUMMY, conn_id);
 	last_endpoint = -1;
@@ -1323,7 +1318,6 @@ static void test_multilple_codec(void)
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 3);
-	OSMO_ASSERT(conn->end.alt_codec.payload_type == -1);
 	OSMO_ASSERT(conn->end.rtp_port == htons(16434));
 	memset(&addr, 0, sizeof(addr));
 	inet_aton("8.8.8.8", &addr);
@@ -1354,7 +1348,6 @@ static void test_multilple_codec(void)
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec.payload_type == 255);
-	OSMO_ASSERT(conn->end.alt_codec.payload_type == 0);
 
 	talloc_free(cfg);
 }

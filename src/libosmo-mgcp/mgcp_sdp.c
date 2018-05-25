@@ -205,10 +205,10 @@ static int is_codec_compatible(const struct mgcp_endpoint *endp,
  *  \param[in] endp trunk endpoint.
  *  \param[out] conn associated rtp connection.
  *  \param[out] caller provided memory to store the parsing results.
- *  \returns 1 when codecs are assigned, 0 when no codecs are assigned.
+ *  \returns 1 when a codec is assigned, 0 when no codec is assigned
  *
  *  Note: In conn (conn->end) the function returns the packet duration,
- *  rtp port, rtcp port and the assigned codecs (codec and alt_codec). */
+ *  rtp port, rtcp port and the assigned codec. */
 int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 			struct mgcp_conn_rtp *conn,
 			struct mgcp_parse_data *p)
@@ -218,7 +218,7 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	char *line;
 	int maxptime = -1;
 	int i;
-	int codecs_assigned = 0;
+	bool codec_assigned = false;
 	void *tmp_ctx = talloc_new(NULL);
 	struct mgcp_rtp_end *rtp;
 
@@ -277,6 +277,10 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 				rtp->rtp_port = htons(port);
 				rtp->rtcp_port = htons(port + 1);
 				codecs_used = rc - 1;
+
+				/* So far we have only set the payload type in
+				 * the codec struct. Now we fill up the
+				 * remaining fields of the codec description */
 				codecs_initialize(tmp_ctx, codecs, codecs_used);
 			}
 			break;
@@ -300,11 +304,11 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 		}
 	}
 
-	/* Now select the primary and alt_codec */
-	for (i = 0; i < codecs_used && codecs_assigned < 2; ++i) {
-		struct mgcp_rtp_codec *codec = codecs_assigned == 0 ?
-		    &rtp->codec : &rtp->alt_codec;
+	/* Now select a suitable codec */
+	for (i = 0; i < codecs_used; i++) {
 
+		/* When no transcoding is available, avoid codecs that would
+		 * require transcoding. */
 		if (endp->tcfg->no_audio_transcoding &&
 		    !is_codec_compatible(endp, &codecs[i])) {
 			LOGP(DLMGCP, LOGL_NOTICE, "Skipping codec %s\n",
@@ -312,12 +316,14 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 			continue;
 		}
 
-		mgcp_set_audio_info(p->cfg, codec,
+		mgcp_set_audio_info(p->cfg, &rtp->codec,
 				    codecs[i].payload_type, codecs[i].map_line);
-		codecs_assigned += 1;
+
+		codec_assigned = true;
+		break;
 	}
 
-	if (codecs_assigned > 0) {
+	if (codec_assigned) {
 		/* TODO/XXX: Store this per codec and derive it on use */
 		if (maxptime >= 0 && maxptime * rtp->codec.frame_duration_den >
 		    rtp->codec.frame_duration_num * 1500) {
@@ -335,7 +341,10 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	}
 
 	talloc_free(tmp_ctx);
-	return codecs_assigned > 0;
+
+	if (codec_assigned)
+		return 1;
+	return 0;
 }
 
 /*! Generate SDP response string.
