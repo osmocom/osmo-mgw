@@ -112,7 +112,7 @@ static struct msgb *make_crcx_msg_bind(struct mgcp_ctx *mgcp_ctx)
 		.verb = MGCP_VERB_CRCX,
 		.presence = (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID | MGCP_MSG_PRESENCE_CONN_MODE),
 		.call_id = mgcp_ctx->conn_peer_local.call_id,
-		.conn_mode = MGCP_CONN_LOOPBACK,
+		.conn_mode = MGCP_CONN_RECV_ONLY,
 	};
 	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_local.endpoint, MGCP_ENDPOINT_MAXLEN);
 
