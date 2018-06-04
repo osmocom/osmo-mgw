@@ -91,6 +91,10 @@ static int mgcp_alloc_id(struct mgcp_endpoint *endp, char *id)
 /* Reset codec state and free memory */
 static void mgcp_rtp_codec_init(struct mgcp_rtp_codec *codec)
 {
+	/* see also mgcp_sdp.c, mgcp_set_audio_info() */
+	talloc_free(codec->subtype_name);
+	talloc_free(codec->audio_name);
+
 	codec->payload_type = -1;
 	codec->subtype_name = NULL;
 	codec->audio_name = NULL;
@@ -98,10 +102,6 @@ static void mgcp_rtp_codec_init(struct mgcp_rtp_codec *codec)
 	codec->frame_duration_den = DEFAULT_RTP_AUDIO_FRAME_DUR_DEN;
 	codec->rate = DEFAULT_RTP_AUDIO_DEFAULT_RATE;
 	codec->channels = DEFAULT_RTP_AUDIO_DEFAULT_CHANNELS;
-
-	/* see also mgcp_sdp.c, mgcp_set_audio_info() */
-	talloc_free(codec->subtype_name);
-	talloc_free(codec->audio_name);
 }
 
 /* Initialize rtp connection struct with default values */
