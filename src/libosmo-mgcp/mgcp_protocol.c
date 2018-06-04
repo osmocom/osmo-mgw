@@ -721,7 +721,7 @@ mgcp_header_done:
 error2:
 	mgcp_endp_release(endp);
 	LOGP(DLMGCP, LOGL_NOTICE,
-	     "CRCX: endpoint:0x%x unable to create connection resource error\n",
+	     "CRCX: endpoint:0x%x unable to create connection\n",
 	     ENDPOINT_NUMBER(endp));
 	return create_err_response(endp, error_code, "CRCX", p->trans);
 }
