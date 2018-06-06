@@ -66,7 +66,7 @@ struct mgcp_endpoint {
 	/*!< Call identifier string (as supplied by the call agant) */
 	char *callid;
 
-	/*!< Local connection options (see mgcp_intermal.h) */
+	/*!< Local connection options (see mgcp_internal.h) */
 	struct mgcp_lco local_options;
 
 	/*!< List with connections active on this endpoint */
