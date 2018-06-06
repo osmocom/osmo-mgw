@@ -1465,6 +1465,108 @@ const struct log_info log_info = {
 	.num_cat = ARRAY_SIZE(log_categories),
 };
 
+static void test_get_lco_identifier(void)
+{
+	char *test;
+	printf("Testing get_lco_identifier()\n");
+
+	/* Normal case at the beginning */
+	test = "p:10, a:PCMU";
+	printf("%s -> %s\n", test, get_lco_identifier(test));
+
+	test = "p:10, a:PCMU";
+	printf("%s -> %s\n", test, get_lco_identifier(test));
+
+	/* Begin parsing in the middle of the value part of
+	 * the previous LCO option value */
+	test = "XXXX, p:10, a:PCMU";
+	printf("'%s' -> '%s'\n", test, get_lco_identifier(test));
+
+	test = "XXXX,p:10,a:PCMU";
+	printf("'%s' -> '%s'\n", test, get_lco_identifier(test));
+
+	test = "10,a:PCMU";
+	printf("'%s' -> '%s'\n", test, get_lco_identifier(test));
+
+	test = "10, a:PCMU";
+	printf("'%s' -> '%s'\n", test, get_lco_identifier(test));
+
+	test = "10,a: PCMU";
+	printf("'%s' -> '%s'\n", test, get_lco_identifier(test));
+
+	test = "10 ,a: PCMU";
+	printf("'%s' -> '%s'\n", test, get_lco_identifier(test));
+
+	/* Begin parsing right at the end of the previous LCO
+	 * option value */
+	test = ", a:PCMU";
+	printf("'%s' -> '%s'\n", test, get_lco_identifier(test));
+
+	test = " a:PCMU";
+	printf("'%s' -> '%s'\n", test, get_lco_identifier(test));
+
+	/* Empty string, result should be (null) */
+	test = "";
+	printf("'%s' -> '%s'\n", test, get_lco_identifier(test));
+
+	/* Missing colons, result should be (null) */
+	test = "p10, aPCMU";
+	printf("%s -> %s\n", test, get_lco_identifier(test));
+
+	/* Colon separated from the identifier, result should be (null) */
+	test = "10,a :PCMU";
+	printf("'%s' -> '%s'\n", test, get_lco_identifier(test));
+}
+
+static void test_check_local_cx_options(void *ctx)
+{
+	/* Legal cases */
+	OSMO_ASSERT(check_local_cx_options(ctx, "p:10, a:PCMU") == 0);
+	OSMO_ASSERT(check_local_cx_options(ctx, "a:PCMU") == 0);
+	OSMO_ASSERT(check_local_cx_options(ctx, "a:PCMU, p:10, IN:10") == 0);
+	OSMO_ASSERT(check_local_cx_options(ctx, "one:AAA, two:BB, tree:C") ==
+		    0);
+	OSMO_ASSERT(check_local_cx_options(ctx, "p:10, a:PCMU") == 0);
+	OSMO_ASSERT(check_local_cx_options(ctx, "p:10, a:G726-32") == 0);
+	OSMO_ASSERT(check_local_cx_options(ctx, "p:10-20, b:64") == 0);
+	OSMO_ASSERT(check_local_cx_options(ctx, "b:32-64, e:off") == 0);
+	OSMO_ASSERT(check_local_cx_options(ctx, "p:10, a:PCMU;G726-32") == 0);
+
+	/* Illegal spaces before and after colon */
+	OSMO_ASSERT(check_local_cx_options(ctx, "a:PCMU, p :10") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, "a :PCMU, p:10") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, "p: 10, a:PCMU") == -1);
+
+	/* Check if multiple appearances of LCOs are rejected */
+	OSMO_ASSERT(check_local_cx_options(ctx, "p:10, a:PCMU, p:10") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, "p:10, a:PCMU, a:PCMU, p:10") ==
+		    -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, "p:10, p:10") == -1);
+
+	/* Check if empty LCO are rejected */
+	OSMO_ASSERT(check_local_cx_options(ctx, "p: , a:PCMU") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, "p: , a: PCMU") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, "p:10, a: PCMU") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, "p:, a:PCMU") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, "p:10, a:") == -1);
+
+	/* Garbeled beginning and ends */
+	OSMO_ASSERT(check_local_cx_options(ctx, ":10, a:10") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, "10, a:PCMU") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, ", a:PCMU") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, " a:PCMU") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, "a:PCMU,") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, "a:PCMU, ") == -1);
+
+	/* Illegal strings */
+	OSMO_ASSERT(check_local_cx_options(ctx, " ") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, "") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, "AAA") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, ":,") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, ",:") == -1);
+	OSMO_ASSERT(check_local_cx_options(ctx, ",,,") == -1);
+}
+
 int main(int argc, char **argv)
 {
 	void *ctx = talloc_named_const(NULL, 0, "mgcp_test");
@@ -1486,6 +1588,8 @@ int main(int argc, char **argv)
 	test_no_cycle();
 	test_no_name();
 	test_osmux_cid();
+	test_get_lco_identifier();
+	test_check_local_cx_options(ctx);
 
 	OSMO_ASSERT(talloc_total_size(msgb_ctx) == 0);
 	OSMO_ASSERT(talloc_total_blocks(msgb_ctx) == 1);

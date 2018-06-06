@@ -282,6 +282,8 @@ static inline int endp_back_channel(int endpoint)
 struct mgcp_trunk_config *mgcp_trunk_alloc(struct mgcp_config *cfg, int index);
 struct mgcp_trunk_config *mgcp_trunk_num(struct mgcp_config *cfg, int index);
 
+char *get_lco_identifier(const char *options);
+int check_local_cx_options(void *ctx, const char *options);
 void mgcp_rtp_end_config(struct mgcp_endpoint *endp, int expect_ssrc_change,
 			 struct mgcp_rtp_end *rtp);
 uint32_t mgcp_rtp_packet_duration(struct mgcp_endpoint *endp,

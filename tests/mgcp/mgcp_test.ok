@@ -1104,4 +1104,18 @@ a=ptime:40
 checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
+Testing get_lco_identifier()
+p:10, a:PCMU -> p:10, a:PCMU
+p:10, a:PCMU -> p:10, a:PCMU
+'XXXX, p:10, a:PCMU' -> 'p:10, a:PCMU'
+'XXXX,p:10,a:PCMU' -> 'p:10,a:PCMU'
+'10,a:PCMU' -> 'a:PCMU'
+'10, a:PCMU' -> 'a:PCMU'
+'10,a: PCMU' -> 'a: PCMU'
+'10 ,a: PCMU' -> 'a: PCMU'
+', a:PCMU' -> 'a:PCMU'
+' a:PCMU' -> 'a:PCMU'
+'' -> '(null)'
+p10, aPCMU -> (null)
+'10,a :PCMU' -> '(null)'
 Done

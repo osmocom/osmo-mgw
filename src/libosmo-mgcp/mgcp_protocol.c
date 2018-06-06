@@ -395,6 +395,121 @@ static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	return -1;
 }
 
+/*! Helper function for check_local_cx_options() to get a pointer of the next
+ *  lco option identifier
+ *  \param[in] lco string
+ *  \returns pointer to the beginning of the LCO identifier, NULL on failure */
+char *get_lco_identifier(const char *options)
+{
+	char *ptr;
+	unsigned int count = 0;
+
+	/* Jump to the end of the lco identifier */
+	ptr = strstr(options, ":");
+	if (!ptr)
+		return NULL;
+
+	/* Walk backwards until the pointer points to the beginning of the
+	 * lco identifier. We know that we stand at the beginning when we
+	 * are either at the beginning of the memory or see a space or
+	 * comma. (this is tolerant, it will accept a:10, b:11 as well as
+	 * a:10,b:11) */
+	while (1) {
+		/* Endless loop protection */
+		if (count > 10000)
+			return NULL;
+		else if (ptr < options || *ptr == ' ' || *ptr == ',') {
+			ptr++;
+			break;
+		}
+		ptr--;
+		count++;
+	}
+
+	/* Check if we got any result */
+	if (*ptr == ':')
+		return NULL;
+
+	return ptr;
+}
+
+/*! Check the LCO option. This function checks for multiple appearence of LCO
+ *  options, which is illegal
+ *  \param[in] ctx talloc context
+ *  \param[in] lco string
+ *  \returns 0 on success, -1 on failure */
+int check_local_cx_options(void *ctx, const char *options)
+{
+	int i;
+	char *options_copy;
+	char *lco_identifier;
+	char *lco_identifier_end;
+	char *next_lco_identifier;
+
+	char **lco_seen;
+	unsigned int lco_seen_n = 0;
+
+	if (!options)
+		return -1;
+
+	lco_seen =
+	    (char **)talloc_zero_size(ctx, strlen(options) * sizeof(char *));
+	options_copy = talloc_strdup(ctx, options);
+	lco_identifier = options_copy;
+
+	do {
+		/* Move the lco_identifier pointer to the beginning of the
+		 * current lco option identifier */
+		lco_identifier = get_lco_identifier(lco_identifier);
+		if (!lco_identifier)
+			goto error;
+
+		/* Look ahead to the next LCO option early, since we
+		 * will parse destructively */
+		next_lco_identifier = strstr(lco_identifier + 1, ",");
+
+		/* Pinch off the end of the lco field identifier name
+		 * and see if we still got something, also check if
+		 * there is some value after the colon. */
+		lco_identifier_end = strstr(lco_identifier, ":");
+		if (!lco_identifier_end)
+			goto error;
+		if (*(lco_identifier_end + 1) == ' '
+		    || *(lco_identifier_end + 1) == ','
+		    || *(lco_identifier_end + 1) == '\0')
+			goto error;
+		*lco_identifier_end = '\0';
+		if (strlen(lco_identifier) == 0)
+			goto error;
+
+		/* Check if we have already seen the current field identifier
+		 * before. If yes, we must bail, an LCO must only appear once
+		 * in the LCO string */
+		for (i = 0; i < lco_seen_n; i++) {
+			if (strcmp(lco_seen[i], lco_identifier) == 0)
+				goto error;
+		}
+		lco_seen[lco_seen_n] = lco_identifier;
+		lco_seen_n++;
+
+		/* The first identifier must always be found at the beginnning
+		 * of the LCO string */
+		if (lco_seen[0] != options_copy)
+			goto error;
+
+		/* Go to the next lco option */
+		lco_identifier = next_lco_identifier;
+	} while (lco_identifier);
+
+	talloc_free(lco_seen);
+	talloc_free(options_copy);
+	return 0;
+error:
+	talloc_free(lco_seen);
+	talloc_free(options_copy);
+	return -1;
+}
+
 /* Set the LCO from a string (see RFC 3435).
  * The string is stored in the 'string' field. A NULL string is handled exactly
  * like an empty string, the 'string' field is never NULL after this function
@@ -410,9 +525,16 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 	if (strlen(options) == 0)
 		return 0;
 
-	talloc_free(lco->string);
-	lco->string = talloc_strdup(ctx, options ? options : "");
+	/* Make sure the encoding of the LCO is consistant before we proceed */
+	if (check_local_cx_options(ctx, options) != 0) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "local CX options: Internal inconsistency in Local Connection Options!\n");
+		return 524;
+	}
 
+	talloc_free(lco->string);
+	lco->string = talloc_strdup(ctx, options);
+	
 	p_opt = strstr(lco->string, "p:");
 	if (p_opt && sscanf(p_opt, "p:%d-%d",
 			    &lco->pkt_period_min, &lco->pkt_period_max) == 1)
