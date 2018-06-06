@@ -405,10 +405,12 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 	char *p_opt, *a_opt;
 	char codec[9];
 
+	if (!options)
+		return 0;
+	if (strlen(options) == 0)
+		return 0;
+
 	talloc_free(lco->string);
-	talloc_free(lco->codec);
-	lco->codec = NULL;
-	lco->pkt_period_min = lco->pkt_period_max = 0;
 	lco->string = talloc_strdup(ctx, options ? options : "");
 
 	p_opt = strstr(lco->string, "p:");
@@ -417,8 +419,10 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 		lco->pkt_period_max = lco->pkt_period_min;
 
 	a_opt = strstr(lco->string, "a:");
-	if (a_opt && sscanf(a_opt, "a:%8[^,]", codec) == 1)
+	if (a_opt && sscanf(a_opt, "a:%8[^,]", codec) == 1) {
+		talloc_free(lco->codec);
 		lco->codec = talloc_strdup(ctx, codec);
+	}
 
 	LOGP(DLMGCP, LOGL_DEBUG,
 	     "local CX options: lco->pkt_period_max: %i, lco->codec: %s\n",
