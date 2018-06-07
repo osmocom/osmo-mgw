@@ -25,6 +25,8 @@
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/mgcp_common.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_sdp.h>
+#include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/rate_ctr.h>
 #include <ctype.h>
@@ -88,22 +90,6 @@ static int mgcp_alloc_id(struct mgcp_endpoint *endp, char *id)
 	return -1;
 }
 
-/* Reset codec state and free memory */
-static void mgcp_rtp_codec_init(struct mgcp_rtp_codec *codec)
-{
-	/* see also mgcp_sdp.c, mgcp_set_audio_info() */
-	talloc_free(codec->subtype_name);
-	talloc_free(codec->audio_name);
-
-	codec->payload_type = -1;
-	codec->subtype_name = NULL;
-	codec->audio_name = NULL;
-	codec->frame_duration_num = DEFAULT_RTP_AUDIO_FRAME_DUR_NUM;
-	codec->frame_duration_den = DEFAULT_RTP_AUDIO_FRAME_DUR_DEN;
-	codec->rate = DEFAULT_RTP_AUDIO_DEFAULT_RATE;
-	codec->channels = DEFAULT_RTP_AUDIO_DEFAULT_CHANNELS;
-}
-
 /* Initialize rtp connection struct with default values */
 static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *conn)
 {
@@ -130,13 +116,15 @@ static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn 
 	end->frames_per_packet = 0;	/* unknown */
 	end->packet_duration_ms = DEFAULT_RTP_AUDIO_PACKET_DURATION_MS;
 	end->output_enabled = 0;
-
-	mgcp_rtp_codec_init(&end->codec);
+	end->maximum_packet_time = -1;
 
 	conn_rtp->rate_ctr_group = rate_ctr_group_alloc(conn, &rate_ctr_group_desc, rate_ctr_index);
 	conn_rtp->state.in_stream.err_ts_ctr = &conn_rtp->rate_ctr_group->ctr[IN_STREAM_ERR_TSTMP_CTR];
 	conn_rtp->state.out_stream.err_ts_ctr = &conn_rtp->rate_ctr_group->ctr[OUT_STREAM_ERR_TSTMP_CTR];
 	rate_ctr_index++;
+
+	/* Make sure codec table is reset */
+	mgcp_codec_reset_all(conn_rtp);
 }
 
 /* Cleanup rtp connection struct */

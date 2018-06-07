@@ -40,6 +40,7 @@
 #include <osmocom/mgcp/mgcp_msg.h>
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_sdp.h>
+#include <osmocom/mgcp/mgcp_codec.h>
 
 struct mgcp_request {
 	char *name;
@@ -534,12 +535,15 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 
 	talloc_free(lco->string);
 	lco->string = talloc_strdup(ctx, options);
-	
+
 	p_opt = strstr(lco->string, "p:");
 	if (p_opt && sscanf(p_opt, "p:%d-%d",
 			    &lco->pkt_period_min, &lco->pkt_period_max) == 1)
 		lco->pkt_period_max = lco->pkt_period_min;
 
+	/* FIXME: LCO also supports the negotiation of more then one codec.
+	 * (e.g. a:PCMU;G726-32) But this implementation only supports a single
+	 * codec only. */
 	a_opt = strstr(lco->string, "a:");
 	if (a_opt && sscanf(a_opt, "a:%8[^,]", codec) == 1) {
 		talloc_free(lco->codec);
@@ -585,15 +589,15 @@ uint32_t mgcp_rtp_packet_duration(struct mgcp_endpoint *endp,
 	/* Get the number of frames per channel and packet */
 	if (rtp->frames_per_packet)
 		f = rtp->frames_per_packet;
-	else if (rtp->packet_duration_ms && rtp->codec.frame_duration_num) {
-		int den = 1000 * rtp->codec.frame_duration_num;
-		f = (rtp->packet_duration_ms * rtp->codec.frame_duration_den +
+	else if (rtp->packet_duration_ms && rtp->codec->frame_duration_num) {
+		int den = 1000 * rtp->codec->frame_duration_num;
+		f = (rtp->packet_duration_ms * rtp->codec->frame_duration_den +
 		     den / 2)
 		    / den;
 	}
 
-	return rtp->codec.rate * f * rtp->codec.frame_duration_num /
-	    rtp->codec.frame_duration_den;
+	return rtp->codec->rate * f * rtp->codec->frame_duration_num /
+	    rtp->codec->frame_duration_den;
 }
 
 static int mgcp_osmux_setup(struct mgcp_endpoint *endp, const char *line)
@@ -607,6 +611,68 @@ static int mgcp_osmux_setup(struct mgcp_endpoint *endp, const char *line)
 	}
 
 	return mgcp_parse_osmux_cid(line);
+}
+
+/* Process codec information contained in CRCX/MDCX */
+static int handle_codec_info(struct mgcp_conn_rtp *conn,
+			     struct mgcp_parse_data *p, int have_sdp, bool crcx)
+{
+	struct mgcp_endpoint *endp = p->endp;
+	int rc;
+	char *cmd;
+
+	if (crcx)
+		cmd = "CRCX";
+	else
+		cmd = "MDCX";
+
+	/* Collect codec information */
+	if (have_sdp) {
+		/* If we have SDP, we ignore the local connection options and
+		 * use only the SDP information. */
+		mgcp_codec_reset_all(conn);
+		rc = mgcp_parse_sdp_data(endp, conn, p);
+		if (rc != 0) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "%s: endpoint:%x sdp not parseable\n", cmd,
+			     ENDPOINT_NUMBER(endp));
+
+			/* See also RFC 3661: Protocol error */
+			return 510;
+		}
+	} else if (endp->local_options.codec) {
+		/* When no SDP is available, we use the codec information from
+		 * the local connection options (if present) */
+		mgcp_codec_reset_all(conn);
+		rc = mgcp_codec_add(conn, PTYPE_UNDEFINED, endp->local_options.codec);
+		if (rc != 0)
+			goto error;
+	}
+
+	/* Make sure we always set a sane default codec */
+	if (conn->end.codecs_assigned == 0) {
+		/* When SDP and/or LCO did not supply any codec information,
+		 * than it makes sense to pick a sane default: (payload-type 0,
+		 * PCMU), see also: OS#2658 */
+		mgcp_codec_reset_all(conn);
+		rc = mgcp_codec_add(conn, 0, NULL);
+		if (rc != 0)
+			goto error;
+	}
+
+	/* Make codec decision */
+	if (mgcp_codec_decide(conn) != 0)
+		goto error;
+
+	return 0;
+
+error:
+	LOGP(DLMGCP, LOGL_ERROR,
+	     "%s: endpoint:0x%x codec negotiation failure\n", cmd,
+	     ENDPOINT_NUMBER(endp));
+
+	/* See also RFC 3661: Codec negotiation failure */
+	return 534;
 }
 
 /* CRCX command handler, processes the received command */
@@ -726,17 +792,6 @@ mgcp_header_done:
 	 * connection ids) */
 	endp->callid = talloc_strdup(tcfg->endpoints, callid);
 
-	/* Extract audio codec information */
-	rc = set_local_cx_options(endp->tcfg->endpoints, &endp->local_options,
-				  local_options);
-	if (rc != 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "CRCX: endpoint:%x inavlid local connection options!\n",
-		     ENDPOINT_NUMBER(endp));
-		error_code = rc;
-		goto error2;
-	}
-
 	snprintf(conn_name, sizeof(conn_name), "%s", callid);
 	_conn = mgcp_conn_alloc(NULL, endp, MGCP_CONN_TYPE_RTP, conn_name);
 	if (!_conn) {
@@ -767,12 +822,27 @@ mgcp_header_done:
 		goto error2;
 	}
 
-	/* set up RTP media parameters */
-	if (have_sdp)
-		mgcp_parse_sdp_data(endp, conn, p);
-	else if (endp->local_options.codec)
-		mgcp_set_audio_info(p->cfg, &conn->end.codec,
-				    PTYPE_UNDEFINED, endp->local_options.codec);
+	/* Set local connection options, if present */
+	if (local_options) {
+		rc = set_local_cx_options(endp->tcfg->endpoints,
+					  &endp->local_options, local_options);
+		if (rc != 0) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "CRCX: endpoint:%x inavlid local connection options!\n",
+			     ENDPOINT_NUMBER(endp));
+			error_code = rc;
+			goto error2;
+		}
+	}
+
+	/* Handle codec information and decide for a suitable codec */
+	rc = handle_codec_info(conn, p, have_sdp, true);
+	mgcp_codec_summary(conn);
+	if (rc) {
+		error_code = rc;
+		goto error2;
+	}
+
 	conn->end.fmtp_extra = talloc_strdup(tcfg->endpoints,
 					     tcfg->audio_fmtp_extra);
 
@@ -851,6 +921,10 @@ error2:
 	     ENDPOINT_NUMBER(endp));
 	return create_err_response(endp, error_code, "CRCX", p->trans);
 }
+
+
+
+
 
 /* MDCX command handler, processes the received command */
 static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
@@ -943,22 +1017,26 @@ mgcp_header_done:
 	} else
 			conn->conn->mode = conn->conn->mode_orig;
 
-	if (have_sdp)
-		mgcp_parse_sdp_data(endp, conn, p);
+	/* Set local connection options, if present */
+	if (local_options) {
+		rc = set_local_cx_options(endp->tcfg->endpoints,
+					  &endp->local_options, local_options);
+		if (rc != 0) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "MDCX: endpoint:%x inavlid local connection options!\n",
+			     ENDPOINT_NUMBER(endp));
+			error_code = rc;
+			goto error3;
+		}
+	}
 
-	rc = set_local_cx_options(endp->tcfg->endpoints, &endp->local_options,
-				  local_options);
-	if (rc != 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "MDCX: endpoint:%x inavlid local connection options!\n",
-		     ENDPOINT_NUMBER(endp));
+	/* Handle codec information and decide for a suitable codec */
+	rc = handle_codec_info(conn, p, have_sdp, false);
+	mgcp_codec_summary(conn);
+	if (rc) {
 		error_code = rc;
 		goto error3;
 	}
-
-	if (!have_sdp && endp->local_options.codec)
-		mgcp_set_audio_info(p->cfg, &conn->end.codec,
-				    PTYPE_UNDEFINED, endp->local_options.codec);
 
 	/* check connection mode setting */
 	if (conn->conn->mode != MGCP_CONN_LOOPBACK
@@ -970,6 +1048,7 @@ mgcp_header_done:
 		error_code = 527;
 		goto error3;
 	}
+
 
 	if (setup_rtp_processing(endp, conn) != 0)
 		goto error3;

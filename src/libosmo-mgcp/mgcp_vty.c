@@ -157,7 +157,7 @@ static int config_write_mgcp(struct vty *vty)
 static void dump_rtp_end(struct vty *vty, struct mgcp_rtp_state *state,
 			 struct mgcp_rtp_end *end)
 {
-	struct mgcp_rtp_codec *codec = &end->codec;
+	struct mgcp_rtp_codec *codec = end->codec;
 
 	vty_out(vty,
 		"   Timestamp Errs: %lu->%lu%s"

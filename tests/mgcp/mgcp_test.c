@@ -26,6 +26,8 @@
 #include <osmocom/mgcp/mgcp_stat.h>
 #include <osmocom/mgcp/mgcp_msg.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_sdp.h>
+#include <osmocom/mgcp/mgcp_codec.h>
 
 #include <osmocom/core/application.h>
 #include <osmocom/core/talloc.h>
@@ -156,8 +158,8 @@ static void test_strline(void)
 	"s=-\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
-	"m=audio 16002 RTP/AVP 96\r\n" \
-	"a=rtpmap:96 AMR\r\n" \
+	"m=audio 16002 RTP/AVP 112\r\n" \
+	"a=rtpmap:112 AMR\r\n" \
 	"a=ptime:40\r\n"
 
 #define MDCX4_PT1 \
@@ -404,7 +406,7 @@ static void test_strline(void)
 	"v=0\r\n" \
 	"o=- 1439038275 1439038275 IN IP4 192.168.181.247\r\n" \
 	"s=-\r\nc=IN IP4 192.168.181.247\r\n" \
-	"t=0 0\r\nm=audio 29084 RTP/AVP 255 0 8 3 18 4 96 97 101\r\n" \
+	"t=0 0\r\nm=audio 29084 RTP/AVP 0 8 3 18 4 96 97 101\r\n" \
 	"a=rtpmap:0 PCMU/8000\r\n" \
 	"a=rtpmap:8 PCMA/8000\r\n" \
 	"a=rtpmap:3 gsm/8000\r\n" \
@@ -425,7 +427,24 @@ static void test_strline(void)
 	"I: %s\r\n" \
 	"\r\n" \
 	"c=IN IP4 8.8.8.8\r\n" \
-	"m=audio 16434 RTP/AVP 255\r\n"
+	"m=audio 16434 RTP/AVP 3\r\n"
+
+#define CRCX_NO_LCO_NO_SDP \
+	"CRCX 2 6@mgw MGCP 1.0\r\n" \
+	"M: recvonly\r\n" \
+	"C: 2\r\n"
+
+#define CRCX_NO_LCO_NO_SDP_RET \
+	"200 2 OK\r\n" \
+	"I: %s\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
+	"s=-\r\n" \
+	"c=IN IP4 0.0.0.0\r\n" \
+	"t=0 0\r\n" \
+	"m=audio 16008 RTP/AVP 0\r\n" \
+	"a=ptime:20\r\n"
 
 struct mgcp_test {
 	const char *name;
@@ -462,6 +481,7 @@ static const struct mgcp_test tests[] = {
 	{"MDCX3", MDCX3, MDCX3_FMTP_RET, PTYPE_NONE,.extra_fmtp =
 	 "a=fmtp:126 0/1/2"},
 	{"DLCX", DLCX, DLCX_RET, PTYPE_IGNORE,.extra_fmtp = "a=fmtp:126 0/1/2"},
+	{"CRCX", CRCX_NO_LCO_NO_SDP, CRCX_NO_LCO_NO_SDP_RET, 97},
 };
 
 static const struct mgcp_test retransmit[] = {
@@ -764,14 +784,14 @@ static void test_messages(void)
 			fprintf(stderr, "endpoint %d: "
 				"payload type %d (expected %d)\n",
 				last_endpoint,
-				conn->end.codec.payload_type, t->ptype);
+				conn->end.codec->payload_type, t->ptype);
 
 			if (t->ptype != PTYPE_IGNORE)
-				OSMO_ASSERT(conn->end.codec.payload_type ==
+				OSMO_ASSERT(conn->end.codec->payload_type ==
 					    t->ptype);
 
 			/* Reset them again for next test */
-			conn->end.codec.payload_type = PTYPE_NONE;
+			conn->end.codec->payload_type = PTYPE_NONE;
 		}
 	}
 
@@ -1167,7 +1187,8 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 
 	rtp = &conn->end;
 
-	rtp->codec.payload_type = 98;
+	OSMO_ASSERT(mgcp_codec_add(conn, PTYPE_UNDEFINED, "AMR/8000/1") == 0);
+	rtp->codec = &rtp->codecs[0];
 
 	for (i = 0; i < ARRAY_SIZE(test_rtp_packets1); ++i) {
 		struct rtp_packet_info *info = test_rtp_packets1 + i;
@@ -1243,7 +1264,7 @@ static void test_multilple_codec(void)
 	endp = &cfg->trunk.endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec.payload_type == 18);
+	OSMO_ASSERT(conn->end.codec->payload_type == 18);
 
 	/* Allocate 2@mgw with three codecs, last one ignored */
 	last_endpoint = -1;
@@ -1258,9 +1279,14 @@ static void test_multilple_codec(void)
 	endp = &cfg->trunk.endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec.payload_type == 18);
+	OSMO_ASSERT(conn->end.codec->payload_type == 18);
 
-	/* Allocate 3@mgw with no codecs, check for PT == -1 */
+	/* Allocate 3@mgw with no codecs, check for PT == 0 */
+	/* Note: It usually makes no sense to leave the payload type list
+	 * out. However RFC 2327 does not clearly forbid this case and
+	 * it makes and since we already decided in OS#2658 that a missing
+	 * LCO should pick a sane default codec, it makes sense to expect
+	 * the same behaviour if SDP lacks proper payload type information */
 	last_endpoint = -1;
 	inp = create_msg(CRCX_MULT_3, NULL);
 	resp = mgcp_handle_message(cfg, inp);
@@ -1273,7 +1299,7 @@ static void test_multilple_codec(void)
 	endp = &cfg->trunk.endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec.payload_type == -1);
+	OSMO_ASSERT(conn->end.codec->payload_type == 0);
 
 	/* Allocate 4@mgw with a single codec */
 	last_endpoint = -1;
@@ -1288,7 +1314,7 @@ static void test_multilple_codec(void)
 	endp = &cfg->trunk.endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec.payload_type == 18);
+	OSMO_ASSERT(conn->end.codec->payload_type == 18);
 
 	/* Allocate 5@mgw at select GSM.. */
 	last_endpoint = -1;
@@ -1306,7 +1332,7 @@ static void test_multilple_codec(void)
 	endp = &cfg->trunk.endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec.payload_type == 3);
+	OSMO_ASSERT(conn->end.codec->payload_type == 3);
 
 	inp = create_msg(MDCX_NAT_DUMMY, conn_id);
 	last_endpoint = -1;
@@ -1317,7 +1343,7 @@ static void test_multilple_codec(void)
 	endp = &cfg->trunk.endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec.payload_type == 3);
+	OSMO_ASSERT(conn->end.codec->payload_type == 3);
 	OSMO_ASSERT(conn->end.rtp_port == htons(16434));
 	memset(&addr, 0, sizeof(addr));
 	inet_aton("8.8.8.8", &addr);
@@ -1347,7 +1373,7 @@ static void test_multilple_codec(void)
 	endp = &cfg->trunk.endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec.payload_type == 255);
+	OSMO_ASSERT(conn->end.codec->payload_type == 0);
 
 	talloc_free(cfg);
 }

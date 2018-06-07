@@ -26,9 +26,6 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 			struct mgcp_conn_rtp *conn,
 			struct mgcp_parse_data *p);
 
-int mgcp_set_audio_info(void *ctx, struct mgcp_rtp_codec *codec,
-			int payload_type, const char *audio_name);
-
 int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 			    const struct mgcp_conn_rtp *conn, struct msgb *sdp,
 			    const char *addr);

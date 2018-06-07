@@ -82,4 +82,8 @@ static inline int mgcp_msg_terminate_nul(struct msgb *msg)
 /* A prefix to denote the virtual trunk (RTP on both ends) */
 #define MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK "rtpbridge/"
 
+/* Maximal number of payload types / codecs that can be negotiated via SDP at
+ * at once. */
+#define MGCP_MAX_CODECS 10
+
 #endif

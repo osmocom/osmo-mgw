@@ -408,6 +408,21 @@ Response matches our expectations.
 Testing CRCX
 creating message from statically defined input:
 ---------8<---------
+CRCX 2 6@mgw MGCP 1.0
+M: recvonly
+C: 2
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+(response does not contain a connection id)
+Dummy packets: 2
+
+================================================
+Testing CRCX
+creating message from statically defined input:
+---------8<---------
 CRCX 2 1@mgw MGCP 1.0
 M: recvonly
 C: 2
@@ -1031,7 +1046,7 @@ o=- 1439038275 1439038275 IN IP4 192.168.181.247
 s=-
 c=IN IP4 192.168.181.247
 t=0 0
-m=audio 29084 RTP/AVP 255 0 8 3 18 4 96 97 101
+m=audio 29084 RTP/AVP 0 8 3 18 4 96 97 101
 a=rtpmap:0 PCMU/8000
 a=rtpmap:8 PCMA/8000
 a=rtpmap:3 gsm/8000
@@ -1054,7 +1069,7 @@ C: 1355c6041e
 I: %s
 
 c=IN IP4 8.8.8.8
-m=audio 16434 RTP/AVP 255
+m=audio 16434 RTP/AVP 3
 
 ---------8<---------
 creating message from statically defined input:
@@ -1069,7 +1084,7 @@ o=- 1439038275 1439038275 IN IP4 192.168.181.247
 s=-
 c=IN IP4 192.168.181.247
 t=0 0
-m=audio 29084 RTP/AVP 255 0 8 3 18 4 96 97 101
+m=audio 29084 RTP/AVP 0 8 3 18 4 96 97 101
 a=rtpmap:0 PCMU/8000
 a=rtpmap:8 PCMA/8000
 a=rtpmap:3 gsm/8000

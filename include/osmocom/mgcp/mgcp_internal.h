@@ -114,12 +114,19 @@ struct mgcp_rtp_end {
 	/* in network byte order */
 	int rtp_port, rtcp_port;
 
-	/* audio codec information */
-	struct mgcp_rtp_codec codec;
+	/* currently selected audio codec */
+	struct mgcp_rtp_codec *codec;
+
+	/* array with assigned audio codecs to choose from (SDP) */
+	struct mgcp_rtp_codec codecs[MGCP_MAX_CODECS];
+
+	/* number of assigned audio codecs (SDP) */
+	unsigned int codecs_assigned;
 
 	/* per endpoint data */
 	int  frames_per_packet;
 	uint32_t packet_duration_ms;
+	int maximum_packet_time; /* -1: not set */
 	char *fmtp_extra;
 	/* are we transmitting packets (1) or dropping (0) outbound packets */
 	int output_enabled;

@@ -310,7 +310,7 @@ static int adjust_rtp_timestamp_offset(struct mgcp_endpoint *endp,
 			     ENDPOINT_NUMBER(endp), tsdelta,
 			     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 		} else {
-			tsdelta = rtp_end->codec.rate * 20 / 1000;
+			tsdelta = rtp_end->codec->rate * 20 / 1000;
 			LOGP(DRTP, LOGL_NOTICE,
 			     "Fixed packet duration and last timestamp delta "
 			     "are not available on 0x%x, "
@@ -421,8 +421,8 @@ void mgcp_get_net_downlink_format_default(struct mgcp_endpoint *endp,
 	     "endpoint:0x%x conn:%s using format defaults\n",
 	     ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn->conn));
 
-	*payload_type = conn->end.codec.payload_type;
-	*audio_name = conn->end.codec.audio_name;
+	*payload_type = conn->end.codec->payload_type;
+	*audio_name = conn->end.codec->audio_name;
 	*fmtp_extra = conn->end.fmtp_extra;
 }
 
@@ -490,7 +490,7 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 	uint16_t seq;
 	uint32_t timestamp, ssrc;
 	struct rtp_hdr *rtp_hdr;
-	int payload = rtp_end->codec.payload_type;
+	int payload = rtp_end->codec->payload_type;
 
 	if (len < sizeof(*rtp_hdr))
 		return;
@@ -498,7 +498,7 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 	rtp_hdr = (struct rtp_hdr *)data;
 	seq = ntohs(rtp_hdr->sequence);
 	timestamp = ntohl(rtp_hdr->timestamp);
-	arrival_time = get_current_ts(rtp_end->codec.rate);
+	arrival_time = get_current_ts(rtp_end->codec->rate);
 	ssrc = ntohl(rtp_hdr->ssrc);
 	transit = arrival_time - timestamp;
 
@@ -524,7 +524,7 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 		     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 		if (state->packet_duration == 0) {
 			state->packet_duration =
-			    rtp_end->codec.rate * 20 / 1000;
+			    rtp_end->codec->rate * 20 / 1000;
 			LOGP(DRTP, LOGL_NOTICE,
 			     "endpoint:0x%x fixed packet duration is not available, "
 			     "using fixed 20ms instead: %d from %s:%d\n",

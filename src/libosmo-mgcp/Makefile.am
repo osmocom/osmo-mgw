@@ -35,6 +35,7 @@ libosmo_mgcp_a_SOURCES = \
 	mgcp_vty.c \
 	mgcp_osmux.c \
 	mgcp_sdp.c \
+	mgcp_codec.c \
 	mgcp_msg.c \
 	mgcp_conn.c \
 	mgcp_stat.c \
