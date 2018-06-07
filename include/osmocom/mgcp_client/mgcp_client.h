@@ -26,6 +26,33 @@ struct mgcp_client_conf {
 
 typedef unsigned int mgcp_trans_id_t;
 
+/*! Enumeration of the codec types that mgcp_client is able to handle. */
+enum mgcp_codecs {
+	CODEC_PCMU_8000_1 = 0,
+	CODEC_GSM_8000_1 = 3,
+	CODEC_PCMA_8000_1 = 8,
+	CODEC_G729_8000_1 = 18,
+	CODEC_GSMEFR_8000_1 = 110,
+	CODEC_GSMHR_8000_1 = 111,	
+	CODEC_AMR_8000_1 = 112,
+	CODEC_AMRWB_16000_1 = 113,
+};
+/* Note: when new codec types are added, the corresponding value strings
+ * in mgcp_client.c (codec_table) must be updated as well. Enumerations
+ * in enum mgcp_codecs must correspond to a valid payload type. However,
+ * this is an internal assumption that is made to avoid lookup tables.
+ * The API-User should not rely on this coincidence! */
+
+/*! Structure to build a payload type map to allow the defiition custom payload
+ *  types. */
+struct ptmap {
+	/*!< codec for which a payload type number should be defined */
+	enum mgcp_codecs codec;
+
+	/*!< payload type number (96-127) */
+	unsigned int pt;
+};
+
 struct mgcp_response_head {
 	int response_code;
 	mgcp_trans_id_t trans_id;
@@ -39,6 +66,11 @@ struct mgcp_response {
 	struct mgcp_response_head head;
 	uint16_t audio_port;
 	char audio_ip[INET_ADDRSTRLEN];
+	unsigned int ptime;
+	enum mgcp_codecs codecs[MGCP_MAX_CODECS];
+	unsigned int codecs_len;
+	struct ptmap ptmap[MGCP_MAX_CODECS];
+	unsigned int ptmap_len;	
 };
 
 enum mgcp_verb {
@@ -66,6 +98,11 @@ struct mgcp_msg {
 	uint16_t audio_port;
 	char *audio_ip;
 	enum mgcp_connection_mode conn_mode;
+	unsigned int ptime;
+	enum mgcp_codecs codecs[MGCP_MAX_CODECS];
+	unsigned int codecs_len;
+	struct ptmap ptmap[MGCP_MAX_CODECS];
+	unsigned int ptmap_len;
 };
 
 void mgcp_client_conf_init(struct mgcp_client_conf *conf);
@@ -117,3 +154,9 @@ static inline const char *mgcp_client_cmode_name(enum mgcp_connection_mode mode)
 {
 	return get_value_string(mgcp_client_connection_mode_strs, mode);
 }
+
+enum mgcp_codecs map_str_to_codec(const char *str);
+unsigned int map_codec_to_pt(struct ptmap *ptmap, unsigned int ptmap_len,
+			     enum mgcp_codecs codec);
+enum mgcp_codecs map_pt_to_codec(struct ptmap *ptmap, unsigned int ptmap_len,
+				 unsigned int pt);

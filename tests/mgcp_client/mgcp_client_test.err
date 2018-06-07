@@ -62,4 +62,8 @@ test_sdp_section_start() test [9]:
 body: "some mgcp header data\r\nand header params\n\r\rm=audio 23\r\n"
 DLMGCP MGCP response: cannot find start of SDP parameters
 got rc=-22
+DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2
+DLMGCP ptmap contains illegal mapping: codec=0 maps to pt=100
+DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2
+DLMGCP ptmap contains illegal mapping: codec=0 maps to pt=100
 Done

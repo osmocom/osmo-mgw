@@ -95,21 +95,26 @@ static int reply_to(mgcp_trans_id_t trans_id, int code, const char *comment,
 
 void test_response_cb(struct mgcp_response *response, void *priv)
 {
+	unsigned int i;
 	OSMO_ASSERT(priv == mgcp);
 	mgcp_response_parse_params(response);
 
-	printf("response cb received:\n"
-	       "  head.response_code = %d\n"
-	       "  head.trans_id = %u\n"
-	       "  head.comment = %s\n"
-	       "  audio_port = %u\n"
-	       "  audio_ip = %s\n",
-	       response->head.response_code,
-	       response->head.trans_id,
-	       response->head.comment,
-	       response->audio_port,
-	       response->audio_ip
-	      );
+	printf("response cb received:\n");
+	printf("  head.response_code = %d\n", response->head.response_code);
+	printf("  head.trans_id = %u\n", response->head.trans_id);
+	printf("  head.comment = %s\n", response->head.comment);
+	printf("  audio_port = %u\n", response->audio_port);
+	printf("  audio_ip = %s\n", response->audio_ip);
+	printf("  ptime = %u\n", response->ptime);
+	printf("  codecs_len = %u\n", response->codecs_len);
+	for(i=0;i<response->codecs_len;i++)
+		printf("  codecs[%u] = %u\n", i, response->codecs[i]);
+	printf("  ptmap_len = %u\n", response->ptmap_len);
+	for(i=0;i<response->ptmap_len;i++) {
+		printf("  ptmap[%u].codec = %u\n", i, response->ptmap[i].codec);
+		printf("  ptmap[%u].pt = %u\n", i, response->ptmap[i].pt);		
+	}
+	
 }
 
 mgcp_trans_id_t dummy_mgcp_send(struct msgb *msg)
@@ -149,8 +154,9 @@ void test_crcx(void)
 		"s=-\r\n"
 		"c=IN IP4 10.9.1.120\r\n"
 		"t=0 0\r\n"
-		"m=audio 16002 RTP/AVP 98\r\n"
-		"a=rtpmap:98 AMR/8000\r\n"
+		"m=audio 16002 RTP/AVP 110 96\r\n"
+		"a=rtpmap:110 AMR/8000\r\n"
+		"a=rtpmap:96 GSM-EFR/8000\r\n"
 		"a=ptime:20\r\n");
 }
 
@@ -166,7 +172,15 @@ void test_mgcp_msg(void)
 		.audio_port = 1234,
 		.call_id = 47,
 		.conn_id = "11",
-		.conn_mode = MGCP_CONN_RECV_SEND
+		.conn_mode = MGCP_CONN_RECV_SEND,
+		.ptime = 20,
+		.codecs[0] = CODEC_GSM_8000_1,
+		.codecs[1] = CODEC_AMR_8000_1,
+		.codecs[2] = CODEC_GSMEFR_8000_1,
+		.codecs_len = 1,
+		.ptmap[0].codec = CODEC_GSMEFR_8000_1,
+		.ptmap[0].pt = 96,
+		.ptmap_len = 1
 	};
 
 	if (mgcp)
@@ -183,6 +197,26 @@ void test_mgcp_msg(void)
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
 	printf("%s\n", (char *)msg->data);
 
+	printf("Generated CRCX message (two codecs):\n");
+	mgcp_msg.verb = MGCP_VERB_CRCX;
+	mgcp_msg.presence =
+	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE);
+	mgcp_msg.codecs_len = 2;
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	mgcp_msg.codecs_len = 1;	
+	printf("%s\n", (char *)msg->data);
+
+	printf("Generated CRCX message (three codecs, one with custom pt):\n");
+	mgcp_msg.verb = MGCP_VERB_CRCX;
+	mgcp_msg.presence =
+	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE);
+	mgcp_msg.codecs_len = 3;
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	mgcp_msg.codecs_len = 1;	
+	printf("%s\n", (char *)msg->data);		
+
 	printf("Generated MDCX message:\n");
 	mgcp_msg.verb = MGCP_VERB_MDCX;
 	mgcp_msg.presence =
@@ -191,6 +225,28 @@ void test_mgcp_msg(void)
 	     MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT);
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
 	printf("%s\n", (char *)msg->data);
+
+	printf("Generated MDCX message (two codecs):\n");
+	mgcp_msg.verb = MGCP_VERB_MDCX;
+	mgcp_msg.presence =
+	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE |
+	     MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT);
+	mgcp_msg.codecs_len = 2;
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	mgcp_msg.codecs_len = 1;	
+	printf("%s\n", (char *)msg->data);
+
+	printf("Generated MDCX message (three codecs, one with custom pt):\n");
+	mgcp_msg.verb = MGCP_VERB_MDCX;
+	mgcp_msg.presence =
+	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE |
+	     MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT);
+	mgcp_msg.codecs_len = 3;
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	mgcp_msg.codecs_len = 1;	
+	printf("%s\n", (char *)msg->data);	
 
 	printf("Generated DLCX message:\n");
 	mgcp_msg.verb = MGCP_VERB_DLCX;
@@ -242,6 +298,9 @@ void test_mgcp_client_cancel()
 		.conn_mode = MGCP_CONN_RECV_SEND,
 		.presence = (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID
 			     | MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE),
+		.ptime = 20,
+		.codecs[0] = CODEC_AMR_8000_1,
+		.codecs_len = 1		
 	};
 
 	printf("\n%s():\n", __func__);
@@ -376,6 +435,99 @@ void test_sdp_section_start()
 	OSMO_ASSERT(!failures);
 }
 
+static void test_map_pt_to_codec(void)
+{
+	/* Full form */
+	OSMO_ASSERT(map_str_to_codec("PCMU/8000/1") == CODEC_PCMU_8000_1);
+	OSMO_ASSERT(map_str_to_codec("GSM/8000/1") == CODEC_GSM_8000_1);
+	OSMO_ASSERT(map_str_to_codec("PCMA/8000/1") == CODEC_PCMA_8000_1);
+	OSMO_ASSERT(map_str_to_codec("G729/8000/1") == CODEC_G729_8000_1);
+	OSMO_ASSERT(map_str_to_codec("GSM-EFR/8000/1") == CODEC_GSMEFR_8000_1);
+	OSMO_ASSERT(map_str_to_codec("GSM-HR-08/8000/1") == CODEC_GSMHR_8000_1);
+	OSMO_ASSERT(map_str_to_codec("AMR/8000/1") == CODEC_AMR_8000_1);
+	OSMO_ASSERT(map_str_to_codec("AMR-WB/16000/1") == CODEC_AMRWB_16000_1);
+
+	/* Short form */
+	OSMO_ASSERT(map_str_to_codec("GSM-EFR") == CODEC_GSMEFR_8000_1);
+	OSMO_ASSERT(map_str_to_codec("G729") == CODEC_G729_8000_1);
+	OSMO_ASSERT(map_str_to_codec("GSM-HR-08") == CODEC_GSMHR_8000_1);
+
+	/* We do not care about what is after the first delimiter */
+	OSMO_ASSERT(map_str_to_codec("AMR-WB/123///456") == CODEC_AMRWB_16000_1);
+	OSMO_ASSERT(map_str_to_codec("PCMA/asdf") == CODEC_PCMA_8000_1);
+	OSMO_ASSERT(map_str_to_codec("GSM/qwertz") == CODEC_GSM_8000_1);
+
+	/* A trailing delimiter should not hurt */
+	OSMO_ASSERT(map_str_to_codec("AMR/") == CODEC_AMR_8000_1);
+	OSMO_ASSERT(map_str_to_codec("G729/") == CODEC_G729_8000_1);
+	OSMO_ASSERT(map_str_to_codec("GSM/") == CODEC_GSM_8000_1);
+
+	/* This is expected to fail */
+	OSMO_ASSERT(map_str_to_codec("INVALID/1234/7") == -1);
+	OSMO_ASSERT(map_str_to_codec(NULL) == -1);
+	OSMO_ASSERT(map_str_to_codec("") == -1);
+	OSMO_ASSERT(map_str_to_codec("/////") == -1);
+
+	/* The buffers are 64 bytes long, check what happens with overlong
+	 * strings as input (This schould still work.) */
+	OSMO_ASSERT(map_str_to_codec("AMR-WB/16000/1############################################################################################################") == CODEC_AMRWB_16000_1);
+
+	/* This should not work, as there is no delimiter after the codec
+	 * name */
+	OSMO_ASSERT(map_str_to_codec("AMR-WB####################################################################################################################") == -1);
+}
+
+static void test_map_codec_to_pt_and_map_pt_to_codec(void)
+{
+	struct ptmap ptmap[10];
+	unsigned int ptmap_len;
+	unsigned int i;
+
+	ptmap[0].codec = CODEC_GSMEFR_8000_1;
+	ptmap[0].pt = 96;
+	ptmap[1].codec = CODEC_GSMHR_8000_1;
+	ptmap[1].pt = 97;
+	ptmap[2].codec = CODEC_AMR_8000_1;
+	ptmap[2].pt = 98;
+	ptmap[3].codec = CODEC_AMRWB_16000_1;
+	ptmap[3].pt = 99;
+	ptmap_len = 4;
+
+	/* Mappings that are covered by the table */
+	for (i = 0; i < ptmap_len; i++)
+		printf(" %u => %u\n", ptmap[i].codec, map_codec_to_pt(ptmap, ptmap_len, ptmap[i].codec));
+	for (i = 0; i < ptmap_len; i++)
+		printf(" %u <= %u\n", ptmap[i].pt, map_pt_to_codec(ptmap, ptmap_len, ptmap[i].pt));
+	printf("\n");
+
+	/* Map some codecs/payload types from the static range, result must
+	 * always be a 1:1 mapping */
+	printf(" %u => %u\n", CODEC_PCMU_8000_1, map_codec_to_pt(ptmap, ptmap_len, CODEC_PCMU_8000_1));
+	printf(" %u => %u\n", CODEC_GSM_8000_1, map_codec_to_pt(ptmap, ptmap_len, CODEC_GSM_8000_1));
+	printf(" %u => %u\n", CODEC_PCMA_8000_1, map_codec_to_pt(ptmap, ptmap_len, CODEC_PCMA_8000_1));
+	printf(" %u => %u\n", CODEC_G729_8000_1, map_codec_to_pt(ptmap, ptmap_len, CODEC_G729_8000_1));
+	printf(" %u <= %u\n", CODEC_PCMU_8000_1, map_pt_to_codec(ptmap, ptmap_len, CODEC_PCMU_8000_1));
+	printf(" %u <= %u\n", CODEC_GSM_8000_1, map_pt_to_codec(ptmap, ptmap_len, CODEC_GSM_8000_1));
+	printf(" %u <= %u\n", CODEC_PCMA_8000_1, map_pt_to_codec(ptmap, ptmap_len, CODEC_PCMA_8000_1));
+	printf(" %u <= %u\n", CODEC_G729_8000_1, map_pt_to_codec(ptmap, ptmap_len, CODEC_G729_8000_1));
+	printf("\n");
+
+	/* Try to do mappings from statically defined range to danymic range and vice versa. This
+	 * is illegal and should result into a 1:1 mapping */
+	ptmap[3].codec = CODEC_AMRWB_16000_1;
+	ptmap[3].pt = 2;
+	ptmap[4].codec = CODEC_PCMU_8000_1;
+	ptmap[4].pt = 100;
+	ptmap_len = 5;
+
+	/* Apply all mappings again, the illegal ones we defined should result into 1:1 mappings */
+	for (i = 0; i < ptmap_len; i++)
+		printf(" %u => %u\n", ptmap[i].codec, map_codec_to_pt(ptmap, ptmap_len, ptmap[i].codec));
+	for (i = 0; i < ptmap_len; i++)
+		printf(" %u <= %u\n", ptmap[i].pt, map_pt_to_codec(ptmap, ptmap_len, ptmap[i].pt));
+	printf("\n");
+}
+
 static const struct log_info_cat log_categories[] = {
 };
 
@@ -403,6 +555,8 @@ int main(int argc, char **argv)
 	test_mgcp_msg();
 	test_mgcp_client_cancel();
 	test_sdp_section_start();
+	test_map_codec_to_pt_and_map_pt_to_codec();
+	test_map_pt_to_codec();
 
 	printf("Done\n");
 	fprintf(stderr, "Done\n");

@@ -113,8 +113,11 @@ static struct msgb *make_crcx_msg_bind(struct mgcp_ctx *mgcp_ctx)
 		.presence = (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID | MGCP_MSG_PRESENCE_CONN_MODE),
 		.call_id = mgcp_ctx->conn_peer_local.call_id,
 		.conn_mode = MGCP_CONN_RECV_ONLY,
+		.ptime = mgcp_ctx->conn_peer_local.ptime,
+		.codecs_len = mgcp_ctx->conn_peer_local.codecs_len
 	};
 	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_local.endpoint, MGCP_ENDPOINT_MAXLEN);
+	memcpy(mgcp_msg.codecs, mgcp_ctx->conn_peer_local.codecs, sizeof(mgcp_msg.codecs));
 
 	return mgcp_msg_gen(mgcp_ctx->mgcp, &mgcp_msg);
 }
@@ -124,15 +127,19 @@ static struct msgb *make_crcx_msg_bind_connect(struct mgcp_ctx *mgcp_ctx)
 	struct mgcp_msg mgcp_msg;
 
 	mgcp_msg = (struct mgcp_msg) {
-		.verb = MGCP_VERB_CRCX,.presence = (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
-						    MGCP_MSG_PRESENCE_CONN_MODE | MGCP_MSG_PRESENCE_AUDIO_IP |
-						    MGCP_MSG_PRESENCE_AUDIO_PORT),
+		.verb = MGCP_VERB_CRCX,
+		.presence = (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+			     MGCP_MSG_PRESENCE_CONN_MODE | MGCP_MSG_PRESENCE_AUDIO_IP |
+			     MGCP_MSG_PRESENCE_AUDIO_PORT),
 		.call_id = mgcp_ctx->conn_peer_local.call_id,
 		.conn_mode = MGCP_CONN_RECV_SEND,
 		.audio_ip = mgcp_ctx->conn_peer_local.addr,
 		.audio_port = mgcp_ctx->conn_peer_local.port,
+		.ptime = mgcp_ctx->conn_peer_local.ptime,
+		.codecs_len = mgcp_ctx->conn_peer_local.codecs_len
 	};
 	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_local.endpoint, MGCP_ENDPOINT_MAXLEN);
+	memcpy(mgcp_msg.codecs, mgcp_ctx->conn_peer_local.codecs, sizeof(mgcp_msg.codecs));
 
 	return mgcp_msg_gen(mgcp_ctx->mgcp, &mgcp_msg);
 }
@@ -150,8 +157,11 @@ static struct msgb *make_mdcx_msg(struct mgcp_ctx *mgcp_ctx)
 		.conn_mode = MGCP_CONN_RECV_SEND,
 		.audio_ip = mgcp_ctx->conn_peer_local.addr,
 		.audio_port = mgcp_ctx->conn_peer_local.port,
+		.ptime = mgcp_ctx->conn_peer_local.ptime,
+		.codecs_len = mgcp_ctx->conn_peer_local.codecs_len
 	};
 	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_remote.endpoint, MGCP_ENDPOINT_MAXLEN);
+	memcpy(mgcp_msg.codecs, mgcp_ctx->conn_peer_local.codecs, sizeof(mgcp_msg.codecs));
 
 	/* Note: We take the endpoint and the call_id from the remote
 	 * connection info, because we can be confident that the
@@ -573,7 +583,7 @@ struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm
 	OSMO_ASSERT(mgcp);
 	OSMO_ASSERT(conn_peer);
 
-	/* Check if IP/Port informstaion in conn info makes sense */
+	/* Check if IP/Port information in conn info makes sense */
 	if (conn_peer->port && inet_aton(conn_peer->addr, &ip_test) == 0)
 		return NULL;
 

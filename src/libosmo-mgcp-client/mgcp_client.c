@@ -36,6 +36,150 @@
 #include <unistd.h>
 #include <string.h>
 
+/* Codec descripton for dynamic payload types (SDP) */
+static const struct value_string codec_table[] = {
+	{ CODEC_PCMU_8000_1, "PCMU/8000/1" },
+	{ CODEC_GSM_8000_1, "GSM/8000/1" },
+	{ CODEC_PCMA_8000_1, "PCMA/8000/1" },
+	{ CODEC_G729_8000_1, "G729/8000/1" },
+	{ CODEC_GSMEFR_8000_1, "GSM-EFR/8000/1" },
+	{ CODEC_GSMHR_8000_1, "GSM-HR-08/8000/1" },
+	{ CODEC_AMR_8000_1, "AMR/8000/1" },
+	{ CODEC_AMRWB_16000_1, "AMR-WB/16000/1" },
+	{ 0, NULL },
+};
+
+/* Get encoding name from a full codec string e,g.
+ * ("CODEC/8000/2" => returns "CODEC") */
+static char *extract_codec_name(const char *str)
+{
+	static char buf[64];
+	unsigned int i;
+
+	if (!str)
+		return NULL;
+
+	/* FIXME osmo_strlcpy */
+	osmo_strlcpy(buf, str, sizeof(buf));
+
+	for (i = 0; i < strlen(buf); i++) {
+		if (buf[i] == '/')
+			buf[i] = '\0';
+	}
+
+	return buf;
+}
+
+/*! Map a string to a codec.
+ *  \ptmap[in] str input string (e.g "GSM/8000/1", "GSM/8000" or "GSM")
+ *  \returns codec that corresponds to the given string representation. */
+enum mgcp_codecs map_str_to_codec(const char *str)
+{
+	unsigned int i;
+	char *codec_name;
+	char str_buf[64];
+
+	osmo_strlcpy(str_buf, extract_codec_name(str), sizeof(str_buf));
+
+	for (i = 0; i < ARRAY_SIZE(codec_table); i++) {
+		codec_name = extract_codec_name(codec_table[i].str);
+		if (!codec_name)
+			continue;
+		if (strcmp(codec_name, str_buf) == 0)
+			return codec_table[i].value;
+	}
+
+	return -1;
+}
+
+/* Check the ptmap for illegal mappings */
+static int check_ptmap(struct ptmap *ptmap)
+{
+	/* Check if there are mappings that leave the IANA assigned dynamic
+	 * payload type range. Under normal conditions such mappings should
+	 * not occur */
+
+	/* Its ok to have a 1:1 mapping in the statically defined
+	 * range, this won't hurt */
+	if (ptmap->codec == ptmap->pt)
+		return 0;
+
+	if (ptmap->codec < 96 || ptmap->codec > 127)
+		goto error;
+	if (ptmap->pt < 96 || ptmap->pt > 127)
+		goto error;
+
+	return 0;
+error:
+	LOGP(DLMGCP, LOGL_ERROR,
+	     "ptmap contains illegal mapping: codec=%u maps to pt=%u\n",
+	     ptmap->codec, ptmap->pt);
+	return -1;
+}
+
+/*! Map a codec to a payload type.
+ *  \ptmap[in] payload pointer to payload type map with specified payload types.
+ *  \ptmap[in] ptmap_len length of the payload type map.
+ *  \ptmap[in] codec the codec for which the payload type should be looked up.
+ *  \returns assigned payload type */
+unsigned int map_codec_to_pt(struct ptmap *ptmap, unsigned int ptmap_len,
+			     enum mgcp_codecs codec)
+{
+	unsigned int i;
+
+	/*! Note: If the payload type map is empty or the codec is not found
+	 *  in the map, then a 1:1 mapping is performed. If the codec falls
+	 *  into the statically defined range or if the mapping table isself
+	 *  tries to map to the statically defined range, then the mapping
+	 *  is also ignored and a 1:1 mapping is performed instead. */
+
+	/* we may return the codec directly since enum mgcp_codecs directly
+	 * corresponds to the statićally assigned payload types */
+	if (codec < 96 || codec > 127)
+		return codec;
+
+	for (i = 0; i < ptmap_len; i++) {
+		/* Skip illegal map entries */
+		if (check_ptmap(ptmap) == 0 && ptmap->codec == codec)
+			return ptmap->pt;
+		ptmap++;
+	}
+
+	/* If nothing is found, do not perform any mapping */
+	return codec;
+}
+
+/*! Map a payload type to a codec.
+ *  \ptmap[in] payload pointer to payload type map with specified payload types.
+ *  \ptmap[in] ptmap_len length of the payload type map.
+ *  \ptmap[in] payload type for which the codec should be looked up.
+ *  \returns codec that corresponds to the specified payload type */
+enum mgcp_codecs map_pt_to_codec(struct ptmap *ptmap, unsigned int ptmap_len,
+				 unsigned int pt)
+{
+	unsigned int i;
+
+	/*! Note: If the payload type map is empty or the payload type is not
+	 *  found in the map, then a 1:1 mapping is performed. If the payload
+	 *  type falls into the statically defined range or if the mapping
+	 *  table isself tries to map to the statically defined range, then
+	 *  the mapping is also ignored and a 1:1 mapping is performed
+	 *  instead. */
+
+	/* See also note in map_codec_to_pt() */
+	if (pt < 96 || pt > 127)
+		return pt;
+
+	for (i = 0; i < ptmap_len; i++) {
+		if (check_ptmap(ptmap) == 0 && ptmap->pt == pt)
+			return ptmap->codec;
+		ptmap++;
+	}
+
+	/* If nothing is found, do not perform any mapping */
+	return pt;
+}
+
 /*! Initalize MGCP client configuration struct with default values.
  *  \param[out] conf Client configuration.*/
 void mgcp_client_conf_init(struct mgcp_client_conf *conf)
@@ -178,22 +322,114 @@ static bool mgcp_line_is_valid(const char *line)
 	return true;
 }
 
-/* Parse a line like "m=audio 16002 RTP/AVP 98" */
-static int mgcp_parse_audio_port(struct mgcp_response *r, const char *line)
+/* Parse a line like "m=audio 16002 RTP/AVP 98", extract port and payload types */
+static int mgcp_parse_audio_port_pt(struct mgcp_response *r, char *line)
 {
-	if (sscanf(line, "m=audio %hu",
-		   &r->audio_port) != 1)
-		goto response_parse_failure;
+	char *pt_str;
+	unsigned int pt;
+	unsigned int count = 0;
+	unsigned int i;
 
+	/* Extract port information */
+	if (sscanf(line, "m=audio %hu", &r->audio_port) != 1)
+		goto response_parse_failure_port;
 	if (r->audio_port == 0)
-		goto response_parse_failure;
+		goto response_parse_failure_port;
 
+	/* Extract payload types */
+	line = strstr(line, "RTP/AVP ");
+	if (!line)
+		goto exit;
+
+	pt_str = strtok(line, " ");
+	while (1) {
+		/* Do not allow excessive payload types */
+		if (count > ARRAY_SIZE(r->codecs))
+			goto response_parse_failure_pt;
+
+		pt_str = strtok(NULL, " ");
+		if (!pt_str)
+			break;
+		pt = atoi(pt_str);
+
+		/* Do not allow duplicate payload types */
+		for (i = 0; i < count; i++)
+			if (r->codecs[i] == pt)
+				goto response_parse_failure_pt;
+
+		/* Note: The payload type we store may not necessarly match
+		 * the codec types we have defined in enum mgcp_codecs. To
+		 * ensure that the end result only contains codec types which
+		 * match enum mgcp_codecs, we will go through afterwards and
+		 * remap the affected entries with the inrofmation we learn
+		 * from rtpmap */
+		r->codecs[count] = pt;
+		count++;
+	}
+
+	r->codecs_len = count;
+
+exit:
 	return 0;
 
-response_parse_failure:
+response_parse_failure_port:
 	LOGP(DLMGCP, LOGL_ERROR,
-	     "Failed to parse MGCP response header (audio port)\n");
+	     "Failed to parse SDP parameter port (%s)\n", line);
 	return -EINVAL;
+
+response_parse_failure_pt:
+	LOGP(DLMGCP, LOGL_ERROR,
+	     "Failed to parse SDP parameter payload types (%s)\n", line);
+	return -EINVAL;
+}
+
+/* Parse a line like "m=audio 16002 RTP/AVP 98", extract port and payload types */
+static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *line)
+{
+	unsigned int pt;
+	char codec_resp[64];
+	unsigned int codec;
+	
+	
+	if (strstr(line, "ptime")) {
+		if (sscanf(line, "a=ptime:%u", &r->ptime) != 1)
+			goto response_parse_failure_ptime;
+	} else if (strstr(line, "rtpmap")) {
+		if (sscanf(line, "a=rtpmap:%d %63s", &pt, codec_resp) == 2) {
+			/* The MGW may assign an own payload type in the
+			 * response if the choosen codec falls into the IANA
+			 * assigned dynamic payload type range (96-127).
+			 * Normally the MGW should obey the 3gpp payload type
+			 * assignments, which are fixed, so we likely wont see
+			 * anything unexpected here. In order to be sure that
+			 * we will now check the codec string and if the result
+			 * does not match to what is IANA / 3gpp assigned, we
+			 * will create an entry in the ptmap table so we can
+			 * lookup later what has been assigned. */
+			codec = map_str_to_codec(codec_resp);
+			if (codec != pt) {
+				if (r->ptmap_len < ARRAY_SIZE(r->ptmap)) {
+					r->ptmap[r->ptmap_len].pt = pt;
+					r->ptmap[r->ptmap_len].codec = codec;
+					r->ptmap_len++;
+				} else
+					goto response_parse_failure_rtpmap;
+			}
+
+		} else
+			goto response_parse_failure_rtpmap;
+	}
+	
+	return 0;
+
+response_parse_failure_ptime:
+	LOGP(DLMGCP, LOGL_ERROR,
+	     "Failed to parse SDP parameter, invalid ptime (%s)\n", line);
+	return -EINVAL;		
+response_parse_failure_rtpmap:
+	LOGP(DLMGCP, LOGL_ERROR,
+	     "Failed to parse SDP parameter, invalid rtpmap (%s)\n", line);
+	return -EINVAL;		
 }
 
 /* Parse a line like "c=IN IP4 10.11.12.13" */
@@ -253,6 +489,7 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 	int rc;
 	char *data;
 	char *data_ptr;
+	int i;
 
 	/* Since this functions performs a destructive parsing, we create a
 	 * local copy of the body data */
@@ -277,8 +514,13 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 			return -EINVAL;
 
 		switch (line[0]) {
+		case 'a':
+			rc = mgcp_parse_audio_ptime_rtpmap(r, line);
+			if (rc)
+				goto exit;
+			break;
 		case 'm':
-			rc = mgcp_parse_audio_port(r, line);
+			rc = mgcp_parse_audio_port_pt(r, line);
 			if (rc)
 				goto exit;
 			break;
@@ -292,6 +534,10 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 			break;
 		}
 	}
+
+	/* See also note in mgcp_parse_audio_port_pt() */
+	for (i = 0; i < r->codecs_len; i++)
+	        r->codecs[i] =  map_pt_to_codec(r->ptmap, r->ptmap_len, r->codecs[i]);
 
 	rc = 0;
 exit:
@@ -813,6 +1059,119 @@ struct msgb *mgcp_msg_dlcx(struct mgcp_client *mgcp, uint16_t rtp_endpoint,
 #define MGCP_AUEP_MANDATORY (MGCP_MSG_PRESENCE_ENDPOINT)
 #define MGCP_RSIP_MANDATORY 0	/* none */
 
+/* Helper function for mgcp_msg_gen(): Add LCO information to MGCP message */
+static int add_lco(struct msgb *msg, struct mgcp_msg *mgcp_msg)
+{
+	unsigned int i;
+	int rc = 0;
+	const char *codec;
+	unsigned int pt;
+
+	rc += msgb_printf(msg, "L:");
+
+	if (mgcp_msg->ptime)
+		rc += msgb_printf(msg, " p:%u,", mgcp_msg->ptime);
+
+	if (mgcp_msg->codecs_len) {
+		rc += msgb_printf(msg, " a:");
+		for (i = 0; i < mgcp_msg->codecs_len; i++) {
+			pt = mgcp_msg->codecs[i];
+			codec = get_value_string_or_null(codec_table, pt);
+			
+			/* Note: Use codec descriptors from enum mgcp_codecs
+			 * in mgcp_client only! */
+			OSMO_ASSERT(codec);
+			rc += msgb_printf(msg, "%s", extract_codec_name(codec));
+			if (i < mgcp_msg->codecs_len - 1)
+				rc += msgb_printf(msg, ";");
+		}
+		rc += msgb_printf(msg, ",");
+	}
+
+	rc += msgb_printf(msg, " nt:IN\r\n");
+
+	return rc;
+}
+
+/* Helper function for mgcp_msg_gen(): Add SDP information to MGCP message */
+static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_client *mgcp)
+{
+	unsigned int i;
+	int rc = 0;
+	char local_ip[INET_ADDRSTRLEN];
+	const char *codec;
+	unsigned int pt;
+
+	/* Add separator to mark the beginning of the SDP block */
+	rc += msgb_printf(msg, "\r\n");
+
+	/* Add SDP protocol version */
+	rc += msgb_printf(msg, "v=0\r\n");
+
+	/* Determine local IP-Address */
+	if (osmo_sock_local_ip(local_ip, mgcp->actual.remote_addr) < 0) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "Could not determine local IP-Address!\n");
+		msgb_free(msg);
+		return -2;
+	}
+
+	/* Add owner/creator (SDP) */
+	rc += msgb_printf(msg, "o=- %x 23 IN IP4 %s\r\n",
+			  mgcp_msg->call_id, local_ip);
+
+	/* Add session name (none) */
+	rc += msgb_printf(msg, "s=-\r\n");
+
+	/* Add RTP address and port */
+	if (mgcp_msg->audio_port == 0) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "Invalid port number, can not generate MGCP message\n");
+		msgb_free(msg);
+		return -2;
+	}
+	if (strlen(mgcp_msg->audio_ip) <= 0) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "Empty ip address, can not generate MGCP message\n");
+		msgb_free(msg);
+		return -2;
+	}
+	rc += msgb_printf(msg, "c=IN IP4 %s\r\n", mgcp_msg->audio_ip);
+
+	/* Add time description, active time (SDP) */
+	rc += msgb_printf(msg, "t=0 0\r\n");
+
+	rc += msgb_printf(msg, "m=audio %u RTP/AVP", mgcp_msg->audio_port);
+	for (i = 0; i < mgcp_msg->codecs_len; i++) {
+		pt = map_codec_to_pt(mgcp_msg->ptmap, mgcp_msg->ptmap_len, mgcp_msg->codecs[i]);
+		rc += msgb_printf(msg, " %u", pt);
+
+	}
+	rc += msgb_printf(msg, "\r\n");
+
+	for (i = 0; i < mgcp_msg->codecs_len; i++) {
+		pt = map_codec_to_pt(mgcp_msg->ptmap, mgcp_msg->ptmap_len, mgcp_msg->codecs[i]);
+		
+		/* Note: Only dynamic payload type from the range 96-127
+		 * require to be explained further via rtpmap. All others
+		 * are implcitly definedby the number in m=audio */
+		if (pt >= 96 && pt <= 127) {
+			codec = get_value_string_or_null(codec_table, mgcp_msg->codecs[i]);
+
+			/* Note: Use codec descriptors from enum mgcp_codecs
+			 * in mgcp_client only! */
+			OSMO_ASSERT(codec);
+			
+			rc += msgb_printf(msg, "a=rtpmap:%u %s\r\n", pt, codec);
+		}
+	}
+	
+	if (mgcp_msg->ptime)
+		rc += msgb_printf(msg, "a=ptime:%u\r\n", mgcp_msg->ptime);
+
+	return rc;
+}
+
 /*! Generate an MGCP message
  *  \param[in] mgcp MGCP client descriptor.
  *  \param[in] mgcp_msg Message description
@@ -823,7 +1182,8 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	uint32_t mandatory_mask;
 	struct msgb *msg = msgb_alloc_headroom(4096, 128, "MGCP tx");
 	int rc = 0;
-	char local_ip[INET_ADDRSTRLEN];
+	int rc_sdp;
+	bool use_sdp = false;
 
 	msg->l2h = msg->data;
 	msg->cb[MSGB_CB_MGCP_TRANS_ID] = trans_id;
@@ -902,9 +1262,17 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		rc += msgb_printf(msg, "I: %s\r\n", mgcp_msg->conn_id);
 	}
 
-	/* Add local connection options */
-	if (mgcp_msg->verb == MGCP_VERB_CRCX)
-		rc += msgb_printf(msg, "L: p:20, a:AMR, nt:IN\r\n");
+	/* Using SDP makes sense when a valid IP/Port combination is specifiec,
+	 * if we do not know this information yet, we fall back to LCO */
+	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_IP
+	    && mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_PORT)
+		use_sdp = true;
+
+	/* Add local connection options (LCO) */
+	if (!use_sdp
+	    && (mgcp_msg->verb == MGCP_VERB_CRCX
+		|| mgcp_msg->verb == MGCP_VERB_MDCX))
+		rc += add_lco(msg, mgcp_msg);
 
 	/* Add mode */
 	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CONN_MODE)
@@ -912,52 +1280,15 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		    msgb_printf(msg, "M: %s\r\n",
 				mgcp_client_cmode_name(mgcp_msg->conn_mode));
 
-	/* Add SDP body */
-	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_IP
-	    && mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_PORT) {
-
-		/* Add separator to mark the beginning of the SDP block */
-		rc += msgb_printf(msg, "\r\n");
-
-		/* Add SDP protocol version */
-		rc += msgb_printf(msg, "v=0\r\n");
-
-		/* Determine local IP-Address */
-		if (osmo_sock_local_ip(local_ip, mgcp->actual.remote_addr) < 0) {
-			LOGP(DLMGCP, LOGL_ERROR,
-			     "Could not determine local IP-Address!\n");
-			msgb_free(msg);
+	/* Add session description protocol (SDP) */
+	if (use_sdp
+	    && (mgcp_msg->verb == MGCP_VERB_CRCX
+		|| mgcp_msg->verb == MGCP_VERB_MDCX)) {
+		rc_sdp = add_sdp(msg, mgcp_msg, mgcp);
+		if (rc_sdp == -2)
 			return NULL;
-		}
-
-		/* Add owner/creator (SDP) */
-		rc += msgb_printf(msg, "o=- %x 23 IN IP4 %s\r\n",
-				  mgcp_msg->call_id, local_ip);
-
-		/* Add session name (none) */
-		rc += msgb_printf(msg, "s=-\r\n");
-
-		/* Add RTP address and port */
-		if (mgcp_msg->audio_port == 0) {
-			LOGP(DLMGCP, LOGL_ERROR,
-			     "Invalid port number, can not generate MGCP message\n");
-			msgb_free(msg);
-			return NULL;
-		}
-		if (strlen(mgcp_msg->audio_ip) <= 0) {
-			LOGP(DLMGCP, LOGL_ERROR,
-			     "Empty ip address, can not generate MGCP message\n");
-			msgb_free(msg);
-			return NULL;
-		}
-		rc += msgb_printf(msg, "c=IN IP4 %s\r\n", mgcp_msg->audio_ip);
-
-		/* Add time description, active time (SDP) */
-		rc += msgb_printf(msg, "t=0 0\r\n");
-
-		rc +=
-		    msgb_printf(msg, "m=audio %u RTP/AVP 255\r\n",
-				mgcp_msg->audio_port);
+		else
+			rc += rc_sdp;
 	}
 
 	if (rc != 0) {

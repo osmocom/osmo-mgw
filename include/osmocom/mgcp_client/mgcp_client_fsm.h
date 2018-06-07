@@ -25,6 +25,15 @@ struct mgcp_conn_peer {
 
 	/*!< CALL ID (unique per connection) */
 	unsigned int call_id;
+
+	/*!< RTP packetization interval (optional) */
+	unsigned int ptime;
+
+	/*!< RTP codec list (optional) */
+	enum mgcp_codecs codecs[MGCP_MAX_CODECS];
+
+	/*!< Number of codecs in RTP codec list (optional) */
+	unsigned int codecs_len;
 };
 
 struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm_inst *parent_fi, uint32_t parent_term_evt,
