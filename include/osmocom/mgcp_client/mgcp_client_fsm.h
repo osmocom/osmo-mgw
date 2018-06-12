@@ -31,3 +31,5 @@ struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm
 				       uint32_t parent_evt, struct mgcp_conn_peer *conn_peer);
 int mgcp_conn_modify(struct osmo_fsm_inst *fi, uint32_t parent_evt, struct mgcp_conn_peer *conn_peer);
 void mgcp_conn_delete(struct osmo_fsm_inst *fi);
+
+const char *mgcp_conn_get_ci(struct osmo_fsm_inst *fi);

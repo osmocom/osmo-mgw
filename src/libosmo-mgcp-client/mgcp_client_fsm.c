@@ -215,6 +215,14 @@ static void fsm_crcx_cb(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 	}
 }
 
+/* Return the CI that the MGW allocated during CRCX response. This is purely informational for logging
+ * and identity tracking; the mgcp_conn_*() functions take care of using the right CI internally. */
+const char *mgcp_conn_get_ci(struct osmo_fsm_inst *fi)
+{
+	struct mgcp_ctx *mgcp_ctx = fi->priv;
+	return mgcp_ctx->conn_id;
+}
+
 static void mgw_crcx_resp_cb(struct mgcp_response *r, void *priv)
 {
 	struct osmo_fsm_inst *fi = priv;
