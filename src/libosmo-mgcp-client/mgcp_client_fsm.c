@@ -630,17 +630,24 @@ int mgcp_conn_modify(struct osmo_fsm_inst *fi, uint32_t parent_evt, struct mgcp_
 	OSMO_ASSERT(fi->state != ST_DLCX_RESP);
 
 	/* Check if IP/Port parameters make sense */
-	if (conn_peer->port == 0)
+	if (conn_peer->port == 0) {
+		LOGPFSML(fi, LOGL_ERROR, "Cannot MDCX, port == 0\n");
 		return -EINVAL;
-	if (inet_aton(conn_peer->addr, &ip_test) == 0)
+	}
+	if (inet_aton(conn_peer->addr, &ip_test) == 0) {
+		LOGPFSML(fi, LOGL_ERROR, "Cannot MDCX, IP address == 0.0.0.0\n");
 		return -EINVAL;
+	}
 
 	/*! The user may supply an endpoint identifier in conn_peer. The
 	 *  identifier is then checked. This check is optional. Later steps do
 	 *  not depend on the endpoint identifier supplied here because it is
 	 *  already implicitly known from the CRCX phase. */
-	if (strlen(conn_peer->endpoint) && strcmp(conn_peer->endpoint, mgcp_ctx->conn_peer_remote.endpoint))
+	if (strlen(conn_peer->endpoint) && strcmp(conn_peer->endpoint, mgcp_ctx->conn_peer_remote.endpoint)) {
+		LOGPFSML(fi, LOGL_ERROR, "Cannot MDCX, endpoint mismatches: requested %s, should be %s\n",
+			 conn_peer->endpoint, mgcp_ctx->conn_peer_remote.endpoint);
 		return -EINVAL;
+	}
 
 	/*! Note: The call-id is implicitly known from the previous CRCX and
 	 *  will not be checked even when it is set in conn_peer. */
