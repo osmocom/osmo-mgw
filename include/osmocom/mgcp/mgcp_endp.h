@@ -42,13 +42,13 @@ typedef void (*mgcp_cleanup_cp) (struct mgcp_endpoint *endp,
 
 /*! MGCP endpoint properties */
 struct mgcp_endpoint_type {
-	/*!< maximum number of connections */
+	/*! maximum number of connections */
 	int max_conns;
 
-	/*!< callback that defines how to dispatch incoming RTP data */
+	/*! callback that defines how to dispatch incoming RTP data */
 	mgcp_dispatch_rtp_cb dispatch_rtp_cb;
 
-	/*!< callback that implements endpoint specific cleanup actions */
+	/*! callback that implements endpoint specific cleanup actions */
 	mgcp_cleanup_cp cleanup_cb;
 };
 
@@ -63,31 +63,31 @@ extern const struct mgcp_endpoint_typeset ep_typeset;
 /*! MGCP endpoint model */
 struct mgcp_endpoint {
 
-	/*!< Call identifier string (as supplied by the call agant) */
+	/*! Call identifier string (as supplied by the call agant) */
 	char *callid;
 
-	/*!< Local connection options (see mgcp_internal.h) */
+	/*! Local connection options (see mgcp_internal.h) */
 	struct mgcp_lco local_options;
 
-	/*!< List with connections active on this endpoint */
+	/*! List with connections active on this endpoint */
 	struct llist_head conns;
 
-	/*!< Backpointer to the MGW configuration */
+	/*! Backpointer to the MGW configuration */
 	struct mgcp_config *cfg;
 
-	/*!< Backpointer to the Trunk specific configuration */
+	/*! Backpointer to the Trunk specific configuration */
 	struct mgcp_trunk_config *tcfg;
 
-	/*!< Endpoint properties (see above) */
+	/*! Endpoint properties (see above) */
 	const struct mgcp_endpoint_type *type;
 
-	/*!< Last MGCP transmission (in case re-transmission is required) */
+	/*! Last MGCP transmission (in case re-transmission is required) */
 	char *last_trans;
 
-	/*!< Last MGCP response (in case re-transmission is required) */
+	/*! Last MGCP response (in case re-transmission is required) */
 	char *last_response;
 
-	/*!< Memorize if this endpoint was choosen by the MGW (wildcarded, true)
+	/*! Memorize if this endpoint was choosen by the MGW (wildcarded, true)
 	 *   or if the user has choosen the particular endpoint explicitly. */
 	bool wildcarded_req;
 };

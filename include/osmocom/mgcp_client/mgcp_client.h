@@ -46,10 +46,10 @@ enum mgcp_codecs {
 /*! Structure to build a payload type map to allow the defiition custom payload
  *  types. */
 struct ptmap {
-	/*!< codec for which a payload type number should be defined */
+	/*! codec for which a payload type number should be defined */
 	enum mgcp_codecs codec;
 
-	/*!< payload type number (96-127) */
+	/*! payload type number (96-127) */
 	unsigned int pt;
 };
 

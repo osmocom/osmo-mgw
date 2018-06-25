@@ -14,25 +14,25 @@
  *  identifier is supplied it is checked against the internal state to make
  *  sure it is correct. */
 struct mgcp_conn_peer {
-	/*!< RTP connection IP-Address (optional, string e.g. "127.0.0.1") */
+	/*! RTP connection IP-Address (optional, string e.g. "127.0.0.1") */
 	char addr[INET_ADDRSTRLEN];
 
-	/*!< RTP connection IP-Port (optional)  */
+	/*! RTP connection IP-Port (optional)  */
 	uint16_t port;
 
-	/*!< RTP endpoint */
+	/*! RTP endpoint */
 	char endpoint[MGCP_ENDPOINT_MAXLEN];
 
-	/*!< CALL ID (unique per connection) */
+	/*! CALL ID (unique per connection) */
 	unsigned int call_id;
 
-	/*!< RTP packetization interval (optional) */
+	/*! RTP packetization interval (optional) */
 	unsigned int ptime;
 
-	/*!< RTP codec list (optional) */
+	/*! RTP codec list (optional) */
 	enum mgcp_codecs codecs[MGCP_MAX_CODECS];
 
-	/*!< Number of codecs in RTP codec list (optional) */
+	/*! Number of codecs in RTP codec list (optional) */
 	unsigned int codecs_len;
 };
 
