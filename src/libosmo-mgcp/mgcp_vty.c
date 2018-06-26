@@ -179,15 +179,31 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_rtp_state *state,
 		end->force_output_ptime, VTY_NEWLINE);
 }
 
-static void dump_trunk(struct vty *vty, struct mgcp_trunk_config *cfg,
-		       int verbose)
+static void dump_endpoint(struct vty *vty, struct mgcp_endpoint *endp, int epidx, int verbose)
 {
-	int i;
 	struct mgcp_conn *conn;
 
-	vty_out(vty, "%s trunk nr %d with %d endpoints:%s",
-		cfg->trunk_type == MGCP_TRUNK_VIRTUAL ? "Virtual" : "E1",
-		cfg->trunk_nr, cfg->number_endpoints - 1, VTY_NEWLINE);
+	vty_out(vty, "Endpoint %s%d:%s", MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK, epidx, VTY_NEWLINE);
+
+	llist_for_each_entry(conn, &endp->conns, entry) {
+		vty_out(vty, "   CONN: %s%s",
+			mgcp_conn_dump(conn), VTY_NEWLINE);
+
+		if (verbose) {
+			/* FIXME: Also add verbosity for other
+			 * connection types (E1) as soon as
+			 * the implementation is available */
+			if (conn->type == MGCP_CONN_TYPE_RTP) {
+				dump_rtp_end(vty, &conn->u.rtp.state,
+					     &conn->u.rtp.end);
+			}
+		}
+	}
+}
+
+static void dump_endpoints(struct vty *vty, struct mgcp_trunk_config *cfg, int verbose)
+{
+	int i;
 
 	if (!cfg->endpoints) {
 		vty_out(vty, "No endpoints allocated yet.%s", VTY_NEWLINE);
@@ -196,24 +212,20 @@ static void dump_trunk(struct vty *vty, struct mgcp_trunk_config *cfg,
 
 	for (i = 1; i < cfg->number_endpoints; ++i) {
 		struct mgcp_endpoint *endp = &cfg->endpoints[i];
-
-		vty_out(vty, "Endpoint 0x%.2x:%s", i, VTY_NEWLINE);
-
-		llist_for_each_entry(conn, &endp->conns, entry) {
-			vty_out(vty, "   CONN: %s%s",
-				mgcp_conn_dump(conn), VTY_NEWLINE);
-
-			if (verbose) {
-				/* FIXME: Also add verbosity for other
-				 * connection types (E1) as soon as
-				 * the implementation is available */
-				if (conn->type == MGCP_CONN_TYPE_RTP) {
-					dump_rtp_end(vty, &conn->u.rtp.state,
-						     &conn->u.rtp.end);
-				}
-			}
-		}
+		dump_endpoint(vty, endp, i, verbose);
+		if (i < cfg->number_endpoints - 1)
+			vty_out(vty, "%s", VTY_NEWLINE);
 	}
+}
+
+static void dump_trunk(struct vty *vty, struct mgcp_trunk_config *cfg,
+		       int verbose)
+{
+	vty_out(vty, "%s trunk nr %d with %d endpoints:%s",
+		cfg->trunk_type == MGCP_TRUNK_VIRTUAL ? "Virtual" : "E1",
+		cfg->trunk_nr, cfg->number_endpoints - 1, VTY_NEWLINE);
+
+	dump_endpoints(vty, cfg, verbose);
 }
 
 DEFUN(show_mcgp, show_mgcp_cmd,
@@ -233,6 +245,33 @@ DEFUN(show_mcgp, show_mgcp_cmd,
 	if (g_cfg->osmux)
 		vty_out(vty, "Osmux used CID: %d%s", osmux_used_cid(),
 			VTY_NEWLINE);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(show_mcgp_endpoint, show_mgcp_endpoint_cmd,
+      "show mgcp trunk <0-255> endpoint rtpbridge/<1-65534>",
+      SHOW_STR
+      "Display information about MGCP Media Gateway endpoint\n"
+      "Include Statistics\n")
+{
+	struct mgcp_trunk_config *trunk;
+	int trunkidx = atoi(argv[1]);
+	int epidx = atoi(argv[2]);
+	int tidx = 0, i;
+
+	llist_for_each_entry(trunk, &g_cfg->trunks, entry) {
+		if (tidx++ == trunkidx) {
+			for (i = 1; i < trunk->number_endpoints; ++i) {
+				struct mgcp_endpoint *endp = &trunk->endpoints[i];
+				if (i == epidx) {
+					dump_endpoint(vty, endp, i, true);
+					break;
+				}
+			}
+			break;
+		}
+	}
 
 	return CMD_SUCCESS;
 }
@@ -1213,6 +1252,7 @@ DEFUN(cfg_mgcp_domain,
 int mgcp_vty_init(void)
 {
 	install_element_ve(&show_mgcp_cmd);
+	install_element_ve(&show_mgcp_endpoint_cmd);
 	install_element(ENABLE_NODE, &loop_conn_cmd);
 	install_element(ENABLE_NODE, &tap_rtp_cmd);
 	install_element(ENABLE_NODE, &free_endp_cmd);
