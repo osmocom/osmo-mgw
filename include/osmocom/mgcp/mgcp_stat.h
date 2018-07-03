@@ -30,8 +30,7 @@
 void mgcp_format_stats(char *str, size_t str_len,  struct mgcp_conn *conn);
 
 /* Exposed for test purposes only, do not use actively */
-void calc_loss(struct mgcp_rtp_state *s, struct mgcp_rtp_end *,
-			uint32_t *expected, int *loss);
+void calc_loss(struct mgcp_conn_rtp *conn, uint32_t *expected, int *loss);
 
 /* Exposed for test purposes only, do not use actively */
 uint32_t calc_jitter(struct mgcp_rtp_state *);

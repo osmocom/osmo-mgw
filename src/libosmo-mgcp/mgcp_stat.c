@@ -27,10 +27,11 @@
 #include <limits.h>
 
 /* Helper function for mgcp_format_stats_rtp() to calculate packet loss */
-void calc_loss(struct mgcp_rtp_state *state,
-			struct mgcp_rtp_end *end, uint32_t *expected,
-			int *loss)
+void calc_loss(struct mgcp_conn_rtp *conn, uint32_t *expected, int *loss)
 {
+	struct mgcp_rtp_state *state = &conn->state;
+	struct rate_ctr *packets_rx = &conn->rate_ctr_group->ctr[RTP_PACKETS_RX_CTR];
+
 	*expected = state->stats.cycles + state->stats.max_seq;
 	*expected = *expected - state->stats.base_seq + 1;
 
@@ -44,8 +45,8 @@ void calc_loss(struct mgcp_rtp_state *state,
 	 * Make sure the sign is correct and use the biggest
 	 * positive/negative number that fits.
 	 */
-	*loss = *expected - end->stats.packets_rx;
-	if (*expected < end->stats.packets_rx) {
+	*loss = *expected - packets_rx->current;
+	if (*expected < packets_rx->current) {
 		if (*loss > 0)
 			*loss = INT_MIN;
 	} else {
@@ -70,13 +71,18 @@ static void mgcp_format_stats_rtp(char *str, size_t str_len,
 	int ploss;
 	int nchars;
 
-	calc_loss(&conn->state, &conn->end, &expected, &ploss);
+	struct rate_ctr *packets_rx = &conn->rate_ctr_group->ctr[RTP_PACKETS_RX_CTR];
+	struct rate_ctr *octets_rx = &conn->rate_ctr_group->ctr[RTP_OCTETS_RX_CTR];
+	struct rate_ctr *packets_tx = &conn->rate_ctr_group->ctr[RTP_PACKETS_TX_CTR];
+	struct rate_ctr *octets_tx = &conn->rate_ctr_group->ctr[RTP_OCTETS_TX_CTR];
+
+	calc_loss(conn, &expected, &ploss);
 	jitter = calc_jitter(&conn->state);
 
 	nchars = snprintf(str, str_len,
-			  "\r\nP: PS=%u, OS=%u, PR=%u, OR=%u, PL=%d, JI=%u",
-			  conn->end.stats.packets_tx, conn->end.stats.octets_tx,
-			  conn->end.stats.packets_rx, conn->end.stats.octets_rx,
+			  "\r\nP: PS=%lu, OS=%lu, PR=%lu, OR=%lu, PL=%d, JI=%u",
+			  packets_tx->current, octets_tx->current,
+			  packets_rx->current, octets_rx->current,
 			  ploss, jitter);
 	if (nchars < 0 || nchars >= str_len)
 		goto truncate;

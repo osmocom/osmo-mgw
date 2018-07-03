@@ -937,23 +937,43 @@ static const struct pl_test pl_test_dat[] = {
 static void test_packet_loss_calc(void)
 {
 	int i;
+	struct mgcp_endpoint endp;
+	struct mgcp_trunk_config trunk;
+
 	printf("Testing packet loss calculation.\n");
+
+	memset(&endp, 0, sizeof(endp));
+	memset(&trunk, 0, sizeof(trunk));
+
+	endp.type = &ep_typeset.rtp;
+	trunk.vty_number_endpoints = 1;
+	trunk.endpoints = &endp;
+	endp.tcfg = &trunk;
+	INIT_LLIST_HEAD(&endp.conns);
 
 	for (i = 0; i < ARRAY_SIZE(pl_test_dat); ++i) {
 		uint32_t expected;
 		int loss;
-		struct mgcp_rtp_state state;
-		struct mgcp_rtp_end rtp;
-		memset(&state, 0, sizeof(state));
-		memset(&rtp, 0, sizeof(rtp));
 
-		state.stats.initialized = 1;
-		state.stats.base_seq = pl_test_dat[i].base_seq;
-		state.stats.max_seq = pl_test_dat[i].max_seq;
-		state.stats.cycles = pl_test_dat[i].cycles;
+		struct mgcp_conn_rtp *conn = NULL;
+		struct mgcp_conn *_conn = NULL;
+		struct mgcp_rtp_state *state;
+		struct rate_ctr *packets_rx;
 
-		rtp.stats.packets_rx = pl_test_dat[i].packets;
-		calc_loss(&state, &rtp, &expected, &loss);
+		_conn =
+		    mgcp_conn_alloc(NULL, &endp, MGCP_CONN_TYPE_RTP,
+				    "test-connection");
+		conn = mgcp_conn_get_rtp(&endp, _conn->id);
+		state = &conn->state;
+		packets_rx = &conn->rate_ctr_group->ctr[RTP_PACKETS_RX_CTR];
+
+		state->stats.initialized = 1;
+		state->stats.base_seq = pl_test_dat[i].base_seq;
+		state->stats.max_seq = pl_test_dat[i].max_seq;
+		state->stats.cycles = pl_test_dat[i].cycles;
+
+		packets_rx->current = pl_test_dat[i].packets;
+		calc_loss(conn, &expected, &loss);
 
 		if (loss != pl_test_dat[i].loss
 		    || expected != pl_test_dat[i].expected) {
@@ -962,7 +982,10 @@ static void test_packet_loss_calc(void)
 			     i, loss, pl_test_dat[i].loss, expected,
 			     pl_test_dat[i].expected);
 		}
+
+		mgcp_conn_free_all(&endp);
 	}
+
 }
 
 int mgcp_parse_stats(struct msgb *msg, uint32_t *ps, uint32_t *os,

@@ -27,6 +27,17 @@
 #include <osmocom/core/linuxlist.h>
 #include <inttypes.h>
 
+/* RTP connection related counters */
+enum {
+	IN_STREAM_ERR_TSTMP_CTR,
+	OUT_STREAM_ERR_TSTMP_CTR,
+        RTP_PACKETS_RX_CTR,
+        RTP_OCTETS_RX_CTR,
+        RTP_PACKETS_TX_CTR,
+        RTP_OCTETS_TX_CTR,
+        RTP_DROPPED_PACKETS_CTR
+};
+
 struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 				  enum mgcp_conn_type type, char *name);
 struct mgcp_conn *mgcp_conn_get(struct mgcp_endpoint *endp, const char *id);

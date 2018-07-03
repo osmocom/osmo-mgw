@@ -99,15 +99,6 @@ struct mgcp_rtp_codec {
 
 /* 'mgcp_rtp_end': basically a wrapper around the RTP+RTCP ports */
 struct mgcp_rtp_end {
-	/* statistics */
-	struct {
-		unsigned int packets_rx;
-		unsigned int octets_rx;
-		unsigned int packets_tx;
-		unsigned int octets_tx;
-		unsigned int dropped_packets;
-	} stats;
-
 	/* local IP address of the RTP socket */
 	struct in_addr addr;
 

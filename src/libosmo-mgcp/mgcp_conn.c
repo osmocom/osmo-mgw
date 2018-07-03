@@ -31,22 +31,21 @@
 #include <osmocom/core/rate_ctr.h>
 #include <ctype.h>
 
-enum {
-	IN_STREAM_ERR_TSTMP_CTR,
-	OUT_STREAM_ERR_TSTMP_CTR,
-};
-
 static const struct rate_ctr_desc rate_ctr_desc[] = {
 	[IN_STREAM_ERR_TSTMP_CTR] = {"stream_err_tstmp:in", "Inbound rtp-stream timestamp errors."},
 	[OUT_STREAM_ERR_TSTMP_CTR] = {"stream_err_tstmp:out", "Outbound rtp-stream timestamp errors."},
+	[RTP_PACKETS_RX_CTR] = {"rtp:packets_rx", "Inbound rtp packets."},
+	[RTP_OCTETS_RX_CTR] = {"rtp:octets_rx", "Inbound rtp octets."},
+	[RTP_PACKETS_TX_CTR] = {"rtp:packets_tx", "Outbound rtp packets."},
+	[RTP_OCTETS_TX_CTR] = {"rtp:octets_rx", "Outbound rtp octets."},
+	[RTP_DROPPED_PACKETS_CTR] = {"rtp:dropped", "dropped rtp packets."}
 };
-
 
 const static struct rate_ctr_group_desc rate_ctr_group_desc = {
 	.group_name_prefix = "conn_rtp",
 	.group_description = "rtp connection statistics",
 	.class_id = 1,
-	.num_ctr = 2,
+	.num_ctr = ARRAY_SIZE(rate_ctr_desc),
 	.ctr_desc = rate_ctr_desc
 };
 
@@ -107,7 +106,6 @@ static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn 
 
 	end->rtp.fd = -1;
 	end->rtcp.fd = -1;
-	memset(&end->stats, 0, sizeof(end->stats));
 	end->rtp_port = end->rtcp_port = 0;
 	talloc_free(end->fmtp_extra);
 	end->fmtp_extra = NULL;

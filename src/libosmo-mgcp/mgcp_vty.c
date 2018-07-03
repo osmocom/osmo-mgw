@@ -154,14 +154,18 @@ static int config_write_mgcp(struct vty *vty)
 	return CMD_SUCCESS;
 }
 
-static void dump_rtp_end(struct vty *vty, struct mgcp_rtp_state *state,
-			 struct mgcp_rtp_end *end)
+static void dump_rtp_end(struct vty *vty, struct mgcp_conn_rtp *conn)
 {
+	struct mgcp_rtp_state *state = &conn->state;
+	struct mgcp_rtp_end *end = &conn->end;
 	struct mgcp_rtp_codec *codec = end->codec;
+	struct rate_ctr *dropped_packets;
+
+	dropped_packets = &conn->rate_ctr_group->ctr[RTP_DROPPED_PACKETS_CTR];
 
 	vty_out(vty,
 		"   Timestamp Errs: %lu->%lu%s"
-		"   Dropped Packets: %d%s"
+		"   Dropped Packets: %lu%s"
 		"   Payload Type: %d Rate: %u Channels: %d %s"
 		"   Frame Duration: %u Frame Denominator: %u%s"
 		"   FPP: %d Packet Duration: %u%s"
@@ -170,7 +174,7 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_rtp_state *state,
 		state->in_stream.err_ts_ctr->current,
 		state->out_stream.err_ts_ctr->current,
 	        VTY_NEWLINE,
-		end->stats.dropped_packets, VTY_NEWLINE,
+		dropped_packets->current, VTY_NEWLINE,
 		codec->payload_type, codec->rate, codec->channels, VTY_NEWLINE,
 		codec->frame_duration_num, codec->frame_duration_den,
 		VTY_NEWLINE, end->frames_per_packet, end->packet_duration_ms,
@@ -208,8 +212,7 @@ static void dump_trunk(struct vty *vty, struct mgcp_trunk_config *cfg,
 				 * connection types (E1) as soon as
 				 * the implementation is available */
 				if (conn->type == MGCP_CONN_TYPE_RTP) {
-					dump_rtp_end(vty, &conn->u.rtp.state,
-						     &conn->u.rtp.end);
+					dump_rtp_end(vty, &conn->u.rtp);
 				}
 			}
 		}

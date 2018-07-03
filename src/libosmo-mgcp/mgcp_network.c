@@ -694,7 +694,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	dest_name = conn_dst->conn->name;
 
 	if (!rtp_end->output_enabled) {
-		rtp_end->stats.dropped_packets += 1;
+		rate_ctr_inc(&conn_dst->rate_ctr_group->ctr[RTP_DROPPED_PACKETS_CTR]);
 		LOGP(DRTP, LOGL_DEBUG,
 		     "endpoint:0x%x output disabled, drop to %s %s "
 		     "rtp_port:%u rtcp_port:%u\n",
@@ -749,8 +749,8 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 			if (len <= 0)
 				return len;
 
-			conn_dst->end.stats.packets_tx += 1;
-			conn_dst->end.stats.octets_tx += len;
+			rate_ctr_inc(&conn_dst->rate_ctr_group->ctr[RTP_PACKETS_TX_CTR]);
+			rate_ctr_add(&conn_dst->rate_ctr_group->ctr[RTP_OCTETS_TX_CTR], len);
 
 			nbytes += len;
 			buflen = cont;
@@ -769,8 +769,8 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 				    &rtp_end->addr,
 				    rtp_end->rtcp_port, buf, len);
 
-		conn_dst->end.stats.packets_tx += 1;
-		conn_dst->end.stats.octets_tx += len;
+		rate_ctr_inc(&conn_dst->rate_ctr_group->ctr[RTP_PACKETS_TX_CTR]);
+		rate_ctr_add(&conn_dst->rate_ctr_group->ctr[RTP_OCTETS_TX_CTR], len);
 
 		return len;
 	}
@@ -939,8 +939,8 @@ static int mgcp_recv(int *proto, struct sockaddr_in *addr, char *buf,
 	}
 
 	/* Increment RX statistics */
-	conn->end.stats.packets_rx += 1;
-	conn->end.stats.octets_rx += rc;
+	rate_ctr_inc(&conn->rate_ctr_group->ctr[RTP_PACKETS_RX_CTR]);
+	rate_ctr_add(&conn->rate_ctr_group->ctr[RTP_OCTETS_RX_CTR], rc);
 
 	/* Forward a copy of the RTP data to a debug ip/port */
 	forward_data(fd->fd, &conn->tap_in, buf, rc);
