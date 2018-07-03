@@ -137,8 +137,6 @@ struct mgcp_rtp_end {
 	int force_constant_ssrc; /* -1: always, 0: don't, 1: once */
 	/* should we perform align_rtp_timestamp_offset() (1) or not (0) */
 	int force_aligned_timing;
-	/* FIXME: not used anymore, used to be [external] transcoding related */
-	void *rtp_process_data;
 
 	/* Each end has a separate socket for RTP and RTCP */
 	struct osmo_fd rtp;
