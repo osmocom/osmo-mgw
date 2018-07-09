@@ -25,6 +25,7 @@
 #include <osmocom/mgcp/mgcp_stat.h>
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <limits.h>
+#include <inttypes.h>
 
 /* Helper function for mgcp_format_stats_rtp() to calculate packet loss */
 void calc_loss(struct mgcp_conn_rtp *conn, uint32_t *expected, int *loss)
@@ -80,7 +81,7 @@ static void mgcp_format_stats_rtp(char *str, size_t str_len,
 	jitter = calc_jitter(&conn->state);
 
 	nchars = snprintf(str, str_len,
-			  "\r\nP: PS=%lu, OS=%lu, PR=%lu, OR=%lu, PL=%d, JI=%u",
+			  "\r\nP: PS=%" PRIu64 ", OS=%" PRIu64 ", PR=%" PRIu64 ", OR=%" PRIu64 ", PL=%d, JI=%u",
 			  packets_tx->current, octets_tx->current,
 			  packets_rx->current, octets_rx->current,
 			  ploss, jitter);
@@ -93,7 +94,7 @@ static void mgcp_format_stats_rtp(char *str, size_t str_len,
 	if (conn->conn->endp->cfg->osmux != OSMUX_USAGE_OFF) {
 		/* Error Counter */
 		nchars = snprintf(str, str_len,
-				  "\r\nX-Osmo-CP: EC TI=%lu, TO=%lu",
+				  "\r\nX-Osmo-CP: EC TI=%" PRIu64 ", TO=%" PRIu64,
 				  conn->state.in_stream.err_ts_ctr->current,
 				  conn->state.out_stream.err_ts_ctr->current);
 		if (nchars < 0 || nchars >= str_len)

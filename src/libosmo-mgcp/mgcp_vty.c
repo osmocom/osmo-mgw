@@ -30,6 +30,7 @@
 #include <osmocom/mgcp/mgcp_endp.h>
 
 #include <string.h>
+#include <inttypes.h>
 
 #define RTCP_OMIT_STR "Drop RTCP packets in both directions\n"
 #define RTP_PATCH_STR "Modify RTP packet header in both directions\n"
@@ -164,8 +165,8 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_conn_rtp *conn)
 	dropped_packets = &conn->rate_ctr_group->ctr[RTP_DROPPED_PACKETS_CTR];
 
 	vty_out(vty,
-		"   Timestamp Errs: %lu->%lu%s"
-		"   Dropped Packets: %lu%s"
+		"   Timestamp Errs: %" PRIu64 "->%" PRIu64 "%s"
+		"   Dropped Packets: %" PRIu64 "%s"
 		"   Payload Type: %d Rate: %u Channels: %d %s"
 		"   Frame Duration: %u Frame Denominator: %u%s"
 		"   FPP: %d Packet Duration: %u%s"
