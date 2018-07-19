@@ -290,8 +290,8 @@ int mgcp_rtp_processing_default(struct mgcp_endpoint *endp, struct mgcp_rtp_end 
 				char *data, int *len, int buf_size);
 
 int mgcp_setup_rtp_processing_default(struct mgcp_endpoint *endp,
-				      struct mgcp_rtp_end *dst_end,
-				      struct mgcp_rtp_end *src_end);
+				      struct mgcp_conn_rtp *conn_dst,
+				      struct mgcp_conn_rtp *conn_src);
 
 void mgcp_get_net_downlink_format_default(struct mgcp_endpoint *endp,
 					  int *payload_type,

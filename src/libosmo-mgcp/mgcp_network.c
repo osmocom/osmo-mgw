@@ -399,12 +399,12 @@ int mgcp_rtp_processing_default(struct mgcp_endpoint *endp,
 
 /*! dummy callback to disable transcoding (see also cfg->setup_rtp_processing_cb).
  *  \param[in] associated endpoint
- *  \param[in] destination RTP end
- *  \param[in] source RTP end
+ *  \param[in] destination RTP connnection
+ *  \param[in] source RTP connection
  *  \returns ignores input parameters, return always 0 */
 int mgcp_setup_rtp_processing_default(struct mgcp_endpoint *endp,
-				      struct mgcp_rtp_end *dst_end,
-				      struct mgcp_rtp_end *src_end)
+				      struct mgcp_conn_rtp *conn_dst,
+				      struct mgcp_conn_rtp *conn_src)
 {
 	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x transcoding disabled\n",
 	     ENDPOINT_NUMBER(endp));

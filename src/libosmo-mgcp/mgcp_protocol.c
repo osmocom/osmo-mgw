@@ -89,8 +89,7 @@ static int setup_rtp_processing(struct mgcp_endpoint *endp,
 		}
 	}
 
-	return cfg->setup_rtp_processing_cb(endp, &conn_dst->end,
-					    &conn_src->end);
+	return cfg->setup_rtp_processing_cb(endp, conn_dst, conn_src);
 }
 
 /* array of function pointers for handling various

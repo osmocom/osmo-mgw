@@ -74,11 +74,13 @@ typedef int (*mgcp_rqnt)(struct mgcp_endpoint *endp, char tone);
 typedef int (*mgcp_processing)(struct mgcp_endpoint *endp,
 			       struct mgcp_rtp_end *dst_end,
 			       char *data, int *len, int buf_size);
-typedef int (*mgcp_processing_setup)(struct mgcp_endpoint *endp,
-				     struct mgcp_rtp_end *dst_end,
-				     struct mgcp_rtp_end *src_end);
 
 struct mgcp_conn_rtp;
+
+typedef int (*mgcp_processing_setup)(struct mgcp_endpoint *endp,
+				     struct mgcp_conn_rtp *conn_dst,
+				     struct mgcp_conn_rtp *conn_src);
+
 typedef void (*mgcp_get_format)(struct mgcp_endpoint *endp,
 				int *payload_type,
 				const char**subtype_name,
