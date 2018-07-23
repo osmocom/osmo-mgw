@@ -680,12 +680,9 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	}
 
 	LOGP(DRTP, LOGL_DEBUG,
-	     "endpoint:0x%x loop:%d, mode:%d ",
-	     ENDPOINT_NUMBER(endp), tcfg->audio_loop, conn_src->conn->mode);
-	if (conn_src->conn->mode == MGCP_CONN_LOOPBACK)
-		LOGPC(DRTP, LOGL_DEBUG, "(loopback)\n");
-	else
-		LOGPC(DRTP, LOGL_DEBUG, "\n");
+	     "endpoint:0x%x loop:%d, mode:%d%s\n",
+	     ENDPOINT_NUMBER(endp), tcfg->audio_loop, conn_src->conn->mode,
+	     conn_src->conn->mode == MGCP_CONN_LOOPBACK ? " (loopback)" : "");
 
 	/* Note: In case of loopback configuration, both, the source and the
 	 * destination will point to the same connection. */
