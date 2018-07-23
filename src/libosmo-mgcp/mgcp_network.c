@@ -732,11 +732,18 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 			 * 'e400', or it will reject the RAB assignment. It seems to not harm other femto
 			 * cells (as long as we patch only the first RTP payload in each stream).
 			 */
-			if (!rtp_state->patched_first_rtp_payload) {
+			if (!rtp_state->patched_first_rtp_payload
+			    && conn_src->conn->mode == MGCP_CONN_LOOPBACK) {
 				uint8_t *data = (uint8_t *) & buf[12];
-				data[0] = 0xe4;
-				data[1] = 0x00;
-				rtp_state->patched_first_rtp_payload = true;
+				if (data[0] == 0xe0) {
+					data[0] = 0xe4;
+					data[1] = 0x00;
+					rtp_state->patched_first_rtp_payload = true;
+					LOGP(DRTP, LOGL_DEBUG,
+					     "endpoint:0x%x Patching over first two bytes"
+					     " to fake an IuUP Initialization Ack\n",
+					     ENDPOINT_NUMBER(endp));
+				}
 			}
 
 			len = mgcp_udp_send(rtp_end->rtp.fd,
