@@ -114,10 +114,12 @@ static struct msgb *make_crcx_msg_bind(struct mgcp_ctx *mgcp_ctx)
 		.call_id = mgcp_ctx->conn_peer_local.call_id,
 		.conn_mode = MGCP_CONN_RECV_ONLY,
 		.ptime = mgcp_ctx->conn_peer_local.ptime,
-		.codecs_len = mgcp_ctx->conn_peer_local.codecs_len
+		.codecs_len = mgcp_ctx->conn_peer_local.codecs_len,
+		.ptmap_len = mgcp_ctx->conn_peer_local.ptmap_len
 	};
 	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_local.endpoint, MGCP_ENDPOINT_MAXLEN);
 	memcpy(mgcp_msg.codecs, mgcp_ctx->conn_peer_local.codecs, sizeof(mgcp_msg.codecs));
+	memcpy(mgcp_msg.ptmap, mgcp_ctx->conn_peer_local.ptmap, sizeof(mgcp_msg.ptmap));
 
 	return mgcp_msg_gen(mgcp_ctx->mgcp, &mgcp_msg);
 }
@@ -136,10 +138,12 @@ static struct msgb *make_crcx_msg_bind_connect(struct mgcp_ctx *mgcp_ctx)
 		.audio_ip = mgcp_ctx->conn_peer_local.addr,
 		.audio_port = mgcp_ctx->conn_peer_local.port,
 		.ptime = mgcp_ctx->conn_peer_local.ptime,
-		.codecs_len = mgcp_ctx->conn_peer_local.codecs_len
+		.codecs_len = mgcp_ctx->conn_peer_local.codecs_len,
+		.ptmap_len = mgcp_ctx->conn_peer_local.ptmap_len
 	};
 	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_local.endpoint, MGCP_ENDPOINT_MAXLEN);
 	memcpy(mgcp_msg.codecs, mgcp_ctx->conn_peer_local.codecs, sizeof(mgcp_msg.codecs));
+	memcpy(mgcp_msg.ptmap, mgcp_ctx->conn_peer_local.ptmap, sizeof(mgcp_msg.ptmap));
 
 	return mgcp_msg_gen(mgcp_ctx->mgcp, &mgcp_msg);
 }
@@ -158,10 +162,12 @@ static struct msgb *make_mdcx_msg(struct mgcp_ctx *mgcp_ctx)
 		.audio_ip = mgcp_ctx->conn_peer_local.addr,
 		.audio_port = mgcp_ctx->conn_peer_local.port,
 		.ptime = mgcp_ctx->conn_peer_local.ptime,
-		.codecs_len = mgcp_ctx->conn_peer_local.codecs_len
+		.codecs_len = mgcp_ctx->conn_peer_local.codecs_len,
+		.ptmap_len = mgcp_ctx->conn_peer_local.ptmap_len
 	};
 	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_remote.endpoint, MGCP_ENDPOINT_MAXLEN);
 	memcpy(mgcp_msg.codecs, mgcp_ctx->conn_peer_local.codecs, sizeof(mgcp_msg.codecs));
+	memcpy(mgcp_msg.ptmap, mgcp_ctx->conn_peer_local.ptmap, sizeof(mgcp_msg.ptmap));
 
 	/* Note: We take the endpoint and the call_id from the remote
 	 * connection info, because we can be confident that the

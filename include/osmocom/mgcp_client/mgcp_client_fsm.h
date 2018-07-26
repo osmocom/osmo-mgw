@@ -34,6 +34,14 @@ struct mgcp_conn_peer {
 
 	/*! Number of codecs in RTP codec list (optional) */
 	unsigned int codecs_len;
+
+	/*! RTP payload type map (optional, only needed when payload types are
+	 * used that differ from what IANA/3GPP defines) */
+	struct ptmap ptmap[MGCP_MAX_CODECS];
+
+	/*! RTP payload type map length (optional, only needed when payload
+	 * types are used that differ from what IANA/3GPP defines) */
+	unsigned int ptmap_len;
 };
 
 struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm_inst *parent_fi, uint32_t parent_term_evt,
