@@ -40,7 +40,9 @@
 #include <osmocom/mgcp/osmux.h>
 #include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/mgcp/debug.h>
+
 
 #define RTP_SEQ_MOD		(1 << 16)
 #define RTP_MAX_DROPOUT		3000
@@ -474,6 +476,28 @@ void mgcp_rtp_annex_count(struct mgcp_endpoint *endp,
 	state->stats.max_seq = seq;
 }
 
+/* There may be different payload type numbers negotiated for two connections.
+ * Patch the payload type of an RTP packet so that it uses the payload type
+ * that is valid for the destination connection (conn_dst) */
+static int mgcp_patch_pt(struct mgcp_conn_rtp *conn_src,
+			 struct mgcp_conn_rtp *conn_dst, char *data, int len)
+{
+	struct rtp_hdr *rtp_hdr;
+	uint8_t pt_in;
+	int pt_out;
+
+	OSMO_ASSERT(len >= sizeof(struct rtp_hdr));
+	rtp_hdr = (struct rtp_hdr *)data;
+
+	pt_in = rtp_hdr->payload_type;
+	pt_out = mgcp_codec_pt_translate(conn_src, conn_dst, pt_in);
+	if (pt_out < 0)
+		return -EINVAL;
+
+	rtp_hdr->payload_type = (uint8_t) pt_out;
+	return 0;
+}
+
 /* The RFC 3550 Appendix A assumes there are multiple sources but
  * some of the supported endpoints (e.g. the nanoBTS) can only handle
  * one source and this code will patch RTP header to appear as if there
@@ -665,6 +689,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	struct mgcp_rtp_end *rtp_end;
 	struct mgcp_rtp_state *rtp_state;
 	char *dest_name;
+	int rc;
 
 	OSMO_ASSERT(conn_src);
 	OSMO_ASSERT(conn_dst);
@@ -683,6 +708,21 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	     "endpoint:0x%x loop:%d, mode:%d%s\n",
 	     ENDPOINT_NUMBER(endp), tcfg->audio_loop, conn_src->conn->mode,
 	     conn_src->conn->mode == MGCP_CONN_LOOPBACK ? " (loopback)" : "");
+
+	/* FIXME: It is legal that the payload type on the egress connection is
+	 * different from the payload type that has been negotiated on the
+	 * ingress connection. Essentially the codecs are the same so we can
+	 * match them and patch the payload type. However, if we can not find
+	 * the codec pendant (everything ist equal except the PT), we are of
+	 * course unable to patch the payload type. A situation like this
+	 * should not occur if transcoding is consequently avoided. Until
+	 * we have transcoding support in osmo-mgw we can not resolve this. */
+	rc = mgcp_patch_pt(conn_src, conn_dst, buf, len);
+	if (rc < 0) {
+		LOGP(DRTP, LOGL_ERROR,
+		     "endpoint:0x%x can not patch PT because no suitable egress codec was found.\n",
+		     ENDPOINT_NUMBER(endp));
+	}
 
 	/* Note: In case of loopback configuration, both, the source and the
 	 * destination will point to the same connection. */

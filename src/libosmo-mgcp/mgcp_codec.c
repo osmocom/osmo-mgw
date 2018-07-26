@@ -341,3 +341,70 @@ int mgcp_codec_decide(struct mgcp_conn_rtp *conn)
 
 	return -EINVAL;
 }
+
+/* Compare two codecs, all parameters must match up, except for the payload type
+ * number. */
+static bool codecs_cmp(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_codec *codec_b)
+{
+	if (codec_a->rate != codec_b->rate)
+		return false;
+	if (codec_a->channels != codec_b->channels)
+		return false;
+	if (codec_a->frame_duration_num != codec_b->frame_duration_num)
+		return false;
+	if (codec_a->frame_duration_den != codec_b->frame_duration_den)
+		return false;
+	if (strcmp(codec_a->audio_name, codec_b->audio_name))
+		return false;
+	if (strcmp(codec_a->subtype_name, codec_b->subtype_name))
+		return false;
+
+	return true;
+}
+
+/*! Translate a given payload type number that belongs to the packet of a
+ *  source connection to the equivalent payload type number that matches the
+ *  configuration of a destination connection.
+ *  \param[in] conn_src related source rtp-connection.
+ *  \param[in] conn_dst related destination rtp-connection.
+ *  \param[in] payload_type number from the source packet or source connection.
+ *  \returns translated payload type number on success, -EINVAL on failure. */
+int mgcp_codec_pt_translate(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn_dst, int payload_type)
+{
+	struct mgcp_rtp_end *rtp_src;
+	struct mgcp_rtp_end *rtp_dst;
+	struct mgcp_rtp_codec *codec_src = NULL;
+	struct mgcp_rtp_codec *codec_dst = NULL;
+	unsigned int i;
+	unsigned int codecs_assigned;
+
+	rtp_src = &conn_src->end;
+	rtp_dst = &conn_dst->end;
+
+	/* Find the codec information that is used on the source side */
+	codecs_assigned = rtp_src->codecs_assigned;
+	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
+	for (i = 0; i < codecs_assigned; i++) {
+		if (payload_type == rtp_src->codecs[i].payload_type) {
+			codec_src = &rtp_src->codecs[i];
+			break;
+		}
+	}
+	if (!codec_src)
+		return -EINVAL;
+
+	/* Use the codec infrmation from the source and try to find the
+	 * equivalent of it on the destination side */
+	codecs_assigned = rtp_dst->codecs_assigned;
+	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
+	for (i = 0; i < codecs_assigned; i++) {
+		if (codecs_cmp(codec_src, &rtp_dst->codecs[i])) {
+			codec_dst = &rtp_dst->codecs[i];
+			break;
+		}
+	}
+	if (!codec_dst)
+		return -EINVAL;
+
+	return codec_dst->payload_type;
+}

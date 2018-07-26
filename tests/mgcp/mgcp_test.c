@@ -1616,6 +1616,100 @@ static void test_check_local_cx_options(void *ctx)
 	OSMO_ASSERT(check_local_cx_options(ctx, ",,,") == -1);
 }
 
+static void test_mgcp_codec_pt_translate_pars(struct mgcp_rtp_codec *c)
+{
+	c->rate = 8000;
+	c->channels = 1;
+	c->frame_duration_num = 23;
+	c->frame_duration_den = 42;
+}
+
+static void test_mgcp_codec_pt_translate(void)
+{
+	struct mgcp_conn_rtp conn_src;
+	struct mgcp_conn_rtp conn_dst;
+	int pt_dst;
+
+	/* Setup a realistic set of codec configurations on both
+	 * ends. AMR and HR will use different payload types. PCMU
+	 * must use 0 on both ends since this is not a dynamic payload
+	 * type */
+	test_mgcp_codec_pt_translate_pars(&conn_src.end.codecs[0]);
+	test_mgcp_codec_pt_translate_pars(&conn_dst.end.codecs[0]);
+	test_mgcp_codec_pt_translate_pars(&conn_src.end.codecs[1]);
+	test_mgcp_codec_pt_translate_pars(&conn_dst.end.codecs[1]);
+	test_mgcp_codec_pt_translate_pars(&conn_src.end.codecs[2]);
+	test_mgcp_codec_pt_translate_pars(&conn_dst.end.codecs[2]);
+	conn_src.end.codecs[0].payload_type = 112;
+	conn_dst.end.codecs[0].payload_type = 96;
+	conn_src.end.codecs[1].payload_type = 0;
+	conn_dst.end.codecs[1].payload_type = 0;
+	conn_src.end.codecs[2].payload_type = 111;
+	conn_dst.end.codecs[2].payload_type = 97;
+	conn_src.end.codecs[0].audio_name = "AMR/8000/1";
+	conn_dst.end.codecs[0].audio_name = "AMR/8000/1";
+	conn_src.end.codecs[1].audio_name = "PCMU/8000/1";
+	conn_dst.end.codecs[1].audio_name = "PCMU/8000/1";
+	conn_src.end.codecs[2].audio_name = "GSM-HR-08/8000/1";
+	conn_dst.end.codecs[2].audio_name = "GSM-HR-08/8000/1";
+	conn_src.end.codecs[0].subtype_name = "AMR";
+	conn_dst.end.codecs[0].subtype_name = "AMR";
+	conn_src.end.codecs[1].subtype_name = "PCMU";
+	conn_dst.end.codecs[1].subtype_name = "PCMU";
+	conn_src.end.codecs[2].subtype_name = "GSM-HR-08";
+	conn_dst.end.codecs[2].subtype_name = "GSM-HR-08";
+	conn_src.end.codecs_assigned = 3;
+	conn_dst.end.codecs_assigned = 3;
+
+	/* We expect the function to find the PT we must use when we send the
+	 * packet out to the destination. All we know is the context for both
+	 * connections and the payload type from the source packet */
+	pt_dst =
+	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
+				    conn_src.end.codecs[0].payload_type);
+	OSMO_ASSERT(pt_dst == conn_dst.end.codecs[0].payload_type);
+	pt_dst =
+	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
+				    conn_src.end.codecs[1].payload_type);
+	OSMO_ASSERT(pt_dst == conn_dst.end.codecs[1].payload_type);
+	pt_dst =
+	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
+				    conn_src.end.codecs[2].payload_type);
+	OSMO_ASSERT(pt_dst == conn_dst.end.codecs[2].payload_type);
+
+	/* Try some constellations that must fail */
+	pt_dst = mgcp_codec_pt_translate(&conn_src, &conn_dst, 123);
+	OSMO_ASSERT(pt_dst == -EINVAL);
+	conn_src.end.codecs_assigned = 0;
+	conn_dst.end.codecs_assigned = 3;
+	pt_dst =
+	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
+				    conn_src.end.codecs[0].payload_type);
+	OSMO_ASSERT(pt_dst == -EINVAL);
+	pt_dst =
+	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
+				    conn_src.end.codecs[1].payload_type);
+	OSMO_ASSERT(pt_dst == -EINVAL);
+	pt_dst =
+	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
+				    conn_src.end.codecs[2].payload_type);
+	OSMO_ASSERT(pt_dst == -EINVAL);
+	conn_src.end.codecs_assigned = 3;
+	conn_dst.end.codecs_assigned = 0;
+	pt_dst =
+	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
+				    conn_src.end.codecs[0].payload_type);
+	OSMO_ASSERT(pt_dst == -EINVAL);
+	pt_dst =
+	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
+				    conn_src.end.codecs[1].payload_type);
+	OSMO_ASSERT(pt_dst == -EINVAL);
+	pt_dst =
+	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
+				    conn_src.end.codecs[2].payload_type);
+	OSMO_ASSERT(pt_dst == -EINVAL);
+}
+
 int main(int argc, char **argv)
 {
 	void *ctx = talloc_named_const(NULL, 0, "mgcp_test");
@@ -1639,6 +1733,7 @@ int main(int argc, char **argv)
 	test_osmux_cid();
 	test_get_lco_identifier();
 	test_check_local_cx_options(ctx);
+	test_mgcp_codec_pt_translate();
 
 	OSMO_ASSERT(talloc_total_size(msgb_ctx) == 0);
 	OSMO_ASSERT(talloc_total_blocks(msgb_ctx) == 1);
