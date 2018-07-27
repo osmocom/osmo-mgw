@@ -1,3 +1,51 @@
+osmo-mgw (1.4.0) unstable; urgency=medium
+
+  [ Philipp Maier ]
+  * network: independently initalize state->out_stream
+  * stats: use libosmocore rate counter for in/out_stream.err_ts_counter
+  * mgcp_sdp: correct apidoc of mgcp_parse_sdp_data
+  * vty: clean up rtp port-range command
+  * sdp: remove unused alt_codec field from struct mgcp_rtp_end
+  * sdp: remove circular inclusion
+  * protocol: Try whole port range on port allocation
+  * client: do not start connections in loopback mode
+  * mgcp_network: do not log destination invalid ip/port as error
+  * cosmetic: fix log output
+  * conn: call talloc_free before setting the pointer to NULL
+  * protocol: do not change LCO, when no LCO are present
+  * protocol: reject illegal lco options
+  * cosmetic: fix typo
+  * mgw: clean up codec negotiation (sdp)
+  * client: add features to generate and parse codec information
+  * mgcp_internal: remove unused struct member
+  * stats: replace packet statistic counters with libosmocore rate counters
+  * stat+vty: fix printing of rate counter values
+  * protocol: prevent unnecessary null pointer deref
+
+  [ Pau Espin Pedrol ]
+  * legacy-mgcp: Add jitter buffer on the uplink receiver
+  * legacy-mgcp: switch to new osmux output APIs
+  * mgcp: mgcp_osmux: use conn_bts when forwarding pkts from bsc_nat
+  * mgcp: switch to new osmux output APIs
+  * debian: Package installed example doc files
+  * gitignore: Add m4 scripts from m4 subdir
+
+  [ Neels Hofmeyr ]
+  * api doc: fix parameter name for mgcp_conn_create()
+  * mgcp-client: add mgcp_conn_get_ci()
+  * mgcp_client_fsm: improve error logging
+  * cosmetic: fix doxygen comment markers
+  * cosmetic: mgcp_network.c: merge one LOGPC to its preceding LOGP
+  * IuUP hack: make RTP patching less general
+
+  [ Harald Welte ]
+  * cosmetic: fix typo in log message: 'abrupt' instead of 'aprupt'
+
+  [ Daniel Willmann ]
+  * git-version-gen: Don't check for .git directory
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Fri, 27 Jul 2018 19:05:22 +0200
+
 osmo-mgw (1.3.0) unstable; urgency=medium
 
   [ Pau Espin Pedrol ]
