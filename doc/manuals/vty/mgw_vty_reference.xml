@@ -85,12 +85,6 @@
         <param name='length' doc='Set number of lines on a screen' />
       </params>
     </command>
-    <command id='echo .MESSAGE'>
-      <params>
-        <param name='echo' doc='Echo a message back to the vty' />
-        <param name='.MESSAGE' doc='The message to echo' />
-      </params>
-    </command>
     <command id='who'>
       <params>
         <param name='who' doc='Display who is on vty' />
@@ -190,15 +184,6 @@
         <param name='logging' doc='Configure logging' />
         <param name='set-log-mask' doc='Set the logmask of this logging target' />
         <param name='MASK' doc='List of logging categories to log, e.g. &apos;abc:mno:xyz&apos;. Available log categories depend on the specific application, refer to the &apos;logging level&apos; command. Optionally add individual log levels like &apos;abc,1:mno,3:xyz,5&apos;, where the level numbers are LOGL_DEBUG=1 LOGL_INFO=3 LOGL_NOTICE=5 LOGL_ERROR=7 LOGL_FATAL=8' />
-      </params>
-    </command>
-    <command id='logging set log mask MASK'>
-      <params>
-        <param name='logging' doc='Configure logging' />
-        <param name='set' doc='Decide which categories to output.' />
-        <param name='log' doc='Log commands' />
-        <param name='mask' doc='Mask commands' />
-        <param name='MASK' doc='&apos;set log mask&apos; is deprecated, please refer to the docs of &apos;set-log-mask&apos; instead' />
       </params>
     </command>
     <command id='logging level (all|rtp|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (everything|debug|info|notice|error|fatal)'>
@@ -306,6 +291,12 @@
         <param name='counters' doc='Generate table of all registered counters' />
       </params>
     </command>
+    <command id='show rate-counters'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='rate-counters' doc='Show all rate counters' />
+      </params>
+    </command>
     <command id='show mgcp [stats]'>
       <params>
         <param name='show' doc='Show running system information' />
@@ -364,12 +355,6 @@
         <param name='terminal' doc='Set terminal line parameters' />
         <param name='no' doc='Negate a command or set its defaults' />
         <param name='length' doc='Set number of lines on a screen' />
-      </params>
-    </command>
-    <command id='echo .MESSAGE'>
-      <params>
-        <param name='echo' doc='Echo a message back to the vty' />
-        <param name='.MESSAGE' doc='The message to echo' />
       </params>
     </command>
     <command id='who'>
@@ -486,15 +471,6 @@
         <param name='MASK' doc='List of logging categories to log, e.g. &apos;abc:mno:xyz&apos;. Available log categories depend on the specific application, refer to the &apos;logging level&apos; command. Optionally add individual log levels like &apos;abc,1:mno,3:xyz,5&apos;, where the level numbers are LOGL_DEBUG=1 LOGL_INFO=3 LOGL_NOTICE=5 LOGL_ERROR=7 LOGL_FATAL=8' />
       </params>
     </command>
-    <command id='logging set log mask MASK'>
-      <params>
-        <param name='logging' doc='Configure logging' />
-        <param name='set' doc='Decide which categories to output.' />
-        <param name='log' doc='Log commands' />
-        <param name='mask' doc='Mask commands' />
-        <param name='MASK' doc='&apos;set log mask&apos; is deprecated, please refer to the docs of &apos;set-log-mask&apos; instead' />
-      </params>
-    </command>
     <command id='logging level (all|rtp|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (everything|debug|info|notice|error|fatal)'>
       <params>
         <param name='logging' doc='Configure logging' />
@@ -598,6 +574,12 @@
         <param name='show' doc='Show running system information' />
         <param name='asciidoc' doc='Asciidoc generation' />
         <param name='counters' doc='Generate table of all registered counters' />
+      </params>
+    </command>
+    <command id='show rate-counters'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='rate-counters' doc='Show all rate counters' />
       </params>
     </command>
     <command id='show mgcp [stats]'>
@@ -1110,27 +1092,12 @@
         <param name='1' doc='Bind on startup' />
       </params>
     </command>
-    <command id='rtp net-range &lt;0-65534&gt; &lt;0-65534&gt;'>
-      <params>
-        <param name='rtp' doc='RTP configuration' />
-        <param name='net-range' doc='Range of ports to use for the NET side' />
-        <param name='&lt;0-65534&gt;' doc='Start of the range of ports' />
-        <param name='&lt;0-65534&gt;' doc='End of the range of ports' />
-      </params>
-    </command>
-    <command id='rtp port-range &lt;0-65534&gt; &lt;0-65534&gt;'>
+    <command id='rtp port-range &lt;1024-65534&gt; &lt;1025-65535&gt;'>
       <params>
         <param name='rtp' doc='RTP configuration' />
         <param name='port-range' doc='Range of ports to use for the NET side' />
-        <param name='&lt;0-65534&gt;' doc='Start of the range of ports' />
-        <param name='&lt;0-65534&gt;' doc='End of the range of ports' />
-      </params>
-    </command>
-    <command id='rtp net-bind-ip A.B.C.D'>
-      <params>
-        <param name='rtp' doc='RTP configuration' />
-        <param name='net-bind-ip' doc='Bind endpoints facing the Network' />
-        <param name='A.B.C.D' doc='Address to bind to' />
+        <param name='&lt;1024-65534&gt;' doc='Start of the range of ports' />
+        <param name='&lt;1025-65535&gt;' doc='End of the range of ports' />
       </params>
     </command>
     <command id='rtp bind-ip A.B.C.D'>
@@ -1138,13 +1105,6 @@
         <param name='rtp' doc='RTP configuration' />
         <param name='bind-ip' doc='Bind endpoints facing the Network' />
         <param name='A.B.C.D' doc='Address to bind to' />
-      </params>
-    </command>
-    <command id='no rtp net-bind-ip'>
-      <params>
-        <param name='no' doc='Negate a command or set its defaults' />
-        <param name='rtp' doc='RTP configuration' />
-        <param name='net-bind-ip' doc='Bind endpoints facing the Network' />
       </params>
     </command>
     <command id='no rtp bind-ip'>
@@ -1171,13 +1131,6 @@
       <params>
         <param name='rtp' doc='RTP configuration' />
         <param name='ip-dscp' doc='Apply IP_TOS to the audio stream (including Osmux)' />
-        <param name='&lt;0-255&gt;' doc='The DSCP value' />
-      </params>
-    </command>
-    <command id='rtp ip-tos &lt;0-255&gt;'>
-      <params>
-        <param name='rtp' doc='RTP configuration' />
-        <param name='ip-tos' doc='Apply IP_TOS to the audio stream' />
         <param name='&lt;0-255&gt;' doc='The DSCP value' />
       </params>
     </command>
@@ -1225,14 +1178,6 @@
         <param name='A.B.C.D' doc='IPv4 Address of the callagent' />
       </params>
     </command>
-    <command id='call agent ip A.B.C.D'>
-      <params>
-        <param name='call' doc='Callagent information' />
-        <param name='agent' doc='Callagent information' />
-        <param name='ip' doc='IP information' />
-        <param name='A.B.C.D' doc='IPv4 Address of the callagent' />
-      </params>
-    </command>
     <command id='sdp audio-payload number &lt;0-255&gt;'>
       <params>
         <param name='sdp' doc='SDP File related options' />
@@ -1245,24 +1190,6 @@
       <params>
         <param name='sdp' doc='SDP File related options' />
         <param name='audio-payload' doc='Audio payload options' />
-        <param name='name' doc='Name' />
-        <param name='NAME' doc='Payload name' />
-      </params>
-    </command>
-    <command id='sdp audio payload number &lt;0-255&gt;'>
-      <params>
-        <param name='sdp' doc='SDP File related options' />
-        <param name='audio' doc='Audio payload options' />
-        <param name='payload' doc='Audio payload options' />
-        <param name='number' doc='Number' />
-        <param name='&lt;0-255&gt;' doc='Payload number' />
-      </params>
-    </command>
-    <command id='sdp audio payload name NAME'>
-      <params>
-        <param name='sdp' doc='SDP File related options' />
-        <param name='audio' doc='Audio payload options' />
-        <param name='payload' doc='Audio payload options' />
         <param name='name' doc='Name' />
         <param name='NAME' doc='Payload name' />
       </params>
@@ -1479,24 +1406,6 @@
       <params>
         <param name='sdp' doc='SDP File related options' />
         <param name='audio-payload' doc='Audio payload options' />
-        <param name='name' doc='Payload' />
-        <param name='NAME' doc='Payload Name' />
-      </params>
-    </command>
-    <command id='sdp audio payload number &lt;0-255&gt;'>
-      <params>
-        <param name='sdp' doc='SDP File related options' />
-        <param name='audio' doc='Audio payload options' />
-        <param name='payload' doc='Audio payload options' />
-        <param name='number' doc='Number' />
-        <param name='&lt;0-255&gt;' doc='Payload Number' />
-      </params>
-    </command>
-    <command id='sdp audio payload name NAME'>
-      <params>
-        <param name='sdp' doc='SDP File related options' />
-        <param name='audio' doc='Audio payload options' />
-        <param name='payload' doc='Audio payload options' />
         <param name='name' doc='Payload' />
         <param name='NAME' doc='Payload Name' />
       </params>
