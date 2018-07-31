@@ -1,0 +1,25 @@
+== Running OsmoMGW
+
+The OsmoMGW executable (`osmo-mgw`) offers the following command-line
+arguments:
+
+=== SYNOPSIS
+
+*osmo-mgw* [-h|-V] [-D] [-c 'CONFIGFILE'] [-s]
+
+=== OPTIONS
+
+*-h, --help*::
+	Print a short help message about the supported options
+*-V, --version*::
+	Print the compile-time version number of the OsmoBTS program
+*-D, --daemonize*::
+	Fork the process as a daemon into background.
+*-c, --config-file 'CONFIGFILE'*::
+	Specify the file and path name of the configuration file to be
+	used. If none is specified, use `osmo-mgw.cfg` in the current
+	working directory.
+*-s, --disable-color*::
+	Disable colors for logging to stderr. This has mostly been
+	deprecated by VTY based logging configuration, see <<logging>>
+	for more information.

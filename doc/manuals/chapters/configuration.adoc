@@ -1,0 +1,57 @@
+== Configuring OsmoMGW
+
+A basic configation of OsmoMGW mainly consists of specifying the IP address
+and port on which to listen to MGCP commands, but changing the port range at
+which the RTP streams terminate as well as limiting operation to a single call
+agent can be done as well as changing the number of endpoints.
+
+=== Configuring MGCP
+
+By default OsmoMGW listens for MGCP on port 2427 on any IP address. If a call
+agent address is configured then OsmoMGW will only answer MGCP commands from
+that IP port 2727, otherwise all sources are handled. A domain can be
+specified
+
+.Example: MGCP configuration
+----
+OsmoMGW(config-mgcp)# bind ip 127.0.0.1
+OsmoMGW(config-mgcp)# bind port 2427
+OsmoMGW(config-mgcp)# call-agent ip 127.0.0.1
+OsmoMGW(config-mgcp)# domain mgw-bsc
+OsmoMGW(config-mgcp)# local ip 127.0.0.1
+----
+
+=== Configuring the trunk
+
+The first trunk (trunk 0) is considered a virtual trunk in OsmoMGW. All
+endpoints of type "rtpbridge" are routed here. The virtual trunk is configured
+in the config-mgcp context.
+
+All other trunks are configured in the config-mgcp-trunk context, but the
+commands used are identical. Right now trunks are considered only for ds/e1
+type endpoints which are not yet implemented. Don't use trunks other than the
+"virtual" trunk 0.
+
+.Example: MGCP trunk configuration
+----
+OsmoMGW(config-mgcp)# number endpoints 63 <1>
+OsmoMGW(config-mgcp)# rtp bind-ip 10.0.0.1 <2>
+OsmoMGW(config-mgcp)# rtp port-range 12000-14000 <3>
+----
+<1> Maximum number of endpoints that can be allocated at once
+<2> Use this IP when binding RTP endpoints
+<3> Use ports in this range when binding RTP endpoints
+
+There are some options to tweak how RTP forwarding behaves in OsmoMGW:
+
+.Example: MGCP trunk rtp options
+----
+OsmoMGW(config-mgcp)# rtp keep-alive 30 <1>
+OsmoMGW(config-mgcp)# rtp-patch ssrc <2>
+OsmoMGW(config-mgcp)# rtp-patch timestamp <3>
+----
+<1> Send dummy UDP packets periodically to RTP destination
+<2> Hide SSRC changes
+<3> Ensure RTP timestamp is aligned with frame duration
+
+
