@@ -1265,6 +1265,7 @@ static void test_multilple_codec(void)
 	struct in_addr addr;
 	struct mgcp_conn_rtp *conn = NULL;
 	char conn_id[256];
+	int i;
 
 	printf("Testing multiple payload types\n");
 
@@ -1397,6 +1398,9 @@ static void test_multilple_codec(void)
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
+
+	for (i = 1; i < cfg->trunk.number_endpoints; i++)
+		mgcp_endp_release(&cfg->trunk.endpoints[i]);
 
 	talloc_free(cfg);
 }
