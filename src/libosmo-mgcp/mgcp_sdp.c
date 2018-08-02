@@ -304,6 +304,32 @@ static int add_rtpmap(struct msgb *sdp, int payload_type, const char *audio_name
 	return 0;
 }
 
+/* Add audio string to sdp payload */
+static int add_audio(struct msgb *sdp, int *payload_types, unsigned int payload_types_len, int local_port)
+{
+	int rc;
+	unsigned int i;
+
+	if (payload_types_len < 0)
+		return -EINVAL;
+
+	rc = msgb_printf(sdp, "m=audio %d RTP/AVP", local_port);
+	if (rc < 0)
+		return -EINVAL;
+
+	for (i = 0; i < payload_types_len; i++) {
+		rc = msgb_printf(sdp, " %d", payload_types[i]);
+		if (rc < 0)
+			return -EINVAL;
+	}
+
+	rc = msgb_printf(sdp, "\r\n");
+	if (rc < 0)
+		return -EINVAL;
+
+	return 0;
+}
+
 /*! Generate SDP response string.
  *  \param[in] endp trunk endpoint.
  *  \param[in] conn associated rtp connection.
@@ -318,6 +344,7 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 	const char *audio_name;
 	int payload_type;
 	int rc;
+	int payload_types[1];
 
 	OSMO_ASSERT(endp);
 	OSMO_ASSERT(conn);
@@ -341,8 +368,9 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 		goto buffer_too_small;
 
 	if (payload_type >= 0) {
-		rc = msgb_printf(sdp, "m=audio %d RTP/AVP %d\r\n",
-				 conn->end.local_port, payload_type);
+
+		payload_types[0] = payload_type;
+		rc = add_audio(sdp, payload_types, 1, conn->end.local_port);
 		if (rc < 0)
 			goto buffer_too_small;
 
