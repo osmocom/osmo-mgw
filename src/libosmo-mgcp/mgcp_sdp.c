@@ -286,6 +286,24 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	return 0;
 }
 
+
+/* Add rtpmap string to the sdp payload, but only when the payload type falls
+ * into the dynamic payload type range */
+static int add_rtpmap(struct msgb *sdp, int payload_type, const char *audio_name)
+{
+	int rc;
+
+	if (payload_type >= 96 && payload_type <= 127) {
+		if (!audio_name)
+			return -EINVAL;
+		rc = msgb_printf(sdp, "a=rtpmap:%d %s\r\n", payload_type, audio_name);
+		if (rc < 0)
+			return -EINVAL;
+	}
+
+	return 0;
+}
+
 /*! Generate SDP response string.
  *  \param[in] endp trunk endpoint.
  *  \param[in] conn associated rtp connection.
@@ -328,12 +346,8 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 		if (rc < 0)
 			goto buffer_too_small;
 
-		/* FIXME: Check if the payload type is from the static range,
-		 * if yes, omitthe a=rtpmap since it is unnecessary */
-		if (audio_name && endp->tcfg->audio_send_name && (payload_type >= 96 && payload_type <= 127)) {
-			rc = msgb_printf(sdp, "a=rtpmap:%d %s\r\n",
-					 payload_type, audio_name);
-
+		if (endp->tcfg->audio_send_name) {
+			rc = add_rtpmap(sdp, payload_type, audio_name);
 			if (rc < 0)
 				goto buffer_too_small;
 		}
