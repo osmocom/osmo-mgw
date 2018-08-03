@@ -32,6 +32,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/socket.h>
+#include <osmocom/core/byteswap.h>
 #include <osmocom/netif/rtp.h>
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_common.h>
@@ -939,6 +940,53 @@ static int check_rtp_destin(struct mgcp_conn_rtp *conn)
 	return 0;
 }
 
+/* Do some basic checks to make sure that the RTCP packets we are going to
+ * process are not complete garbage */
+static int check_rtcp(char *buf, unsigned int buf_size)
+{
+	struct rtcp_hdr *hdr;
+	unsigned int len;
+	uint8_t type;
+
+	/* RTPC packets that are just a header without data do not make
+	 * any sense. */
+	if (buf_size < sizeof(struct rtcp_hdr))
+		return -EINVAL;
+
+	/* Make sure that the length of the received packet does not exceed
+	 * the available buffer size */
+	hdr = (struct rtcp_hdr *)buf;
+	len = (osmo_ntohs(hdr->length) + 1) * 4;
+	if (len > buf_size)
+		return -EINVAL;
+
+	/* Make sure we accept only packets that have a proper packet type set
+	 * See also: http://www.iana.org/assignments/rtp-parameters/rtp-parameters.xhtml */
+	type = hdr->type;
+	if ((type < 192 || type > 195) && (type < 200 || type > 213))
+		return -EINVAL;
+
+	return 0;
+}
+
+/* Do some basic checks to make sure that the RTP packets we are going to
+ * process are not complete garbage */
+static int check_rtp(char *buf, unsigned int buf_size)
+{
+	/* RTP packets that are just a header without data do not make
+	 * any sense. */
+	if (buf_size < sizeof(struct rtp_hdr))
+		return -EINVAL;
+
+	/* FIXME: Add more checks, the reason why we do not check more than
+	 * the length is because we currently handle IUUP packets as RTP
+	 * packets, so they must pass this check, if we weould be more
+	 * strict here, we would possibly break 3G. (see also FIXME note
+	 * below */
+
+	return 0;
+}
+
 /* Receive RTP data from a specified source connection and dispatch it to a
  * destination connection. */
 static int mgcp_recv(int *proto, struct sockaddr_in *addr, char *buf,
@@ -959,7 +1007,28 @@ static int mgcp_recv(int *proto, struct sockaddr_in *addr, char *buf,
 	rc = receive_from(endp, fd->fd, addr, buf, buf_size);
 	if (rc <= 0)
 		return -1;
+
+	/* FIXME: The way how we detect the protocol looks odd. We should look
+	 * into the packet header. Also we should introduce a packet type
+	 * MGCP_PROTO_IUUP because currently we handle IUUP packets like RTP
+	 * packets which is problematic. */
 	*proto = fd == &conn->end.rtp ? MGCP_PROTO_RTP : MGCP_PROTO_RTCP;
+
+	if (*proto == MGCP_PROTO_RTP) {
+		if (check_rtp(buf, rc) < 0) {
+			LOGP(DRTP, LOGL_ERROR,
+			     "endpoint:0x%x invalid RTP packet received -- packet tossed\n",
+			     ENDPOINT_NUMBER(endp));
+			return -1;
+		}
+	} else if (*proto == MGCP_PROTO_RTCP) {
+		if (check_rtcp(buf, rc) < 0) {
+			LOGP(DRTP, LOGL_ERROR,
+			     "endpoint:0x%x invalid RTCP packet received -- packet tossed\n",
+			     ENDPOINT_NUMBER(endp));
+			return -1;
+		}
+	}
 
 	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x ", ENDPOINT_NUMBER(endp));
 	LOGPC(DRTP, LOGL_DEBUG, "receiving from %s %s %d\n",
