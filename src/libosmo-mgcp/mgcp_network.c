@@ -1221,7 +1221,6 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 
 	/* Check if the connection is in loopback mode, if yes, just send the
 	 * incoming data back to the origin */
-
 	if (conn_src->conn->mode == MGCP_CONN_LOOPBACK) {
 		/* When we are in loopback mode, we loop back all incoming
 		 * packets back to their origin. We will use the originating
