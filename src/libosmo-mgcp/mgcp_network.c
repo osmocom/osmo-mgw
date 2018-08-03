@@ -717,11 +717,13 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	 * course unable to patch the payload type. A situation like this
 	 * should not occur if transcoding is consequently avoided. Until
 	 * we have transcoding support in osmo-mgw we can not resolve this. */
-	rc = mgcp_patch_pt(conn_src, conn_dst, buf, len);
-	if (rc < 0) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x can not patch PT because no suitable egress codec was found.\n",
-		     ENDPOINT_NUMBER(endp));
+	if (is_rtp) {
+		rc = mgcp_patch_pt(conn_src, conn_dst, buf, len);
+		if (rc < 0) {
+			LOGP(DRTP, LOGL_ERROR,
+			     "endpoint:0x%x can not patch PT because no suitable egress codec was found.\n",
+			     ENDPOINT_NUMBER(endp));
+		}
 	}
 
 	/* Note: In case of loopback configuration, both, the source and the
