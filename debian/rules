@@ -29,8 +29,4 @@ CFLAGS += -g
 override_dh_auto_test:
 	dh_auto_test || (find . -name testsuite.log -exec cat {} \; ; false)
 
-override_dh_autoreconf:
-	echo $(VERSION) > .tarball-version
-	dh_autoreconf
-
 # See https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html#bpp-dbg
