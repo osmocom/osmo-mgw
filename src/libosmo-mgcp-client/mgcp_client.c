@@ -801,7 +801,7 @@ static int init_socket(struct mgcp_client *mgcp)
 		 * configured then we assume that the user has choosen
 		 * that port conciously and we will not try to resolve
 		 * this by silently choosing a different port. */
-		if (mgcp->actual.local_port != MGCP_CLIENT_LOCAL_PORT_DEFAULT)
+		if (mgcp->actual.local_port != MGCP_CLIENT_LOCAL_PORT_DEFAULT && i == 0)
 			return -EINVAL;
 
 		/* Choose a new port number to try next */
