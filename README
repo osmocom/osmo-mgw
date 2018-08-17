@@ -19,10 +19,6 @@ OsmoBSC, and receives and sends RTP streams as configured via MGCP.
 The libosmo-mgcp-client library exposes utilities used by e.g. OsmoMSC (found
 in osmo-msc.git) to instruct OsmoMGW via its MGCP service.
 
-The libosmo-mgcp library exposes MGCP server utilities used by e.g. OsmoBSC-NAT
-(found in osmo-bsc.git) to navigate RTP streams through a NAT.
-(At time of writing, this is still called libosmo-legacy-mgcp.)
-
 Find OsmoMGW issue tracker and wiki online at
 https://osmocom.org/projects/osmo-mgw
 https://osmocom.org/projects/osmo-mgw/wiki

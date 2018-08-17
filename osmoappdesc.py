@@ -17,11 +17,9 @@
 
 app_configs = {
     "osmo-mgw": ["doc/examples/osmo-mgw/osmo-mgw.cfg"],
-    "osmo-bsc_mgcp": ["doc/examples/osmo-bsc_mgcp/mgcp.cfg"],
 }
 
 apps = [(4243, "src/osmo-mgw/osmo-mgw", "OsmoMGW", "osmo-mgw"),
-        (4243, "src/osmo-bsc_mgcp/osmo-bsc_mgcp", "OpenBSC MGCP", "osmo-bsc_mgcp"),
         ]
 
 vty_command = ["./src/osmo-mgw/osmo-mgw", "-c",

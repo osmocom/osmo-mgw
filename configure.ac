@@ -74,29 +74,6 @@ then
 	CPPFLAGS="$CPPFLAGS $WERROR_FLAGS"
 fi
 
-# Enable/disable transcoding within osmo-bsc_mgcp?
-AC_ARG_ENABLE([mgcp-transcoding], [AS_HELP_STRING([--enable-mgcp-transcoding], [Build the MGCP gateway with internal transcoding enabled.])],
-    [osmo_ac_mgcp_transcoding="$enableval"],[osmo_ac_mgcp_transcoding="no"])
-AC_ARG_WITH([g729], [AS_HELP_STRING([--with-g729], [Enable G.729 encoding/decoding.])], [osmo_ac_with_g729="$withval"],[osmo_ac_with_g729="no"])
-
-if test "$osmo_ac_mgcp_transcoding" = "yes" ; then
-    AC_CHECK_HEADERS([gsm.h gsm/gsm.h], [osmo_ac_found_gsm_headers=yes])
-    if test "$osmo_ac_found_gsm_headers" != "yes" ; then
-	AC_MSG_ERROR([Unable to find the libgsm headers])
-    fi
-    AC_SUBST(HAVE_GSM_H)
-    AC_SUBST(HAVE_GSM_GSM_H)
-
-    AC_SEARCH_LIBS([gsm_create], [gsm], [LIBRARY_GSM="$LIBS";LIBS=""], [AC_MSG_ERROR([--enable-mgcp-transcoding: cannot find usable libgsm])])
-    AC_SUBST(LIBRARY_GSM)
-    if test "$osmo_ac_with_g729" = "yes" ; then
-	PKG_CHECK_MODULES(LIBBCG729, libbcg729 >= 0.1, [AC_DEFINE([HAVE_BCG729], [1], [Use bgc729 decoder/encoder])])
-    fi
-    AC_DEFINE(BUILD_MGCP_TRANSCODING, 1, [Define if we want to build the MGCP gateway with transcoding support])
-fi
-AM_CONDITIONAL(BUILD_MGCP_TRANSCODING, test "x$osmo_ac_mgcp_transcoding" = "xyes")
-AC_SUBST(osmo_ac_mgcp_transcoding)
-
 dnl Checks for typedefs, structures and compiler characteristics
 
 # The following test is taken from WebKit's webkit.m4
@@ -158,22 +135,17 @@ dnl Generate the output
 AM_CONFIG_HEADER(bscconfig.h)
 
 AC_OUTPUT(
-    libosmo-legacy-mgcp.pc
     libosmo-mgcp-client.pc
     include/Makefile
     include/osmocom/Makefile
-    include/osmocom/legacy_mgcp/Makefile
     include/osmocom/mgcp_client/Makefile
     include/osmocom/mgcp/Makefile
     src/Makefile
-    src/libosmo-legacy-mgcp/Makefile
     src/libosmo-mgcp-client/Makefile
     src/libosmo-mgcp/Makefile
-    src/osmo-bsc_mgcp/Makefile
     src/osmo-mgw/Makefile
     tests/Makefile
     tests/atlocal
-    tests/legacy_mgcp/Makefile
     tests/mgcp_client/Makefile
     tests/mgcp/Makefile
     doc/Makefile

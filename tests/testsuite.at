@@ -1,19 +1,6 @@
 AT_INIT
 AT_BANNER([Regression tests.])
 
-AT_SETUP([legacy_mgcp])
-AT_KEYWORDS([legacy_mgcp])
-cat $abs_srcdir/legacy_mgcp/mgcp_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/legacy_mgcp/mgcp_test], [], [expout], [ignore])
-AT_CLEANUP
-
-AT_SETUP([legacy_mgcp-trans])
-AT_KEYWORDS([legacy_mgcp-trans])
-AT_CHECK([test "$enable_mgcp_transcoding_test" == yes || exit 77])
-cat $abs_srcdir/legacy_mgcp/mgcp_transcoding_test.ok > expout
-AT_CHECK([$abs_top_builddir/tests/legacy_mgcp/mgcp_transcoding_test], [], [expout], [ignore])
-AT_CLEANUP
-
 AT_SETUP([mgcp_client])
 AT_KEYWORDS([mgcp_client])
 cat $abs_srcdir/mgcp_client/mgcp_client_test.ok > expout

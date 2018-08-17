@@ -1,4 +1,0 @@
-usr/include/osmocom/legacy_mgcp
-usr/lib/*/libosmo-legacy-mgcp.so
-usr/lib/*/libosmo-legacy-mgcp.a
-usr/lib/*/pkgconfig/libosmo-legacy-mgcp.pc
