@@ -241,6 +241,7 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 	/* Check if the domainname in the request is correct */
 	if (check_domain_name(cfg, mgcp)) {
 		LOGP(DLMGCP, LOGL_ERROR, "Wrong domain name '%s'\n", mgcp);
+		*cause = -500;
 		return NULL;
 	}
 
@@ -320,6 +321,7 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 			if (!pdata->endp) {
 				LOGP(DLMGCP, LOGL_ERROR,
 				     "Unable to find Endpoint `%s'\n", elem);
+				OSMO_ASSERT(cause < 0);
 				return cause;
 			}
 			break;
