@@ -414,7 +414,7 @@ int mgcp_verify_call_id(struct mgcp_endpoint *endp, const char *callid)
 
 	if (strcmp(endp->callid, callid) != 0) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint:0x%x CallIDs does not match '%s' != '%s'\n",
+		     "endpoint:0x%x CallIDs mismatch: '%s' != '%s'\n",
 		     ENDPOINT_NUMBER(endp), endp->callid, callid);
 		return -1;
 	}
