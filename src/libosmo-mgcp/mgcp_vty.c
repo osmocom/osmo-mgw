@@ -1208,7 +1208,9 @@ DEFUN(cfg_mgcp_osmux_dummy,
 
 DEFUN(cfg_mgcp_domain,
       cfg_mgcp_domain_cmd,
-      "domain NAME", "domain\n" "qualified domain name\n")
+      "domain NAME",
+      "Set the domain part expected in MGCP messages' endpoint names\n"
+      "Qualified domain name expected in MGCP endpoint names, or '*' to accept any domain\n")
 {
 	osmo_strlcpy(g_cfg->domain, argv[0], sizeof(g_cfg->domain));
 	return CMD_SUCCESS;

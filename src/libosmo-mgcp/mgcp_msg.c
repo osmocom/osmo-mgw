@@ -219,6 +219,10 @@ static int check_domain_name(struct mgcp_config *cfg, const char *mgcp)
 	if (!domain_to_check)
 		return -EINVAL;
 
+	/* Accept any domain if configured as "*" */
+	if (!strcmp(cfg->domain, "*"))
+		return 0;
+
 	if (strcmp(domain_to_check+1, cfg->domain) != 0)
 		return -EINVAL;
 
