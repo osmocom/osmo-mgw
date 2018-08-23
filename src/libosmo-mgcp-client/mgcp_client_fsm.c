@@ -104,48 +104,28 @@ static const struct value_string fsm_mgcp_client_evt_names[] = {
 	{0, NULL}
 };
 
-static struct msgb *make_crcx_msg_bind(struct mgcp_ctx *mgcp_ctx)
+static void make_crcx_msg(struct mgcp_msg *mgcp_msg, struct mgcp_conn_peer *info)
 {
-	struct mgcp_msg mgcp_msg;
-
-	mgcp_msg = (struct mgcp_msg) {
+	*mgcp_msg = (struct mgcp_msg) {
 		.verb = MGCP_VERB_CRCX,
-		.presence = (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID | MGCP_MSG_PRESENCE_CONN_MODE),
-		.call_id = mgcp_ctx->conn_peer_local.call_id,
+		.presence = (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID
+			     | MGCP_MSG_PRESENCE_CONN_MODE),
+		.call_id = info->call_id,
 		.conn_mode = MGCP_CONN_RECV_ONLY,
-		.ptime = mgcp_ctx->conn_peer_local.ptime,
-		.codecs_len = mgcp_ctx->conn_peer_local.codecs_len,
-		.ptmap_len = mgcp_ctx->conn_peer_local.ptmap_len
+		.ptime = info->ptime,
+		.codecs_len = info->codecs_len,
+		.ptmap_len = info->ptmap_len
 	};
-	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_local.endpoint, MGCP_ENDPOINT_MAXLEN);
-	memcpy(mgcp_msg.codecs, mgcp_ctx->conn_peer_local.codecs, sizeof(mgcp_msg.codecs));
-	memcpy(mgcp_msg.ptmap, mgcp_ctx->conn_peer_local.ptmap, sizeof(mgcp_msg.ptmap));
-
-	return mgcp_msg_gen(mgcp_ctx->mgcp, &mgcp_msg);
+	osmo_strlcpy(mgcp_msg->endpoint, info->endpoint, MGCP_ENDPOINT_MAXLEN);
+	memcpy(mgcp_msg->codecs, info->codecs, sizeof(mgcp_msg->codecs));
+	memcpy(mgcp_msg->ptmap, info->ptmap, sizeof(mgcp_msg->ptmap));
 }
 
-static struct msgb *make_crcx_msg_bind_connect(struct mgcp_ctx *mgcp_ctx)
+static void add_audio(struct mgcp_msg *mgcp_msg, struct mgcp_conn_peer *info)
 {
-	struct mgcp_msg mgcp_msg;
-
-	mgcp_msg = (struct mgcp_msg) {
-		.verb = MGCP_VERB_CRCX,
-		.presence = (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
-			     MGCP_MSG_PRESENCE_CONN_MODE | MGCP_MSG_PRESENCE_AUDIO_IP |
-			     MGCP_MSG_PRESENCE_AUDIO_PORT),
-		.call_id = mgcp_ctx->conn_peer_local.call_id,
-		.conn_mode = MGCP_CONN_RECV_SEND,
-		.audio_ip = mgcp_ctx->conn_peer_local.addr,
-		.audio_port = mgcp_ctx->conn_peer_local.port,
-		.ptime = mgcp_ctx->conn_peer_local.ptime,
-		.codecs_len = mgcp_ctx->conn_peer_local.codecs_len,
-		.ptmap_len = mgcp_ctx->conn_peer_local.ptmap_len
-	};
-	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_local.endpoint, MGCP_ENDPOINT_MAXLEN);
-	memcpy(mgcp_msg.codecs, mgcp_ctx->conn_peer_local.codecs, sizeof(mgcp_msg.codecs));
-	memcpy(mgcp_msg.ptmap, mgcp_ctx->conn_peer_local.ptmap, sizeof(mgcp_msg.ptmap));
-
-	return mgcp_msg_gen(mgcp_ctx->mgcp, &mgcp_msg);
+	mgcp_msg->presence |= MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT;
+	mgcp_msg->audio_ip = info->addr;
+	mgcp_msg->audio_port = info->port;
 }
 
 static struct msgb *make_mdcx_msg(struct mgcp_ctx *mgcp_ctx)
@@ -197,6 +177,7 @@ static void fsm_crcx_cb(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
 	struct mgcp_ctx *mgcp_ctx = data;
 	struct mgcp_client *mgcp;
+	struct mgcp_msg mgcp_msg;
 	struct msgb *msg;
 	int rc;
 
@@ -209,10 +190,10 @@ static void fsm_crcx_cb(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 		LOGPFSML(fi, LOGL_DEBUG, "MGW/CRCX: creating connection on MGW endpoint:%s...\n",
 			 mgcp_ctx->conn_peer_local.endpoint);
 
+		make_crcx_msg(&mgcp_msg, &mgcp_ctx->conn_peer_local);
 		if (mgcp_ctx->conn_peer_local.port)
-			msg = make_crcx_msg_bind_connect(mgcp_ctx);
-		else
-			msg = make_crcx_msg_bind(mgcp_ctx);
+			add_audio(&mgcp_msg, &mgcp_ctx->conn_peer_local);
+		msg = mgcp_msg_gen(mgcp_ctx->mgcp, &mgcp_msg);
 		OSMO_ASSERT(msg);
 
 		mgcp_ctx->mgw_pending_trans = mgcp_msg_trans_id(msg);
