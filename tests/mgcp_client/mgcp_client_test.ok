@@ -117,6 +117,14 @@ AUEP 8 23@mgw MGCP 1.0
 Generated RSIP message:
 RSIP 9 23@mgw MGCP 1.0
 
+Generate X-Osmo-IGN message:
+CRCX 11 23@mgw MGCP 1.0
+C: 2f
+I: 11
+L: p:20, a:GSM, nt:IN
+M: sendrecv
+X-Osmo-IGN: C
+
 Overfolow test:
 
 

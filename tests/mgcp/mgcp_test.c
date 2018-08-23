@@ -309,6 +309,32 @@ static void test_strline(void)
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
 	"a=ptime:20\r\n"
 
+#define CRCX_X_OSMO_IGN \
+	"CRCX 2 1@mgw MGCP 1.0\r\n" \
+	"M: recvonly\r\n" \
+	"C: 2\r\n" \
+	"L: p:20\r\n" \
+	"X-Osmo-IGN: C\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"c=IN IP4 123.12.12.123\r\n" \
+	"m=audio 5904 RTP/AVP 97\r\n" \
+	"a=rtpmap:97 GSM-EFR/8000\r\n" \
+	"a=ptime:40\r\n"
+
+#define CRCX_X_OSMO_IGN_RET \
+	"200 2 OK\r\n" \
+	"I: %s\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
+	"s=-\r\n" \
+	"c=IN IP4 0.0.0.0\r\n" \
+	"t=0 0\r\n" \
+	"m=audio 16010 RTP/AVP 97\r\n" \
+	"a=rtpmap:97 GSM-EFR/8000\r\n" \
+	"a=ptime:40\r\n"
+
 #define DLCX \
 	"DLCX 7 1@mgw MGCP 1.0\r\n" \
 	"I: %s\r\n" \
@@ -482,6 +508,7 @@ static const struct mgcp_test tests[] = {
 	 "a=fmtp:126 0/1/2"},
 	{"DLCX", DLCX, DLCX_RET, PTYPE_IGNORE,.extra_fmtp = "a=fmtp:126 0/1/2"},
 	{"CRCX", CRCX_NO_LCO_NO_SDP, CRCX_NO_LCO_NO_SDP_RET, 97},
+	{"CRCX", CRCX_X_OSMO_IGN, CRCX_X_OSMO_IGN_RET, 97},
 };
 
 static const struct mgcp_test retransmit[] = {

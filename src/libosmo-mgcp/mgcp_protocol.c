@@ -715,12 +715,31 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 			mode = (const char *)line + 3;
 			break;
 		case 'X':
-			/* If osmoux is disabled, just skip setting it up */
-			if (!p->endp->cfg->osmux)
-				break;
-			if (strncmp("Osmux: ", line + 2, strlen("Osmux: ")) ==
-			    0)
+			if (strncmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
+				/* If osmux is disabled, just skip setting it up */
+				if (!p->endp->cfg->osmux)
+					break;
 				osmux_cid = mgcp_osmux_setup(endp, line);
+				break;
+			}
+
+			/* Parse X-Osmo-IGN header */
+			if (!strncmp(line, MGCP_X_OSMO_IGN_HEADER,
+					    strlen(MGCP_X_OSMO_IGN_HEADER))) {
+				int i;
+				int line_len = strlen(line);
+				for (i = strlen(MGCP_X_OSMO_IGN_HEADER); i < line_len; i++) {
+					switch (line[i]) {
+					case 'C':
+						endp->x_osmo_ign |= MGCP_X_OSMO_IGN_CALLID;
+						break;
+					default:
+						break;
+					}
+				}
+				break;
+			}
+			/* Ignore unknown X-headers */
 			break;
 		case '\0':
 			have_sdp = 1;

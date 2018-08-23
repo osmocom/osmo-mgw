@@ -1313,6 +1313,13 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		    msgb_printf(msg, "M: %s\r\n",
 				mgcp_client_cmode_name(mgcp_msg->conn_mode));
 
+	/* Add X-Osmo-IGN */
+	if ((mgcp_msg->presence & MGCP_MSG_PRESENCE_X_OSMO_IGN)
+	    && (mgcp_msg->x_osmo_ign != 0))
+		rc +=
+		    msgb_printf(msg, MGCP_X_OSMO_IGN_HEADER "%s\r\n",
+				mgcp_msg->x_osmo_ign & MGCP_X_OSMO_IGN_CALLID ? " C": "");
+
 	/* Add session description protocol (SDP) */
 	if (use_sdp
 	    && (mgcp_msg->verb == MGCP_VERB_CRCX

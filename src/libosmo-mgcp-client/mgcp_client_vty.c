@@ -30,7 +30,7 @@
 
 #include <osmocom/mgcp_client/mgcp_client.h>
 
-#define MGW_STR "Configure MGCP connection to Media Gateway\n"
+#define MGW_STR MGCP_CLIENT_MGW_STR
 
 void *global_mgcp_client_ctx = NULL;
 struct mgcp_client_conf *global_mgcp_client_conf = NULL;

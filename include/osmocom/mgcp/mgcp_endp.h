@@ -90,6 +90,9 @@ struct mgcp_endpoint {
 	/*! Memorize if this endpoint was choosen by the MGW (wildcarded, true)
 	 *   or if the user has choosen the particular endpoint explicitly. */
 	bool wildcarded_req;
+
+	/*! MGCP_X_OSMO_IGN_* flags from 'X-Osmo-IGN:' header */
+	uint32_t x_osmo_ign;
 };
 
 /*! Extract endpoint number for a given endpoint */

@@ -180,7 +180,8 @@ void test_mgcp_msg(void)
 		.codecs_len = 1,
 		.ptmap[0].codec = CODEC_GSMEFR_8000_1,
 		.ptmap[0].pt = 96,
-		.ptmap_len = 1
+		.ptmap_len = 1,
+		.x_osmo_ign = MGCP_X_OSMO_IGN_CALLID,
 	};
 
 	if (mgcp)
@@ -265,6 +266,16 @@ void test_mgcp_msg(void)
 	printf("Generated RSIP message:\n");
 	mgcp_msg.verb = MGCP_VERB_RSIP;
 	mgcp_msg.presence = (MGCP_MSG_PRESENCE_ENDPOINT);
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	printf("%s\n", (char *)msg->data);
+
+	printf("Generate X-Osmo-IGN message:\n");
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	mgcp_msg.verb = MGCP_VERB_CRCX;
+	mgcp_msg.presence =
+	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE
+	     | MGCP_MSG_PRESENCE_X_OSMO_IGN);
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
 	printf("%s\n", (char *)msg->data);
 

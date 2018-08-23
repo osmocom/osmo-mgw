@@ -427,6 +427,29 @@ CRCX 2 1@mgw MGCP 1.0
 M: recvonly
 C: 2
 L: p:20
+X-Osmo-IGN: C
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP 97
+a=rtpmap:97 GSM-EFR/8000
+a=ptime:40
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+(response does not contain a connection id)
+Dummy packets: 2
+
+================================================
+Testing CRCX
+creating message from statically defined input:
+---------8<---------
+CRCX 2 1@mgw MGCP 1.0
+M: recvonly
+C: 2
+L: p:20
 
 v=0
 c=IN IP4 123.12.12.123

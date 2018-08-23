@@ -42,6 +42,11 @@ struct mgcp_conn_peer {
 	/*! RTP payload type map length (optional, only needed when payload
 	 * types are used that differ from what IANA/3GPP defines) */
 	unsigned int ptmap_len;
+
+	/*! If nonzero, send 'X-Osmo-IGN:' header. This is useful e.g. for SCCPlite MSCs where the MSC is
+	 * known to issue incoherent or unknown CallIDs / to issue CRCX commands with a different domain
+	 * name than the BSC. An OsmoMGW will then ignore these and not fail on mismatches. */
+	uint32_t x_osmo_ign;
 };
 
 struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm_inst *parent_fi, uint32_t parent_term_evt,

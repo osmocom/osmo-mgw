@@ -11,6 +11,8 @@
 #define MGCP_CLIENT_REMOTE_ADDR_DEFAULT "127.0.0.1"
 #define MGCP_CLIENT_REMOTE_PORT_DEFAULT 2427
 
+#define MGCP_CLIENT_MGW_STR "Configure MGCP connection to Media Gateway\n"
+
 struct msgb;
 struct vty;
 struct mgcp_client;
@@ -88,6 +90,7 @@ enum mgcp_verb {
 #define MGCP_MSG_PRESENCE_AUDIO_IP	0x0008
 #define MGCP_MSG_PRESENCE_AUDIO_PORT	0x0010
 #define MGCP_MSG_PRESENCE_CONN_MODE	0x0020
+#define MGCP_MSG_PRESENCE_X_OSMO_IGN	0x8000
 
 struct mgcp_msg {
 	enum mgcp_verb verb;
@@ -104,6 +107,7 @@ struct mgcp_msg {
 	unsigned int codecs_len;
 	struct ptmap ptmap[MGCP_MAX_CODECS];
 	unsigned int ptmap_len;
+	uint32_t x_osmo_ign;
 };
 
 void mgcp_client_conf_init(struct mgcp_client_conf *conf);

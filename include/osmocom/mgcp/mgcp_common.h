@@ -49,6 +49,14 @@ enum mgcp_connection_mode {
 	MGCP_CONN_LOOPBACK  = 4 | MGCP_CONN_RECV_SEND,
 };
 
+#define MGCP_X_OSMO_IGN_HEADER "X-Osmo-IGN:"
+
+/* Values should be bitwise-OR-able */
+enum mgcp_x_osmo_ign {
+	MGCP_X_OSMO_IGN_NONE = 0,
+	MGCP_X_OSMO_IGN_CALLID = 1,
+};
+
 /* Ensure that the msg->l2h is NUL terminated. */
 static inline int mgcp_msg_terminate_nul(struct msgb *msg)
 {
