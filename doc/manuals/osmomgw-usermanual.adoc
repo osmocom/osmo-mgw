@@ -18,6 +18,8 @@ include::../common/chapters/logging.adoc[]
 
 include::chapters/configuration.adoc[]
 
+include::chapters/mgcp_extensions.adoc[]
+
 //include::chapters/counters.adoc[]
 
 include::../common/chapters/port_numbers.adoc[]

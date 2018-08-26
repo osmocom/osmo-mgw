@@ -1,0 +1,68 @@
+== MGCP Extensions
+
+The MGCP protocol is extendable. The following non-standard extensions are
+understood by OsmoMGW.
+
+=== `X-Osmo-IGN`
+
+`X-Osmo-IGN` indicates to OsmoMGW that specific items of an endpoint should be
+ignored, so that it is lenient on mismatching values that would normally
+indicate collisions or configuration errors.
+
+==== `X-Osmo-IGN` Format
+
+The value part of X-Osmo-IGN must be one or more items separated by one or more
+spaces. Each item consists of one or more non-whitespace characters.
+
+.Example: `X-Osmo-IGN` format with three ficticious items "X", "abc" and "123".
+----
+X-Osmo-IGN: X abc 123
+----
+
+`X-Osmo-IGN` must be issued in the MGCP section (typically as its last item),
+before the SDP section starts.
+
+==== Supported `X-Osmo-IGN` Items
+
+Currently, the following `X-Osmo-IGN` items are supported:
+
+* `C`: ignore CallID mismatches, i.e. differing "C" values between connections
+  on the same endpoint.
+
+.Note:
+`X-Osmo-IGN` does not support ignoring mismatches on the domain part of
+an endpoint name, e.g. ignoring a mismatch on "example.com" in
+`rtpbridge/123abc@example.com`. Instead, you may globally configure OsmoMGW
+with `mgcp` / `domain *` to permit all domain parts.
+
+===== `X-Osmo-IGN: C`
+
+By default, OsmoMGW verifies that all CallIDs ("C" values) match for all
+connections on any one given endpoint. To ignore CallID mismatches, pass a `C`
+in the `X-Osmo-IGN` header, for the first or the second `CRCX` on an endpoint.
+When the `X-Osmo-IGN: C` is sent for any one `CRCX` on an endpoint, CallID
+mismatches will be ignored for that and all subsequent messages for that
+endpoint. Hence this header only needs to be included once per endpoint, in any
+`CRCX` message that precedes or coincides with a CallID mismatch.
+
+This is particularly useful for a BSC that is connected to an A/SCCPlite MSC,
+where the BSC and MSC each are expected to configure their respective own
+connection on a shared endpoint. For A/SCCPlite, it is impossible for the BSC
+to know the CallID that the MSC will use, so CallID mismatches are inevitable.
+See also OsmoBSC, which will by default pass the `X-Osmo-IGN: C` header for
+endpoints associated with an A/SCCPlite MSC.
+
+.Example: `CRCX` message that instructs OsmoMGW to ignore CallID mismatches
+----
+CRCX 2 rtpbridge/123abc@mgw MGCP 1.0
+M: recvonly
+C: 2
+L: p:20
+X-Osmo-IGN: C
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP 97
+a=rtpmap:97 GSM-EFR/8000
+a=ptime:40
+----
