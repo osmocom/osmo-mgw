@@ -674,6 +674,30 @@ error:
 	return 534;
 }
 
+static bool parse_x_osmo_ign(struct mgcp_endpoint *endp, char *line)
+{
+	char *saveptr = NULL;
+
+	if (strncmp(line, MGCP_X_OSMO_IGN_HEADER, strlen(MGCP_X_OSMO_IGN_HEADER)))
+		return false;
+	line += strlen(MGCP_X_OSMO_IGN_HEADER);
+
+	while (1) {
+		char *token = strtok_r(line, " ", &saveptr);
+		line = NULL;
+		if (!token)
+			break;
+
+		if (!strcmp(token, "C"))
+			endp->x_osmo_ign |= MGCP_X_OSMO_IGN_CALLID;
+		else
+			LOGP(DLMGCP, LOGL_ERROR, "endpoint %x: received unknown X-Osmo-IGN item '%s'\n",
+			     ENDPOINT_NUMBER(endp), token);
+	}
+
+	return true;
+}
+
 /* CRCX command handler, processes the received command */
 static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 {
@@ -723,22 +747,9 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 				break;
 			}
 
-			/* Parse X-Osmo-IGN header */
-			if (!strncmp(line, MGCP_X_OSMO_IGN_HEADER,
-					    strlen(MGCP_X_OSMO_IGN_HEADER))) {
-				int i;
-				int line_len = strlen(line);
-				for (i = strlen(MGCP_X_OSMO_IGN_HEADER); i < line_len; i++) {
-					switch (line[i]) {
-					case 'C':
-						endp->x_osmo_ign |= MGCP_X_OSMO_IGN_CALLID;
-						break;
-					default:
-						break;
-					}
-				}
+			if (parse_x_osmo_ign(endp, line))
 				break;
-			}
+
 			/* Ignore unknown X-headers */
 			break;
 		case '\0':

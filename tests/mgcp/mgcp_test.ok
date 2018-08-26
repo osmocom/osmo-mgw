@@ -427,7 +427,7 @@ CRCX 2 1@mgw MGCP 1.0
 M: recvonly
 C: 2
 L: p:20
-X-Osmo-IGN: C
+X-Osmo-IGN: C foo
 
 v=0
 c=IN IP4 123.12.12.123

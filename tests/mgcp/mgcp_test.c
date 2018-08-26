@@ -314,7 +314,7 @@ static void test_strline(void)
 	"M: recvonly\r\n" \
 	"C: 2\r\n" \
 	"L: p:20\r\n" \
-	"X-Osmo-IGN: C\r\n" \
+	"X-Osmo-IGN: C foo\r\n" \
 	"\r\n" \
 	"v=0\r\n" \
 	"c=IN IP4 123.12.12.123\r\n" \
