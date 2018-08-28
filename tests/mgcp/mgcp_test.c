@@ -37,6 +37,7 @@
 #include <dlfcn.h>
 #include <time.h>
 #include <math.h>
+#include <ctype.h>
 
 char *strline_r(char *str, char **saveptr);
 
@@ -626,8 +627,10 @@ static int get_conn_id_from_response(uint8_t *resp, char *conn_id,
 
 	if (got_conn_id) {
 		for (i = 0; i < conn_id_len; i++) {
-			if (conn_id[i] == '\n' || conn_id[i] == '\r')
+			if (!isxdigit(conn_id[i])) {
 				conn_id[i] = '\0';
+				break;
+			}
 		}
 
 		/* A valid conn_id must at least contain one digit, and must
