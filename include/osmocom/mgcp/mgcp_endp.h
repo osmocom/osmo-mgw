@@ -69,7 +69,7 @@ struct mgcp_endpoint {
 	/*! Local connection options (see mgcp_internal.h) */
 	struct mgcp_lco local_options;
 
-	/*! List with connections active on this endpoint */
+	/*! List of struct mgcp_conn, of the connections active on this endpoint */
 	struct llist_head conns;
 
 	/*! Backpointer to the MGW configuration */
