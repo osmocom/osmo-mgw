@@ -737,7 +737,7 @@ static void test_messages(void)
 		if (msg) {
 			rc = get_conn_id_from_response(msg->data, last_conn_id,
 						       sizeof(last_conn_id));
-			if (rc)
+			if (rc == 0)
 				printf("(response contains a connection id)\n");
 			else
 				printf("(response does not contain a connection id)\n");
