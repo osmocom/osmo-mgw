@@ -607,47 +607,42 @@ static void test_values(void)
 		    MGCP_CONN_RECV_SEND);
 }
 
-/* Extract a connection ID from a response (CRCX) */
+/* Extract a connection ID from a response and return in conn_id;
+ * if there is none, return -EINVAL and leave conn_id unchanged. */
 static int get_conn_id_from_response(uint8_t *resp, char *conn_id,
-				     unsigned int conn_id_len)
+				     size_t conn_id_buflen)
 {
-	char *conn_id_ptr;
-	int i;
-	bool got_conn_id = false;
+	const char *conn_id_start;
+	const char *conn_id_end;
+	int conn_id_len;
 
-	/* First try to get the conn_id from the I: parameter */
-	conn_id_ptr = strstr((char *)resp, "I: ");
-	if (conn_id_ptr) {
-		memset(conn_id, 0, conn_id_len);
-		memcpy(conn_id, conn_id_ptr + 3, 32);
-		got_conn_id = true;
-	} else {
-		/* Alternatively try to extract the conn_id from the o=- SDP
-		 * parameter */
-		conn_id_ptr = strstr((char *)resp, "o=- ");
-		if(conn_id_ptr) {
-			memset(conn_id, 0, conn_id_len);
-			memcpy(conn_id, conn_id_ptr + 4, 32);
-			got_conn_id = true;
-		}
-	}
+	const char *header_I = "\r\nI: ";
+	const char *header_o = "\r\no=- ";
 
-	if (got_conn_id) {
-		for (i = 0; i < conn_id_len; i++) {
-			if (!isxdigit(conn_id[i])) {
-				conn_id[i] = '\0';
-				break;
-			}
-		}
+	/* Try to get the conn_id from the 'I:' or 'o=-' parameter */
+	if ((conn_id_start = strstr((char *)resp, header_I))) {
+		conn_id_start += strlen(header_I);
+		conn_id_end = strstr(conn_id_start, "\r\n");
+	} else if ((conn_id_start = strstr((char *)resp, header_o))) {
+		conn_id_start += strlen(header_o);
+		conn_id_end = strchr(conn_id_start, ' ');
+	} else
+		return -EINVAL;
 
-		/* A valid conn_id must at least contain one digit, and must
-		 * not exceed a length of 32 digits */
-		OSMO_ASSERT(strlen(conn_id) <= 32);
-		OSMO_ASSERT(strlen(conn_id) > 0);
+	if (conn_id_end)
+		conn_id_len = conn_id_end - conn_id_start;
+	else
+		conn_id_len = strlen(conn_id_start);
+	OSMO_ASSERT(conn_id_len <= conn_id_buflen - 1);
 
-		return 0;
-	}
-	return -EINVAL;
+	/* A valid conn_id must at least contain one digit, and must
+	 * not exceed a length of 32 digits */
+	OSMO_ASSERT(conn_id_len <= 32);
+	OSMO_ASSERT(conn_id_len > 0);
+
+	strncpy(conn_id, conn_id_start, conn_id_len);
+	conn_id[conn_id_len] = '\0';
+	return 0;
 }
 
 /* Check response, automatically patch connection ID if needed */
