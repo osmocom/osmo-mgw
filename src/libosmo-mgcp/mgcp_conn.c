@@ -55,10 +55,11 @@ const static struct rate_ctr_group_desc rate_ctr_group_desc = {
  * memory for id) */
 static int mgcp_alloc_id(struct mgcp_endpoint *endp, char *id)
 {
+#define MGCP_CONN_ID_GEN_LEN 8
 	int i;
 	int k;
 	int rc;
-	uint8_t id_bin[16];
+	uint8_t id_bin[MGCP_CONN_ID_GEN_LEN / 2];
 	char *id_hex;
 
 	/* Generate a connection id that is unique for the current endpoint.
