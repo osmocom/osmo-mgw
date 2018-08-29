@@ -131,6 +131,7 @@ static void add_audio(struct mgcp_msg *mgcp_msg, struct mgcp_conn_peer *info)
 	mgcp_msg->presence |= MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT;
 	mgcp_msg->audio_ip = info->addr;
 	mgcp_msg->audio_port = info->port;
+	mgcp_msg->conn_mode = MGCP_CONN_RECV_SEND;
 }
 
 static struct msgb *make_mdcx_msg(struct mgcp_ctx *mgcp_ctx)
