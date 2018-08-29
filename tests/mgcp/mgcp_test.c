@@ -1759,8 +1759,14 @@ void test_conn_id_matching()
 	int i;
 	const char *conn_id_generated = "000023AB";
 	const char *conn_id_request[] = {
+		"23AB",
+		"0023AB",
 		"000023AB",
+		"00000023AB",
+		"23ab",
+		"0023ab",
 		"000023ab",
+		"00000023ab",
 	};
 
 	printf("\nTesting %s\n", __func__);

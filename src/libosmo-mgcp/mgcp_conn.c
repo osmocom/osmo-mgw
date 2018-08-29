@@ -190,9 +190,14 @@ struct mgcp_conn *mgcp_conn_get(struct mgcp_endpoint *endp, const char *id)
 {
 	struct mgcp_conn *conn;
 	const char *id_upper;
+	const char *conn_id;
 
 	if (!id || !*id)
 		return NULL;
+
+	/* Ignore leading zeros in needle */
+	while (*id == '0')
+		id++;
 
 	/* Use uppercase to compare identifiers, to avoid mismatches: RFC3435 2.1.3.2 "Names of
 	 * Connections" defines the id as a hex string, so clients may return lower case hex even though
@@ -200,7 +205,10 @@ struct mgcp_conn *mgcp_conn_get(struct mgcp_endpoint *endp, const char *id)
 	id_upper = osmo_str_toupper(id);
 
 	llist_for_each_entry(conn, &endp->conns, entry) {
-		if (strcmp(conn->id, id_upper) == 0)
+		/* Ignore leading zeros in haystack */
+		for (conn_id=conn->id; *conn_id == '0'; conn_id++);
+
+		if (strcmp(conn_id, id_upper) == 0)
 			return conn;
 	}
 
