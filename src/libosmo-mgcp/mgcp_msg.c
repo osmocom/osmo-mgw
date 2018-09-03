@@ -430,7 +430,8 @@ int mgcp_verify_call_id(struct mgcp_endpoint *endp, const char *callid)
 /*! Check if the specified connection id seems plausible.
   * \param[in] endp pointer to endpoint
   * \param{in] connection id to verify
-  * \returns 1 when connection id seems plausible, 0 on error */
+  * \returns 0 when connection id is valid and exists, nozero on error.
+  */
 int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 {
 	/* Check for null identifiers */
