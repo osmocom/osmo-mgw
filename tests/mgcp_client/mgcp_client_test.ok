@@ -27,6 +27,7 @@ a=ptime:20
 response cb received:
   head.response_code = 200
   head.trans_id = 1
+  head.conn_id = 1
   head.comment = OK
   audio_port = 16002
   audio_ip = 10.9.1.120

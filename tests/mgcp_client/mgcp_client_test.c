@@ -102,6 +102,7 @@ void test_response_cb(struct mgcp_response *response, void *priv)
 	printf("response cb received:\n");
 	printf("  head.response_code = %d\n", response->head.response_code);
 	printf("  head.trans_id = %u\n", response->head.trans_id);
+	printf("  head.conn_id = %s\n", response->head.conn_id);
 	printf("  head.comment = %s\n", response->head.comment);
 	printf("  audio_port = %u\n", response->audio_port);
 	printf("  audio_ip = %s\n", response->audio_ip);
