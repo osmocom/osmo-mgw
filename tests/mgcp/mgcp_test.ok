@@ -443,6 +443,19 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
+Testing MDCX_TOO_LONG_CI
+creating message from statically defined input:
+---------8<---------
+MDCX 18983222 1@mgw MGCP 1.0
+I: 123456789012345678901234567890123
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+(response does not contain a connection id)
+
+================================================
 Testing CRCX
 creating message from statically defined input:
 ---------8<---------

@@ -230,6 +230,12 @@ static void test_strline(void)
 	"I: %s\r\n" \
 	"L: p:20, a:AMR, nt:IN\r\n"
 
+#define MDCX_TOO_LONG_CI \
+	"MDCX 18983222 1@mgw MGCP 1.0\r\n" \
+	"I: 123456789012345678901234567890123\n"
+
+#define MDCX_TOO_LONG_CI_RET "510 18983222 FAIL\r\n"
+
 #define SHORT2	"CRCX 1"
 #define SHORT2_RET "510 000000 FAIL\r\n"
 #define SHORT3	"CRCX 1 1@mgw"
@@ -510,6 +516,7 @@ static const struct mgcp_test tests[] = {
 	{"DLCX", DLCX, DLCX_RET, PTYPE_IGNORE,.extra_fmtp = "a=fmtp:126 0/1/2"},
 	{"CRCX", CRCX_NO_LCO_NO_SDP, CRCX_NO_LCO_NO_SDP_RET, 97},
 	{"CRCX", CRCX_X_OSMO_IGN, CRCX_X_OSMO_IGN_RET, 97},
+	{"MDCX_TOO_LONG_CI", MDCX_TOO_LONG_CI, MDCX_TOO_LONG_CI_RET},
 };
 
 static const struct mgcp_test retransmit[] = {
