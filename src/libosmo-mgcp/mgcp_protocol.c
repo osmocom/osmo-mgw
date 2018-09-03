@@ -999,10 +999,8 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 			break;
 		case 'I':
 			conn_id = (const char *)line + 3;
-			if (mgcp_verify_ci(endp, conn_id) != 0) {
-				error_code = 515;
+			if ((error_code = mgcp_verify_ci(endp, conn_id)))
 				goto error3;
-			}
 			break;
 		case 'L':
 			local_options = (const char *)line + 3;
@@ -1185,10 +1183,8 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 			break;
 		case 'I':
 			conn_id = (const char *)line + 3;
-			if (mgcp_verify_ci(endp, conn_id) != 0) {
-				error_code = 515;
+			if ((error_code = mgcp_verify_ci(endp, conn_id)))
 				goto error3;
-			}
 			break;
 		case 'Z':
 			silent = strcmp("noanswer", line + 3) == 0;

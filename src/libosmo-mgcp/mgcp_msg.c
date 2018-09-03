@@ -430,16 +430,19 @@ int mgcp_verify_call_id(struct mgcp_endpoint *endp, const char *callid)
 /*! Check if the specified connection id seems plausible.
   * \param[in] endp pointer to endpoint
   * \param{in] connection id to verify
-  * \returns 0 when connection id is valid and exists, nozero on error.
+  * \returns 0 when connection id is valid and exists, an RFC3435 error code on error.
   */
 int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 {
+	/* For invalid conn_ids, return 510 "The transaction could not be executed, because some
+	 * unspecified protocol error was detected." */
+
 	/* Check for null identifiers */
 	if (!conn_id) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "endpoint:0x%x invalid ConnectionIdentifier (missing)\n",
 		     ENDPOINT_NUMBER(endp));
-		return -1;
+		return 510;
 	}
 
 	/* Check for empty connection identifiers */
@@ -447,7 +450,7 @@ int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "endpoint:0x%x invalid ConnectionIdentifier (empty)\n",
 		     ENDPOINT_NUMBER(endp));
-		return -1;
+		return 510;
 	}
 
 	/* Check for over long connection identifiers */
@@ -455,7 +458,7 @@ int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "endpoint:0x%x invalid ConnectionIdentifier (too long) 0x%s\n",
 		     ENDPOINT_NUMBER(endp), conn_id);
-		return -1;
+		return 510;
 	}
 
 	/* Check if connection exists */
@@ -466,7 +469,9 @@ int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 	     "endpoint:0x%x no connection found under ConnectionIdentifier 0x%s\n",
 	     ENDPOINT_NUMBER(endp), conn_id);
 
-	return -1;
+	/* When the conn_id was not found, return error code 515 "The transaction refers to an incorrect
+	 * connection-id (may have been already deleted)." */
+	return 515;
 }
 
 /*! Extract individual lines from MCGP message.
