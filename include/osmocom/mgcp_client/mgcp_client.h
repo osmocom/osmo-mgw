@@ -60,7 +60,7 @@ struct mgcp_response_head {
 	int response_code;
 	mgcp_trans_id_t trans_id;
 	char comment[MGCP_COMMENT_MAXLEN];
-	char conn_id[MGCP_CONN_ID_LENGTH];
+	char conn_id[MGCP_CONN_ID_MAXLEN];
 	char endpoint[MGCP_ENDPOINT_MAXLEN];
 };
 

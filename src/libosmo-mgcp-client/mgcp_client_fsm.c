@@ -41,7 +41,7 @@ struct mgcp_ctx {
 	bool mgw_trans_pending;
 
 	/* Connection ID which has been assigned by he MGW */
-	char conn_id[MGCP_CONN_ID_LENGTH];
+	char conn_id[MGCP_CONN_ID_MAXLEN];
 
 	/* Local RTP connection info, the MGW will send outgoing traffic to the
 	 * ip/port specified here. The Address does not have to be choosen right

@@ -78,7 +78,7 @@ static int mgcp_alloc_id(struct mgcp_endpoint *endp, char *id)
 		/* ensure that the generated conn_id is unique
 		 * for this endpoint */
 		if (!mgcp_conn_get_rtp(endp, id_hex)) {
-			osmo_strlcpy(id, id_hex, MGCP_CONN_ID_LENGTH);
+			osmo_strlcpy(id, id_hex, MGCP_CONN_ID_MAXLEN);
 			return 0;
 		}
 	}

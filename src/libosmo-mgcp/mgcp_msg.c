@@ -450,7 +450,7 @@ int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 	}
 
 	/* Check for over long connection identifiers */
-	if (strlen(conn_id) > MGCP_CONN_ID_LENGTH) {
+	if (strlen(conn_id) > MGCP_CONN_ID_MAXLEN) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "endpoint:0x%x invalid ConnectionIdentifier (too long) 0x%s\n",
 		     ENDPOINT_NUMBER(endp), conn_id);

@@ -79,9 +79,12 @@ static inline int mgcp_msg_terminate_nul(struct msgb *msg)
 /* Maximum length of the comment field */
 #define MGCP_COMMENT_MAXLEN 256
 
-/* String length of Connection Identifiers
- * (see also RFC3435 2.1.3.2 Names of Connections) */
-#define MGCP_CONN_ID_LENGTH 32+1
+/* Maximum allowed String length of Connection Identifiers as per spec
+ * (see also RFC3435 2.1.3.2 Names of Connections), plus one for '\0'. */
+#define MGCP_CONN_ID_MAXLEN 32+1
+
+/* Deprecated: old name of MGCP_CONN_ID_MAXLEN. */
+#define MGCP_CONN_ID_LENGTH MGCP_CONN_ID_MAXLEN
 
 /* String length of Endpoint Identifiers.
 /  (see also RFC3435 section 3.2.1.3) */

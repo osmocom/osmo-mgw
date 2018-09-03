@@ -226,7 +226,7 @@ struct mgcp_conn {
 	enum mgcp_connection_mode mode_orig;
 
 	/*! connection id to identify the connection */
-	char id[MGCP_CONN_ID_LENGTH];
+	char id[MGCP_CONN_ID_MAXLEN];
 
 	/*! human readable name (vty, logging) */
 	char name[256];
