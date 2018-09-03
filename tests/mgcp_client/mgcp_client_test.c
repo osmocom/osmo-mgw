@@ -77,14 +77,14 @@ static struct mgcp_client_conf conf;
 struct mgcp_client *mgcp = NULL;
 
 static int reply_to(mgcp_trans_id_t trans_id, int code, const char *comment,
-		     int conn_id, const char *params)
+		    const char *params)
 {
 	static char compose[4096 - 128];
 	int len;
 
 	len = snprintf(compose, sizeof(compose),
-		       "%d %u %s\r\nI: %d\n\n%s",
-		       code, trans_id, comment, conn_id, params);
+		       "%d %u %s\r\n%s",
+		       code, trans_id, comment, params);
 	OSMO_ASSERT(len < sizeof(compose));
 	OSMO_ASSERT(len > 0);
 
@@ -148,7 +148,8 @@ void test_crcx(void)
 	msg = mgcp_msg_crcx(mgcp, 23, 42, MGCP_CONN_LOOPBACK);
 	trans_id = dummy_mgcp_send(msg);
 
-	reply_to(trans_id, 200, "OK", 1,
+	reply_to(trans_id, 200, "OK",
+		"I: 1\n\n"
 		"v=0\r\n"
 		"o=- 1 23 IN IP4 10.9.1.120\r\n"
 		"s=-\r\n"
@@ -335,7 +336,7 @@ void test_mgcp_client_cancel()
 	OSMO_ASSERT(mgcp_client_cancel(mgcp, trans_id) == 0);
 
 	fprintf(stderr, "- late response gets discarded\n");
-	OSMO_ASSERT(reply_to(trans_id, 200, "OK", 1, "v=0\r\n") == -ENOENT);
+	OSMO_ASSERT(reply_to(trans_id, 200, "OK", "I: 1\n\nv=0\r\n") == -ENOENT);
 
 	fprintf(stderr, "- canceling again does nothing\n");
 	OSMO_ASSERT(mgcp_client_cancel(mgcp, trans_id) == -ENOENT);
