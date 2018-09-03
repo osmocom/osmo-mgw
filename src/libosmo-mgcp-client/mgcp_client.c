@@ -550,6 +550,7 @@ static int mgcp_parse_head_param(char *result, unsigned int result_len,
 				 char label, const char *line)
 {
 	char label_string[4];
+	size_t rc;
 
 	/* Detect empty parameters */
 	if (strlen(line) < 4)
@@ -562,7 +563,14 @@ static int mgcp_parse_head_param(char *result, unsigned int result_len,
 
 	/* Copy payload part of the string to destinations (the label string
 	 * is always 3 chars long) */
-	osmo_strlcpy(result, line + 3, result_len);
+	rc = osmo_strlcpy(result, line + 3, result_len);
+	if (rc >= result_len) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "Failed to parse MGCP response (parameter label: %c):"
+		     " the received conn ID is too long: %zu, maximum is %u characters\n",
+		     label, rc, result_len - 1);
+		return -ENOSPC;
+	}
 	return 0;
 
 response_parse_failure:

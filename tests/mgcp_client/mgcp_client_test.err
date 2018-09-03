@@ -66,4 +66,6 @@ DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2
 DLMGCP ptmap contains illegal mapping: codec=0 maps to pt=100
 DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2
 DLMGCP ptmap contains illegal mapping: codec=0 maps to pt=100
+DLMGCP Failed to parse MGCP response (parameter label: I): the received conn ID is too long: 39, maximum is 32 characters
+DLMGCP Cannot parse MGCP response (head parameters)
 Done

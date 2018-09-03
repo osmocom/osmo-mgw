@@ -264,20 +264,4 @@ a=rtpmap:96 GSM-EFR/8000
 a=ptime:20
 
 -----
-response cb received:
-  head.response_code = 200
-  head.trans_id = 1
-  head.conn_id = 123456789abcdef0123456789ABCDEF0
-  head.comment = OK
-  audio_port = 16002
-  audio_ip = 10.9.1.120
-  ptime = 20
-  codecs_len = 2
-  codecs[0] = 112
-  codecs[1] = 110
-  ptmap_len = 2
-  ptmap[0].codec = 112
-  ptmap[0].pt = 110
-  ptmap[1].codec = 110
-  ptmap[1].pt = 96
 Done
