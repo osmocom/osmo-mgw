@@ -149,7 +149,7 @@ void test_crcx(void)
 	trans_id = dummy_mgcp_send(msg);
 
 	reply_to(trans_id, 200, "OK",
-		"I: 1\n\n"
+		"I: 1\r\n\r\n"
 		"v=0\r\n"
 		"o=- 1 23 IN IP4 10.9.1.120\r\n"
 		"s=-\r\n"
@@ -336,7 +336,7 @@ void test_mgcp_client_cancel()
 	OSMO_ASSERT(mgcp_client_cancel(mgcp, trans_id) == 0);
 
 	fprintf(stderr, "- late response gets discarded\n");
-	OSMO_ASSERT(reply_to(trans_id, 200, "OK", "I: 1\n\nv=0\r\n") == -ENOENT);
+	OSMO_ASSERT(reply_to(trans_id, 200, "OK", "I: 1\r\n\r\nv=0\r\n") == -ENOENT);
 
 	fprintf(stderr, "- canceling again does nothing\n");
 	OSMO_ASSERT(mgcp_client_cancel(mgcp, trans_id) == -ENOENT);
