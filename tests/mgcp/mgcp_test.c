@@ -1751,6 +1751,40 @@ static void test_mgcp_codec_pt_translate(void)
 	OSMO_ASSERT(pt_dst == -EINVAL);
 }
 
+void test_conn_id_matching()
+{
+	struct mgcp_endpoint endp = {};
+	struct mgcp_conn *conn;
+	struct mgcp_conn *conn_match;
+	int i;
+	const char *conn_id_generated = "000023AB";
+	const char *conn_id_request[] = {
+		"000023AB",
+		"000023ab",
+	};
+
+	printf("\nTesting %s\n", __func__);
+
+	INIT_LLIST_HEAD(&endp.conns);
+
+	conn = talloc_zero(NULL, struct mgcp_conn);
+	OSMO_ASSERT(conn);
+	osmo_strlcpy(conn->id, conn_id_generated, sizeof(conn->id));
+	llist_add(&conn->entry, &endp.conns);
+
+	for (i = 0; i < ARRAY_SIZE(conn_id_request); i++) {
+		const char *needle = conn_id_request[i];
+		printf("needle='%s' ", needle);
+		conn_match = mgcp_conn_get(&endp, needle);
+		OSMO_ASSERT(conn_match);
+		printf("found '%s'\n", conn_match->id);
+		OSMO_ASSERT(conn_match == conn);
+	}
+
+	llist_del(&conn->entry);
+	talloc_free(conn);
+}
+
 int main(int argc, char **argv)
 {
 	void *ctx = talloc_named_const(NULL, 0, "mgcp_test");
@@ -1775,6 +1809,7 @@ int main(int argc, char **argv)
 	test_get_lco_identifier();
 	test_check_local_cx_options(ctx);
 	test_mgcp_codec_pt_translate();
+	test_conn_id_matching();
 
 	OSMO_ASSERT(talloc_total_size(msgb_ctx) == 0);
 	OSMO_ASSERT(talloc_total_blocks(msgb_ctx) == 1);

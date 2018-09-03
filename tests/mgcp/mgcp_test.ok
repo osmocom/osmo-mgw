@@ -1169,4 +1169,8 @@ p:10, a:PCMU -> p:10, a:PCMU
 '' -> '(null)'
 p10, aPCMU -> (null)
 '10,a :PCMU' -> '(null)'
+
+Testing test_conn_id_matching
+needle='000023AB' found '000023AB'
+needle='000023ab' found '000023AB'
 Done
