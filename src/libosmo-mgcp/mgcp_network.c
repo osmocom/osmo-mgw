@@ -874,19 +874,32 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn,
 	endp = conn->conn->endp;
 	struct sockaddr_in zero_addr = {};
 
-	if (memcmp(&zero_addr, &conn->end.addr, sizeof(zero_addr)) == 0
-	    && conn->conn->mode == MGCP_CONN_LOOPBACK) {
-		/* HACK: for IuUP, we want to reply with an IuUP Initialization ACK upon the first RTP
-		 * message received. We currently hackishly accomplish that by putting the endpoint in
-		 * loopback mode and patching over the looped back RTP message to make it look like an
-		 * ack. We don't know the femto cell's IP address and port until the RAB Assignment
-		 * Response is received, but the nano3G expects an IuUP Initialization Ack before it even
-		 * sends the RAB Assignment Response. Hence, if the remote address is 0.0.0.0 and the
-		 * MGCP port is in loopback mode, allow looping back the packet to any source. */
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x In loopback mode and remote address not set: allowing data from address: %s\n",
-		     ENDPOINT_NUMBER(endp), inet_ntoa(addr->sin_addr));
-		return 0;
+	if (memcmp(&zero_addr, &conn->end.addr, sizeof(zero_addr)) == 0) {
+		switch (conn->conn->mode) {
+		case MGCP_CONN_LOOPBACK:
+			/* HACK: for IuUP, we want to reply with an IuUP Initialization ACK upon the first RTP
+			 * message received. We currently hackishly accomplish that by putting the endpoint in
+			 * loopback mode and patching over the looped back RTP message to make it look like an
+			 * ack. We don't know the femto cell's IP address and port until the RAB Assignment
+			 * Response is received, but the nano3G expects an IuUP Initialization Ack before it even
+			 * sends the RAB Assignment Response. Hence, if the remote address is 0.0.0.0 and the
+			 * MGCP port is in loopback mode, allow looping back the packet to any source. */
+			LOGP(DRTP, LOGL_ERROR,
+			     "endpoint:0x%x In loopback mode and remote address not set:"
+			     " allowing data from address: %s\n",
+			     ENDPOINT_NUMBER(endp), inet_ntoa(addr->sin_addr));
+			return 0;
+
+		default:
+			/* Receiving early media before the endpoint is configured. Instead of logging
+			 * this as an error that occurs on every call, keep it more low profile to not
+			 * confuse humans with expected errors. */
+			LOGP(DRTP, LOGL_INFO,
+			     "endpoint:0x%x I:%s Rx RTP from %s, but remote address not set:"
+			     " dropping early media\n",
+			     ENDPOINT_NUMBER(endp), conn->conn->id, inet_ntoa(addr->sin_addr));
+			return -1;
+		}
 	}
 
 	/* Note: Check if the inbound RTP data comes from the same host to
