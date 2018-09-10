@@ -1,2 +1,3 @@
+lib/systemd/system/osmo-mgw.service
 usr/bin/osmo-mgw
 usr/share/doc/osmo-mgw/examples/osmo-mgw/osmo-mgw.cfg

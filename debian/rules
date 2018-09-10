@@ -14,7 +14,7 @@ CFLAGS += -g
 
 # main packaging script based on dh7 syntax
 %:
-	dh $@ --with autoreconf 
+	dh $@ --with autoreconf
 
 # debmake generated override targets
 # Set options for ./configure
@@ -28,5 +28,8 @@ CFLAGS += -g
 
 override_dh_auto_test:
 	dh_auto_test || (find . -name testsuite.log -exec cat {} \; ; false)
+
+override_dh_auto_configure:
+	dh_auto_configure -- --with-systemdsystemunitdir=/lib/systemd/system
 
 # See https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html#bpp-dbg
