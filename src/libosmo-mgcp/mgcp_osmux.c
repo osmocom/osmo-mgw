@@ -655,8 +655,8 @@ int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 			     htons(endp->cfg->osmux_port), buf, sizeof(buf));
 }
 
-/*! bsc-nat allocates/releases the OSMUX cids (Circuit IDs). */
-static uint8_t osmux_cid_bitmap[(OSMUX_CID_MAX + 1) / 8];
+/* bsc-nat allocates/releases the Osmux circuit ID. +7 to round up to 8 bit boundary. */
+static uint8_t osmux_cid_bitmap[(OSMUX_CID_MAX + 1 + 7) / 8];
 
 /*! count the number of taken OSMUX cids.
  *  \returns number of OSMUX cids in use */
