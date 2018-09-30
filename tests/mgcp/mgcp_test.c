@@ -28,6 +28,7 @@
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_sdp.h>
 #include <osmocom/mgcp/mgcp_codec.h>
+#include <osmocom/mgcp/mgcp_internal.h>
 
 #include <osmocom/core/application.h>
 #include <osmocom/core/talloc.h>
@@ -1189,7 +1190,7 @@ struct rtp_packet_info test_rtp_packets1[] = {
 void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_state *state,
 			  struct mgcp_rtp_end *rtp_end,
-			  struct sockaddr_in *addr, char *data, int len);
+			  struct sockaddr_in *addr, struct msgb *msg);
 
 static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 {
@@ -1200,7 +1201,6 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	struct mgcp_rtp_state state;
 	struct mgcp_rtp_end *rtp;
 	struct sockaddr_in addr = { 0 };
-	char buffer[4096];
 	uint32_t last_ssrc = 0;
 	uint32_t last_timestamp = 0;
 	uint32_t last_seqno = 0;
@@ -1247,16 +1247,17 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 
 	for (i = 0; i < ARRAY_SIZE(test_rtp_packets1); ++i) {
 		struct rtp_packet_info *info = test_rtp_packets1 + i;
+		struct msgb *msg = msgb_alloc(4096, __func__);
 
 		force_monotonic_time_us = round(1000000.0 * info->txtime);
 
-		OSMO_ASSERT(info->len <= sizeof(buffer));
+		OSMO_ASSERT(info->len <= msgb_tailroom(msg));
 		OSMO_ASSERT(info->len >= 0);
-		memmove(buffer, info->data, info->len);
+		msg->l3h = msgb_put(msg, info->len);
+		memcpy((char*)msgb_l3(msg), info->data, info->len);
 		mgcp_rtp_end_config(&endp, 1, rtp);
 
-		mgcp_patch_and_count(&endp, &state, rtp, &addr,
-				     buffer, info->len);
+		mgcp_patch_and_count(&endp, &state, rtp, &addr, msg);
 
 		if (state.out_stream.ssrc != last_ssrc) {
 			printf("Output SSRC changed to %08x\n",
@@ -1283,6 +1284,8 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 		last_out_ts_err_cnt = state.out_stream.err_ts_ctr->current;
 		last_timestamp = state.out_stream.last_timestamp;
 		last_seqno = state.out_stream.last_seq;
+
+		msgb_free(msg);
 	}
 
 	force_monotonic_time_us = -1;
