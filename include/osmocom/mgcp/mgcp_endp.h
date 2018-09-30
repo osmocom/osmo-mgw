@@ -27,10 +27,13 @@ struct sockaddr_in;
 struct mgcp_conn;
 struct mgcp_endpoint;
 
+#define LOG_ENDP(endp, level, fmt, args...) \
+	LOGP(DRTP, level, "%x@ " fmt, ENDPOINT_NUMBER(endp), ## args)
+
 /* Callback type for RTP dispatcher functions
    (e.g mgcp_dispatch_rtp_bridge_cb, see below) */
 typedef int (*mgcp_dispatch_rtp_cb) (int proto, struct sockaddr_in *addr,
-				     char *buf, unsigned int buf_size,
+				     struct msgb *payload,
 				     struct mgcp_conn *conn);
 
 /* Callback type for endpoint specific cleanup actions. This function

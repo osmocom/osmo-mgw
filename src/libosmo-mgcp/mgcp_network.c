@@ -43,6 +43,8 @@
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/mgcp/debug.h>
+#include <osmocom/mgcp/iuup_cn_node.h>
+#include <osmocom/mgcp/iuup_protocol.h>
 
 
 #define RTP_SEQ_MOD		(1 << 16)
@@ -50,10 +52,15 @@
 #define RTP_MAX_MISORDER	100
 #define RTP_BUF_SIZE		4096
 
-enum {
+enum rtp_proto {
 	MGCP_PROTO_RTP,
 	MGCP_PROTO_RTCP,
 };
+
+static int rx_rtp(struct mgcp_conn_rtp *conn_src, struct msgb *payload,
+		  enum rtp_proto proto, struct sockaddr_in *from_addr);
+static int tx_rtp(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn_dst,
+		  enum rtp_proto proto, struct sockaddr_in *from_addr, struct msgb *payload);
 
 /*! Determine the local rtp bind IP-address.
  *  \param[out] addr caller provided memory to store the resulting IP-Address
@@ -481,14 +488,14 @@ void mgcp_rtp_annex_count(struct mgcp_endpoint *endp,
  * Patch the payload type of an RTP packet so that it uses the payload type
  * that is valid for the destination connection (conn_dst) */
 static int mgcp_patch_pt(struct mgcp_conn_rtp *conn_src,
-			 struct mgcp_conn_rtp *conn_dst, char *data, int len)
+			 struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
 {
 	struct rtp_hdr *rtp_hdr;
 	uint8_t pt_in;
 	int pt_out;
 
-	OSMO_ASSERT(len >= sizeof(struct rtp_hdr));
-	rtp_hdr = (struct rtp_hdr *)data;
+	OSMO_ASSERT(msgb_l3len(msg) >= sizeof(struct rtp_hdr));
+	rtp_hdr = (struct rtp_hdr *)msgb_l3(msg);
 
 	pt_in = rtp_hdr->payload_type;
 	pt_out = mgcp_codec_pt_translate(conn_src, conn_dst, pt_in);
@@ -508,7 +515,7 @@ static int mgcp_patch_pt(struct mgcp_conn_rtp *conn_src,
 void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_state *state,
 			  struct mgcp_rtp_end *rtp_end,
-			  struct sockaddr_in *addr, char *data, int len)
+			  struct sockaddr_in *addr, struct msgb *msg)
 {
 	uint32_t arrival_time;
 	int32_t transit;
@@ -516,11 +523,12 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 	uint32_t timestamp, ssrc;
 	struct rtp_hdr *rtp_hdr;
 	int payload = rtp_end->codec->payload_type;
+	unsigned int len = msgb_l3len(msg);
 
 	if (len < sizeof(*rtp_hdr))
 		return;
 
-	rtp_hdr = (struct rtp_hdr *)data;
+	rtp_hdr = (struct rtp_hdr *)msgb_l3(msg);
 	seq = ntohs(rtp_hdr->sequence);
 	timestamp = ntohl(rtp_hdr->timestamp);
 	arrival_time = get_current_ts(rtp_end->codec->rate);
@@ -653,15 +661,14 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 
 /* Forward data to a debug tap. This is debug function that is intended for
  * debugging the voice traffic with tools like gstreamer */
-static void forward_data(int fd, struct mgcp_rtp_tap *tap, const char *buf,
-			 int len)
+static void forward_data(int fd, struct mgcp_rtp_tap *tap, struct msgb *msg)
 {
 	int rc;
 
 	if (!tap->enabled)
 		return;
 
-	rc = sendto(fd, buf, len, 0, (struct sockaddr *)&tap->forward,
+	rc = sendto(fd, msgb_l3(msg), msgb_l3len(msg), 0, (struct sockaddr *)&tap->forward,
 		    sizeof(tap->forward));
 
 	if (rc < 0)
@@ -679,7 +686,7 @@ static void forward_data(int fd, struct mgcp_rtp_tap *tap, const char *buf,
  *  \param[in] conn_dst associated destination connection
  *  \returns 0 on success, -1 on ERROR */
 int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
-	      char *buf, int len, struct mgcp_conn_rtp *conn_src,
+	      struct msgb *msg, struct mgcp_conn_rtp *conn_src,
 	      struct mgcp_conn_rtp *conn_dst)
 {
 	/*! When no destination connection is available (e.g. when only one
@@ -691,6 +698,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	struct mgcp_rtp_state *rtp_state;
 	char *dest_name;
 	int rc;
+	int len;
 
 	OSMO_ASSERT(conn_src);
 	OSMO_ASSERT(conn_dst);
@@ -719,7 +727,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	 * should not occur if transcoding is consequently avoided. Until
 	 * we have transcoding support in osmo-mgw we can not resolve this. */
 	if (is_rtp) {
-		rc = mgcp_patch_pt(conn_src, conn_dst, buf, len);
+		rc = mgcp_patch_pt(conn_src, conn_dst, msg);
 		if (rc < 0) {
 			LOGP(DRTP, LOGL_ERROR,
 			     "endpoint:0x%x can not patch PT because no suitable egress codec was found.\n",
@@ -746,18 +754,18 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	} else if (is_rtp) {
 		int cont;
 		int nbytes = 0;
-		int buflen = len;
+		int buflen = msgb_l3len(msg);
 		do {
 			/* Run transcoder */
 			cont = endp->cfg->rtp_processing_cb(endp, rtp_end,
-							    buf, &buflen,
+							    msgb_l3(msg), &buflen,
 							    RTP_BUF_SIZE);
 			if (cont < 0)
 				break;
 
 			if (addr)
 				mgcp_patch_and_count(endp, rtp_state, rtp_end,
-						     addr, buf, buflen);
+						     addr, msg);
 			LOGP(DRTP, LOGL_DEBUG,
 			     "endpoint:0x%x process/send to %s %s "
 			     "rtp_port:%u rtcp_port:%u\n",
@@ -768,7 +776,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 
 			/* Forward a copy of the RTP data to a debug ip/port */
 			forward_data(rtp_end->rtp.fd, &conn_src->tap_out,
-				     buf, buflen);
+				     msg);
 
 			/* FIXME: HACK HACK HACK. See OS#2459.
 			 * The ip.access nano3G needs the first RTP payload's first two bytes to read hex
@@ -777,7 +785,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 			 */
 			if (!rtp_state->patched_first_rtp_payload
 			    && conn_src->conn->mode == MGCP_CONN_LOOPBACK) {
-				uint8_t *data = (uint8_t *) & buf[12];
+				uint8_t *data = ((uint8_t *)msgb_l3(msg)) + 12;
 				if (data[0] == 0xe0) {
 					data[0] = 0xe4;
 					data[1] = 0x00;
@@ -791,7 +799,8 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 
 			len = mgcp_udp_send(rtp_end->rtp.fd,
 					    &rtp_end->addr,
-					    rtp_end->rtp_port, buf, buflen);
+					    rtp_end->rtp_port,
+					    msgb_l3(msg), msgb_l3len(msg));
 
 			if (len <= 0)
 				return len;
@@ -814,7 +823,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 
 		len = mgcp_udp_send(rtp_end->rtcp.fd,
 				    &rtp_end->addr,
-				    rtp_end->rtcp_port, buf, len);
+				    rtp_end->rtcp_port, msgb_l3(msg), msgb_l3len(msg));
 
 		rate_ctr_inc(&conn_dst->rate_ctr_group->ctr[RTP_PACKETS_TX_CTR]);
 		rate_ctr_add(&conn_dst->rate_ctr_group->ctr[RTP_OCTETS_TX_CTR], len);
@@ -823,46 +832,6 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	}
 
 	return 0;
-}
-
-/* Helper function for mgcp_recv(),
-   Receive one RTP Packet + Originating address from file descriptor */
-static int receive_from(struct mgcp_endpoint *endp, int fd,
-			struct sockaddr_in *addr, char *buf, int bufsize)
-{
-	int rc;
-	socklen_t slen = sizeof(*addr);
-	struct sockaddr_in addr_sink;
-	char buf_sink[RTP_BUF_SIZE];
-	bool tossed = false;
-
-	if (!addr)
-		addr = &addr_sink;
-	if (!buf) {
-		tossed = true;
-		buf = buf_sink;
-		bufsize = sizeof(buf_sink);
-	}
-
-	rc = recvfrom(fd, buf, bufsize, 0, (struct sockaddr *)addr, &slen);
-
-	LOGP(DRTP, LOGL_DEBUG,
-	     "receiving %u bytes length packet from %s:%u ...\n",
-	     rc, inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
-
-	if (rc < 0) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x failed to receive packet, errno: %d/%s\n",
-		     ENDPOINT_NUMBER(endp), errno, strerror(errno));
-		return -1;
-	}
-
-	if (tossed) {
-		LOGP(DRTP, LOGL_ERROR, "endpoint:0x%x packet tossed\n",
-		     ENDPOINT_NUMBER(endp));
-	}
-
-	return rc;
 }
 
 /* Check if the origin (addr) matches the address/port data of the RTP
@@ -969,41 +938,54 @@ static int check_rtp_destin(struct mgcp_conn_rtp *conn)
 
 /* Do some basic checks to make sure that the RTCP packets we are going to
  * process are not complete garbage */
-static int check_rtcp(char *buf, unsigned int buf_size)
+static int check_rtcp(struct mgcp_conn_rtp *conn_src, struct msgb *msg)
 {
 	struct rtcp_hdr *hdr;
 	unsigned int len;
 	uint8_t type;
+	unsigned int buf_size = msgb_l3len(msg);
 
 	/* RTPC packets that are just a header without data do not make
 	 * any sense. */
-	if (buf_size < sizeof(struct rtcp_hdr))
+	if (buf_size < sizeof(struct rtcp_hdr)) {
+		LOG_CONN_RTP(conn_src, LOGL_ERROR, "RTCP packet too short (%u < %zu)\n",
+			     buf_size, sizeof(struct rtcp_hdr));
 		return -EINVAL;
+	}
 
 	/* Make sure that the length of the received packet does not exceed
 	 * the available buffer size */
-	hdr = (struct rtcp_hdr *)buf;
+	hdr = (struct rtcp_hdr *)msgb_l3(msg);
 	len = (osmo_ntohs(hdr->length) + 1) * 4;
-	if (len > buf_size)
+	if (len > buf_size) {
+		LOG_CONN_RTP(conn_src, LOGL_ERROR, "RTCP header length exceeds packet size (%u > %u)\n",
+			     len, buf_size);
 		return -EINVAL;
+	}
 
 	/* Make sure we accept only packets that have a proper packet type set
 	 * See also: http://www.iana.org/assignments/rtp-parameters/rtp-parameters.xhtml */
 	type = hdr->type;
-	if ((type < 192 || type > 195) && (type < 200 || type > 213))
+	if ((type < 192 || type > 195) && (type < 200 || type > 213)) {
+		LOG_CONN_RTP(conn_src, LOGL_ERROR, "RTCP header: invalid type: %u\n", type);
 		return -EINVAL;
+	}
 
 	return 0;
 }
 
 /* Do some basic checks to make sure that the RTP packets we are going to
  * process are not complete garbage */
-static int check_rtp(char *buf, unsigned int buf_size)
+static int check_rtp(struct mgcp_conn_rtp *conn_src, struct msgb *msg)
 {
-	/* RTP packets that are just a header without data do not make
-	 * any sense. */
-	if (buf_size < sizeof(struct rtp_hdr))
-		return -EINVAL;
+	size_t min_size = sizeof(struct rtp_hdr);
+	if (conn_src->iuup)
+		min_size += sizeof(struct osmo_iuup_hdr_data);
+	if (msgb_l3len(msg) < min_size) {
+		LOG_CONN_RTP(conn_src, LOGL_ERROR, "RTP packet too short (%u < %zu)\n",
+			     msgb_l3len(msg), min_size);
+		return -1;
+	}
 
 	/* FIXME: Add more checks, the reason why we do not check more than
 	 * the length is because we currently handle IUUP packets as RTP
@@ -1014,91 +996,14 @@ static int check_rtp(char *buf, unsigned int buf_size)
 	return 0;
 }
 
-/* Receive RTP data from a specified source connection and dispatch it to a
- * destination connection. */
-static int mgcp_recv(int *proto, struct sockaddr_in *addr, char *buf,
-		     unsigned int buf_size, struct osmo_fd *fd)
-{
-	struct mgcp_endpoint *endp;
-	struct mgcp_conn_rtp *conn;
-	struct mgcp_trunk_config *tcfg;
-	int rc;
-
-	conn = (struct mgcp_conn_rtp*) fd->data;
-	endp = conn->conn->endp;
-	tcfg = endp->tcfg;
-
-	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x receiving RTP/RTCP packet...\n",
-	     ENDPOINT_NUMBER(endp));
-
-	rc = receive_from(endp, fd->fd, addr, buf, buf_size);
-	if (rc <= 0)
-		return -1;
-
-	/* FIXME: The way how we detect the protocol looks odd. We should look
-	 * into the packet header. Also we should introduce a packet type
-	 * MGCP_PROTO_IUUP because currently we handle IUUP packets like RTP
-	 * packets which is problematic. */
-	*proto = fd == &conn->end.rtp ? MGCP_PROTO_RTP : MGCP_PROTO_RTCP;
-
-	if (*proto == MGCP_PROTO_RTP) {
-		if (check_rtp(buf, rc) < 0) {
-			LOGP(DRTP, LOGL_ERROR,
-			     "endpoint:0x%x invalid RTP packet received -- packet tossed\n",
-			     ENDPOINT_NUMBER(endp));
-			return -1;
-		}
-	} else if (*proto == MGCP_PROTO_RTCP) {
-		if (check_rtcp(buf, rc) < 0) {
-			LOGP(DRTP, LOGL_ERROR,
-			     "endpoint:0x%x invalid RTCP packet received -- packet tossed\n",
-			     ENDPOINT_NUMBER(endp));
-			return -1;
-		}
-	}
-
-	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x ", ENDPOINT_NUMBER(endp));
-	LOGPC(DRTP, LOGL_DEBUG, "receiving from %s %s %d\n",
-	      conn->conn->name, inet_ntoa(addr->sin_addr),
-	      ntohs(addr->sin_port));
-	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x conn:%s\n", ENDPOINT_NUMBER(endp),
-	     mgcp_conn_dump(conn->conn));
-
-	/* Check if the origin of the RTP packet seems plausible */
-	if (tcfg->rtp_accept_all == 0) {
-		if (check_rtp_origin(conn, addr) != 0)
-			return -1;
-	}
-
-	/* Filter out dummy message */
-	if (rc == 1 && buf[0] == MGCP_DUMMY_LOAD) {
-		LOGP(DRTP, LOGL_NOTICE,
-		     "endpoint:0x%x dummy message received\n",
-		     ENDPOINT_NUMBER(endp));
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x packet tossed\n", ENDPOINT_NUMBER(endp));
-		return 0;
-	}
-
-	/* Increment RX statistics */
-	rate_ctr_inc(&conn->rate_ctr_group->ctr[RTP_PACKETS_RX_CTR]);
-	rate_ctr_add(&conn->rate_ctr_group->ctr[RTP_OCTETS_RX_CTR], rc);
-
-	/* Forward a copy of the RTP data to a debug ip/port */
-	forward_data(fd->fd, &conn->tap_in, buf, rc);
-
-	return rc;
-}
-
 /* Send RTP data. Possible options are standard RTP packet
  * transmission or trsmission via an osmux connection */
-static int mgcp_send_rtp(int proto, struct sockaddr_in *addr, char *buf,
-			 unsigned int buf_size,
+static int mgcp_send_rtp(int proto, struct sockaddr_in *addr,
+			 struct msgb *payload,
 			 struct mgcp_conn_rtp *conn_src,
 			 struct mgcp_conn_rtp *conn_dst)
 {
-	struct mgcp_endpoint *endp;
-	endp = conn_src->conn->endp;
+	struct mgcp_endpoint *endp = conn_src->conn->endp;
 
 	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x destin conn:%s\n",
 	     ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn_dst->conn));
@@ -1118,14 +1023,14 @@ static int mgcp_send_rtp(int proto, struct sockaddr_in *addr, char *buf,
 		     "using mgcp_send() to forward data directly\n",
 		     ENDPOINT_NUMBER(endp));
 		return mgcp_send(endp, proto == MGCP_PROTO_RTP,
-				 addr, buf, buf_size, conn_src, conn_dst);
+				 addr, payload, conn_src, conn_dst);
 	case MGCP_OSMUX_BSC_NAT:
 	case MGCP_OSMUX_BSC:
 		LOGP(DRTP, LOGL_DEBUG,
 		     "endpoint:0x%x endpoint type is MGCP_OSMUX_BSC_NAT, "
 		     "using osmux_xfrm_to_osmux() to forward data through OSMUX\n",
 		     ENDPOINT_NUMBER(endp));
-		return osmux_xfrm_to_osmux(buf, buf_size, conn_dst);
+		return osmux_xfrm_to_osmux(msgb_l3(payload), msgb_l3len(payload), conn_dst);
 	}
 
 	/* If the data has not been handled/forwarded until here, it will
@@ -1145,8 +1050,8 @@ static int mgcp_send_rtp(int proto, struct sockaddr_in *addr, char *buf,
  *  \param[in] buf_size size data length of buf
  *  \param[in] conn originating connection
  *  \returns 0 on success, -1 on ERROR */
-int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
-				unsigned int buf_size, struct mgcp_conn *conn)
+int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr,
+				struct msgb *payload, struct mgcp_conn *conn)
 {
 	struct mgcp_conn *conn_dst;
 	struct mgcp_endpoint *endp;
@@ -1191,9 +1096,7 @@ int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
 	}
 
 	/* Dispatch RTP packet to destination RTP connection */
-	return mgcp_send_rtp(proto, addr, buf,
-			     buf_size, &conn->u.rtp, &conn_dst->u.rtp);
-
+	return tx_rtp(&conn->u.rtp, &conn_dst->u.rtp, proto, addr, payload);
 }
 
 /*! cleanup an endpoint when a connection on an RTP bridge endpoint is removed.
@@ -1215,6 +1118,42 @@ void mgcp_cleanup_rtp_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *co
 	}
 }
 
+static bool is_dummy_msg(enum rtp_proto proto, struct msgb *msg)
+{
+	return msgb_l3len(msg) == 1 && ((char*)msgb_l3(msg))[0] == MGCP_DUMMY_LOAD;
+}
+
+int rx_rtp_from_iuup(struct msgb *msg, void *node_priv, void *pdu_priv)
+{
+	struct mgcp_conn_rtp *conn_src = node_priv;
+	struct sockaddr_in *from_addr = pdu_priv;
+	return rx_rtp(conn_src, msg, MGCP_PROTO_RTP, from_addr);
+}
+
+struct pdu_ctx {
+	struct sockaddr_in *from_addr;
+	struct mgcp_conn_rtp *conn_src;
+};
+
+int tx_pdu_from_iuup(struct msgb *msg, void *node_priv, void *pdu_priv)
+{
+	struct mgcp_conn_rtp *conn_dst = node_priv;
+	struct pdu_ctx *p = pdu_priv;
+	return mgcp_send_rtp(MGCP_PROTO_RTP, p->from_addr, msg, p->conn_src, conn_dst);
+}
+
+static void init_iuup(struct mgcp_conn_rtp *conn_src)
+{
+	struct osmo_iuup_cn_cfg cfg = {
+		.node_priv = conn_src,
+		.rx_payload = rx_rtp_from_iuup,
+		.tx_msg = tx_pdu_from_iuup,
+	};
+
+	osmo_iuup_cn_init(conn_src, &cfg, "%d@ I:%s",
+			  ENDPOINT_NUMBER(conn_src->conn->endp), conn_src->conn->id);
+}
+
 /* Handle incoming RTP data from NET */
 static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 {
@@ -1228,23 +1167,67 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	struct mgcp_conn_rtp *conn_src;
 	struct mgcp_endpoint *endp;
 	struct sockaddr_in addr;
-
-	char buf[RTP_BUF_SIZE];
-	int proto;
-	int len;
+	socklen_t slen = sizeof(addr);
+	int ret;
+	enum rtp_proto proto;
+	struct msgb *msg = msgb_alloc_headroom(RTP_BUF_SIZE + OSMO_IUUP_HEADROOM,
+					       OSMO_IUUP_HEADROOM, "RTP-rx");
 
 	conn_src = (struct mgcp_conn_rtp *)fd->data;
 	OSMO_ASSERT(conn_src);
 	endp = conn_src->conn->endp;
 	OSMO_ASSERT(endp);
 
-	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x source conn:%s\n",
-	     ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn_src->conn));
+	proto = (fd == &conn_src->end.rtp)? MGCP_PROTO_RTP : MGCP_PROTO_RTCP;
 
-	/* Receive packet */
-	len = mgcp_recv(&proto, &addr, buf, sizeof(buf), fd);
-	if (len < 0)
+	ret = recvfrom(fd->fd, msg->data, msg->data_len, 0, (struct sockaddr *)&addr, &slen);
+
+	if (ret <= 0) {
+		LOG_CONN_RTP(conn_src, LOGL_ERROR, "recvfrom error: %s\n", strerror(errno));
+		msgb_free(msg);
 		return -1;
+	}
+
+	/* By default, indicate that RTP payload starts right from the buffer's beginning. */
+	msg->l3h = msgb_put(msg, ret);
+
+	LOG_CONN_RTP(conn_src, LOGL_DEBUG, "%s: rx %u bytes from %s:%u\n",
+		     proto == MGCP_PROTO_RTP ? "RTP" : "RTPC",
+		     msgb_l3len(msg), inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+
+	if ((proto == MGCP_PROTO_RTP && check_rtp(conn_src, msg))
+	    || (proto == MGCP_PROTO_RTCP && check_rtcp(conn_src, msg))) {
+		/* Logging happened in the two check_ functions */
+		return -1;
+	}
+
+	if (is_dummy_msg(proto, msg)) {
+		LOG_CONN_RTP(conn_src, LOGL_DEBUG, "rx dummy packet (dropped)\n");
+		return 0;
+	}
+
+	/* Increment RX statistics */
+	rate_ctr_inc(&conn_src->rate_ctr_group->ctr[RTP_PACKETS_RX_CTR]);
+	rate_ctr_add(&conn_src->rate_ctr_group->ctr[RTP_OCTETS_RX_CTR], msgb_l3len(msg));
+	/* FIXME: count RTP and RTCP separately, also count IuUP payload-less separately */
+
+	/* Forward a copy of the RTP data to a debug ip/port */
+	forward_data(fd->fd, &conn_src->tap_in, msg);
+
+	if (proto == MGCP_PROTO_RTP && osmo_iuup_is_init(msg))
+		init_iuup(conn_src);
+
+	if (conn_src->iuup && proto == MGCP_PROTO_RTP)
+		return osmo_iuup_cn_rx_pdu(conn_src->iuup, msg, &addr);
+	else
+		return rx_rtp(conn_src, msg, proto, &addr);
+}
+
+static int rx_rtp(struct mgcp_conn_rtp *conn_src, struct msgb *payload,
+		  enum rtp_proto proto, struct sockaddr_in *from_addr)
+{
+	struct mgcp_endpoint *endp = conn_src->conn->endp;
+	struct mgcp_trunk_config *tcfg = endp->tcfg;
 
 	/* Check if the connection is in loopback mode, if yes, just send the
 	 * incoming data back to the origin */
@@ -1254,17 +1237,28 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 		 * address data from the UDP packet header to patch the
 		 * outgoing address in connection on the fly */
 		if (conn_src->end.rtp_port == 0) {
-			conn_src->end.addr = addr.sin_addr;
-			conn_src->end.rtp_port = addr.sin_port;
+			conn_src->end.addr = from_addr->sin_addr;
+			conn_src->end.rtp_port = from_addr->sin_port;
 		}
-		return mgcp_send_rtp(proto, &addr, buf,
-				     len, conn_src, conn_src);
+		return tx_rtp(conn_src, conn_src, proto, from_addr, payload);
 	}
+
+	/* Check if the origin of the RTP packet seems plausible */
+	if (!tcfg->rtp_accept_all && check_rtp_origin(conn_src, from_addr))
+		return -1;
 
 	/* Execute endpoint specific implementation that handles the
 	 * dispatching of the RTP data */
-	return endp->type->dispatch_rtp_cb(proto, &addr, buf, len,
-					   conn_src->conn);
+	return conn_src->conn->endp->type->dispatch_rtp_cb(proto, from_addr, payload, conn_src->conn);
+}
+
+static int tx_rtp(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn_dst,
+		  enum rtp_proto proto, struct sockaddr_in *from_addr, struct msgb *payload)
+{
+	if (conn_dst->iuup && proto == MGCP_PROTO_RTP)
+		return osmo_iuup_cn_tx_payload(conn_dst->iuup, payload, from_addr);
+	else
+		return mgcp_send_rtp(proto, from_addr, payload, conn_src, conn_dst);
 }
 
 /*! set IP Type of Service parameter.

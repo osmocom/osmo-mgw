@@ -261,8 +261,7 @@ static void scheduled_tx_net_cb(struct msgb *msg, void *data)
 
 	/* Send RTP data to NET */
 	/* FIXME: Get rid of conn_bts and conn_net! */
-	mgcp_send(endp, 1, &addr, (char *)msg->data, msg->len,
-		  conn_bts, conn_net);
+	mgcp_send(endp, 1, &addr, msg, conn_bts, conn_net);
 	msgb_free(msg);
 }
 
@@ -288,8 +287,7 @@ static void scheduled_tx_bts_cb(struct msgb *msg, void *data)
 
 	/* Send RTP data to BTS */
 	/* FIXME: Get rid of conn_bts and conn_net! */
-	mgcp_send(endp, 1, &addr, (char *)msg->data, msg->len,
-		  conn_net, conn_bts);
+	mgcp_send(endp, 1, &addr, msg, conn_net, conn_bts);
 	msgb_free(msg);
 }
 
