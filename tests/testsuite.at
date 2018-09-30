@@ -13,3 +13,10 @@ AT_KEYWORDS([mgcp])
 cat $abs_srcdir/mgcp/mgcp_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/mgcp/mgcp_test], [], [expout], [ignore])
 AT_CLEANUP
+
+AT_SETUP([iuup])
+AT_KEYWORDS([iuup])
+cat $abs_srcdir/iuup/iuup_test.ok > expout
+cat $abs_srcdir/iuup/iuup_test.err > experr
+AT_CHECK([$abs_top_builddir/tests/iuup/iuup_test], [], [expout], [experr])
+AT_CLEANUP

@@ -451,3 +451,19 @@ int mgcp_codec_pt_translate(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp
 
 	return codec_dst->payload_type;
 }
+
+const struct mgcp_rtp_codec *mgcp_codec_pt_find_by_subtype_name(struct mgcp_conn_rtp *conn,
+								const char *subtype_name, unsigned int match_nr)
+{
+	int i;
+	for (i = 0; i < conn->end.codecs_assigned; i++) {
+		if (!strcmp(conn->end.codecs[i].subtype_name, subtype_name)) {
+			if (match_nr) {
+				match_nr--;
+				continue;
+			}
+			return &conn->end.codecs[i];
+		}
+	}
+	return NULL;
+}

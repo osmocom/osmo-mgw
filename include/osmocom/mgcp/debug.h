@@ -29,6 +29,7 @@
 /* Debug Areas of the code */
 enum {
 	DRTP,
+	DIUUP,
 	Debug_LastEntry,
 };
 

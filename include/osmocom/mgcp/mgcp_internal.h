@@ -37,6 +37,13 @@
 #define CONN_ID_BTS "0"
 #define CONN_ID_NET "1"
 
+#define LOG_CONN(conn, level, fmt, args...) \
+	LOGP(DRTP, level, "(%d@ I:%s) " fmt, \
+	     ENDPOINT_NUMBER((conn)->endp), (conn)->id, ## args)
+
+#define LOG_CONN_RTP(conn_rtp, level, fmt, args...) \
+	LOG_CONN(conn_rtp->conn, level, fmt, ## args)
+
 enum mgcp_trunk_type {
 	MGCP_TRUNK_VIRTUAL,
 	MGCP_TRUNK_E1,
@@ -204,6 +211,8 @@ struct mgcp_conn_rtp {
 	} osmux;
 
 	struct rate_ctr_group *rate_ctr_group;
+
+	struct osmo_iuup_cn *iuup;
 };
 
 /*! Connection type, specifies which member of the union "u" in mgcp_conn
@@ -266,11 +275,10 @@ struct mgcp_parse_data {
 };
 
 int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
-	      char *buf, int rc, struct mgcp_conn_rtp *conn_src,
+	      struct msgb *msg, struct mgcp_conn_rtp *conn_src,
 	      struct mgcp_conn_rtp *conn_dst);
 int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn);
-int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
-				unsigned int buf_size, struct mgcp_conn *conn);
+int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg);
 void mgcp_cleanup_rtp_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *conn);
 int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 			   struct mgcp_conn_rtp *conn);
@@ -350,3 +358,8 @@ LOGP(cat, level, "endpoint:0x%x " fmt, \
 LOGPENDP((conn)->endp, cat, level, "CI:%s " fmt, \
          (conn)->id, \
          ## args)
+
+void mgcp_patch_and_count(struct mgcp_endpoint *endp,
+			  struct mgcp_rtp_state *state,
+			  struct mgcp_rtp_end *rtp_end,
+			  struct sockaddr_in *addr, struct msgb *msg);

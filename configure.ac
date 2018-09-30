@@ -195,6 +195,7 @@ AC_OUTPUT(
     tests/atlocal
     tests/mgcp_client/Makefile
     tests/mgcp/Makefile
+    tests/iuup/Makefile
     doc/Makefile
     doc/examples/Makefile
     doc/manuals/Makefile
