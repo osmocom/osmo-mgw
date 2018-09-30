@@ -7,4 +7,6 @@ noinst_HEADERS = \
 	mgcp_sdp.h \
 	mgcp_codec.h \
 	debug.h \
+	iuup_cn_node.h \
+	iuup_protocol.h \
 	$(NULL)

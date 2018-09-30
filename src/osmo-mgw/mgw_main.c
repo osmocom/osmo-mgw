@@ -248,6 +248,12 @@ static const struct log_info_cat log_categories[] = {
 		  .color = "\033[1;30m",
 		  .enabled = 1,.loglevel = LOGL_NOTICE,
 		  },
+	[DIUUP] = {
+		  .name = "DIUUP",
+		  .description = "IuUP within RTP stream handling",
+		  .color = "\033[1;31m",
+		  .enabled = 1,.loglevel = LOGL_NOTICE,
+		  },
 };
 
 const struct log_info log_info = {

@@ -40,4 +40,6 @@ libosmo_mgcp_a_SOURCES = \
 	mgcp_conn.c \
 	mgcp_stat.c \
 	mgcp_endp.c \
+	iuup_protocol.c \
+	iuup_cn_node.c \
 	$(NULL)
