@@ -30,6 +30,8 @@
 #include <osmocom/core/rate_ctr.h>
 #include <inttypes.h>
 
+struct osmo_iuup_cn;
+
 #define LOGPCONN(conn, cat, level, fmt, args...) \
 LOGPENDP((conn)->endp, cat, level, "CI:%s " fmt, \
          (conn)->id, \
@@ -94,6 +96,8 @@ struct mgcp_conn_rtp {
 	} osmux;
 
 	struct rate_ctr_group *rate_ctr_group;
+
+	struct osmo_iuup_cn *iuup;
 };
 
 /*! MGCP connection (untyped) */

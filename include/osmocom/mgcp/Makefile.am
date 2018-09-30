@@ -13,4 +13,6 @@ noinst_HEADERS = \
 	mgcp_e1.h \
 	mgcp_network.h \
 	mgcp_protocol.h \
+	iuup_cn_node.h \
+	iuup_protocol.h \
 	$(NULL)

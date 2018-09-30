@@ -48,6 +48,8 @@
 #include <osmocom/mgcp/debug.h>
 #include <osmocom/codec/codec.h>
 #include <osmocom/mgcp/mgcp_e1.h>
+#include <osmocom/mgcp/iuup_cn_node.h>
+#include <osmocom/mgcp/iuup_protocol.h>
 
 
 #define RTP_SEQ_MOD		(1 << 16)
@@ -541,10 +543,29 @@ static int mgcp_patch_pt(struct mgcp_conn_rtp *conn_src,
 
 	rtp_hdr = (struct rtp_hdr *)msgb_data(msg);
 
-	pt_in = rtp_hdr->payload_type;
-	pt_out = mgcp_codec_pt_translate(conn_src, conn_dst, pt_in);
-	if (pt_out < 0)
-		return -EINVAL;
+	if (conn_src->iuup) {
+		/* The source is an IuUP payload. We have received a dynamic payload type number on the IuUP side, and
+		 * towards the pure RTP side it should go out as "AMR/8000". Make sure that the payload type number in
+		 * the RTP packet matches the a=rtpmap:N payload type number configured for AMR. */
+		const struct mgcp_rtp_codec *amr_codec = mgcp_codec_pt_find_by_subtype_name(conn_dst, "AMR", 0);
+
+		if (!amr_codec) {
+			/* There is no AMR codec configured on the outgoing conn. */
+			return -EINVAL;
+		}
+
+		pt_out = amr_codec->payload_type;
+	} else if (conn_dst->iuup) {
+		/* The destination is an IuUP payload. Use whatever payload number was negotiated during IuUP
+		 * Initialization. */
+		pt_out = conn_dst->iuup->rtp_payload_type;
+	} else {
+		/* Both sides are normal RTP payloads. Consult the rtpmap settings received by SDP. */
+		pt_in = rtp_hdr->payload_type;
+		pt_out = mgcp_codec_pt_translate(conn_src, conn_dst, pt_in);
+		if (pt_out < 0)
+			return -EINVAL;
+	}
 
 	rtp_hdr->payload_type = (uint8_t) pt_out;
 	return 0;
@@ -981,6 +1002,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 			forward_data(rtp_end->rtp.fd, &conn_src->tap_out,
 				     msg);
 
+#if 0
 			/* FIXME: HACK HACK HACK. See OS#2459.
 			 * The ip.access nano3G needs the first RTP payload's first two bytes to read hex
 			 * 'e400', or it will reject the RAB assignment. It seems to not harm other femto
@@ -998,9 +1020,13 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 						 " to fake an IuUP Initialization Ack\n");
 				}
 			}
+#endif
 
-			len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr, rtp_end->rtp_port,
-					    (char*)msgb_data(msg), msgb_length(msg));
+			if (conn_dst->iuup)
+				len = osmo_iuup_cn_tx_payload(conn_dst->iuup, msg);
+			else
+				len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr, rtp_end->rtp_port,
+						    (char*)msgb_data(msg), msgb_length(msg));
 
 			if (len <= 0)
 				return len;
@@ -1179,6 +1205,8 @@ static int check_rtcp(struct mgcp_conn_rtp *conn_src, struct msgb *msg)
 static int check_rtp(struct mgcp_conn_rtp *conn_src, struct msgb *msg)
 {
 	size_t min_size = sizeof(struct rtp_hdr);
+	if (conn_src->iuup)
+		min_size += sizeof(struct osmo_iuup_hdr_data);
 	if (msgb_length(msg) < min_size) {
 		LOG_CONN_RTP(conn_src, LOGL_ERROR, "RTP packet too short (%u < %zu)\n",
 			     msgb_length(msg), min_size);
@@ -1395,6 +1423,68 @@ static bool is_dummy_msg(enum rtp_proto proto, struct msgb *msg)
 	return msgb_length(msg) == 1 && msgb_data(msg)[0] == MGCP_DUMMY_LOAD;
 }
 
+/* IuUP CN node has stripped an IuUP header and forwards RTP data to distribute to the peers. */
+int iuup_rx_payload(struct msgb *msg, void *node_priv)
+{
+	struct osmo_rtp_msg_ctx *mc = OSMO_RTP_MSG_CTX(msg);
+	struct mgcp_conn_rtp *conn_src = mc->conn_src;
+	LOG_CONN_RTP(conn_src, LOGL_DEBUG, "iuup_rx_payload(%u bytes)\n", msgb_length(msg));
+	return rx_rtp(msg);
+}
+
+/* IuUP CN node has composed a message that contains an IuUP header and asks us to send to the IuUP peer.
+ */
+int iuup_tx_msg(struct msgb *msg, void *node_priv)
+{
+	const struct in_addr zero_addr = {};
+	struct osmo_rtp_msg_ctx *mc = OSMO_RTP_MSG_CTX(msg);
+	struct mgcp_conn_rtp *conn_src = mc->conn_src;
+	struct mgcp_conn_rtp *conn_dst = node_priv;
+	struct sockaddr_in *from_addr = mc->from_addr;
+	struct mgcp_rtp_end *rtp_end = &conn_dst->end;
+	struct in_addr to_addr = rtp_end->addr;
+	uint16_t to_port = rtp_end->rtp_port;
+
+	if (conn_src == conn_dst
+	    && !memcmp(&zero_addr, &to_addr, sizeof(zero_addr)) && !to_port) {
+		LOG_CONN_RTP(conn_dst, LOGL_DEBUG, "iuup_tx_msg(): direct IuUP reply\n");
+		/* IuUP wants to send a message back to the same peer that sent an RTP package, but there
+		 * is no address configured for that peer yet. It is probably an IuUP Initialization ACK
+		 * reply. Use the sender address to send the reply.
+		 *
+		 * During 3G RAB Assignment, a 3G cell might first probe the MGW and expect an IuUP
+		 * Initialization ACK before it replies to the MSC with a successful RAB Assignment; only
+		 * after that reply does MSC officially know which RTP address+port the 3G cell wants to
+		 * use and can tell this MGW about it, so this "loopback" is, for some 3G cells, the only
+		 * chance we have to get a successful RAB Assignment done (particularly the nano3G does
+		 * this). */
+		to_addr = from_addr->sin_addr;
+		to_port = from_addr->sin_port;
+	}
+
+	LOG_CONN_RTP(conn_dst, LOGL_DEBUG, "iuup_tx_msg(%u bytes) to %s:%u\n", msgb_length(msg),
+		     inet_ntoa(to_addr), ntohs(to_port));
+
+	return mgcp_udp_send(rtp_end->rtp.fd, &to_addr, to_port, (char*)msgb_data(msg), msgb_length(msg));
+}
+
+static void iuup_init(struct mgcp_conn_rtp *conn_src)
+{
+	struct osmo_iuup_cn_cfg cfg = {
+		.node_priv = conn_src,
+		.rx_payload = iuup_rx_payload,
+		.tx_msg = iuup_tx_msg,
+	};
+
+	if (conn_src->iuup) {
+		LOG_CONN_RTP(conn_src, LOGL_NOTICE, "Rx IuUP init, but already initialized. Ignoring.\n");
+		return;
+	}
+
+	conn_src->iuup = osmo_iuup_cn_init(conn_src->conn, &cfg, "endp_%s_conn_%s",
+					   conn_src->conn->endp->name, conn_src->conn->id);
+}
+
 /* Handle incoming RTP data from NET */
 static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 {
@@ -1413,7 +1503,8 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	int ret;
 	enum rtp_proto proto;
 	struct osmo_rtp_msg_ctx *mc;
-	struct msgb *msg = msgb_alloc(RTP_BUF_SIZE, "RTP-rx");
+	struct msgb *msg = msgb_alloc_headroom(RTP_BUF_SIZE + OSMO_IUUP_HEADROOM,
+					       OSMO_IUUP_HEADROOM, "RTP-rx");
 	int rc;
 
 	conn_src = (struct mgcp_conn_rtp *)fd->data;
@@ -1474,7 +1565,13 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	/* Forward a copy of the RTP data to a debug ip/port */
 	forward_data(fd->fd, &conn_src->tap_in, msg);
 
-	rc = rx_rtp(msg);
+	if (proto == MGCP_PROTO_RTP && osmo_iuup_is_init(msg))
+		iuup_init(conn_src);
+
+	if (conn_src->iuup && proto == MGCP_PROTO_RTP)
+		rc = osmo_iuup_cn_rx_pdu(conn_src->iuup, msg);
+	else
+		rc = rx_rtp(msg);
 
 out:
 	msgb_free(msg);

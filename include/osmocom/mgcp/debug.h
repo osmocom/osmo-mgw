@@ -30,6 +30,7 @@
 enum {
 	DRTP,
 	DE1,
+	DIUUP,
 	Debug_LastEntry,
 };
 
