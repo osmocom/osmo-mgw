@@ -21,6 +21,9 @@ enum osmo_iuup_acknack {
 
 enum osmo_iuup_procedure {
 	OSMO_IUUP_PROC_INITIALIZATION = 0,
+	OSMO_IUUP_PROC_RATE_CONTROL = 1,
+	OSMO_IUUP_PROC_TIME_ALIGNMENT = 2,
+	OSMO_IUUP_PROC_ERROR_EVENT = 3,
 };
 
 enum osmo_iuup_frame_good {
@@ -40,10 +43,6 @@ struct osmo_iuup_hdr_ctrl {
 		payload_crc_hi:2;
 	uint8_t payload_crc_lo;
 	uint8_t payload[0];
-	uint8_t spare:3,
-		iptis_present:1,
-		subflows:3,
-		chain:1;
 #elif OSMO_IS_LITTLE_ENDIAN
 	uint8_t frame_nr:2,
 		ack_nack:2,
@@ -54,12 +53,38 @@ struct osmo_iuup_hdr_ctrl {
 		header_crc:6;
 	uint8_t payload_crc_lo;
 	uint8_t payload[0];
+#endif
+} __attribute__((packed));
+
+union osmo_iuup_hdr_ctrl_payload {
+	struct {
+#if OSMO_IS_BIG_ENDIAN
+	uint8_t spare:3,
+		iptis_present:1,
+		subflows:3,
+		chain:1;
+#elif OSMO_IS_LITTLE_ENDIAN
 	uint8_t spare:3,
 		iptis_present:1,
 		subflows:3,
 		chain:1;
 #endif
-} __attribute__((packed));
+	} initialization;
+
+	struct {
+#if OSMO_IS_BIG_ENDIAN
+	uint8_t error_distance:2,
+		error_cause:6;
+#elif OSMO_IS_LITTLE_ENDIAN
+	uint8_t error_cause:6,
+		error_distance:2;
+#endif
+	} error_event;
+};
+
+extern const struct value_string osmo_iuup_error_cause_names[];
+static inline const char *osmo_iuup_error_cause_name(uint8_t val)
+{ return get_value_string(osmo_iuup_error_cause_names, val); }
 
 struct osmo_iuup_hdr_data {
 #if OSMO_IS_BIG_ENDIAN

@@ -152,7 +152,7 @@ void osmo_iuup_set_checksums(uint8_t *iuup_header_and_payload, unsigned int head
 
 /* Validate minimum message sizes, IuUP PDU type, header- and payload checksums. If it is a Control
  * Procedure PDU, return the header position in is_ctrl, if it is a Data PDU, return the header position
- * in is_data. If log_errors is true, log on DRTP with the given log label for context. Return NULL in
+ * in is_data. If log_errors is true, log on DIUUP with the given log label for context. Return NULL in
  * both is_ctrl and is_data, and return a negative error code if the PDU could not be identified as a
  * valid RTP PDU containing an IuUP part. */
 int osmo_iuup_classify(bool log_errors,
@@ -169,7 +169,7 @@ int osmo_iuup_classify(bool log_errors,
 
 #define ERR(fmt, args...) do { \
 			if (log_errors) \
-				LOGP(DRTP, LOGL_ERROR, "(%s) " fmt, log_label? : "-", ## args); \
+				LOGP(DIUUP, LOGL_ERROR, "(%s) " fmt, log_label? : "-", ## args); \
 			return -EINVAL; \
 		} while (0)
 
@@ -240,6 +240,7 @@ bool osmo_iuup_is_init(struct msgb *pdu)
 		&& is_ctrl->ack_nack == OSMO_IUUP_ACKNACK_PROCEDURE;
 }
 
+/* Append an IuUP Initialization ACK message */
 void osmo_iuup_make_init_ack(struct msgb *ack)
 {
 	/* Send Initialization Ack PDU back to the sender */
@@ -256,3 +257,30 @@ void osmo_iuup_make_init_ack(struct msgb *ack)
 
 	osmo_iuup_set_checksums((uint8_t*)hdr, sizeof(*hdr));
 }
+
+const struct value_string osmo_iuup_error_cause_names[] = {
+	{ 0, "CRC error of frame header" },
+	{ 1, "CRC error of frame payload" },
+	{ 2, "Unexpected frame number" },
+	{ 3, "Frame loss" },
+	{ 4, "PDU type unknown" },
+	{ 5, "Unknown procedure" },
+	{ 6, "Unknown reserved value" },
+	{ 7, "Unknown field" },
+	{ 8, "Frame too short" },
+	{ 9, "Missing fields" },
+	{ 16, "Unexpected PDU type" },
+	{ 17, "spare" },
+	{ 18, "Unexpected procedure" },
+	{ 19, "Unexpected RFCI" },
+	{ 20, "Unexpected value" },
+	{ 42, "Initialisation failure" },
+	{ 43, "Initialisation failure (network error, timer expiry)" },
+	{ 44, "Initialisation failure (Iu UP function error, repeated NACK)" },
+	{ 45, "Rate control failure" },
+	{ 46, "Error event failure" },
+	{ 47, "Time Alignment not supported" },
+	{ 48, "Requested Time Alignment not possible" },
+	{ 49, "Iu UP Mode version not supported" },
+	{}
+};

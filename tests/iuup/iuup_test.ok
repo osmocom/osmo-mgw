@@ -2,11 +2,10 @@
 Send IuUP Initialization. Expecting direct tx_msg() of the Initialization Ack
  -PDU-> [IuUP]
 8060dc5219495e3f00010111e000df99160051673c01270000820000001710000100
-pdu_priv=0xfeed
 tx_msg() invoked by iuup_cn!
  <-PDU- [IuUP]
-e400240000
-node_priv=0x2342 pdu_priv=0xfeed
+8060dc5219495e3f00010111e4002400
+node_priv=0x2342
 ok: matches expected msg
 rc=0
 
@@ -14,51 +13,46 @@ Receive payload encapsulated in IuUP. Expecting rx_payload() of just RTP packet
 i.e. should strip away 0100e2b3
  -PDU-> [IuUP]
 8060944c6256042c000101020100e2b36cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0
-pdu_priv=0xfeed
 rx_payload() invoked by iuup_cn!
         [IuUP] -RTP->
 8060944c6256042c000101026cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0
-node_priv=0x2342 pdu_priv=0xfeed
+node_priv=0x2342
 ok: matches expected msg
 rc=0
 
 Transmit RTP. Expecting tx_msg() with inserted IuUP header
         [IuUP] <-RTP-
 8060944c6256042c000101026cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0
-pdu_priv=0xfeed
 tx_msg() invoked by iuup_cn!
  <-PDU- [IuUP]
 8060944c6256042c00010102000002b36cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0
-node_priv=0x2342 pdu_priv=0xfeed
+node_priv=0x2342
 ok: matches expected msg
 rc=0
 
 More RTP, each time the Frame Nr advances, causing a new header CRC.
         [IuUP] <-RTP-
 8060944c6256042c000101026cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0
-pdu_priv=0xfeed
 tx_msg() invoked by iuup_cn!
  <-PDU- [IuUP]
 8060944c6256042c000101020100e2b36cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0
-node_priv=0x2342 pdu_priv=0xfeed
+node_priv=0x2342
 ok: matches expected msg
 rc=0
         [IuUP] <-RTP-
 8060944c6256042c000101026cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0
-pdu_priv=0xfeed
 tx_msg() invoked by iuup_cn!
  <-PDU- [IuUP]
 8060944c6256042c0001010202007eb36cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0
-node_priv=0x2342 pdu_priv=0xfeed
+node_priv=0x2342
 ok: matches expected msg
 rc=0
         [IuUP] <-RTP-
 8060944c6256042c000101026cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0
-pdu_priv=0xfeed
 tx_msg() invoked by iuup_cn!
  <-PDU- [IuUP]
 8060944c6256042c0001010203009eb36cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0
-node_priv=0x2342 pdu_priv=0xfeed
+node_priv=0x2342
 ok: matches expected msg
 rc=0
 All done.
