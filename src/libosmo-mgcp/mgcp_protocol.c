@@ -691,7 +691,7 @@ static bool parse_x_osmo_ign(struct mgcp_endpoint *endp, char *line)
 		if (!strcmp(token, "C"))
 			endp->x_osmo_ign |= MGCP_X_OSMO_IGN_CALLID;
 		else
-			LOGP(DLMGCP, LOGL_ERROR, "endpoint %x: received unknown X-Osmo-IGN item '%s'\n",
+			LOGP(DLMGCP, LOGL_ERROR, "endpoint 0x%x: received unknown X-Osmo-IGN item '%s'\n",
 			     ENDPOINT_NUMBER(endp), token);
 	}
 

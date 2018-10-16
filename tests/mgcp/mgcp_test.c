@@ -550,7 +550,7 @@ static int last_endpoint = -1;
 static int mgcp_test_policy_cb(struct mgcp_trunk_config *cfg, int endpoint,
 			       int state, const char *transactio_id)
 {
-	fprintf(stderr, "Policy CB got state %d on endpoint %d\n",
+	fprintf(stderr, "Policy CB got state %d on endpoint 0x%x\n",
 		state, endpoint);
 	last_endpoint = endpoint;
 	return MGCP_POLICY_CONT;
@@ -813,7 +813,7 @@ static void test_messages(void)
 			OSMO_ASSERT(last_endpoint != -1);
 			endp = &cfg->trunk.endpoints[last_endpoint];
 
-			fprintf(stderr, "endpoint %d: "
+			fprintf(stderr, "endpoint 0x%x: "
 				"payload type %d (expected %d)\n",
 				last_endpoint,
 				conn->end.codec->payload_type, t->ptype);

@@ -407,12 +407,12 @@ static int osmux_handle_dummy(struct mgcp_config *cfg, struct sockaddr_in *addr,
 
 	if (osmux_enable_conn(endp, conn_net, &addr->sin_addr, addr->sin_port) < 0 ) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "Could not enable osmux in endpoint %d\n",
+		     "Could not enable osmux in endpoint 0x%x\n",
 		     ENDPOINT_NUMBER(endp));
 		goto out;
 	}
 
-	LOGP(DLMGCP, LOGL_INFO, "Enabling osmux in endpoint %d for %s:%u\n",
+	LOGP(DLMGCP, LOGL_INFO, "Enabling osmux in endpoint 0x%x for %s:%u\n",
 	     ENDPOINT_NUMBER(endp), inet_ntoa(addr->sin_addr),
 	     ntohs(addr->sin_port));
 out:
