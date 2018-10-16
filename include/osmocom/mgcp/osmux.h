@@ -24,10 +24,10 @@ void osmux_put_cid(uint8_t osmux_cid);
 int osmux_used_cid(void);
 
 enum osmux_state {
-	OSMUX_STATE_DISABLED = 0,
-	OSMUX_STATE_NEGOTIATING,
-	OSMUX_STATE_ACTIVATING,
-	OSMUX_STATE_ENABLED,
+	OSMUX_STATE_DISABLED = 0, /* Osmux not being currently used by endp */
+	OSMUX_STATE_NEGOTIATING,  /* Osmux was locally requested in MGCP CRCX */
+	OSMUX_STATE_ACTIVATING,   /* Osmux was accepted in MGCP CRCX ACK. It can now be enabled by \ref osmux_enable_endpoint. */
+	OSMUX_STATE_ENABLED,	  /* Osmux was initialized by \ref osmux_enable_endpoint and can process frames */
 };
 
 enum osmux_usage {
@@ -35,4 +35,3 @@ enum osmux_usage {
 	OSMUX_USAGE_ON = 1,
 	OSMUX_USAGE_ONLY = 2,
 };
-
