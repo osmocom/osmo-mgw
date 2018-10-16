@@ -394,7 +394,7 @@ int osmux_read_from_bsc_nat_cb(struct osmo_fd *ofd, unsigned int what)
 		/* FIXME: Get rid of CONN_ID_XXX! */
 		conn_bts = mgcp_conn_get_rtp(endp, CONN_ID_BTS);
 		if (!conn_bts)
-			goto out;
+			continue;
 
 		if (!endp) {
 			LOGP(DLMGCP, LOGL_ERROR,
@@ -478,7 +478,7 @@ int osmux_read_from_bsc_cb(struct osmo_fd *ofd, unsigned int what)
 		/* FIXME: Get rid of CONN_ID_XXX! */
 		conn_net = mgcp_conn_get_rtp(endp, CONN_ID_NET);
 		if (!conn_net)
-			goto out;
+			continue;
 
 		if (!endp) {
 			LOGP(DLMGCP, LOGL_ERROR,
