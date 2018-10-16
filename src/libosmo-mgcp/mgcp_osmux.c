@@ -536,9 +536,9 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 	uint16_t osmux_dummy = endp->cfg->osmux_dummy;
 
 	/* Check if osmux is enabled for the specified connection */
-	if (conn->osmux.state == OSMUX_STATE_DISABLED) {
-		LOGP(DLMGCP, LOGL_ERROR, "OSMUX not enabled for conn:%s\n",
-		     mgcp_conn_dump(conn->conn));
+	if (conn->osmux.state != OSMUX_STATE_ACTIVATING) {
+		LOGP(DLMGCP, LOGL_ERROR, "conn:%s didn't negotiate Osmux, state %d\n",
+		     mgcp_conn_dump(conn->conn), conn->osmux.state);
 		return -1;
 	}
 
