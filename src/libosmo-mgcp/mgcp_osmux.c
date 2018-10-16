@@ -387,30 +387,31 @@ out:
 
 /* This is called from the bsc-nat */
 static int osmux_handle_dummy(struct mgcp_config *cfg, struct sockaddr_in *addr,
-			      struct msgb *msg)
+			      struct msgb *msg, int endp_type)
 {
 	struct mgcp_endpoint *endp;
 	uint8_t osmux_cid;
-	struct mgcp_conn_rtp *conn_net = NULL;
+	struct mgcp_conn_rtp *conn = NULL;
 
 	if (osmux_legacy_dummy_parse_cid(addr, msg, &osmux_cid) < 0)
 		goto out;
 
-	endp = endpoint_lookup(cfg, osmux_cid, &addr->sin_addr, MGCP_DEST_BTS);
+	endp = endpoint_lookup(cfg, osmux_cid, &addr->sin_addr, endp_type);
 	if (!endp) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "Cannot find endpoint for Osmux CID %d\n", osmux_cid);
 		goto out;
 	}
 
-	conn_net = mgcp_conn_get_rtp(endp, CONN_ID_NET);
-	if (!conn_net)
+	/* FIXME: Get rid of CONN_ID_XXX! */
+	conn = mgcp_conn_get_rtp(endp, endp_type == MGCP_DEST_BTS ? CONN_ID_NET : CONN_ID_BTS);
+	if (!conn)
 		goto out;
 
-	if (conn_net->osmux.state == OSMUX_STATE_ENABLED)
+	if (conn->osmux.state == OSMUX_STATE_ENABLED)
 		goto out;
 
-	if (osmux_enable_conn(endp, conn_net, &addr->sin_addr, addr->sin_port) < 0 ) {
+	if (osmux_enable_conn(endp, conn, &addr->sin_addr, addr->sin_port) < 0 ) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "Could not enable osmux in endpoint 0x%x\n",
 		     ENDPOINT_NUMBER(endp));
@@ -446,7 +447,7 @@ int osmux_read_from_bsc_cb(struct osmo_fd *ofd, unsigned int what)
 
 	/* not any further processing dummy messages */
 	if (msg->data[0] == MGCP_DUMMY_LOAD)
-		return osmux_handle_dummy(cfg, &addr, msg);
+		return osmux_handle_dummy(cfg, &addr, msg, MGCP_DEST_BTS);
 
 	rem = msg->len;
 	while((osmuxh = osmux_xfrm_output_pull(msg)) != NULL) {
