@@ -284,7 +284,7 @@ static void scheduled_tx_bts_cb(struct msgb *msg, void *data)
 	};
 
 	rate_ctr_inc(&conn_net->rate_ctr_group->ctr[RTP_PACKETS_TX_CTR]);
-	rate_ctr_add(&conn_net->rate_ctr_group->ctr[RTP_OCTETS_TX_CTR], msg->len);	
+	rate_ctr_add(&conn_net->rate_ctr_group->ctr[RTP_OCTETS_TX_CTR], msg->len);
 
 	/* Send RTP data to BTS */
 	/* FIXME: Get rid of conn_bts and conn_net! */
@@ -530,10 +530,6 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		return -1;
 	}
 
-	osmux_xfrm_output_init(&conn->osmux.out,
-			       (conn->osmux.cid * rtp_ssrc_winlen) +
-			       (random() % rtp_ssrc_winlen));
-
 	conn->osmux.in = osmux_handle_lookup(endp->cfg, addr, port);
 	if (!conn->osmux.in) {
 		LOGP(DLMGCP, LOGL_ERROR, "Cannot allocate input osmux handle for conn:%s\n",
@@ -545,6 +541,10 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		     conn->osmux.cid, mgcp_conn_dump(conn->conn));
 		return -1;
 	}
+
+	osmux_xfrm_output_init(&conn->osmux.out,
+			       (conn->osmux.cid * rtp_ssrc_winlen) +
+			       (random() % rtp_ssrc_winlen));
 
 	switch (endp->cfg->role) {
 		case MGCP_BSC_NAT:
