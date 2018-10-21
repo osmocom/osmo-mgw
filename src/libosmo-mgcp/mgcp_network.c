@@ -872,9 +872,8 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn,
 {
 	struct mgcp_endpoint *endp;
 	endp = conn->conn->endp;
-	struct sockaddr_in zero_addr = {};
 
-	if (memcmp(&zero_addr.sin_addr, &conn->end.addr, sizeof(zero_addr.sin_addr)) == 0) {
+	if (conn->end.addr.s_addr == 0) {
 		switch (conn->conn->mode) {
 		case MGCP_CONN_LOOPBACK:
 			/* HACK: for IuUP, we want to reply with an IuUP Initialization ACK upon the first RTP
@@ -904,8 +903,7 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn,
 
 	/* Note: Check if the inbound RTP data comes from the same host to
 	 * which we send our outgoing RTP traffic. */
-	if (memcmp(&addr->sin_addr, &conn->end.addr, sizeof(addr->sin_addr))
-	    != 0) {
+	if (conn->end.addr.s_addr != addr->sin_addr.s_addr) {
 		LOGP(DRTP, LOGL_ERROR,
 		     "endpoint:0x%x data from wrong address: %s, ",
 		     ENDPOINT_NUMBER(endp), inet_ntoa(addr->sin_addr));
