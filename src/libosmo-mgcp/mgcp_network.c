@@ -874,7 +874,7 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn,
 	endp = conn->conn->endp;
 	struct sockaddr_in zero_addr = {};
 
-	if (memcmp(&zero_addr, &conn->end.addr, sizeof(zero_addr)) == 0) {
+	if (memcmp(&zero_addr.sin_addr, &conn->end.addr, sizeof(zero_addr.sin_addr)) == 0) {
 		switch (conn->conn->mode) {
 		case MGCP_CONN_LOOPBACK:
 			/* HACK: for IuUP, we want to reply with an IuUP Initialization ACK upon the first RTP
