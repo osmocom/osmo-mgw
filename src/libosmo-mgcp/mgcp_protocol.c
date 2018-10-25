@@ -32,6 +32,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/select.h>
+#include <osmocom/core/stats.h>
 
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_common.h>
@@ -50,6 +51,28 @@ struct mgcp_request {
 
 #define MGCP_REQUEST(NAME, REQ, DEBUG_NAME) \
 	{ .name = NAME, .handle_request = REQ, .debug_name = DEBUG_NAME },
+
+static const struct rate_ctr_desc mgcp_crcx_ctr_desc[] = {
+	[MGCP_CRCX_SUCCESS] = {"crcx:success", "CRCX command processed successfully."},
+	[MGCP_CRCX_FAIL_BAD_ACTION] = {"crcx:bad_action", "bad action in CRCX command."},
+	[MGCP_CRCX_FAIL_UNHANDLED_PARAM] = {"crcx:unhandled_param", "unhandled parameter in CRCX command."},
+	[MGCP_CRCX_FAIL_MISSING_CALLID] = {"crcx:missing_callid", "missing CallId in CRCX command."},
+	[MGCP_CRCX_FAIL_INVALID_MODE] = {"crcx:invalid_mode", "connection invalid mode in CRCX command."},
+	[MGCP_CRCX_FAIL_LIMIT_EXCEEDED] = {"crcx:limit_exceeded", "limit of concurrent connections was reached."},
+	[MGCP_CRCX_FAIL_UNKNOWN_CALLID] = {"crcx:unkown_callid", "unknown CallId in CRCX command."},
+	[MGCP_CRCX_FAIL_ALLOC_CONN] = {"crcx:alloc_conn_fail", "connection allocation failure."},
+	[MGCP_CRCX_FAIL_NO_REMOTE_CONN_DESC] = {"crcx:no_remote_conn_desc", "no opposite end specified for connection."},
+	[MGCP_CRCX_FAIL_START_RTP] = {"crcx:start_rtp_failure", "failure to start RTP processing."},
+	[MGCP_CRCX_FAIL_REJECTED_BY_POLICY] = {"crcx:conn_rejected", "connection rejected by policy."},
+};
+
+const static struct rate_ctr_group_desc mgcp_crcx_ctr_group_desc = {
+	.group_name_prefix = "crcx",
+	.group_description = "crxc statistics",
+	.class_id = OSMO_STATS_CLASS_GLOBAL,
+	.num_ctr = ARRAY_SIZE(mgcp_crcx_ctr_desc),
+	.ctr_desc = mgcp_crcx_ctr_desc
+};
 
 static struct msgb *handle_audit_endpoint(struct mgcp_parse_data *data);
 static struct msgb *handle_create_con(struct mgcp_parse_data *data);
@@ -701,7 +724,7 @@ static bool parse_x_osmo_ign(struct mgcp_endpoint *endp, char *line)
 /* CRCX command handler, processes the received command */
 static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 {
-	struct mgcp_trunk_config *tcfg;
+	struct mgcp_trunk_config *tcfg = p->endp->tcfg;
 	struct mgcp_endpoint *endp = p->endp;
 	int error_code = 400;
 
@@ -733,6 +756,7 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 			/* It is illegal to send a connection identifier
 			 * together with a CRCX, the MGW will assign the
 			 * connection identifier by itself on CRCX */
+			rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_BAD_ACTION]);
 			return create_err_response(NULL, 523, "CRCX", p->trans);
 			break;
 		case 'M':
@@ -759,19 +783,19 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 			LOGP(DLMGCP, LOGL_NOTICE,
 			     "CRCX: endpoint:%x unhandled option: '%c'/%d\n",
 			     ENDPOINT_NUMBER(endp), *line, *line);
+			rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_UNHANDLED_PARAM]);
 			return create_err_response(NULL, 539, "CRCX", p->trans);
 			break;
 		}
 	}
 
 mgcp_header_done:
-	tcfg = p->endp->tcfg;
-
 	/* Check parameters */
 	if (!callid) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:%x insufficient parameters, missing callid\n",
 		     ENDPOINT_NUMBER(endp));
+		rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_MISSING_CALLID]);
 		return create_err_response(endp, 516, "CRCX", p->trans);
 	}
 
@@ -779,6 +803,7 @@ mgcp_header_done:
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:%x insufficient parameters, missing mode\n",
 		     ENDPOINT_NUMBER(endp));
+		rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_INVALID_MODE]);
 		return create_err_response(endp, 517, "CRCX", p->trans);
 	}
 
@@ -795,6 +820,7 @@ mgcp_header_done:
 		} else {
 			/* There is no more room for a connection, leave
 			 * everything as it is and return with an error */
+			rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_LIMIT_EXCEEDED]);
 			return create_err_response(endp, 540, "CRCX", p->trans);
 		}
 	}
@@ -812,6 +838,7 @@ mgcp_header_done:
 		else {
 			/* This is not our call, leave everything as it is and
 			 * return with an error. */
+			rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_UNKNOWN_CALLID]);
 			return create_err_response(endp, 400, "CRCX", p->trans);
 		}
 	}
@@ -827,6 +854,7 @@ mgcp_header_done:
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:0x%x unable to allocate RTP connection\n",
 		     ENDPOINT_NUMBER(endp));
+		rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_ALLOC_CONN]);
 		goto error2;
 
 	}
@@ -890,6 +918,7 @@ mgcp_header_done:
 		     "CRCX: endpoint:%x selected connection mode type requires an opposite end!\n",
 		     ENDPOINT_NUMBER(endp));
 		error_code = 527;
+		rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_NO_REMOTE_CONN_DESC]);
 		goto error2;
 	}
 
@@ -901,6 +930,7 @@ mgcp_header_done:
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:0x%x could not start RTP processing!\n",
 		     ENDPOINT_NUMBER(endp));
+		rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_START_RTP]);
 		goto error2;
 	}
 
@@ -915,6 +945,7 @@ mgcp_header_done:
 			     "CRCX: endpoint:0x%x CRCX rejected by policy\n",
 			     ENDPOINT_NUMBER(endp));
 			mgcp_endp_release(endp);
+			rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_REJECTED_BY_POLICY]);
 			return create_err_response(endp, 400, "CRCX", p->trans);
 			break;
 		case MGCP_POLICY_DEFER:
@@ -942,6 +973,7 @@ mgcp_header_done:
 	LOGP(DLMGCP, LOGL_NOTICE,
 	     "CRCX: endpoint:0x%x connection successfully created\n",
 	     ENDPOINT_NUMBER(endp));
+	rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_SUCCESS]);
 	return create_response_with_sdp(endp, conn, "CRCX", p->trans, true);
 error2:
 	mgcp_endp_release(endp);
@@ -1396,6 +1428,28 @@ void mgcp_trunk_set_keepalive(struct mgcp_trunk_config *tcfg, int interval)
 				    tcfg->keepalive_interval, 0);
 }
 
+static int free_rate_counter_group(struct rate_ctr_group *rate_ctr_group)
+{
+	rate_ctr_group_free(rate_ctr_group);
+	return 0;
+}
+
+static void alloc_mgcp_crxc_rate_counters(struct mgcp_trunk_config *trunk, void *ctx)
+{
+	/* FIXME: Each new rate counter group requires a unique index. At the
+	 * moment we generate an index using a counter, but perhaps there is
+	 * a better way of assigning indices? */
+	static unsigned int rate_ctr_index = 0;
+
+	if (trunk->mgcp_crcx_ctr_group != NULL)
+		return;
+
+	trunk->mgcp_crcx_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_crcx_ctr_group_desc, rate_ctr_index);
+	OSMO_ASSERT(trunk->mgcp_crcx_ctr_group);
+	talloc_set_destructor(trunk->mgcp_crcx_ctr_group, free_rate_counter_group);
+	rate_ctr_index++;
+}
+
 /*! allocate configuration with default values.
  *  (called once at startup by main function) */
 struct mgcp_config *mgcp_config_alloc(void)
@@ -1433,6 +1487,7 @@ struct mgcp_config *mgcp_config_alloc(void)
 	cfg->trunk.audio_send_name = 1;
 	cfg->trunk.omit_rtcp = 0;
 	mgcp_trunk_set_keepalive(&cfg->trunk, MGCP_KEEPALIVE_ONCE);
+	alloc_mgcp_crxc_rate_counters(&cfg->trunk, cfg);
 
 	INIT_LLIST_HEAD(&cfg->trunks);
 
@@ -1464,7 +1519,9 @@ struct mgcp_trunk_config *mgcp_trunk_alloc(struct mgcp_config *cfg, int nr)
 	trunk->vty_number_endpoints = 33;
 	trunk->omit_rtcp = 0;
 	mgcp_trunk_set_keepalive(trunk, MGCP_KEEPALIVE_ONCE);
+	alloc_mgcp_crxc_rate_counters(trunk, trunk);
 	llist_add_tail(&trunk->entry, &cfg->trunks);
+
 	return trunk;
 }
 
@@ -1509,6 +1566,8 @@ int mgcp_endpoints_allocate(struct mgcp_trunk_config *tcfg)
 	}
 
 	tcfg->number_endpoints = tcfg->vty_number_endpoints;
+	alloc_mgcp_crxc_rate_counters(tcfg, tcfg->cfg);
+
 	return 0;
 }
 

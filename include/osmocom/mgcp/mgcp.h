@@ -118,6 +118,21 @@ struct mgcp_port_range {
 #define MGCP_KEEPALIVE_ONCE (-1)
 #define MGCP_KEEPALIVE_NEVER 0
 
+/* Global MCGP CRCX related rate counters */
+enum {
+	MGCP_CRCX_SUCCESS,
+	MGCP_CRCX_FAIL_BAD_ACTION,
+	MGCP_CRCX_FAIL_UNHANDLED_PARAM,
+	MGCP_CRCX_FAIL_MISSING_CALLID,
+	MGCP_CRCX_FAIL_INVALID_MODE,
+	MGCP_CRCX_FAIL_LIMIT_EXCEEDED,
+	MGCP_CRCX_FAIL_UNKNOWN_CALLID,
+	MGCP_CRCX_FAIL_ALLOC_CONN,
+	MGCP_CRCX_FAIL_NO_REMOTE_CONN_DESC,
+	MGCP_CRCX_FAIL_START_RTP,
+	MGCP_CRCX_FAIL_REJECTED_BY_POLICY,
+};
+
 struct mgcp_trunk_config {
 	struct llist_head entry;
 
@@ -155,6 +170,9 @@ struct mgcp_trunk_config {
 	unsigned int number_endpoints;
 	int vty_number_endpoints;
 	struct mgcp_endpoint *endpoints;
+
+	/* rate counters */
+	struct rate_ctr_group *mgcp_crcx_ctr_group;
 };
 
 enum mgcp_role {

@@ -22,6 +22,7 @@
  */
 
 #include <osmocom/core/talloc.h>
+#include <osmocom/vty/misc.h>
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_common.h>
 #include <osmocom/mgcp/mgcp_internal.h>
@@ -232,6 +233,11 @@ static void dump_trunk(struct vty *vty, struct mgcp_trunk_config *cfg, int show_
 		dump_endpoint(vty, endp, i, cfg->trunk_nr, cfg->trunk_type, show_stats);
 		if (i < cfg->number_endpoints - 1)
 			vty_out(vty, "%s", VTY_NEWLINE);
+	}
+
+	if (show_stats && cfg->mgcp_crcx_ctr_group) {
+		vty_out(vty, "   %s:%s", cfg->mgcp_crcx_ctr_group->desc->group_description, VTY_NEWLINE);
+		vty_out_rate_ctr_group_fmt(vty, "   %25n: %10c (%S/s %M/m %H/h %D/d) %d", cfg->mgcp_crcx_ctr_group);
 	}
 }
 
