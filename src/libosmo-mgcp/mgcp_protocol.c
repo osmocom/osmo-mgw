@@ -579,7 +579,7 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 				 const char *options)
 {
 	char *p_opt, *a_opt;
-	char codec[9];
+	char codec[17];
 
 	if (!options)
 		return 0;
@@ -605,7 +605,7 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 	 * (e.g. a:PCMU;G726-32) But this implementation only supports a single
 	 * codec only. */
 	a_opt = strstr(lco->string, "a:");
-	if (a_opt && sscanf(a_opt, "a:%8[^,]", codec) == 1) {
+	if (a_opt && sscanf(a_opt, "a:%16[^,]", codec) == 1) {
 		talloc_free(lco->codec);
 		lco->codec = talloc_strdup(ctx, codec);
 	}
