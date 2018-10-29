@@ -64,6 +64,10 @@ static const struct rate_ctr_desc mgcp_crcx_ctr_desc[] = {
 	[MGCP_CRCX_FAIL_NO_REMOTE_CONN_DESC] = {"crcx:no_remote_conn_desc", "no opposite end specified for connection."},
 	[MGCP_CRCX_FAIL_START_RTP] = {"crcx:start_rtp_failure", "failure to start RTP processing."},
 	[MGCP_CRCX_FAIL_REJECTED_BY_POLICY] = {"crcx:conn_rejected", "connection rejected by policy."},
+	[MGCP_CRCX_FAIL_NO_OSMUX] = {"crcx:no_osmux", "no osmux offered by peer."},
+	[MGCP_CRCX_FAIL_INVALID_CONN_OPTIONS] = {"crcx:conn_opt", "connection options invalid."},
+	[MGCP_CRCX_FAIL_CODEC_NEGOTIATION] = {"crcx:codec_nego", "codec negotiation failure."},
+	[MGCP_CRCX_FAIL_BIND_PORT] = {"crcx:bind_port", "port bind failure."},
 };
 
 const static struct rate_ctr_group_desc mgcp_crcx_ctr_group_desc = {
@@ -863,6 +867,7 @@ mgcp_header_done:
 
 	if (mgcp_parse_conn_mode(mode, endp, conn->conn) != 0) {
 		error_code = 517;
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_INVALID_MODE]);
 		goto error2;
 	}
 
@@ -876,6 +881,7 @@ mgcp_header_done:
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:0x%x osmux only and no osmux offered\n",
 		     ENDPOINT_NUMBER(endp));
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_NO_OSMUX]);
 		goto error2;
 	}
 
@@ -888,6 +894,7 @@ mgcp_header_done:
 			     "CRCX: endpoint:%x inavlid local connection options!\n",
 			     ENDPOINT_NUMBER(endp));
 			error_code = rc;
+			rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_INVALID_CONN_OPTIONS]);
 			goto error2;
 		}
 	}
@@ -897,6 +904,7 @@ mgcp_header_done:
 	mgcp_codec_summary(conn);
 	if (rc) {
 		error_code = rc;
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_CODEC_NEGOTIATION]);
 		goto error2;
 	}
 
@@ -923,6 +931,7 @@ mgcp_header_done:
 	}
 
 	if (allocate_port(endp, conn) != 0) {
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_BIND_PORT]);
 		goto error2;
 	}
 
