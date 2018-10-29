@@ -726,8 +726,8 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 {
 	struct mgcp_trunk_config *tcfg = p->endp->tcfg;
 	struct mgcp_endpoint *endp = p->endp;
+	struct rate_ctr_group *rate_ctrs = tcfg->mgcp_crcx_ctr_group;
 	int error_code = 400;
-
 	const char *local_options = NULL;
 	const char *callid = NULL;
 	const char *mode = NULL;
@@ -756,7 +756,7 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 			/* It is illegal to send a connection identifier
 			 * together with a CRCX, the MGW will assign the
 			 * connection identifier by itself on CRCX */
-			rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_BAD_ACTION]);
+			rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_BAD_ACTION]);
 			return create_err_response(NULL, 523, "CRCX", p->trans);
 			break;
 		case 'M':
@@ -783,7 +783,7 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 			LOGP(DLMGCP, LOGL_NOTICE,
 			     "CRCX: endpoint:%x unhandled option: '%c'/%d\n",
 			     ENDPOINT_NUMBER(endp), *line, *line);
-			rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_UNHANDLED_PARAM]);
+			rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_UNHANDLED_PARAM]);
 			return create_err_response(NULL, 539, "CRCX", p->trans);
 			break;
 		}
@@ -795,7 +795,7 @@ mgcp_header_done:
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:%x insufficient parameters, missing callid\n",
 		     ENDPOINT_NUMBER(endp));
-		rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_MISSING_CALLID]);
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_MISSING_CALLID]);
 		return create_err_response(endp, 516, "CRCX", p->trans);
 	}
 
@@ -803,7 +803,7 @@ mgcp_header_done:
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:%x insufficient parameters, missing mode\n",
 		     ENDPOINT_NUMBER(endp));
-		rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_INVALID_MODE]);
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_INVALID_MODE]);
 		return create_err_response(endp, 517, "CRCX", p->trans);
 	}
 
@@ -820,7 +820,7 @@ mgcp_header_done:
 		} else {
 			/* There is no more room for a connection, leave
 			 * everything as it is and return with an error */
-			rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_LIMIT_EXCEEDED]);
+			rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_LIMIT_EXCEEDED]);
 			return create_err_response(endp, 540, "CRCX", p->trans);
 		}
 	}
@@ -838,7 +838,7 @@ mgcp_header_done:
 		else {
 			/* This is not our call, leave everything as it is and
 			 * return with an error. */
-			rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_UNKNOWN_CALLID]);
+			rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_UNKNOWN_CALLID]);
 			return create_err_response(endp, 400, "CRCX", p->trans);
 		}
 	}
@@ -854,7 +854,7 @@ mgcp_header_done:
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:0x%x unable to allocate RTP connection\n",
 		     ENDPOINT_NUMBER(endp));
-		rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_ALLOC_CONN]);
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_ALLOC_CONN]);
 		goto error2;
 
 	}
@@ -918,7 +918,7 @@ mgcp_header_done:
 		     "CRCX: endpoint:%x selected connection mode type requires an opposite end!\n",
 		     ENDPOINT_NUMBER(endp));
 		error_code = 527;
-		rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_NO_REMOTE_CONN_DESC]);
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_NO_REMOTE_CONN_DESC]);
 		goto error2;
 	}
 
@@ -930,7 +930,7 @@ mgcp_header_done:
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "CRCX: endpoint:0x%x could not start RTP processing!\n",
 		     ENDPOINT_NUMBER(endp));
-		rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_START_RTP]);
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_START_RTP]);
 		goto error2;
 	}
 
@@ -945,7 +945,7 @@ mgcp_header_done:
 			     "CRCX: endpoint:0x%x CRCX rejected by policy\n",
 			     ENDPOINT_NUMBER(endp));
 			mgcp_endp_release(endp);
-			rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_FAIL_REJECTED_BY_POLICY]);
+			rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_REJECTED_BY_POLICY]);
 			return create_err_response(endp, 400, "CRCX", p->trans);
 			break;
 		case MGCP_POLICY_DEFER:
@@ -973,7 +973,7 @@ mgcp_header_done:
 	LOGP(DLMGCP, LOGL_NOTICE,
 	     "CRCX: endpoint:0x%x connection successfully created\n",
 	     ENDPOINT_NUMBER(endp));
-	rate_ctr_inc(&tcfg->mgcp_crcx_ctr_group->ctr[MGCP_CRCX_SUCCESS]);
+	rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_SUCCESS]);
 	return create_response_with_sdp(endp, conn, "CRCX", p->trans, true);
 error2:
 	mgcp_endp_release(endp);
