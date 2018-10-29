@@ -162,11 +162,19 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_conn_rtp *conn)
 	struct mgcp_rtp_state *state = &conn->state;
 	struct mgcp_rtp_end *end = &conn->end;
 	struct mgcp_rtp_codec *codec = end->codec;
+	struct rate_ctr *tx_packets, *tx_bytes;
+	struct rate_ctr *rx_packets, *rx_bytes;
 	struct rate_ctr *dropped_packets;
 
+	tx_packets = &conn->rate_ctr_group->ctr[RTP_PACKETS_TX_CTR];
+	tx_bytes = &conn->rate_ctr_group->ctr[RTP_OCTETS_TX_CTR];
+	rx_packets = &conn->rate_ctr_group->ctr[RTP_PACKETS_RX_CTR];
+	rx_bytes = &conn->rate_ctr_group->ctr[RTP_OCTETS_RX_CTR];
 	dropped_packets = &conn->rate_ctr_group->ctr[RTP_DROPPED_PACKETS_CTR];
 
 	vty_out(vty,
+		"   Packets Sent: %" PRIu64 " (%" PRIu64 " bytes total)%s"
+		"   Packets Received: %" PRIu64 " (%" PRIu64 " bytes total)%s"
 		"   Timestamp Errs: %" PRIu64 "->%" PRIu64 "%s"
 		"   Dropped Packets: %" PRIu64 "%s"
 		"   Payload Type: %d Rate: %u Channels: %d %s"
@@ -174,6 +182,8 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_conn_rtp *conn)
 		"   FPP: %d Packet Duration: %u%s"
 		"   FMTP-Extra: %s Audio-Name: %s Sub-Type: %s%s"
 		"   Output-Enabled: %d Force-PTIME: %d%s",
+		tx_packets->current, tx_bytes->current, VTY_NEWLINE,
+		rx_packets->current, rx_bytes->current, VTY_NEWLINE,
 		state->in_stream.err_ts_ctr->current,
 		state->out_stream.err_ts_ctr->current,
 	        VTY_NEWLINE,
