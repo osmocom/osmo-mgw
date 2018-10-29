@@ -137,6 +137,25 @@ enum {
 	MGCP_CRCX_FAIL_BIND_PORT,
 };
 
+/* Global MCGP MDCX related rate counters */
+enum {
+	MGCP_MDCX_SUCCESS,
+	MGCP_MDCX_FAIL_WILDCARD,
+	MGCP_MDCX_FAIL_NO_CONN,
+	MGCP_MDCX_FAIL_INVALID_CALLID,
+	MGCP_MDCX_FAIL_INVALID_CONNID,
+	MGCP_MDCX_FAIL_UNHANDLED_PARAM,
+	MGCP_MDCX_FAIL_NO_CONNID,
+	MGCP_MDCX_FAIL_CONN_NOT_FOUND,
+	MGCP_MDCX_FAIL_INVALID_MODE,
+	MGCP_MDCX_FAIL_INVALID_CONN_OPTIONS,
+	MGCP_MDCX_FAIL_NO_REMOTE_CONN_DESC,
+	MGCP_MDCX_FAIL_START_RTP,
+	MGCP_MDCX_FAIL_REJECTED_BY_POLICY,
+	MGCP_MDCX_FAIL_DEFERRED_BY_POLICY
+};
+
+
 struct mgcp_trunk_config {
 	struct llist_head entry;
 
@@ -177,6 +196,7 @@ struct mgcp_trunk_config {
 
 	/* rate counters */
 	struct rate_ctr_group *mgcp_crcx_ctr_group;
+	struct rate_ctr_group *mgcp_mdcx_ctr_group;
 };
 
 enum mgcp_role {
