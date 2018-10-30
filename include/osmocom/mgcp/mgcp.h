@@ -152,9 +152,20 @@ enum {
 	MGCP_MDCX_FAIL_NO_REMOTE_CONN_DESC,
 	MGCP_MDCX_FAIL_START_RTP,
 	MGCP_MDCX_FAIL_REJECTED_BY_POLICY,
-	MGCP_MDCX_FAIL_DEFERRED_BY_POLICY
+	MGCP_MDCX_DEFERRED_BY_POLICY
 };
 
+/* Global MCGP DLCX related rate counters */
+enum {
+	MGCP_DLCX_SUCCESS,
+	MGCP_DLCX_FAIL_WILDCARD,
+	MGCP_DLCX_FAIL_NO_CONN,
+	MGCP_DLCX_FAIL_INVALID_CALLID,
+	MGCP_DLCX_FAIL_INVALID_CONNID,
+	MGCP_DLCX_FAIL_UNHANDLED_PARAM,
+	MGCP_DLCX_FAIL_REJECTED_BY_POLICY,
+	MGCP_DLCX_DEFERRED_BY_POLICY,
+};
 
 struct mgcp_trunk_config {
 	struct llist_head entry;
@@ -198,6 +209,8 @@ struct mgcp_trunk_config {
 	struct rate_ctr_group *mgcp_crcx_ctr_group;
 	/* Rate counter group which contains stats for processed MDCX commands. */
 	struct rate_ctr_group *mgcp_mdcx_ctr_group;
+	/* Rate counter group which contains stats for processed DLCX commands. */
+	struct rate_ctr_group *mgcp_dlcx_ctr_group;
 	/* Rate counter group which aggregates stats of individual RTP connections. */
 	struct rate_ctr_group *all_rtp_conn_stats;
 };
