@@ -194,9 +194,12 @@ struct mgcp_trunk_config {
 	int vty_number_endpoints;
 	struct mgcp_endpoint *endpoints;
 
-	/* rate counters */
+	/* Rate counter group which contains stats for processed CRCX commands. */
 	struct rate_ctr_group *mgcp_crcx_ctr_group;
+	/* Rate counter group which contains stats for processed MDCX commands. */
 	struct rate_ctr_group *mgcp_mdcx_ctr_group;
+	/* Rate counter group which aggregates stats of individual RTP connections. */
+	struct rate_ctr_group *all_rtp_conn_stats;
 };
 
 enum mgcp_role {

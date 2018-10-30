@@ -253,6 +253,10 @@ static void dump_trunk(struct vty *vty, struct mgcp_trunk_config *cfg, int show_
 		vty_out(vty, "   %s:%s", cfg->mgcp_mdcx_ctr_group->desc->group_description, VTY_NEWLINE);
 		vty_out_rate_ctr_group_fmt(vty, "   %25n: %10c (%S/s %M/m %H/h %D/d) %d", cfg->mgcp_mdcx_ctr_group);
 	}
+	if (show_stats && cfg->all_rtp_conn_stats) {
+		vty_out(vty, "   %s:%s", cfg->all_rtp_conn_stats->desc->group_description, VTY_NEWLINE);
+		vty_out_rate_ctr_group_fmt(vty, "   %25n: %10c (%S/s %M/m %H/h %D/d) %d", cfg->all_rtp_conn_stats);
+	}
 }
 
 #define SHOW_MGCP_STR "Display information about the MGCP Media Gateway\n"

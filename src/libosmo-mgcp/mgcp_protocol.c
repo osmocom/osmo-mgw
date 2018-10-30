@@ -42,6 +42,7 @@
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_sdp.h>
 #include <osmocom/mgcp/mgcp_codec.h>
+#include <osmocom/mgcp/mgcp_conn.h>
 
 struct mgcp_request {
 	char *name;
@@ -101,6 +102,14 @@ const static struct rate_ctr_group_desc mgcp_mdcx_ctr_group_desc = {
 	.class_id = OSMO_STATS_CLASS_GLOBAL,
 	.num_ctr = ARRAY_SIZE(mgcp_mdcx_ctr_desc),
 	.ctr_desc = mgcp_mdcx_ctr_desc
+};
+
+const static struct rate_ctr_group_desc all_rtp_conn_rate_ctr_group_desc = {
+	.group_name_prefix = "all_rtp_conn",
+	.group_description = "aggregated statistics for all rtp connections",
+	.class_id = 1,
+	.num_ctr = ARRAY_SIZE(all_rtp_conn_rate_ctr_desc),
+	.ctr_desc = all_rtp_conn_rate_ctr_desc
 };
 
 static struct msgb *handle_audit_endpoint(struct mgcp_parse_data *data);
@@ -1494,6 +1503,7 @@ static void alloc_mgcp_rate_counters(struct mgcp_trunk_config *trunk, void *ctx)
 	 * a better way of assigning indices? */
 	static unsigned int crcx_rate_ctr_index = 0;
 	static unsigned int mdcx_rate_ctr_index = 0;
+	static unsigned int all_rtp_conn_rate_ctr_index = 0;
 
 	if (trunk->mgcp_crcx_ctr_group == NULL) {
 		trunk->mgcp_crcx_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_crcx_ctr_group_desc, crcx_rate_ctr_index);
@@ -1506,6 +1516,13 @@ static void alloc_mgcp_rate_counters(struct mgcp_trunk_config *trunk, void *ctx)
 		OSMO_ASSERT(trunk->mgcp_mdcx_ctr_group);
 		talloc_set_destructor(trunk->mgcp_mdcx_ctr_group, free_rate_counter_group);
 		mdcx_rate_ctr_index++;
+	}
+	if (trunk->all_rtp_conn_stats == NULL) {
+		trunk->all_rtp_conn_stats = rate_ctr_group_alloc(ctx, &all_rtp_conn_rate_ctr_group_desc,
+								 all_rtp_conn_rate_ctr_index);
+		OSMO_ASSERT(trunk->all_rtp_conn_stats);
+		talloc_set_destructor(trunk->all_rtp_conn_stats, free_rate_counter_group);
+		all_rtp_conn_rate_ctr_index++;
 	}
 }
 

@@ -31,22 +31,12 @@
 #include <osmocom/core/rate_ctr.h>
 #include <ctype.h>
 
-static const struct rate_ctr_desc rate_ctr_desc[] = {
-	[IN_STREAM_ERR_TSTMP_CTR] = {"stream_err_tstmp:in", "Inbound rtp-stream timestamp errors."},
-	[OUT_STREAM_ERR_TSTMP_CTR] = {"stream_err_tstmp:out", "Outbound rtp-stream timestamp errors."},
-	[RTP_PACKETS_RX_CTR] = {"rtp:packets_rx", "Inbound rtp packets."},
-	[RTP_OCTETS_RX_CTR] = {"rtp:octets_rx", "Inbound rtp octets."},
-	[RTP_PACKETS_TX_CTR] = {"rtp:packets_tx", "Outbound rtp packets."},
-	[RTP_OCTETS_TX_CTR] = {"rtp:octets_rx", "Outbound rtp octets."},
-	[RTP_DROPPED_PACKETS_CTR] = {"rtp:dropped", "dropped rtp packets."}
-};
-
 const static struct rate_ctr_group_desc rate_ctr_group_desc = {
 	.group_name_prefix = "conn_rtp",
 	.group_description = "rtp connection statistics",
 	.class_id = 1,
-	.num_ctr = ARRAY_SIZE(rate_ctr_desc),
-	.ctr_desc = rate_ctr_desc
+	.num_ctr = ARRAY_SIZE(mgcp_conn_rate_ctr_desc),
+	.ctr_desc = mgcp_conn_rate_ctr_desc
 };
 
 
@@ -234,6 +224,27 @@ struct mgcp_conn_rtp *mgcp_conn_get_rtp(struct mgcp_endpoint *endp,
 	return NULL;
 }
 
+static void
+aggregate_rtp_conn_stats(struct mgcp_trunk_config *trunk, struct mgcp_conn_rtp *conn_rtp)
+{
+	struct rate_ctr_group *all_stats = trunk->all_rtp_conn_stats;
+	struct rate_ctr_group *conn_stats = conn_rtp->rate_ctr_group;
+	int i;
+
+	if (all_stats == NULL || conn_stats == NULL)
+		return;
+
+	/* Compared to per-connection RTP statistics, aggregated RTP statistics
+	 * contain one additional rate couter item (RTP_NUM_CONNECTIONS).
+	 * All other counters in both counter groups correspond to each other. */
+	OSMO_ASSERT(conn_stats->desc->num_ctr + 1 == all_stats->desc->num_ctr);
+
+	for (i = 0; i < conn_stats->desc->num_ctr; i++)
+		rate_ctr_add(&all_stats->ctr[i], conn_stats->ctr[i].current);
+
+	rate_ctr_inc(&all_stats->ctr[RTP_NUM_CONNECTIONS]);
+}
+
 /*! free a connection by its ID.
  *  \param[in] endp associated endpoint
  *  \param[in] id identification number of the connection */
@@ -253,6 +264,7 @@ void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id)
 
 	switch (conn->type) {
 	case MGCP_CONN_TYPE_RTP:
+		aggregate_rtp_conn_stats(endp->tcfg, &conn->u.rtp);
 		mgcp_rtp_conn_cleanup(&conn->u.rtp);
 		break;
 	default:
