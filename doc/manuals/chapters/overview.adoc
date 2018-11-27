@@ -1,0 +1,100 @@
+[[overview]]
+== Overview
+
+This manual should help you getting started with OsmoMGW. It will cover
+aspects of configuring and running the media gateway.
+
+[[intro_overview]]
+=== About OsmoMGW
+
+OsmoMGW is the Osmocom implementation of a media gateway to handle user
+plane (voice) traffic in cellular networks. It can connect and optionally
+transcode RTP voice streams between different network elements such as BTSs
+and external entities like SIP. It is typically co-located with both OsmoBSC
+and OsmoMSC and controlled by them via MGCP, the Media Gateway Control
+Protocol.
+
+[[fig-bsc]]
+.OsmoMGW used with OsmoBSC
+[graphviz]
+----
+digraph G {
+    rankdir = LR;
+    OsmoBTS -> OsmoBSC [label="Abis/IP"];
+    OsmoBSC -> OsmoMSC [label="3GPP AoIP"];
+    OsmoBSC -> OsmoMGW [label="MGCP"];
+    OsmoBTS -> OsmoMGW [label="RTP",dir=both];
+    OsmoMGW -> OsmoMSC [label="RTP",dir=both];
+    {rank=same OsmoBSC OsmoMGW}
+    OsmoMGW [color=red];
+}
+----
+
+[[fig-msc]]
+.OsmoMGW used with OsmoMSC
+[graphviz]
+----
+digraph G {
+    rankdir = LR;
+    BTS -> BSC [label="Abis"];
+    BSC -> OsmoMSC [label="3GPP AoIP"];
+    OsmoMSC -> OsmoMGW [label="MGCP"];
+    BSC -> OsmoMGW [label="RTP",dir=both];
+    OsmoMSC -> OsmoSIP [label="MNCC"];
+    OsmoSIP -> PBX [label="SIP Trunk"];
+    OsmoMGW -> PBX [label="RTP",dir=both];
+    {rank=same OsmoMSC OsmoMGW}
+    OsmoSIP [label="osmo-sip-connector"];
+    OsmoMGW [color=red];
+
+    hNodeB -> OsmoHNBGW [label="Iuh"];
+    OsmoHNBGW -> OsmoMSC [label="IuCS"];
+    hNodeB -> OsmoMGW [label="RTP",dir=both];
+}
+----
+
+=== Software Components
+
+OsmoMGW contains a variety of different software components, which we’ll
+quickly describe in this section.
+
+==== MGCP Implementation
+
+OsmoMGW brings its own MGCP implementation through which OsmoMGW is
+controlled.
+
+The commands implemented are CRCX, MDCX, DLCX and RSIP. The command AUEP is
+implemented as a stub and will simply respond with OK.
+
+==== RTP implementation
+
+Support for IuUP which is used in 3G cells is quite lacking at the moment.
+3G<->3G and 2G<->2G calls should work, but 3G<->2G does not.
+
+==== Audio transcoder
+
+Transcoding is currently not supported in OsmoMGW.
+
+=== Limitations
+
+Osmux is not yet supported in OsmoMGW.
+
+At the moment (July 2018), OsmoMGW only implements RTP proxy / RTP bridge
+type endpoints, to each of which two RTP connections can be established.
+We are planning to add endpoint types for:
+
+- classic E1/T1 timeslots (64kBps alaw/ulaw)
+- classic E1/T1 16k sub-slots with TRAU frames for classic BTS support
+- announcement/playout end-points
+- conference endpoints
+
+=== Additional resources
+
+You can find the OsmoMGW issue tracker and wiki online at
+
+- https://osmocom.org/projects/osmomgw
+- https://osmocom.org/projects/osmomgw/wiki
+
+RFC 3435 for MGCP is located at
+
+- https://tools.ietf.org/html/rfc3435
