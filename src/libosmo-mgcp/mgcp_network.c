@@ -945,22 +945,22 @@ static int check_rtp_destin(struct mgcp_conn_rtp *conn)
 	 * and IP-address for outgoing data. */
 	if (strcmp(inet_ntoa(conn->end.addr), "0.0.0.0") == 0 && conn->end.rtp_port == 0) {
 		LOGP(DRTP, LOGL_DEBUG,
-		     "endpoint:0x%x destination IP-address and rtp port is (not yet) known\n",
-		     ENDPOINT_NUMBER(endp));
+		     "endpoint:0x%x destination IP-address and rtp port is (not yet) known (%s:%u)\n",
+		     ENDPOINT_NUMBER(endp), inet_ntoa(conn->end.addr), conn->end.rtp_port);
 		return -1;
 	}
 
 	if (strcmp(inet_ntoa(conn->end.addr), "0.0.0.0") == 0) {
 		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x destination IP-address is invalid\n",
-		     ENDPOINT_NUMBER(endp));
+		     "endpoint:0x%x destination IP-address is invalid (%s:%u)\n",
+		     ENDPOINT_NUMBER(endp), inet_ntoa(conn->end.addr), conn->end.rtp_port);
 		return -1;
 	}
 
 	if (conn->end.rtp_port == 0) {
 		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x destination rtp port is invalid\n",
-		     ENDPOINT_NUMBER(endp));
+		     "endpoint:0x%x destination rtp port is invalid (%s:%u)\n",
+		     ENDPOINT_NUMBER(endp), inet_ntoa(conn->end.addr), conn->end.rtp_port);
 		return -1;
 	}
 
