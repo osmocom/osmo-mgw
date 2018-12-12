@@ -651,11 +651,13 @@ static int mgcp_do_read(struct osmo_fd *fd)
 
 	ret = read(fd->fd, msg->data, 4096 - 128);
 	if (ret <= 0) {
-		LOGP(DLMGCP, LOGL_ERROR, "Failed to read: %d/%s\n", errno, strerror(errno));
+		LOGP(DLMGCP, LOGL_ERROR, "Failed to read: %s: %d='%s'\n", osmo_sock_get_name2(fd->fd),
+		     errno, strerror(errno));
+
 		msgb_free(msg);
 		return -1;
 	} else if (ret > 4096 - 128) {
-		LOGP(DLMGCP, LOGL_ERROR, "Too much data: %d\n", ret);
+		LOGP(DLMGCP, LOGL_ERROR, "Too much data: %s: %d\n", osmo_sock_get_name2(fd->fd), ret);
 		msgb_free(msg);
 		return -1;
 	}
@@ -670,13 +672,13 @@ static int mgcp_do_write(struct osmo_fd *fd, struct msgb *msg)
 {
 	int ret;
 
-	LOGP(DLMGCP, LOGL_DEBUG, "Sending msg to MGCP GW size: len=%u '%s'...\n",
-	     msg->len, osmo_escape_str((const char*)msg->data, OSMO_MIN(42, msg->len)));
+	LOGP(DLMGCP, LOGL_DEBUG, "Tx MGCP: %s: len=%u '%s'...\n",
+	     osmo_sock_get_name2(fd->fd), msg->len, osmo_escape_str((const char*)msg->data, OSMO_MIN(42, msg->len)));
 
 	ret = write(fd->fd, msg->data, msg->len);
 	if (ret != msg->len)
-		LOGP(DLMGCP, LOGL_ERROR, "Failed to Tx MGCP: %d='%s'; msg: len=%u '%s'...\n",
-		     errno, strerror(errno),
+		LOGP(DLMGCP, LOGL_ERROR, "Failed to Tx MGCP: %s: %d='%s'; msg: len=%u '%s'...\n",
+		     osmo_sock_get_name2(fd->fd), errno, strerror(errno),
 		     msg->len, osmo_escape_str((const char*)msg->data, OSMO_MIN(42, msg->len)));
 	return ret;
 }
@@ -733,12 +735,12 @@ static int init_socket(struct mgcp_client *mgcp)
 
 		/* Choose a new port number to try next */
 		LOGP(DLMGCP, LOGL_NOTICE,
-		     "MGCPGW faild to bind to port %u, retrying with port %u -- check configuration!\n",
-		     mgcp->actual.local_port, mgcp->actual.local_port + 1);
+		     "MGCPGW failed to bind to %s:%u, retrying with port %u\n",
+		     mgcp->actual.local_addr, mgcp->actual.local_port, mgcp->actual.local_port + 1);
 		mgcp->actual.local_port++;
 	}
 
-	LOGP(DLMGCP, LOGL_FATAL, "MGCPGW faild to find a port to bind on %i times.\n", i);
+	LOGP(DLMGCP, LOGL_FATAL, "MGCPGW failed to find a port to bind on %i times.\n", i);
 	return -EINVAL;
 }
 
@@ -776,9 +778,7 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 	wq->read_cb = mgcp_do_read;
 	wq->write_cb = mgcp_do_write;
 
-	LOGP(DLMGCP, LOGL_INFO, "MGCP GW connection: %s:%u -> %s:%u\n",
-	     mgcp->actual.local_addr, mgcp->actual.local_port,
-	     mgcp->actual.remote_addr, mgcp->actual.remote_port);
+	LOGP(DLMGCP, LOGL_INFO, "MGCP GW connection: %s\n", osmo_sock_get_name2(wq->bfd.fd));
 
 	return 0;
 error_close_fd:
