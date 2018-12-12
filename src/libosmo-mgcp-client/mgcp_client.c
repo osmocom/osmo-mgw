@@ -735,26 +735,15 @@ static int mgcp_do_read(struct osmo_fd *fd)
 static int mgcp_do_write(struct osmo_fd *fd, struct msgb *msg)
 {
 	int ret;
-	static char strbuf[4096];
-	unsigned int l = msg->len < sizeof(strbuf) ? msg->len : sizeof(strbuf);
-	unsigned int i;
 
-	osmo_strlcpy(strbuf, (const char*)msg->data, l);
-	for (i = 0; i < sizeof(strbuf); i++) {
-		if (strbuf[i] == '\n' || strbuf[i] == '\r') {
-			strbuf[i] = '\0';
-			break;
-		}
-	}
-	DEBUGP(DLMGCP, "Tx MGCP msg to MGCP GW: '%s'\n", strbuf);
-
-	LOGP(DLMGCP, LOGL_DEBUG, "Sending msg to MGCP GW size: %u\n", msg->len);
+	LOGP(DLMGCP, LOGL_DEBUG, "Sending msg to MGCP GW size: len=%u '%s'...\n",
+	     msg->len, osmo_escape_str((const char*)msg->data, OSMO_MIN(42, msg->len)));
 
 	ret = write(fd->fd, msg->data, msg->len);
 	if (ret != msg->len)
-		LOGP(DLMGCP, LOGL_ERROR, "Failed to forward message to MGCP"
-		     " GW: %s\n", strerror(errno));
-
+		LOGP(DLMGCP, LOGL_ERROR, "Failed to Tx MGCP: %d='%s'; msg: len=%u '%s'...\n",
+		     errno, strerror(errno),
+		     msg->len, osmo_escape_str((const char*)msg->data, OSMO_MIN(42, msg->len)));
 	return ret;
 }
 
