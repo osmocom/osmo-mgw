@@ -43,8 +43,9 @@ DEFUN(cfg_mgw_local_ip, cfg_mgw_local_ip_cmd,
 	if (!global_mgcp_client_conf)
 		return CMD_ERR_NOTHING_TODO;
 	OSMO_ASSERT(global_mgcp_client_ctx);
-	global_mgcp_client_conf->local_addr =
-		talloc_strdup(global_mgcp_client_ctx, argv[0]);
+	osmo_talloc_replace_string(global_mgcp_client_ctx,
+				   (char**)&global_mgcp_client_conf->local_addr,
+				   argv[0]);
 	return CMD_SUCCESS;
 }
 ALIAS_DEPRECATED(cfg_mgw_local_ip, cfg_mgcpgw_local_ip_cmd,
@@ -75,8 +76,9 @@ DEFUN(cfg_mgw_remote_ip, cfg_mgw_remote_ip_cmd,
 	if (!global_mgcp_client_conf)
 		return CMD_ERR_NOTHING_TODO;
 	OSMO_ASSERT(global_mgcp_client_ctx);
-	global_mgcp_client_conf->remote_addr =
-		talloc_strdup(global_mgcp_client_ctx, argv[0]);
+	osmo_talloc_replace_string(global_mgcp_client_ctx,
+				   (char**)&global_mgcp_client_conf->remote_addr,
+				   argv[0]);
 	return CMD_SUCCESS;
 }
 ALIAS_DEPRECATED(cfg_mgw_remote_ip, cfg_mgcpgw_remote_ip_cmd,
