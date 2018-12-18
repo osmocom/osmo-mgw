@@ -137,6 +137,17 @@ ALIAS_DEPRECATED(cfg_mgw_rtp_bts_base_port,
       BTS_START_STR
       UDP_PORT_STR)
 
+DEFUN(cfg_mgw_endpoint_domain_name,
+      cfg_mgw_endpoint_domain_name_cmd,
+      "mgw endpoint-domain NAME",
+      MGW_STR "Set the domain name to send in MGCP messages, e.g. the part 'foo' in 'rtpbridge/*@foo'.\n"
+      "Domain name, should be alphanumeric.\n")
+{
+	osmo_strlcpy(global_mgcp_client_conf->endpoint_domain_name, argv[0],
+		     sizeof(global_mgcp_client_conf->endpoint_domain_name));
+	return CMD_SUCCESS;
+}
+
 int mgcp_client_config_write(struct vty *vty, const char *indent)
 {
 	const char *addr;
@@ -160,6 +171,10 @@ int mgcp_client_config_write(struct vty *vty, const char *indent)
 		vty_out(vty, "%smgw remote-port %u%s", indent,
 			(uint16_t)port, VTY_NEWLINE);
 
+	if (global_mgcp_client_conf->endpoint_domain_name[0])
+		vty_out(vty, "%smgw endpoint-domain %s%s", indent,
+			global_mgcp_client_conf->endpoint_domain_name, VTY_NEWLINE);
+
 	return CMD_SUCCESS;
 }
 
@@ -174,6 +189,7 @@ void mgcp_client_vty_init(void *talloc_ctx, int node, struct mgcp_client_conf *c
 	install_element(node, &cfg_mgw_remote_port_cmd);
 	install_element(node, &cfg_mgw_endpoint_range_cmd);
 	install_element(node, &cfg_mgw_rtp_bts_base_port_cmd);
+	install_element(node, &cfg_mgw_endpoint_domain_name_cmd);
 
 	/* deprecated 'mgcpgw' commands */
 	install_element(node, &cfg_mgcpgw_local_ip_cmd);
