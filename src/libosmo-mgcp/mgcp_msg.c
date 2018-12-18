@@ -223,8 +223,10 @@ static int check_domain_name(struct mgcp_config *cfg, const char *mgcp)
 	if (!strcmp(cfg->domain, "*"))
 		return 0;
 
-	if (strcmp(domain_to_check+1, cfg->domain) != 0)
+	if (strcmp(domain_to_check+1, cfg->domain) != 0) {
+		LOGP(DLMGCP, LOGL_ERROR, "Wrong domain name '%s', expecting '%s'\n", mgcp, cfg->domain);
 		return -EINVAL;
+	}
 
 	return 0;
 }
@@ -244,7 +246,6 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 
 	/* Check if the domainname in the request is correct */
 	if (check_domain_name(cfg, mgcp)) {
-		LOGP(DLMGCP, LOGL_ERROR, "Wrong domain name '%s'\n", mgcp);
 		*cause = -500;
 		return NULL;
 	}
