@@ -705,6 +705,16 @@ struct mgcp_client *mgcp_client_init(void *ctx,
 	mgcp->actual.remote_port = conf->remote_port >= 0 ? (uint16_t)conf->remote_port :
 		MGCP_CLIENT_REMOTE_PORT_DEFAULT;
 
+	if (osmo_strlcpy(mgcp->actual.endpoint_domain_name, conf->endpoint_domain_name,
+			 sizeof(mgcp->actual.endpoint_domain_name))
+	    >= sizeof(mgcp->actual.endpoint_domain_name)) {
+		LOGP(DLMGCP, LOGL_ERROR, "MGCP client: endpoint domain name is too long, max length is %zu: '%s'\n",
+		     sizeof(mgcp->actual.endpoint_domain_name) - 1, conf->endpoint_domain_name);
+		talloc_free(mgcp);
+		return NULL;
+	}
+	LOGP(DLMGCP, LOGL_NOTICE, "MGCP client: using endpoint domain '@%s'\n", mgcp_client_endpoint_domain(mgcp));
+
 	return mgcp;
 }
 
@@ -809,6 +819,32 @@ uint16_t mgcp_client_remote_port(struct mgcp_client *mgcp)
 uint32_t mgcp_client_remote_addr_n(struct mgcp_client *mgcp)
 {
 	return mgcp->remote_addr;
+}
+
+/* To compose endpoint names, usually for CRCX, use this as domain name.
+ * For example, snprintf("rtpbridge\*@%s", mgcp_client_endpoint_domain(mgcp)). */
+const char *mgcp_client_endpoint_domain(const struct mgcp_client *mgcp)
+{
+	return mgcp->actual.endpoint_domain_name[0] ? mgcp->actual.endpoint_domain_name : "mgw";
+}
+
+const char *mgcp_client_rtpbridge_wildcard(const struct mgcp_client *mgcp)
+{
+	static char endpoint[MGCP_ENDPOINT_MAXLEN];
+	int rc;
+
+#define RTPBRIDGE_WILDCARD_FMT "rtpbridge/*@%s"
+	rc = snprintf(endpoint, sizeof(endpoint), RTPBRIDGE_WILDCARD_FMT, mgcp_client_endpoint_domain(mgcp));
+	if (rc > sizeof(endpoint) - 1) {
+		LOGP(DLMGCP, LOGL_ERROR, "MGCP endpoint exceeds maximum length of %zu: '" RTPBRIDGE_WILDCARD_FMT "'\n",
+		     sizeof(endpoint) - 1, mgcp_client_endpoint_domain(mgcp));
+		return NULL;
+	}
+	if (rc < 1) {
+		LOGP(DLMGCP, LOGL_ERROR, "Cannot compose MGCP endpoint name\n");
+		return NULL;
+	}
+	return endpoint;
 }
 
 struct mgcp_response_pending * mgcp_client_pending_add(
