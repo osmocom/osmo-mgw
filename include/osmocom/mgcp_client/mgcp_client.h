@@ -22,9 +22,6 @@ struct mgcp_client_conf {
 	int local_port;
 	const char *remote_addr;
 	int remote_port;
-	uint16_t first_endpoint;
-	uint16_t last_endpoint;
-	uint16_t bts_base;
 };
 
 typedef unsigned int mgcp_trans_id_t;
@@ -123,9 +120,6 @@ const char *mgcp_client_remote_addr_str(struct mgcp_client *mgcp);
 uint16_t mgcp_client_remote_port(struct mgcp_client *mgcp);
 uint32_t mgcp_client_remote_addr_n(struct mgcp_client *mgcp);
 
-int mgcp_client_next_endpoint(struct mgcp_client *client);
-void mgcp_client_release_endpoint(uint16_t id, struct mgcp_client *client);
-
 /* Invoked when an MGCP response is received or sending failed.  When the
  * response is passed as NULL, this indicates failure during transmission. */
 typedef void (* mgcp_response_cb_t )(struct mgcp_response *response, void *priv);
@@ -136,20 +130,6 @@ int mgcp_client_tx(struct mgcp_client *mgcp, struct msgb *msg,
 int mgcp_client_cancel(struct mgcp_client *mgcp, mgcp_trans_id_t trans_id);
 
 enum mgcp_connection_mode;
-
-struct msgb *mgcp_msg_crcx(struct mgcp_client *mgcp,
-			   uint16_t rtp_endpoint, unsigned int call_id,
-			   enum mgcp_connection_mode mode)
-OSMO_DEPRECATED("Use mgcp_msg_gen() instead");
-
-struct msgb *mgcp_msg_mdcx(struct mgcp_client *mgcp,
-			   uint16_t rtp_endpoint, const char *rtp_conn_addr,
-			   uint16_t rtp_port, enum mgcp_connection_mode mode)
-OSMO_DEPRECATED("Use mgcp_msg_gen() instead");
-
-struct msgb *mgcp_msg_dlcx(struct mgcp_client *mgcp, uint16_t rtp_endpoint,
-			   unsigned int call_id)
-OSMO_DEPRECATED("Use mgcp_msg_gen() instead");
 
 struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg);
 mgcp_trans_id_t mgcp_msg_trans_id(struct msgb *msg);

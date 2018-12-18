@@ -101,23 +101,14 @@ ALIAS_DEPRECATED(cfg_mgw_remote_port, cfg_mgcpgw_remote_port_cmd,
 		 MGW_STR "remote bind to connect to MGCP gateway with\n"
 		 "remote bind port\n")
 
-DEFUN(cfg_mgw_endpoint_range, cfg_mgw_endpoint_range_cmd,
+DEFUN_DEPRECATED(cfg_mgw_endpoint_range, cfg_mgw_endpoint_range_cmd,
       "mgw endpoint-range <1-65534> <1-65534>",
-      MGW_STR "usable range of endpoint identifiers\n"
-      "set first usable endpoint identifier\n"
-      "set last usable endpoint identifier\n")
+      MGW_STR "DEPRECATED: the endpoint range cannot be defined by the client\n"
+      "-\n" "-\n")
 {
-	uint16_t first_endpoint = atoi(argv[0]);
-	uint16_t last_endpoint = atoi(argv[1]);
-
-	if (last_endpoint < first_endpoint) {
-		vty_out(vty, "last endpoint must be greater than first endpoint!%s",
-			VTY_NEWLINE);
-		return CMD_SUCCESS;
-	}
-
-	global_mgcp_client_conf->first_endpoint = first_endpoint;
-	global_mgcp_client_conf->last_endpoint = last_endpoint;
+	vty_out(vty, "Please do not use legacy config 'mgw endpoint-range'"
+		" (the range can no longer be defined by the MGCP client)%s",
+		VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 ALIAS_DEPRECATED(cfg_mgw_endpoint_range, cfg_mgcpgw_endpoint_range_cmd,
@@ -128,14 +119,15 @@ ALIAS_DEPRECATED(cfg_mgw_endpoint_range, cfg_mgcpgw_endpoint_range_cmd,
 
 #define BTS_START_STR "First UDP port allocated for the BTS side\n"
 #define UDP_PORT_STR "UDP Port number\n"
-DEFUN(cfg_mgw_rtp_bts_base_port,
+DEFUN_DEPRECATED(cfg_mgw_rtp_bts_base_port,
       cfg_mgw_rtp_bts_base_port_cmd,
       "mgw bts-base <0-65534>",
       MGW_STR
-      BTS_START_STR
-      UDP_PORT_STR)
+      "DEPRECATED: there is no explicit BTS side in current osmo-mgw\n" "-\n")
 {
-	global_mgcp_client_conf->bts_base = atoi(argv[0]);
+	vty_out(vty, "Please do not use legacy config 'mgw bts-base'"
+		" (there is no explicit BTS side in an MGW anymore)%s",
+		VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 ALIAS_DEPRECATED(cfg_mgw_rtp_bts_base_port,
@@ -149,9 +141,6 @@ int mgcp_client_config_write(struct vty *vty, const char *indent)
 {
 	const char *addr;
 	int port;
-	uint16_t first_endpoint;
-	uint16_t last_endpoint;
-	uint16_t bts_base;
 
 	addr = global_mgcp_client_conf->local_addr;
 	if (addr)
@@ -170,19 +159,6 @@ int mgcp_client_config_write(struct vty *vty, const char *indent)
 	if (port >= 0)
 		vty_out(vty, "%smgw remote-port %u%s", indent,
 			(uint16_t)port, VTY_NEWLINE);
-
-	first_endpoint = global_mgcp_client_conf->first_endpoint;
-	last_endpoint = global_mgcp_client_conf->last_endpoint;
-	if (last_endpoint != 0) {
-		vty_out(vty, "%smgw endpoint-range %u %u%s", indent,
-			first_endpoint, last_endpoint, VTY_NEWLINE);
-	}
-
-	bts_base = global_mgcp_client_conf->bts_base;
-	if (bts_base) {
-		vty_out(vty, "%smgw bts-base %u%s", indent,
-			bts_base, VTY_NEWLINE);
-	}
 
 	return CMD_SUCCESS;
 }

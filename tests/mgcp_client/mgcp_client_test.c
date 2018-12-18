@@ -135,87 +135,6 @@ mgcp_trans_id_t dummy_mgcp_send(struct msgb *msg)
 	return trans_id;
 }
 
-void test_crcx(void)
-{
-	struct msgb *msg;
-	mgcp_trans_id_t trans_id;
-
-	printf("\n===== %s =====\n", __func__);
-
-	if (mgcp)
-		talloc_free(mgcp);
-	mgcp = mgcp_client_init(ctx, &conf);
-
-	msg = mgcp_msg_crcx(mgcp, 23, 42, MGCP_CONN_LOOPBACK);
-	trans_id = dummy_mgcp_send(msg);
-
-	reply_to(trans_id, 200, "OK",
-		"I: 1\r\n\r\n"
-		"v=0\r\n"
-		"o=- 1 23 IN IP4 10.9.1.120\r\n"
-		"s=-\r\n"
-		"c=IN IP4 10.9.1.120\r\n"
-		"t=0 0\r\n"
-		"m=audio 16002 RTP/AVP 110 96\r\n"
-		"a=rtpmap:110 AMR/8000\r\n"
-		"a=rtpmap:96 GSM-EFR/8000\r\n"
-		"a=ptime:20\r\n");
-}
-
-void test_crcx_long_conn_id(void)
-{
-	struct msgb *msg;
-	mgcp_trans_id_t trans_id;
-
-	printf("\n===== %s =====\n", __func__);
-
-	if (mgcp)
-		talloc_free(mgcp);
-	mgcp = mgcp_client_init(ctx, &conf);
-
-	msg = mgcp_msg_crcx(mgcp, 23, 42, MGCP_CONN_LOOPBACK);
-	trans_id = dummy_mgcp_send(msg);
-
-	reply_to(trans_id, 200, "OK",
-		"I: 123456789abcdef0123456789ABCDEF0\r\n\r\n"
-		"v=0\r\n"
-		"o=- 1 23 IN IP4 10.9.1.120\r\n"
-		"s=-\r\n"
-		"c=IN IP4 10.9.1.120\r\n"
-		"t=0 0\r\n"
-		"m=audio 16002 RTP/AVP 110 96\r\n"
-		"a=rtpmap:110 AMR/8000\r\n"
-		"a=rtpmap:96 GSM-EFR/8000\r\n"
-		"a=ptime:20\r\n");
-}
-
-void test_crcx_too_long_conn_id(void)
-{
-	struct msgb *msg;
-	mgcp_trans_id_t trans_id;
-
-	printf("\n===== %s =====\n", __func__);
-
-	if (mgcp)
-		talloc_free(mgcp);
-	mgcp = mgcp_client_init(ctx, &conf);
-
-	msg = mgcp_msg_crcx(mgcp, 23, 42, MGCP_CONN_LOOPBACK);
-	trans_id = dummy_mgcp_send(msg);
-
-	reply_to(trans_id, 200, "OK",
-		"I: 123456789abcdef0123456789ABCDEF01001029\r\n\r\n"
-		"v=0\r\n"
-		"o=- 1 23 IN IP4 10.9.1.120\r\n"
-		"s=-\r\n"
-		"c=IN IP4 10.9.1.120\r\n"
-		"t=0 0\r\n"
-		"m=audio 16002 RTP/AVP 110 96\r\n"
-		"a=rtpmap:110 AMR/8000\r\n"
-		"a=rtpmap:96 GSM-EFR/8000\r\n"
-		"a=ptime:20\r\n");
-}
-
 void test_mgcp_msg(void)
 {
 	struct msgb *msg;
@@ -618,14 +537,11 @@ int main(int argc, char **argv)
 
 	mgcp_client_conf_init(&conf);
 
-	test_crcx();
 	test_mgcp_msg();
 	test_mgcp_client_cancel();
 	test_sdp_section_start();
 	test_map_codec_to_pt_and_map_pt_to_codec();
 	test_map_pt_to_codec();
-	test_crcx_long_conn_id();
-	test_crcx_too_long_conn_id();
 
 	printf("Done\n");
 	fprintf(stderr, "Done\n");
