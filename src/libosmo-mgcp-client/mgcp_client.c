@@ -205,7 +205,7 @@ static void mgcp_client_handle_response(struct mgcp_client *mgcp,
 	if (pending->response_cb)
 		pending->response_cb(response, pending->priv);
 	else
-		LOGP(DLMGCP, LOGL_INFO, "MGCP response ignored (NULL cb)\n");
+		LOGP(DLMGCP, LOGL_DEBUG, "MGCP response ignored (NULL cb)\n");
 	talloc_free(pending);
 }
 
@@ -904,7 +904,7 @@ int mgcp_client_tx(struct mgcp_client *mgcp, struct msgb *msg,
 		msgb_free(msg);
 		goto mgcp_tx_error;
 	} else
-		LOGP(DLMGCP, LOGL_INFO, "Queued %u bytes for MGCP GW\n",
+		LOGP(DLMGCP, LOGL_DEBUG, "Queued %u bytes for MGCP GW\n",
 		     msgb_l2len(msg));
 	return 0;
 
@@ -928,10 +928,10 @@ int mgcp_client_cancel(struct mgcp_client *mgcp, mgcp_trans_id_t trans_id)
 	struct mgcp_response_pending *pending = mgcp_client_response_pending_get(mgcp, trans_id);
 	if (!pending) {
 		/*! Note: it is not harmful to cancel a transaction twice. */
-		LOGP(DLMGCP, LOGL_INFO, "Cannot cancel, no such transaction: %u\n", trans_id);
+		LOGP(DLMGCP, LOGL_ERROR, "Cannot cancel, no such transaction: %u\n", trans_id);
 		return -ENOENT;
 	}
-	LOGP(DLMGCP, LOGL_INFO, "Canceled transaction %u\n", trans_id);
+	LOGP(DLMGCP, LOGL_DEBUG, "Canceled transaction %u\n", trans_id);
 	talloc_free(pending);
 	return 0;
 	/*! We don't really need to clean up the wqueue: In all sane cases, the msgb has already been sent
