@@ -85,10 +85,12 @@ static int rx_data(struct osmo_iuup_cn *cn, struct msgb *pdu,
 		   struct osmo_iuup_hdr_data *hdr)
 {
 	/* Remove the IuUP bit from the middle of the buffer by writing the RTP header forward. */
+	/* And append AMR 12.2k header "0xf03c". - AD HOC fix */
 	unsigned int pre_hdr_len = ((uint8_t*)hdr) - pdu->data;
-	memmove(pdu->data + sizeof(*hdr), pdu->data, pre_hdr_len);
-
-	msgb_pull(pdu, sizeof(*hdr));
+	memmove(pdu->data + sizeof(*hdr) - 2, pdu->data, pre_hdr_len);
+	((uint8_t*)hdr)[2] = 0xf0;
+	((uint8_t*)hdr)[3] = 0x3c;
+	msgb_pull(pdu, sizeof(*hdr) - 2);
 
 	LOGP(DIUUP, LOGL_DEBUG, "(%s) IuUP stripping IuUP header from RTP data\n", cn->name);
 	cn->cfg.rx_payload(pdu, cn->cfg.node_priv);
@@ -191,7 +193,8 @@ int osmo_iuup_cn_tx_payload(struct osmo_iuup_cn *cn, struct msgb *pdu)
 	rtp_was = (void*)pdu->data;
 
 	/* copy the RTP header part backwards by the size needed for the IuUP header */
-	rtp = (void*)msgb_push(pdu, sizeof(*iuup_hdr));
+	/* also strips 2 bytes from the front of RTP payload - AMR header - AD HOC fix */
+	rtp = (void*)msgb_push(pdu, sizeof(*iuup_hdr) - 2);
 	memmove(rtp, rtp_was, sizeof(*rtp));
 
 	/* Send the same payload type to the peer (erm...) */

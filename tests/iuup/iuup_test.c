@@ -111,7 +111,7 @@ void test_cn_session()
 #define RTP_PAYLOAD "6cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0"
 	printf("\nReceive payload encapsulated in IuUP. Expecting rx_payload() of just RTP packet\n");
 	printf("i.e. should strip away " IUUP_HEADER "\n");
-	expect_rx_payload = RTP_HEADER RTP_PAYLOAD;
+	expect_rx_payload = RTP_HEADER "f03c" RTP_PAYLOAD;
 	rx_pdu(cn,
 	       msgb_from_hex("IuUP-Data",
 			     RTP_HEADER IUUP_HEADER RTP_PAYLOAD));
@@ -119,18 +119,18 @@ void test_cn_session()
 	printf("\nTransmit RTP. Expecting tx_msg() with inserted IuUP header\n");
 	expect_tx_msg = RTP_HEADER "000002b3" RTP_PAYLOAD;
 	tx_payload(cn,
-		   msgb_from_hex("RTP data", RTP_HEADER RTP_PAYLOAD));
+		   msgb_from_hex("RTP data", RTP_HEADER "f03c" RTP_PAYLOAD));
 
 	printf("\nMore RTP, each time the Frame Nr advances, causing a new header CRC.\n");
 	expect_tx_msg = RTP_HEADER "0100e2b3" RTP_PAYLOAD;
 	tx_payload(cn,
-		   msgb_from_hex("RTP data", RTP_HEADER RTP_PAYLOAD));
+		   msgb_from_hex("RTP data", RTP_HEADER "f03c" RTP_PAYLOAD));
 	expect_tx_msg = RTP_HEADER "02007eb3" RTP_PAYLOAD;
 	tx_payload(cn,
-		   msgb_from_hex("RTP data", RTP_HEADER RTP_PAYLOAD));
+		   msgb_from_hex("RTP data", RTP_HEADER "f03c" RTP_PAYLOAD));
 	expect_tx_msg = RTP_HEADER "03009eb3" RTP_PAYLOAD;
 	tx_payload(cn,
-		   msgb_from_hex("RTP data", RTP_HEADER RTP_PAYLOAD));
+		   msgb_from_hex("RTP data", RTP_HEADER "f03c" RTP_PAYLOAD));
 
 	printf("All done.\n");
 }
