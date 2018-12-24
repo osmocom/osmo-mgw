@@ -91,7 +91,7 @@ static int rx_data(struct osmo_iuup_cn *cn, struct msgb *pdu,
 	int is_comfort_noise = ((pdu->len - pre_hdr_len) == 9);
 
 	memmove(pdu->data + sizeof(*hdr) - 2, pdu->data, pre_hdr_len);
-	((uint8_t*)hdr)[2] = 0xf0;
+	((uint8_t*)hdr)[2] = 0x70;
 	((uint8_t*)hdr)[3] = is_comfort_noise ? 0x44 : 0x3c;
 	msgb_pull(pdu, sizeof(*hdr) - 2);
 
