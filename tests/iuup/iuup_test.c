@@ -116,6 +116,13 @@ void test_cn_session()
 	       msgb_from_hex("IuUP-Data",
 			     RTP_HEADER IUUP_HEADER RTP_PAYLOAD));
 
+	printf("\nReceive payload encapsulated in IuUP. Expecting rx_payload() of just RTP packet\n");
+	printf("i.e. should strip away " "0401479e" "\n");
+	expect_rx_payload = RTP_HEADER "f044" "26e9b851ee";
+	rx_pdu(cn,
+	       msgb_from_hex("IuUP-Data",
+			     RTP_HEADER "0401479e" "26e9b851ee"));
+
 	printf("\nTransmit RTP. Expecting tx_msg() with inserted IuUP header\n");
 	expect_tx_msg = RTP_HEADER "000002b3" RTP_PAYLOAD;
 	tx_payload(cn,
