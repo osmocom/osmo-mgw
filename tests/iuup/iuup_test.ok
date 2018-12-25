@@ -9,8 +9,8 @@ node_priv=0x2342
 ok: matches expected msg
 rc=0
 
-Receive payload encapsulated in IuUP. Expecting rx_payload() of just RTP packet
-i.e. should strip away 0100e2b3
+Receive AMR payload encapsulated in IuUP. Expecting rx_payload() of just RTP packet and inserted AMR header
+i.e. should replace 0100e2b3 with 703c
  -PDU-> [IuUP]
 8060944c6256042c000101020100e2b36cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0
 rx_payload() invoked by iuup_cn!
@@ -20,8 +20,8 @@ node_priv=0x2342
 ok: matches expected msg
 rc=0
 
-Receive payload encapsulated in IuUP. Expecting rx_payload() of just RTP packet
-i.e. should strip away 0401479e
+Receive AMR (comfort noise frame) payload encapsulated in IuUP. Expecting rx_payload() of just RTP packet and inserted AMR (comfort noise) header
+i.e. should replace 0401479e with 7044
  -PDU-> [IuUP]
 8060944c6256042c000101020401479e26e9b851ee
 rx_payload() invoked by iuup_cn!
@@ -31,7 +31,7 @@ node_priv=0x2342
 ok: matches expected msg
 rc=0
 
-Transmit RTP. Expecting tx_msg() with inserted IuUP header
+Transmit RTP. Expecting tx_msg() with inserted IuUP header and removed AMR header
         [IuUP] <-RTP-
 8060944c6256042c00010102703c6cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0
 tx_msg() invoked by iuup_cn!

@@ -108,36 +108,40 @@ void test_cn_session()
 
 #define RTP_HEADER "8060944c6256042c00010102"
 #define IUUP_HEADER "0100e2b3"
-#define RTP_PAYLOAD "6cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0"
-	printf("\nReceive payload encapsulated in IuUP. Expecting rx_payload() of just RTP packet\n");
-	printf("i.e. should strip away " IUUP_HEADER "\n");
-	expect_rx_payload = RTP_HEADER "703c" RTP_PAYLOAD;
+#define AMR_HEADER_VOICE "703c"
+#define AMR_HEADER_COMFORT_NOISE "7044"
+#define AMR_PAYLOAD_VOICE "6cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0"
+#define AMR_PAYLOAD_COMFORT_NOISE "26e9b851ee"
+
+	printf("\nReceive AMR payload encapsulated in IuUP. Expecting rx_payload() of just RTP packet and inserted AMR header\n");
+	printf("i.e. should replace " IUUP_HEADER " with " AMR_HEADER_VOICE "\n");
+	expect_rx_payload = RTP_HEADER AMR_HEADER_VOICE AMR_PAYLOAD_VOICE;
 	rx_pdu(cn,
 	       msgb_from_hex("IuUP-Data",
-			     RTP_HEADER IUUP_HEADER RTP_PAYLOAD));
+			     RTP_HEADER IUUP_HEADER AMR_PAYLOAD_VOICE));
 
-	printf("\nReceive payload encapsulated in IuUP. Expecting rx_payload() of just RTP packet\n");
-	printf("i.e. should strip away " "0401479e" "\n");
-	expect_rx_payload = RTP_HEADER "7044" "26e9b851ee";
+	printf("\nReceive AMR (comfort noise frame) payload encapsulated in IuUP. Expecting rx_payload() of just RTP packet and inserted AMR (comfort noise) header\n");
+	printf("i.e. should replace 0401479e with " AMR_HEADER_COMFORT_NOISE "\n");
+	expect_rx_payload = RTP_HEADER AMR_HEADER_COMFORT_NOISE AMR_PAYLOAD_COMFORT_NOISE;
 	rx_pdu(cn,
 	       msgb_from_hex("IuUP-Data",
-			     RTP_HEADER "0401479e" "26e9b851ee"));
+			     RTP_HEADER "0401479e" AMR_PAYLOAD_COMFORT_NOISE));
 
-	printf("\nTransmit RTP. Expecting tx_msg() with inserted IuUP header\n");
-	expect_tx_msg = RTP_HEADER "000002b3" RTP_PAYLOAD;
+	printf("\nTransmit RTP. Expecting tx_msg() with inserted IuUP header and removed AMR header\n");
+	expect_tx_msg = RTP_HEADER "000002b3" AMR_PAYLOAD_VOICE;
 	tx_payload(cn,
-		   msgb_from_hex("RTP data", RTP_HEADER "703c" RTP_PAYLOAD));
+		   msgb_from_hex("RTP data", RTP_HEADER AMR_HEADER_VOICE AMR_PAYLOAD_VOICE));
 
 	printf("\nMore RTP, each time the Frame Nr advances, causing a new header CRC.\n");
-	expect_tx_msg = RTP_HEADER "0100e2b3" RTP_PAYLOAD;
+	expect_tx_msg = RTP_HEADER "0100e2b3" AMR_PAYLOAD_VOICE;
 	tx_payload(cn,
-		   msgb_from_hex("RTP data", RTP_HEADER "703c" RTP_PAYLOAD));
-	expect_tx_msg = RTP_HEADER "02007eb3" RTP_PAYLOAD;
+		   msgb_from_hex("RTP data", RTP_HEADER AMR_HEADER_VOICE AMR_PAYLOAD_VOICE));
+	expect_tx_msg = RTP_HEADER "02007eb3" AMR_PAYLOAD_VOICE;
 	tx_payload(cn,
-		   msgb_from_hex("RTP data", RTP_HEADER "703c" RTP_PAYLOAD));
-	expect_tx_msg = RTP_HEADER "03009eb3" RTP_PAYLOAD;
+		   msgb_from_hex("RTP data", RTP_HEADER AMR_HEADER_VOICE AMR_PAYLOAD_VOICE));
+	expect_tx_msg = RTP_HEADER "03009eb3" AMR_PAYLOAD_VOICE;
 	tx_payload(cn,
-		   msgb_from_hex("RTP data", RTP_HEADER "703c" RTP_PAYLOAD));
+		   msgb_from_hex("RTP data", RTP_HEADER AMR_HEADER_VOICE AMR_PAYLOAD_VOICE));
 
 	printf("All done.\n");
 }
