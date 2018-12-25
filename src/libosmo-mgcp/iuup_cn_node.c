@@ -41,6 +41,9 @@
 #define LOG_IUUP_CN(cn, level, fmt, args...) \
 		LOGP(DIUUP, level, "(%s) " fmt, (cn)->name, ## args)
 
+#define AMR_HEADER_LENGTH 2
+#define AMR_COMFORT_NOISE_PAYLOAD_LENGTH 5
+
 struct osmo_iuup_cn {
 	struct osmo_iuup_cn_cfg cfg;
 	char *name;
@@ -84,16 +87,17 @@ void osmo_iuup_cn_free(struct osmo_iuup_cn *cn)
 static int rx_data(struct osmo_iuup_cn *cn, struct msgb *pdu,
 		   struct osmo_iuup_hdr_data *hdr)
 {
-	/* Remove the IuUP bit from the middle of the buffer by writing the RTP header forward. */
-	/* And append AMR 12.2k header "0xf03c". - AD HOC fix */
+	/* Strip the IuUP bits from the middle of the buffer by writing the RTP
+	 * header forward by the length of IuUP header minus the length of AMR
+	 * header. Replace the rest of IuUP header with AMR header */
 	unsigned int pre_hdr_len = ((uint8_t*)hdr) - pdu->data;
 
-	int is_comfort_noise = ((pdu->len - pre_hdr_len) == 9);
+	int is_comfort_noise = ((pdu->len - pre_hdr_len - sizeof(*hdr)) == AMR_COMFORT_NOISE_PAYLOAD_LENGTH);
 
-	memmove(pdu->data + sizeof(*hdr) - 2, pdu->data, pre_hdr_len);
+	memmove(pdu->data + sizeof(*hdr) - AMR_HEADER_LENGTH, pdu->data, pre_hdr_len);
 	((uint8_t*)hdr)[2] = 0x70;
 	((uint8_t*)hdr)[3] = is_comfort_noise ? 0x44 : 0x3c;
-	msgb_pull(pdu, sizeof(*hdr) - 2);
+	msgb_pull(pdu, sizeof(*hdr) - AMR_HEADER_LENGTH);
 
 	LOGP(DIUUP, LOGL_DEBUG, "(%s) IuUP stripping IuUP header from RTP data\n", cn->name);
 	cn->cfg.rx_payload(pdu, cn->cfg.node_priv);
@@ -195,9 +199,9 @@ int osmo_iuup_cn_tx_payload(struct osmo_iuup_cn *cn, struct msgb *pdu)
 	/* Splice an IuUP header in between RTP header and payload data */
 	rtp_was = (void*)pdu->data;
 
-	/* copy the RTP header part backwards by the size needed for the IuUP header */
-	/* also strips 2 bytes from the front of RTP payload - AMR header - AD HOC fix */
-	rtp = (void*)msgb_push(pdu, sizeof(*iuup_hdr) - 2);
+	/* copy the RTP header part backwards by the size needed for the IuUP header
+	 * minus AMR header bytes from the front of RTP payload */
+	rtp = (void*)msgb_push(pdu, sizeof(*iuup_hdr) - AMR_HEADER_LENGTH);
 	memmove(rtp, rtp_was, sizeof(*rtp));
 
 	/* Send the same payload type to the peer (erm...) */
