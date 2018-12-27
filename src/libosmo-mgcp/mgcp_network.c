@@ -1233,14 +1233,12 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	if ((proto == MGCP_PROTO_RTP && check_rtp(conn_src, msg))
 	    || (proto == MGCP_PROTO_RTCP && check_rtcp(conn_src, msg))) {
 		/* Logging happened in the two check_ functions */
-		msgb_free(msg);
 		rc = -1;
 		goto out;
 	}
 
 	if (is_dummy_msg(proto, msg)) {
 		LOG_CONN_RTP(conn_src, LOGL_DEBUG, "rx dummy packet (dropped)\n");
-		msgb_free(msg);
 		rc = 0;
 		goto out;
 	}
