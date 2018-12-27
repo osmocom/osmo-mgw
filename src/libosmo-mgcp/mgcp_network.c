@@ -1207,6 +1207,7 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	struct osmo_rtp_msg_ctx mc;
 	struct msgb *msg = msgb_alloc_headroom(RTP_BUF_SIZE + OSMO_IUUP_HEADROOM,
 					       OSMO_IUUP_HEADROOM, "RTP-rx");
+	int rc;
 
 	conn_src = (struct mgcp_conn_rtp *)fd->data;
 	OSMO_ASSERT(conn_src);
@@ -1219,8 +1220,8 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 
 	if (ret <= 0) {
 		LOG_CONN_RTP(conn_src, LOGL_ERROR, "recvfrom error: %s\n", strerror(errno));
-		msgb_free(msg);
-		return -1;
+		rc = -1;
+		goto out;
 	}
 
 	msgb_put(msg, ret);
@@ -1232,12 +1233,16 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	if ((proto == MGCP_PROTO_RTP && check_rtp(conn_src, msg))
 	    || (proto == MGCP_PROTO_RTCP && check_rtcp(conn_src, msg))) {
 		/* Logging happened in the two check_ functions */
-		return -1;
+		msgb_free(msg);
+		rc = -1;
+		goto out;
 	}
 
 	if (is_dummy_msg(proto, msg)) {
 		LOG_CONN_RTP(conn_src, LOGL_DEBUG, "rx dummy packet (dropped)\n");
-		return 0;
+		msgb_free(msg);
+		rc = 0;
+		goto out;
 	}
 
 	mc = (struct osmo_rtp_msg_ctx){
@@ -1263,10 +1268,13 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 		iuup_init(conn_src);
 
 	if (conn_src->iuup && proto == MGCP_PROTO_RTP)
-		return osmo_iuup_cn_rx_pdu(conn_src->iuup, msg);
+		rc = osmo_iuup_cn_rx_pdu(conn_src->iuup, msg);
 	else
-		return rx_rtp(msg);
+		rc = rx_rtp(msg);
+
+out:
 	msgb_free(msg);
+	return rc;
 }
 
 static int rx_rtp(struct msgb *msg)
