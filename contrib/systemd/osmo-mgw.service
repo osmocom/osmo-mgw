@@ -6,6 +6,7 @@ Type=simple
 Restart=always
 ExecStart=/usr/bin/osmo-mgw -s -c /etc/osmocom/osmo-mgw.cfg
 RestartSec=2
+ExecStopPost=/usr/local/bin/save_log_tail osmo-mgw
 
 [Install]
 WantedBy=multi-user.target
