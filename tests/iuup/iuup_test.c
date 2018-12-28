@@ -107,11 +107,12 @@ void test_cn_session()
 			     "160051673c01270000820000001710000100" /* IuUP params */));
 
 #define RTP_HEADER "8060944c6256042c00010102"
+#define RTP_HEADER_PT112 "8070944c6256042c00010102"
 #define IUUP_HEADER "0100e2b3"
 #define RTP_PAYLOAD "6cfb23bc46d18180c3e5ffe040045600005a7d35b625b80005fff03214ced0"
 	printf("\nReceive payload encapsulated in IuUP. Expecting rx_payload() of just RTP packet\n");
 	printf("i.e. should strip away " IUUP_HEADER "\n");
-	expect_rx_payload = RTP_HEADER "f03c" RTP_PAYLOAD;
+	expect_rx_payload = RTP_HEADER_PT112 "f03c" RTP_PAYLOAD;
 	rx_pdu(cn,
 	       msgb_from_hex("IuUP-Data",
 			     RTP_HEADER IUUP_HEADER RTP_PAYLOAD));
