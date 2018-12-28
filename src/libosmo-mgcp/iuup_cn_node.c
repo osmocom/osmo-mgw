@@ -92,6 +92,10 @@ static int rx_data(struct osmo_iuup_cn *cn, struct msgb *pdu,
 	((uint8_t*)hdr)[3] = 0x3c;
 	msgb_pull(pdu, sizeof(*hdr) - 2);
 
+	struct rtp_hdr *h = (struct rtp_hdr*)pdu->data;
+	if (h->payload_type == 96)
+		h->payload_type = 112;
+
 	LOGP(DIUUP, LOGL_DEBUG, "(%s) IuUP stripping IuUP header from RTP data\n", cn->name);
 	cn->cfg.rx_payload(pdu, cn->cfg.node_priv);
 
@@ -211,6 +215,10 @@ int osmo_iuup_cn_tx_payload(struct osmo_iuup_cn *cn, struct msgb *pdu)
 	osmo_iuup_set_checksums((uint8_t*)iuup_hdr, pdu->tail - (uint8_t*)iuup_hdr);
 	LOGP(DIUUP, LOGL_DEBUG, "(%s) IuUP inserting IuUP header in RTP data (frame nr %u)\n",
 	     cn->name, iuup_hdr->frame_nr);
+
+	struct rtp_hdr *h = (struct rtp_hdr*)pdu->data;
+	if (h->payload_type == 112)
+		h->payload_type = 96;
 
 	return cn->cfg.tx_msg(pdu, cn->cfg.node_priv);
 }
