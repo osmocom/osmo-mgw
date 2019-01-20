@@ -1,3 +1,110 @@
+osmo-mgw (1.5.0) unstable; urgency=medium
+
+  [ Pau Espin Pedrol ]
+  * gitignore: Filter *.pc
+  * configure: Find correct libgsm's gsm.h header
+  * vty: Fix typo writing bts-jitter-buffer-delay-{min,max}
+  * Remove libosmo-legacy-mgcp and osmo-bsc-mgcp
+  * debian: Remove dangling symlink to osmo-bsc-mgcp.service
+  * Install systemd services with autotools
+  * Install sample cfg file to /etc/osmocom
+  * mgcp: Fix osmux_cid_bitmap static array size calculation
+  * mgcp_osmux: Use define to calculate rtp_ssrc_winlen
+  * osmux: Avoid initing output without enabling osmux
+  * mgcp: Log endpoint nr consistently as hex
+  * osmux_send_dummy: Avoid logging incorrectly and sending if osmux not enabled
+  * osmux: Don't process regular osmux frames if disabled by cfg
+  * osmux: Move parse_cid of legacy dummy frames to own function
+  * osmux: Make func handling dummy frames independent of endp type
+  * osmux: allow enabling osmux only on correct activating state
+  * osmux: Improve checks around activating and using enabled osmux
+  * osmux.h: Document enum osmux_state
+  * osmux: Avoid processing further frames if conn not found
+
+  [ Philipp Maier ]
+  * mgcp_client_fsm: allow ptmap in mgcp_client_fsm as well
+  * mgcp_network: translate payload type numbers in RTP packets
+  * mgcp_client: use IETF source port as for MGCP
+  * mgcp_client: increment local port number when port is in use
+  * mgcp_test: release endpoints after use
+  * network: do not patch PT of RTCP packets
+  * network: check packets before further processing
+  * Cosmetic: remove misplaced line break
+  * mgcp_sdp: restructure mgcp_write_response_sdp() (rtpmap)
+  * mgcp_sdp: restructure mgcp_write_response_sdp() (audio)
+  * mgcp_client: check local port only once
+  * mgcp_client_fsm: switch to MGCP_CONN_RECV_SEND in add_audio()
+  * mgcp_protocol: increase buffer space for codec name in LCO
+  * osmo-mgw: Add vty reference manual
+
+  [ Neels Hofmeyr ]
+  * fix handling of "Wrong domain name" error
+  * interpret domain '*' as 'allow any domain'
+  * cosmetic: log: fix "CallIDs does not match"
+  * fix 3G hack: allow any IP for loopback and 0.0.0.0
+  * cosmetic: drop code dup in mgcp_client_fsm.c CRCX
+  * add X-Osmo-IGN MGCP header to ignore CallID
+  * X-Osmo-IGN: rather parse items by token, not char
+  * mgcp_test: fix log of conn_id presence
+  * mgcp_test: fix get_conn_id_from_response() CI length
+  * mgcp_client_test: cosmetically re-arrange reply_to() args
+  * mgcp_client_test: use "\r\n\r\n" instead of "\n\n"
+  * mgcp_client_test: also verify received conn_id
+  * mgcp_client_test: test long conn_id
+  * mgcp_client: error on too long conn id
+  * mgcp_common: rename to MGCP_CONN_ID_MAXLEN
+  * doc: fix mgcp_verify_ci() return val doc
+  * mgcp_verify_ci(): return meaningful error codes
+  * fix mgcp_verify_ci(): off-by-one in max len check
+  * generate shorter 'I:' conn IDs
+  * mgcp_conn_get(): compare conn Id ('I:') case insensitively
+  * mgcp_conn_get(): match conn Id ('I:') despite leading zeros
+  * cosmetic: mgcp_test: fix get_conn_id_from_response()
+  * comment: indicate struct type for mgcp_endpoint.conns
+  * log: avoid logging early media as error
+  * fix osmo-mgw -s; fixes osmo-mgw.service using -s
+  * Importing history from osmo-gsm-manuals.git
+  * OsmoMGW: update VTY reference
+  * OsmoMGW: document the 'X-Osmo-IGN' MGCP extension
+  * mgw: update vty reference
+  * drop/replace very weird logging in mgcp_client.c
+  * check_rtp: on IP:port errors, log the IP and port
+  * osmo-mgw: err-log: include expected domain name
+  * mgcp_client_vty: fix missing talloc_free
+  * mgcp_client: drop a bunch of dead code
+  * mgcp_client: logging tweaks
+  * mgcp_client: make domain part of endpoint configurable
+  * mgcp_client: tweak some log levels INFO -> {DEBUG,ERROR}
+
+  [ Stefan Sperling ]
+  * add VTY commands which show specific mgcp endpoints
+  * add MGCP CRCX command statistics to osmo-mgw
+  * show RTP TX/RX stats in 'mgcp show stats' output
+  * use local variable for rate counters in handle_create_con()
+  * add more mgcp crxc error counters
+  * add MDCX command statistics to osmo-mgw
+  * add aggregated rtp connection stats to osmo-mgw
+  * add DLCX command statistics to osmo-mgw
+
+  [ Harald Welte ]
+  * debian/rules: Don't overwrite .tarball-version
+  * check_rtp_origin(): Don't memcmp sockadd_in and in_addr
+  * check_rtp_origin(): Avoid using memcmp for comparing integer types
+  * vty-ref: Update URI of docbook 5.0 schema
+
+  [ Daniel Willmann ]
+  * mgw: Add new VTY reference
+  * Add initial OsmoMGW manual
+
+  [ Oliver Smith ]
+  * build manuals moved here from osmo-gsm-manuals.git
+  * jenkins.sh: remove leftover MGCP env variable
+  * Fix DISTCHECK_CONFIGURE_FLAGS override
+  * contrib/jenkins.sh: build and publish manuals
+  * contrib: fix makedistcheck with disabled systemd
+
+ -- Harald Welte <laforge@gnumonks.org>  Sun, 20 Jan 2019 15:02:18 +0100
+
 osmo-mgw (1.4.0) unstable; urgency=medium
 
   [ Philipp Maier ]
