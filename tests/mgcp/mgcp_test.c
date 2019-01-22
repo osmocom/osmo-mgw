@@ -970,6 +970,7 @@ static void test_packet_loss_calc(void)
 {
 	int i;
 	struct mgcp_endpoint endp;
+	struct mgcp_config cfg = {0};
 	struct mgcp_trunk_config trunk;
 
 	printf("Testing packet loss calculation.\n");
@@ -977,6 +978,7 @@ static void test_packet_loss_calc(void)
 	memset(&endp, 0, sizeof(endp));
 	memset(&trunk, 0, sizeof(trunk));
 
+	endp.cfg = &cfg;
 	endp.type = &ep_typeset.rtp;
 	trunk.vty_number_endpoints = 1;
 	trunk.endpoints = &endp;
@@ -1197,6 +1199,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 
 	struct mgcp_trunk_config trunk;
 	struct mgcp_endpoint endp;
+	struct mgcp_config cfg = {0};
 	struct mgcp_rtp_state state;
 	struct mgcp_rtp_end *rtp;
 	struct sockaddr_in addr = { 0 };
@@ -1224,6 +1227,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	state.in_stream.err_ts_ctr = &test_ctr_in;
 	state.out_stream.err_ts_ctr = &test_ctr_out;
 
+	endp.cfg = &cfg;
 	endp.type = &ep_typeset.rtp;
 
 	trunk.vty_number_endpoints = 1;

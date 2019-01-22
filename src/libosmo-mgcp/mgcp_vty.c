@@ -154,6 +154,10 @@ static int config_write_mgcp(struct vty *vty)
 		vty_out(vty, "  osmux dummy %s%s",
 			g_cfg->osmux_dummy ? "on" : "off", VTY_NEWLINE);
 	}
+
+	if (g_cfg->conn_timeout)
+		vty_out(vty, "  conn-timeout %u%s", g_cfg->conn_timeout, VTY_NEWLINE);
+
 	return CMD_SUCCESS;
 }
 
@@ -215,6 +219,13 @@ static void dump_endpoint(struct vty *vty, struct mgcp_endpoint *endp, int epidx
 		vty_out(vty, "   CONN: %s%s", mgcp_conn_dump(conn), VTY_NEWLINE);
 
 		if (show_stats) {
+			if (endp->cfg->conn_timeout) {
+				struct timeval remaining;
+				osmo_timer_remaining(&conn->watchdog, NULL, &remaining);
+				vty_out(vty, "   Currently remaining timeout (seconds): %d.%06d%s",
+					(int)remaining.tv_sec, (int)remaining.tv_usec, VTY_NEWLINE);
+			}
+
 			/* FIXME: Also add verbosity for other
 			 * connection types (E1) as soon as
 			 * the implementation is available */
@@ -1327,6 +1338,18 @@ DEFUN(cfg_mgcp_domain,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_mgcp_conn_timeout,
+      cfg_mgcp_conn_timeout_cmd,
+      "conn-timeout <1-65534>",
+      "Set a time after which inactive connections (CIs) are closed. This can be used to work around interoperability"
+      " problems causing connections to stay open forever, and slowly exhausting all available ports. Do not enable"
+      " when LCLS is used (connections in LCLS state appear to be inactive)!\n"
+      "Timeout value (sec.)\n")
+{
+	g_cfg->conn_timeout = strtoul(argv[0], NULL, 10);
+	return CMD_SUCCESS;
+}
+
 int mgcp_vty_init(void)
 {
 	install_element_ve(&show_mgcp_cmd);
@@ -1391,6 +1414,7 @@ int mgcp_vty_init(void)
 	install_element(MGCP_NODE, &cfg_mgcp_allow_transcoding_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_no_allow_transcoding_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_domain_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_conn_timeout_cmd);
 
 	install_element(MGCP_NODE, &cfg_mgcp_trunk_cmd);
 	install_node(&trunk_node, config_write_trunk);

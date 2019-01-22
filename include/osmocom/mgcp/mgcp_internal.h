@@ -231,6 +231,9 @@ struct mgcp_conn {
 	/*! human readable name (vty, logging) */
 	char name[256];
 
+	/*! activity tracker (for cleaning up inactive connections) */
+	struct osmo_timer_list watchdog;
+
 	/*! union with connection description */
 	union {
 		struct mgcp_conn_rtp rtp;
@@ -328,3 +331,4 @@ enum {
 #define PTYPE_UNDEFINED (-1)
 
 void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn);
+void mgcp_conn_watchdog_kick(struct mgcp_conn *conn);
