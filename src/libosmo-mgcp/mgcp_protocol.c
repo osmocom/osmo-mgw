@@ -1141,6 +1141,8 @@ mgcp_header_done:
 		return create_err_response(endp, 400, "MDCX", p->trans);
 	}
 
+	mgcp_conn_watchdog_kick(conn->conn);
+
 	if (mode) {
 		if (mgcp_parse_conn_mode(mode, endp, conn->conn) != 0) {
 			rate_ctr_inc(&rate_ctrs->ctr[MGCP_MDCX_FAIL_INVALID_MODE]);

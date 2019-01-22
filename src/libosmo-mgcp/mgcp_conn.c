@@ -29,6 +29,7 @@
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/rate_ctr.h>
+#include <osmocom/core/timer.h>
 #include <ctype.h>
 
 const static struct rate_ctr_group_desc rate_ctr_group_desc = {
@@ -125,6 +126,23 @@ static void mgcp_rtp_conn_cleanup(struct mgcp_conn_rtp *conn_rtp)
 	rate_ctr_group_free(conn_rtp->rate_ctr_group);
 }
 
+void mgcp_conn_watchdog_cb(void *data)
+{
+	struct mgcp_conn *conn = data;
+	LOGP(DLMGCP, LOGL_ERROR, "endpoint:0x%x CI:%s connection timed out!\n", ENDPOINT_NUMBER(conn->endp), conn->id);
+	mgcp_conn_free(conn->endp, conn->id);
+}
+
+void mgcp_conn_watchdog_kick(struct mgcp_conn *conn)
+{
+	unsigned long int timeout = conn->endp->cfg->conn_timeout;
+	if (!timeout)
+		return;
+
+	LOGP(DLMGCP, LOGL_DEBUG, "endpoint:0x%x CI:%s watchdog kicked\n", ENDPOINT_NUMBER(conn->endp), conn->id);
+	osmo_timer_schedule(&conn->watchdog, timeout, 0);
+}
+
 /*! allocate a new connection list entry.
  *  \param[in] ctx talloc context
  *  \param[in] endp associated endpoint
@@ -167,6 +185,9 @@ struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 		OSMO_ASSERT(false);
 	}
 
+	/* Initialize watchdog */
+	osmo_timer_setup(&conn->watchdog, mgcp_conn_watchdog_cb, conn);
+	mgcp_conn_watchdog_kick(conn);
 	llist_add(&conn->entry, &endp->conns);
 
 	return conn;
@@ -274,6 +295,7 @@ void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id)
 		OSMO_ASSERT(false);
 	}
 
+	osmo_timer_del(&conn->watchdog);
 	llist_del(&conn->entry);
 	talloc_free(conn);
 }

@@ -274,6 +274,9 @@ struct mgcp_config {
 	uint16_t osmux_dummy;
 	/* domain name of the media gateway */
 	char domain[255+1];
+
+	/* time after which inactive connections (CIs) get closed */
+	unsigned int conn_timeout;
 };
 
 /* config management */
