@@ -700,3 +700,25 @@ void mgcp_conn_delete(struct osmo_fsm_inst *fi)
 	}
 	osmo_fsm_inst_dispatch(fi, EV_DLCX, mgcp_ctx);
 }
+
+const char *osmo_mgcpc_conn_peer_name(const struct mgcp_conn_peer *info)
+{
+	/* I'd be fine with a smaller buffer and accept truncation, but gcc possibly refuses to build if
+	 * this buffer is too small. */
+	static char buf[1024];
+
+	if (!info)
+		return "NULL";
+
+	if (info->endpoint[0]
+	    && info->addr[0])
+		snprintf(buf, sizeof(buf), "%s:%s:%u",
+			 info->endpoint, info->addr, info->port);
+	else if (info->endpoint[0])
+		snprintf(buf, sizeof(buf), "%s", info->endpoint);
+	else if (info->addr[0])
+		snprintf(buf, sizeof(buf), "%s:%u", info->addr, info->port);
+	else
+		return "empty";
+	return buf;
+}
