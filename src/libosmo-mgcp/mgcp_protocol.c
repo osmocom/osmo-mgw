@@ -177,13 +177,13 @@ static int setup_rtp_processing(struct mgcp_endpoint *endp,
  * for performance reasons. */
 static const struct mgcp_request mgcp_requests[] = {
 	MGCP_REQUEST("AUEP", handle_audit_endpoint, "AuditEndpoint")
-	    MGCP_REQUEST("CRCX", handle_create_con, "CreateConnection")
-	    MGCP_REQUEST("DLCX", handle_delete_con, "DeleteConnection")
-	    MGCP_REQUEST("MDCX", handle_modify_con, "ModifiyConnection")
-	    MGCP_REQUEST("RQNT", handle_noti_req, "NotificationRequest")
+	MGCP_REQUEST("CRCX", handle_create_con, "CreateConnection")
+	MGCP_REQUEST("DLCX", handle_delete_con, "DeleteConnection")
+	MGCP_REQUEST("MDCX", handle_modify_con, "ModifiyConnection")
+	MGCP_REQUEST("RQNT", handle_noti_req, "NotificationRequest")
 
-	    /* SPEC extension */
-	    MGCP_REQUEST("RSIP", handle_rsip, "ReSetInProgress")
+	/* SPEC extension */
+	MGCP_REQUEST("RSIP", handle_rsip, "ReSetInProgress")
 };
 
 /* Helper function to allocate some memory for responses and retransmissions */
