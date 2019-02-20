@@ -190,6 +190,7 @@ struct mgcp_trunk_config {
 	/* RTP patching */
 	int force_constant_ssrc; /* 0: don't, 1: once */
 	int force_aligned_timing;
+	bool rfc5993_hr_convert;
 
 	/* spec handling */
 	int force_realloc;

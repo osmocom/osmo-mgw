@@ -37,6 +37,8 @@
 #define RTCP_OMIT_STR "Drop RTCP packets in both directions\n"
 #define RTP_PATCH_STR "Modify RTP packet header in both directions\n"
 #define RTP_KEEPALIVE_STR "Send dummy UDP packet to net RTP destination\n"
+#define RTP_TS101318_RFC5993_CONV_STR "Convert GSM-HR from TS101318 to RFC5993 and vice versa\n"
+
 
 static struct mgcp_config *g_cfg = NULL;
 
@@ -96,12 +98,16 @@ static int config_write_mgcp(struct vty *vty)
 	else
 		vty_out(vty, "  no rtcp-omit%s", VTY_NEWLINE);
 	if (g_cfg->trunk.force_constant_ssrc
-	    || g_cfg->trunk.force_aligned_timing) {
+	    || g_cfg->trunk.force_aligned_timing
+	    || g_cfg->trunk.rfc5993_hr_convert) {
 		vty_out(vty, "  %srtp-patch ssrc%s",
 			g_cfg->trunk.force_constant_ssrc ? "" : "no ",
 			VTY_NEWLINE);
 		vty_out(vty, "  %srtp-patch timestamp%s",
 			g_cfg->trunk.force_aligned_timing ? "" : "no ",
+			VTY_NEWLINE);
+		vty_out(vty, "  %srtp-patch rfc5993hr%s",
+			g_cfg->trunk.rfc5993_hr_convert ? "" : "no ",
 			VTY_NEWLINE);
 	} else
 		vty_out(vty, "  no rtp-patch%s", VTY_NEWLINE);
@@ -722,11 +728,28 @@ DEFUN(cfg_mgcp_no_patch_rtp_ts,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_mgcp_patch_rtp_rfc5993hr,
+      cfg_mgcp_patch_rtp_rfc5993hr_cmd,
+      "rtp-patch rfc5993hr", RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
+{
+	g_cfg->trunk.rfc5993_hr_convert = true;
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_mgcp_no_patch_rtp_rfc5993hr,
+      cfg_mgcp_no_patch_rtp_rfc5993hr_cmd,
+      "no rtp-patch rfc5993hr", NO_STR RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
+{
+	g_cfg->trunk.rfc5993_hr_convert = false;
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_mgcp_no_patch_rtp,
       cfg_mgcp_no_patch_rtp_cmd, "no rtp-patch", NO_STR RTP_PATCH_STR)
 {
 	g_cfg->trunk.force_constant_ssrc = 0;
 	g_cfg->trunk.force_aligned_timing = 0;
+	g_cfg->trunk.rfc5993_hr_convert = false;
 	return CMD_SUCCESS;
 }
 
@@ -823,12 +846,16 @@ static int config_write_trunk(struct vty *vty)
 			vty_out(vty, "  rtcp-omit%s", VTY_NEWLINE);
 		else
 			vty_out(vty, "  no rtcp-omit%s", VTY_NEWLINE);
-		if (trunk->force_constant_ssrc || trunk->force_aligned_timing) {
+		if (trunk->force_constant_ssrc || trunk->force_aligned_timing
+		    || g_cfg->trunk.rfc5993_hr_convert) {
 			vty_out(vty, "  %srtp-patch ssrc%s",
 				trunk->force_constant_ssrc ? "" : "no ",
 				VTY_NEWLINE);
 			vty_out(vty, "  %srtp-patch timestamp%s",
 				trunk->force_aligned_timing ? "" : "no ",
+				VTY_NEWLINE);
+			vty_out(vty, "  %srtp-patch rfc5993hr%s",
+				trunk->rfc5993_hr_convert ? "" : "no ",
 				VTY_NEWLINE);
 		} else
 			vty_out(vty, "  no rtp-patch%s", VTY_NEWLINE);
@@ -995,12 +1022,31 @@ DEFUN(cfg_trunk_no_patch_rtp_ts,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_trunk_patch_rtp_rfc5993hr,
+      cfg_trunk_patch_rtp_rfc5993hr_cmd,
+      "rtp-patch rfc5993hr", RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
+{
+	struct mgcp_trunk_config *trunk = vty->index;
+	trunk->rfc5993_hr_convert = true;
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_trunk_no_patch_rtp_rfc5993hr,
+      cfg_trunk_no_patch_rtp_rfc5993hr_cmd,
+      "no rtp-patch rfc5993hr", NO_STR RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
+{
+	struct mgcp_trunk_config *trunk = vty->index;
+	trunk->rfc5993_hr_convert = false;
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_trunk_no_patch_rtp,
       cfg_trunk_no_patch_rtp_cmd, "no rtp-patch", NO_STR RTP_PATCH_STR)
 {
 	struct mgcp_trunk_config *trunk = vty->index;
 	trunk->force_constant_ssrc = 0;
 	trunk->force_aligned_timing = 0;
+	trunk->rfc5993_hr_convert = false;
 	return CMD_SUCCESS;
 }
 
@@ -1400,6 +1446,8 @@ int mgcp_vty_init(void)
 	install_element(MGCP_NODE, &cfg_mgcp_patch_rtp_ts_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_no_patch_rtp_ts_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_no_patch_rtp_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_patch_rtp_rfc5993hr_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_no_patch_rtp_rfc5993hr_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_sdp_fmtp_extra_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_sdp_payload_send_ptime_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_no_sdp_payload_send_ptime_cmd);
@@ -1431,6 +1479,8 @@ int mgcp_vty_init(void)
 	install_element(TRUNK_NODE, &cfg_trunk_patch_rtp_ssrc_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_no_patch_rtp_ssrc_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_patch_rtp_ts_cmd);
+	install_element(TRUNK_NODE, &cfg_trunk_patch_rtp_rfc5993hr_cmd);
+	install_element(TRUNK_NODE, &cfg_trunk_no_patch_rtp_rfc5993hr_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_no_patch_rtp_ts_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_no_patch_rtp_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_sdp_fmtp_extra_cmd);

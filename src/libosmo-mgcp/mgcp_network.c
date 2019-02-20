@@ -43,6 +43,7 @@
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/mgcp/debug.h>
+#include <osmocom/codec/codec.h>
 
 
 #define RTP_SEQ_MOD		(1 << 16)
@@ -651,6 +652,40 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 #endif
 }
 
+/* There are different dialects used to format and transfer voice data. When
+ * the receiving end expects GSM-HR data to be formated after RFC 5993, this
+ * function is used to convert between RFC 5993 and TS 101318, which we normally
+ * use. */
+static void rfc5993_hr_convert(struct mgcp_endpoint *endp, char *data, int *len)
+{
+	/* NOTE: *data has an overall length of RTP_BUF_SIZE, so there is
+	 * plenty of space available to store the slightly larger, converted
+	 * data */
+
+	struct rtp_hdr *rtp_hdr;
+
+	OSMO_ASSERT(*len >= sizeof(struct rtp_hdr));
+	rtp_hdr = (struct rtp_hdr *)data;
+
+	if (*len == GSM_HR_BYTES + sizeof(struct rtp_hdr)) {
+		/* TS 101318 encoding => RFC 5993 encoding */
+		memmove(rtp_hdr->data + 1, rtp_hdr->data, GSM_HR_BYTES);
+		rtp_hdr->data[0] = 0x00;
+		(*len) += 1;
+
+	} else if (*len == GSM_HR_BYTES + sizeof(struct rtp_hdr) + 1) {
+		/* RFC 5993 encoding => TS 101318 encoding */
+		memmove(rtp_hdr->data, rtp_hdr->data + 1, GSM_HR_BYTES);
+		(*len) -= 1;
+	} else {
+		/* It is possible that multiple payloads occur in one RTP
+		 * packet. This is not supported yet. */
+		LOGP(DRTP, LOGL_ERROR,
+		     "endpoint:0x%x cannot figure out how to convert RTP packet\n",
+		     ENDPOINT_NUMBER(endp));
+	}
+}
+
 /* Forward data to a debug tap. This is debug function that is intended for
  * debugging the voice traffic with tools like gstreamer */
 static void forward_data(int fd, struct mgcp_rtp_tap *tap, const char *buf,
@@ -758,6 +793,12 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 			if (addr)
 				mgcp_patch_and_count(endp, rtp_state, rtp_end,
 						     addr, buf, buflen);
+
+			if (rtp_end->rfc5993_hr_convert
+			    && strcmp(conn_src->end.codec->subtype_name,
+				      "GSM-HR-08") == 0)
+				rfc5993_hr_convert(endp, buf, &buflen);
+
 			LOGP(DRTP, LOGL_DEBUG,
 			     "endpoint:0x%x process/send to %s %s "
 			     "rtp_port:%u rtcp_port:%u\n",
