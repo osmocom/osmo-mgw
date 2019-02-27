@@ -47,6 +47,10 @@ enum mgcp_codecs {
  * this is an internal assumption that is made to avoid lookup tables.
  * The API-User should not rely on this coincidence! */
 
+extern const struct value_string osmo_mgcpc_codec_names[];
+static inline const char *osmo_mgcpc_codec_name(enum mgcp_codecs val)
+{ return get_value_string(osmo_mgcpc_codec_names, val); }
+
 /*! Structure to build a payload type map to allow the defiition custom payload
  *  types. */
 struct ptmap {

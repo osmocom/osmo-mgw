@@ -37,7 +37,7 @@
 #include <string.h>
 
 /* Codec descripton for dynamic payload types (SDP) */
-static const struct value_string codec_table[] = {
+const struct value_string osmo_mgcpc_codec_names[] = {
 	{ CODEC_PCMU_8000_1, "PCMU/8000/1" },
 	{ CODEC_GSM_8000_1, "GSM/8000/1" },
 	{ CODEC_PCMA_8000_1, "PCMA/8000/1" },
@@ -81,12 +81,12 @@ enum mgcp_codecs map_str_to_codec(const char *str)
 
 	osmo_strlcpy(str_buf, extract_codec_name(str), sizeof(str_buf));
 
-	for (i = 0; i < ARRAY_SIZE(codec_table); i++) {
-		codec_name = extract_codec_name(codec_table[i].str);
+	for (i = 0; i < ARRAY_SIZE(osmo_mgcpc_codec_names); i++) {
+		codec_name = extract_codec_name(osmo_mgcpc_codec_names[i].str);
 		if (!codec_name)
 			continue;
 		if (strcmp(codec_name, str_buf) == 0)
-			return codec_table[i].value;
+			return osmo_mgcpc_codec_names[i].value;
 	}
 
 	return -1;
@@ -978,7 +978,7 @@ static int add_lco(struct msgb *msg, struct mgcp_msg *mgcp_msg)
 		rc += msgb_printf(msg, " a:");
 		for (i = 0; i < mgcp_msg->codecs_len; i++) {
 			pt = mgcp_msg->codecs[i];
-			codec = get_value_string_or_null(codec_table, pt);
+			codec = get_value_string_or_null(osmo_mgcpc_codec_names, pt);
 			
 			/* Note: Use codec descriptors from enum mgcp_codecs
 			 * in mgcp_client only! */
@@ -1058,7 +1058,7 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 		 * require to be explained further via rtpmap. All others
 		 * are implcitly definedby the number in m=audio */
 		if (pt >= 96 && pt <= 127) {
-			codec = get_value_string_or_null(codec_table, mgcp_msg->codecs[i]);
+			codec = get_value_string_or_null(osmo_mgcpc_codec_names, mgcp_msg->codecs[i]);
 
 			/* Note: Use codec descriptors from enum mgcp_codecs
 			 * in mgcp_client only! */
