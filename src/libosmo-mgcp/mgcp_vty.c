@@ -38,6 +38,7 @@
 #define RTP_PATCH_STR "Modify RTP packet header in both directions\n"
 #define RTP_KEEPALIVE_STR "Send dummy UDP packet to net RTP destination\n"
 #define RTP_TS101318_RFC5993_CONV_STR "Convert GSM-HR from TS101318 to RFC5993 and vice versa\n"
+#define RTP_AMR_OA_BWE_CONV_STR "Convert AMR from octet-aligned to bandwith-efficient mode and vice versa\n"
 
 
 static struct mgcp_config *g_cfg = NULL;
@@ -744,6 +745,22 @@ DEFUN(cfg_mgcp_no_patch_rtp_rfc5993hr,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_mgcp_patch_rtp_amr_oa_bwe,
+      cfg_mgcp_patch_rtp_amr_oa_bwe_cmd,
+      "rtp-patch amr-oa-bwe", RTP_PATCH_STR RTP_AMR_OA_BWE_CONV_STR)
+{
+	g_cfg->trunk.amr_oa_bwe_convert = true;
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_mgcp_no_patch_rtp_amr_oa_bwe,
+      cfg_mgcp_no_patch_rtp_amr_oa_bwe_cmd,
+      "no rtp-patch amr-oa-bwe", NO_STR RTP_PATCH_STR RTP_AMR_OA_BWE_CONV_STR)
+{
+	g_cfg->trunk.amr_oa_bwe_convert = false;
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_mgcp_no_patch_rtp,
       cfg_mgcp_no_patch_rtp_cmd, "no rtp-patch", NO_STR RTP_PATCH_STR)
 {
@@ -1037,6 +1054,24 @@ DEFUN(cfg_trunk_no_patch_rtp_rfc5993hr,
 {
 	struct mgcp_trunk_config *trunk = vty->index;
 	trunk->rfc5993_hr_convert = false;
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_trunk_patch_rtp_amr_oa_bwe,
+      cfg_trunk_patch_rtp_amr_oa_bwe_cmd,
+      "rtp-patch amr-oa-bwe", RTP_PATCH_STR RTP_AMR_OA_BWE_CONV_STR)
+{
+	struct mgcp_trunk_config *trunk = vty->index;
+	trunk->amr_oa_bwe_convert = true;
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_trunk_no_patch_rtp_amr_oa_bwe,
+      cfg_trunk_no_patch_rtp_amr_oa_bwe_cmd,
+      "no rtp-patch amr-oa-bwe", NO_STR RTP_PATCH_STR RTP_AMR_OA_BWE_CONV_STR)
+{
+	struct mgcp_trunk_config *trunk = vty->index;
+	trunk->amr_oa_bwe_convert = false;
 	return CMD_SUCCESS;
 }
 
@@ -1448,6 +1483,8 @@ int mgcp_vty_init(void)
 	install_element(MGCP_NODE, &cfg_mgcp_no_patch_rtp_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_patch_rtp_rfc5993hr_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_no_patch_rtp_rfc5993hr_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_patch_rtp_amr_oa_bwe_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_no_patch_rtp_amr_oa_bwe_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_sdp_fmtp_extra_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_sdp_payload_send_ptime_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_no_sdp_payload_send_ptime_cmd);
@@ -1481,6 +1518,8 @@ int mgcp_vty_init(void)
 	install_element(TRUNK_NODE, &cfg_trunk_patch_rtp_ts_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_patch_rtp_rfc5993hr_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_no_patch_rtp_rfc5993hr_cmd);
+	install_element(TRUNK_NODE, &cfg_trunk_patch_rtp_amr_oa_bwe_cmd);
+	install_element(TRUNK_NODE, &cfg_trunk_no_patch_rtp_amr_oa_bwe_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_no_patch_rtp_ts_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_no_patch_rtp_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_sdp_fmtp_extra_cmd);

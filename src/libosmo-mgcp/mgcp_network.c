@@ -34,6 +34,7 @@
 #include <osmocom/core/socket.h>
 #include <osmocom/core/byteswap.h>
 #include <osmocom/netif/rtp.h>
+#include <osmocom/netif/amr.h>
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_common.h>
 #include <osmocom/mgcp/mgcp_internal.h>
@@ -686,6 +687,41 @@ static void rfc5993_hr_convert(struct mgcp_endpoint *endp, char *data, int *len)
 	}
 }
 
+/* For AMR RTP two framing modes are defined RFC3267. There is a bandwith
+ * efficient encoding scheme where all fields are packed together one after
+ * another and an octet aligned mode where all fields are aligned to octet
+ * boundaries. This function is used to convert between the two modes */
+static void amr_oa_bwe_convert(struct mgcp_endpoint *endp, char *data, int *len)
+{
+	/* NOTE: *data has an overall length of RTP_BUF_SIZE, so there is
+	 * plenty of space available to store the slightly larger, converted
+	 * data */
+
+	struct rtp_hdr *rtp_hdr;
+	unsigned int payload_len;
+	int rc;
+
+	OSMO_ASSERT(*len >= sizeof(struct rtp_hdr));
+	rtp_hdr = (struct rtp_hdr *)data;
+
+	payload_len = *len - sizeof(struct rtp_hdr);
+
+	if (osmo_amr_is_oa(rtp_hdr->data, payload_len))
+		rc = osmo_amr_oa_to_bwe(rtp_hdr->data, payload_len);
+	else
+		rc = osmo_amr_bwe_to_oa(rtp_hdr->data, payload_len,
+					RTP_BUF_SIZE);
+
+	if (rc < 0) {
+		LOGP(DRTP, LOGL_ERROR,
+		     "endpoint:0x%x AMR RTP packet conversion failed\n",
+		     ENDPOINT_NUMBER(endp));
+		return;
+	}
+
+	*len = rc + sizeof(struct rtp_hdr);
+}
+
 /* Forward data to a debug tap. This is debug function that is intended for
  * debugging the voice traffic with tools like gstreamer */
 static void forward_data(int fd, struct mgcp_rtp_tap *tap, const char *buf,
@@ -798,6 +834,11 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 			    && strcmp(conn_src->end.codec->subtype_name,
 				      "GSM-HR-08") == 0)
 				rfc5993_hr_convert(endp, buf, &buflen);
+
+			else if (rtp_end->amr_oa_bwe_convert
+			    && strcmp(conn_src->end.codec->subtype_name,
+				      "AMR") == 0)
+				amr_oa_bwe_convert(endp, buf, &buflen);
 
 			LOGP(DRTP, LOGL_DEBUG,
 			     "endpoint:0x%x process/send to %s %s "

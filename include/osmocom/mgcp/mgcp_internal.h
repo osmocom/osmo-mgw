@@ -129,6 +129,7 @@ struct mgcp_rtp_end {
 	/* should we perform align_rtp_timestamp_offset() (1) or not (0) */
 	int force_aligned_timing;
 	bool rfc5993_hr_convert;
+	bool amr_oa_bwe_convert;
 
 	/* Each end has a separate socket for RTP and RTCP */
 	struct osmo_fd rtp;

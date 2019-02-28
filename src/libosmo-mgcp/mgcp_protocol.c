@@ -653,6 +653,7 @@ void mgcp_rtp_end_config(struct mgcp_endpoint *endp, int expect_ssrc_change,
 	rtp->force_aligned_timing = tcfg->force_aligned_timing;
 	rtp->force_constant_ssrc = patch_ssrc ? 1 : 0;
 	rtp->rfc5993_hr_convert = tcfg->rfc5993_hr_convert;
+	rtp->amr_oa_bwe_convert = tcfg->amr_oa_bwe_convert;
 
 	LOGP(DLMGCP, LOGL_DEBUG,
 	     "Configuring RTP endpoint: local port %d%s%s\n",
