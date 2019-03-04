@@ -756,7 +756,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	if (is_rtp) {
 		rc = mgcp_patch_pt(conn_src, conn_dst, buf, len);
 		if (rc < 0) {
-			LOGP(DRTP, LOGL_ERROR,
+			LOGP(DRTP, LOGL_DEBUG,
 			     "endpoint:0x%x can not patch PT because no suitable egress codec was found.\n",
 			     ENDPOINT_NUMBER(endp));
 		}
