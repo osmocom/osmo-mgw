@@ -134,6 +134,13 @@ static void add_audio(struct mgcp_msg *mgcp_msg, struct mgcp_conn_peer *info)
 	mgcp_msg->conn_mode = MGCP_CONN_RECV_SEND;
 }
 
+static void set_conn_mode(struct mgcp_msg *mgcp_msg, struct mgcp_conn_peer *peer)
+{
+	enum mgcp_connection_mode conn_mode = peer->conn_mode;
+	if (conn_mode != MGCP_CONN_NONE)
+		mgcp_msg->conn_mode = conn_mode;
+}
+
 static struct msgb *make_mdcx_msg(struct mgcp_ctx *mgcp_ctx)
 {
 	struct mgcp_msg mgcp_msg;
@@ -154,6 +161,8 @@ static struct msgb *make_mdcx_msg(struct mgcp_ctx *mgcp_ctx)
 	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_remote.endpoint, MGCP_ENDPOINT_MAXLEN);
 	memcpy(mgcp_msg.codecs, mgcp_ctx->conn_peer_local.codecs, sizeof(mgcp_msg.codecs));
 	memcpy(mgcp_msg.ptmap, mgcp_ctx->conn_peer_local.ptmap, sizeof(mgcp_msg.ptmap));
+
+	set_conn_mode(&mgcp_msg, &mgcp_ctx->conn_peer_local);
 
 	/* Note: We take the endpoint and the call_id from the remote
 	 * connection info, because we can be confident that the
@@ -199,6 +208,8 @@ static void fsm_crcx_cb(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 		make_crcx_msg(&mgcp_msg, &mgcp_ctx->conn_peer_local);
 		if (mgcp_ctx->conn_peer_local.port)
 			add_audio(&mgcp_msg, &mgcp_ctx->conn_peer_local);
+		set_conn_mode(&mgcp_msg, &mgcp_ctx->conn_peer_local);
+
 		msg = mgcp_msg_gen(mgcp_ctx->mgcp, &mgcp_msg);
 		OSMO_ASSERT(msg);
 

@@ -47,6 +47,10 @@ struct mgcp_conn_peer {
 	 * known to issue incoherent or unknown CallIDs / to issue CRCX commands with a different domain
 	 * name than the BSC. An OsmoMGW will then ignore these and not fail on mismatches. */
 	uint32_t x_osmo_ign;
+
+	/*! If left MGCP_CONN_NONE, use MGCP_CONN_RECV_ONLY or MGCP_CONN_RECV_SEND, depending on whether an audio RTP
+	 * address is set. If != MGCP_CONN_NONE, force this conn mode. */
+	enum mgcp_connection_mode conn_mode;
 };
 
 struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm_inst *parent_fi, uint32_t parent_term_evt,
