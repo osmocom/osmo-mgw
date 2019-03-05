@@ -304,7 +304,7 @@ static int add_rtpmap(struct msgb *sdp, int payload_type, const char *audio_name
 	return 0;
 }
 
-/* Add audio string to sdp payload */
+/* Add audio strings to sdp payload */
 static int add_audio(struct msgb *sdp, int *payload_types, unsigned int payload_types_len, int local_port)
 {
 	int rc;
