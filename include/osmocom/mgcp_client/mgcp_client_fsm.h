@@ -51,6 +51,11 @@ struct mgcp_conn_peer {
 	/*! If left MGCP_CONN_NONE, use MGCP_CONN_RECV_ONLY or MGCP_CONN_RECV_SEND, depending on whether an audio RTP
 	 * address is set. If != MGCP_CONN_NONE, force this conn mode. */
 	enum mgcp_connection_mode conn_mode;
+
+	/*! If the codec requires additional format parameters (fmtp), those cann be set here, see also
+	 * mgcp_common.h */
+	bool param_present;
+	struct mgcp_codec_param param;
 };
 
 struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm_inst *parent_fi, uint32_t parent_term_evt,

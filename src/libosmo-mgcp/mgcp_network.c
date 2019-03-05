@@ -34,6 +34,7 @@
 #include <osmocom/core/socket.h>
 #include <osmocom/core/byteswap.h>
 #include <osmocom/netif/rtp.h>
+#include <osmocom/netif/amr.h>
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_common.h>
 #include <osmocom/mgcp/mgcp_internal.h>
@@ -684,6 +685,86 @@ static void rfc5993_hr_convert(struct mgcp_endpoint *endp, char *data, int *len)
 	}
 }
 
+/* For AMR RTP two framing modes are defined RFC3267. There is a bandwith
+ * efficient encoding scheme where all fields are packed together one after
+ * another and an octet aligned mode where all fields are aligned to octet
+ * boundaries. This function is used to convert between the two modes */
+static int amr_oa_bwe_convert(struct mgcp_endpoint *endp, char *data, int *len,
+			      bool target_is_oa)
+{
+	/* NOTE: *data has an overall length of RTP_BUF_SIZE, so there is
+	 * plenty of space available to store the slightly larger, converted
+	 * data */
+
+	struct rtp_hdr *rtp_hdr;
+	unsigned int payload_len;
+	int rc;
+
+	OSMO_ASSERT(*len >= sizeof(struct rtp_hdr));
+	rtp_hdr = (struct rtp_hdr *)data;
+
+	payload_len = *len - sizeof(struct rtp_hdr);
+
+	if (osmo_amr_is_oa(rtp_hdr->data, payload_len)) {
+		if (!target_is_oa)
+			/* Input data is oa an target format is bwe
+			 * ==> convert */
+			rc = osmo_amr_oa_to_bwe(rtp_hdr->data, payload_len);
+		else
+			/* Input data is already bew, but we accept it anyway
+			 * ==> no conversion needed */
+			rc = payload_len;
+	} else {
+		if (target_is_oa)
+			/* Input data is bwe an target format is oa
+			 * ==> convert */
+			rc = osmo_amr_bwe_to_oa(rtp_hdr->data, payload_len,
+						RTP_BUF_SIZE);
+		else
+			/* Input data is already oa, but we accept it anyway
+			 * ==> no conversion needed */
+			rc = payload_len;
+	}
+	if (rc < 0) {
+		LOGP(DRTP, LOGL_ERROR,
+		     "endpoint:0x%x AMR RTP packet conversion failed\n",
+		     ENDPOINT_NUMBER(endp));
+		return -EINVAL;
+	}
+
+	*len = rc + sizeof(struct rtp_hdr);
+
+	return 0;
+}
+
+/* Check if a conversion between octet-aligned and bandwith-efficient mode is
+ * indicated. */
+static bool amr_oa_bwe_convert_indicated(struct mgcp_rtp_codec *codec)
+{
+	if (codec->param_present == false)
+		return false;
+	if (!codec->param.amr_octet_aligned_present)
+		return false;
+	if (strcmp(codec->subtype_name, "AMR") != 0)
+		return false;
+	return true;
+}
+
+
+/* Check if a given RTP with AMR payload for octet-aligned mode */
+static bool amr_oa_check(char *data, int len)
+{
+	struct rtp_hdr *rtp_hdr;
+	unsigned int payload_len;
+
+	OSMO_ASSERT(len >= sizeof(struct rtp_hdr));
+	rtp_hdr = (struct rtp_hdr *)data;
+
+	payload_len = len - sizeof(struct rtp_hdr);
+
+	return osmo_amr_is_oa(rtp_hdr->data, payload_len);
+}
+
 /* Forward data to a debug tap. This is debug function that is intended for
  * debugging the voice traffic with tools like gstreamer */
 static void forward_data(int fd, struct mgcp_rtp_tap *tap, const char *buf,
@@ -792,7 +873,11 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 				mgcp_patch_and_count(endp, rtp_state, rtp_end,
 						     addr, buf, buflen);
 
-			if (rtp_end->rfc5993_hr_convert
+			if (amr_oa_bwe_convert_indicated(conn_dst->end.codec)) {
+				amr_oa_bwe_convert(endp, buf, &buflen,
+						   conn_dst->end.codec->param.amr_octet_aligned);
+			}
+			else if (rtp_end->rfc5993_hr_convert
 			    && strcmp(conn_src->end.codec->subtype_name,
 				      "GSM-HR-08") == 0)
 				rfc5993_hr_convert(endp, buf, &buflen);
@@ -1300,6 +1385,15 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 		}
 		return mgcp_send_rtp(proto, &addr, buf,
 				     len, conn_src, conn_src);
+	}
+
+	/* If AMR is configured for the ingress connection a conversion of the
+	 * framing mode (octet-aligned vs. bandwith-efficient is explicitly
+	 * define, then we check if the incoming payload matches that
+	 * expectation. */
+	if (amr_oa_bwe_convert_indicated(conn_src->end.codec)) {
+		if (amr_oa_check(buf, len) != conn_src->end.codec->param.amr_octet_aligned)
+			return -1;
 	}
 
 	/* Execute endpoint specific implementation that handles the

@@ -1051,6 +1051,20 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 	}
 	rc += msgb_printf(msg, "\r\n");
 
+	/* Add optional codec parameters (fmtp) */
+	if (mgcp_msg->param_present) {
+		for (i = 0; i < mgcp_msg->codecs_len; i++) {
+			/* The following is only applicable for AMR */
+			if (mgcp_msg->codecs[i] != CODEC_AMR_8000_1 && mgcp_msg->codecs[i] != CODEC_AMRWB_16000_1)
+				   continue;
+			pt = map_codec_to_pt(mgcp_msg->ptmap, mgcp_msg->ptmap_len, mgcp_msg->codecs[i]);
+			if (mgcp_msg->param.amr_octet_aligned_present && mgcp_msg->param.amr_octet_aligned)
+				rc += msgb_printf(msg, "a=fmtp:%u octet-align=1\r\n", pt);
+			else if (mgcp_msg->param.amr_octet_aligned_present && !mgcp_msg->param.amr_octet_aligned)
+				rc += msgb_printf(msg, "a=fmtp:%u octet-align=0\r\n", pt);
+		}
+	}
+
 	for (i = 0; i < mgcp_msg->codecs_len; i++) {
 		pt = map_codec_to_pt(mgcp_msg->ptmap, mgcp_msg->ptmap_len, mgcp_msg->codecs[i]);
 		

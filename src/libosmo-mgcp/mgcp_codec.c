@@ -100,8 +100,8 @@ void mgcp_codec_reset_all(struct mgcp_conn_rtp *conn)
 }
 
 /* Set members of struct mgcp_rtp_codec, extrapolate in missing information */
-static int codec_set(void *ctx, struct mgcp_rtp_codec *codec,
-		     int payload_type, const char *audio_name, unsigned int pt_offset)
+static int codec_set(void *ctx, struct mgcp_rtp_codec *codec, int payload_type, const char *audio_name,
+		     unsigned int pt_offset, struct mgcp_codec_param *param)
 {
 	int rate;
 	int channels;
@@ -219,6 +219,13 @@ static int codec_set(void *ctx, struct mgcp_rtp_codec *codec,
 		}
 	}
 
+	/* Copy over optional codec parameters */
+	if (param) {
+		codec->param = *param;
+		codec->param_present = true;
+	} else
+		codec->param_present = false;
+
 	return 0;
 error:
 	/* Make sure we leave a clean codec entry on error. */
@@ -233,8 +240,9 @@ error:
  *  \param[out] conn related rtp-connection.
  *  \param[in] payload_type codec type id (e.g. 3 for GSM, -1 when undefined).
  *  \param[in] audio_name audio codec name (e.g. "GSM/8000/1").
+ *  \param[in] param optional codec parameters (set to NULL when unused).
  *  \returns 0 on success, -EINVAL on failure. */
-int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *audio_name)
+int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *audio_name, struct mgcp_codec_param *param)
 {
 	int rc;
 
@@ -244,7 +252,7 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 		return -EINVAL;
 
 	rc = codec_set(conn->conn, &conn->end.codecs[conn->end.codecs_assigned], payload_type, audio_name,
-		       conn->end.codecs_assigned);
+		       conn->end.codecs_assigned, param);
 	if (rc != 0)
 		return -EINVAL;
 

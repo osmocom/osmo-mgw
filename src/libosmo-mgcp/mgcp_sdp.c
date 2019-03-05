@@ -30,9 +30,9 @@
 
 #include <errno.h>
 
-/* A struct to store intermediate parsing results. The function
- * mgcp_parse_sdp_data() is using it as temporary storage for parsing the SDP
- * codec information. */
+/* Two structs to store intermediate parsing results. The function
+ * mgcp_parse_sdp_data() is using the following two structs as temporary
+ * storage for parsing the SDP codec information. */
 struct sdp_rtp_map {
 	/* the type */
 	int payload_type;
@@ -44,6 +44,11 @@ struct sdp_rtp_map {
 	int rate;
 	int channels;
 };
+struct sdp_fmtp_param {
+	int payload_type;
+	struct mgcp_codec_param param;
+};
+
 
 /* Helper function to extrapolate missing codec parameters in a codec mao from
  * an already filled in payload_type, called from: mgcp_parse_sdp_data() */
@@ -168,6 +173,92 @@ error:
 	return -EINVAL;
 }
 
+/* Extract fmtp parameters from SDP, called from: mgcp_parse_sdp_data() */
+static int fmtp_from_sdp(void *ctx, struct sdp_fmtp_param *fmtp_param, char *sdp)
+{
+	char *str;
+	char *str_ptr;
+	char *param_str;
+	unsigned int pt;
+	unsigned int count = 0;
+	char delimiter;
+	unsigned int amr_octet_aligned;
+
+	memset(fmtp_param, 0, sizeof(*fmtp_param));
+
+	str = talloc_zero_size(ctx, strlen(sdp) + 1);
+	str_ptr = str;
+	strcpy(str_ptr, sdp);
+
+	/* Check if the input string begins with an fmtp token */
+	str_ptr = strstr(str_ptr, "fmtp:");
+	if (!str_ptr)
+		goto exit;
+	str_ptr += 5;
+
+	/* Extract payload type */
+	if (sscanf(str_ptr, "%u ", &pt) != 1)
+		goto error;
+	fmtp_param->payload_type = pt;
+
+	/* Advance pointer to the beginning of the parameter section and
+	 * tokenize string */
+	str_ptr = strstr(str_ptr, " ");
+	if (!str_ptr)
+		goto error;
+	str_ptr++;
+
+	param_str = strtok(str_ptr, " ");
+	if (!param_str)
+		goto exit;
+
+	while (1) {
+		/* Make sure that we don't get trapped in an endless loop */
+		if (count > 256)
+			goto error;
+
+		/* Chop off delimiters ';' at the end */
+		delimiter = str_ptr[strlen(str_ptr) - 1];
+		if (delimiter == ';' || delimiter == ',')
+			str_ptr[strlen(str_ptr) - 1] = '\0';
+
+		/* AMR octet aligned parameter */
+		if (sscanf(param_str, "octet-align=%d", &amr_octet_aligned) == 1) {
+			fmtp_param->param.amr_octet_aligned_present = true;
+			fmtp_param->param.amr_octet_aligned = false;
+			if (amr_octet_aligned == 1)
+				fmtp_param->param.amr_octet_aligned = true;
+
+		}
+
+		param_str = strtok(NULL, " ");
+		if (!param_str)
+			break;
+		count++;
+	}
+
+exit:
+	talloc_free(str);
+	return 0;
+error:
+	talloc_free(str);
+	return -EINVAL;
+}
+
+/* Pick optional fmtp parameters by payload type, if there are no fmtp
+ * parameters, a nullpointer is returned */
+static struct mgcp_codec_param *param_by_pt(int pt, struct sdp_fmtp_param *fmtp_params, unsigned int fmtp_params_len)
+{
+	unsigned int i;
+
+	for (i = 0; i < fmtp_params_len; i++) {
+		if (fmtp_params[i].payload_type == pt)
+			return &fmtp_params[i].param;
+	}
+
+	return NULL;
+}
+
 /*! Analyze SDP input string.
  *  \param[in] endp trunk endpoint.
  *  \param[out] conn associated rtp connection.
@@ -181,6 +272,9 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 {
 	struct sdp_rtp_map codecs[MGCP_MAX_CODECS];
 	unsigned int codecs_used = 0;
+	struct sdp_fmtp_param fmtp_params[MGCP_MAX_CODECS];
+	unsigned int fmtp_used = 0;
+	struct mgcp_codec_param *codec_param;
 	char *line;
 	unsigned int i;
 	void *tmp_ctx = talloc_new(NULL);
@@ -225,6 +319,14 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 				rtp->maximum_packet_time = ptime2;
 				break;
 			}
+
+			if (strncmp("a=fmtp:", line, 6) == 0) {
+				rc = fmtp_from_sdp(conn->conn, &fmtp_params[fmtp_used], line);
+				if (rc >= 0)
+					fmtp_used++;
+				break;
+			}
+
 			break;
 		case 'm':
 			rc = sscanf(line, "m=audio %d RTP/AVP", &port);
@@ -266,7 +368,8 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 
 	/* Store parsed codec information */
 	for (i = 0; i < codecs_used; i++) {
-		rc = mgcp_codec_add(conn, codecs[i].payload_type, codecs[i].map_line);
+		codec_param = param_by_pt(codecs[i].payload_type, fmtp_params, fmtp_used);
+		rc = mgcp_codec_add(conn, codecs[i].payload_type, codecs[i].map_line, codec_param);
 		if (rc < 0)
 			LOGP(DLMGCP, LOGL_NOTICE, "endpoint:0x%x, failed to add codec\n", ENDPOINT_NUMBER(p->endp));
 	}
@@ -334,6 +437,64 @@ static int add_audio(struct msgb *sdp, int *payload_types, unsigned int payload_
 	return 0;
 }
 
+/* Add fmtp strings to sdp payload */
+static int add_fmtp(struct msgb *sdp, struct sdp_fmtp_param *fmtp_params, unsigned int fmtp_params_len,
+		    const char *fmtp_extra)
+{
+	unsigned int i;
+	int rc;
+	int fmtp_extra_pt = -1;
+	char *fmtp_extra_pars = "";
+
+	/* When no fmtp parameters ara available but an fmtp extra string
+	 * is configured, just add the fmtp extra string */
+	if (fmtp_params_len == 0 && fmtp_extra) {
+		return msgb_printf(sdp, "%s\r\n", fmtp_extra);
+	}
+
+	/* When there is fmtp extra configured we dissect it in order to drop
+	 * in the configured extra parameters at the right place when
+	 * generating the fmtp strings. */
+	if (fmtp_extra) {
+		if (sscanf(fmtp_extra, "a=fmtp:%d ", &fmtp_extra_pt) != 1)
+			fmtp_extra_pt = -1;
+
+		fmtp_extra_pars = strstr(fmtp_extra, " ");
+
+		if (!fmtp_extra_pars)
+			fmtp_extra_pars = "";
+		else
+			fmtp_extra_pars++;
+	}
+
+	for (i = 0; i < fmtp_params_len; i++) {
+		rc = msgb_printf(sdp, "a=fmtp:%u", fmtp_params[i].payload_type);
+
+		/* Add amr octet align parameter */
+		if (fmtp_params[i].param.amr_octet_aligned_present) {
+			if (fmtp_params[i].param.amr_octet_aligned)
+				rc = msgb_printf(sdp, " octet-align=1");
+			else
+				rc = msgb_printf(sdp, " octet-align=0");
+			if (rc < 0)
+				return -EINVAL;
+		}
+
+		/* Append extra parameters from fmtp extra */
+		if (fmtp_params[i].payload_type == fmtp_extra_pt) {
+			rc = msgb_printf(sdp, " %s", fmtp_extra_pars);
+			if (rc < 0)
+				return -EINVAL;
+		}
+
+		rc = msgb_printf(sdp, "\r\n", fmtp_params[i].payload_type);
+		if (rc < 0)
+			return -EINVAL;
+	}
+
+	return 0;
+}
+
 /*! Generate SDP response string.
  *  \param[in] endp trunk endpoint.
  *  \param[in] conn associated rtp connection.
@@ -348,8 +509,11 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 	const char *fmtp_extra;
 	const char *audio_name;
 	int payload_type;
+	struct sdp_fmtp_param fmtp_param;
 	int rc;
 	int payload_types[1];
+	struct sdp_fmtp_param fmtp_params[1];
+        unsigned int fmtp_params_len = 0;
 
 	OSMO_ASSERT(endp);
 	OSMO_ASSERT(conn);
@@ -387,12 +551,15 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 				goto buffer_too_small;
 		}
 
-		if (fmtp_extra) {
-			rc = msgb_printf(sdp, "%s\r\n", fmtp_extra);
-
-			if (rc < 0)
-				goto buffer_too_small;
+		if (codec->param_present) {
+			fmtp_param.payload_type = payload_type;
+			fmtp_param.param = codec->param;
+			fmtp_params[0] = fmtp_param;
+			fmtp_params_len = 1;
 		}
+		rc = add_fmtp(sdp, fmtp_params, fmtp_params_len, fmtp_extra);
+		if (rc < 0)
+			goto buffer_too_small;
 	}
 	if (conn->end.packet_duration_ms > 0 && endp->tcfg->audio_send_ptime) {
 		rc = msgb_printf(sdp, "a=ptime:%u\r\n",

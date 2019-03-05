@@ -57,6 +57,12 @@ enum mgcp_x_osmo_ign {
 	MGCP_X_OSMO_IGN_CALLID = 1,
 };
 
+/* Codec parameters (communicated via SDP/fmtp) */
+struct mgcp_codec_param {
+	bool amr_octet_aligned_present;
+	bool amr_octet_aligned;
+};
+
 /* Ensure that the msg->l2h is NUL terminated. */
 static inline int mgcp_msg_terminate_nul(struct msgb *msg)
 {

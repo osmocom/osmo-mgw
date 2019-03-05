@@ -24,3 +24,4 @@
 # If any interfaces have been removed or changed since the last public release, a=0.
 #
 #library		what		description / commit summary line
+libosmo-mgcp-client	add struct members	    AMR SDP/fmtp parameter generation

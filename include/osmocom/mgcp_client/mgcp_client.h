@@ -78,7 +78,7 @@ struct mgcp_response {
 	enum mgcp_codecs codecs[MGCP_MAX_CODECS];
 	unsigned int codecs_len;
 	struct ptmap ptmap[MGCP_MAX_CODECS];
-	unsigned int ptmap_len;	
+	unsigned int ptmap_len;
 };
 
 enum mgcp_verb {
@@ -113,6 +113,8 @@ struct mgcp_msg {
 	struct ptmap ptmap[MGCP_MAX_CODECS];
 	unsigned int ptmap_len;
 	uint32_t x_osmo_ign;
+	bool param_present;
+	struct mgcp_codec_param param;
 };
 
 void mgcp_client_conf_init(struct mgcp_client_conf *conf);

@@ -114,11 +114,13 @@ static void make_crcx_msg(struct mgcp_msg *mgcp_msg, struct mgcp_conn_peer *info
 		.conn_mode = MGCP_CONN_RECV_ONLY,
 		.ptime = info->ptime,
 		.codecs_len = info->codecs_len,
-		.ptmap_len = info->ptmap_len
+		.ptmap_len = info->ptmap_len,
+		.param_present = info->param_present
 	};
 	osmo_strlcpy(mgcp_msg->endpoint, info->endpoint, MGCP_ENDPOINT_MAXLEN);
 	memcpy(mgcp_msg->codecs, info->codecs, sizeof(mgcp_msg->codecs));
 	memcpy(mgcp_msg->ptmap, info->ptmap, sizeof(mgcp_msg->ptmap));
+	memcpy(&mgcp_msg->param, &info->param, sizeof(mgcp_msg->param));
 
 	if (info->x_osmo_ign) {
 		mgcp_msg->x_osmo_ign = info->x_osmo_ign;
@@ -156,11 +158,13 @@ static struct msgb *make_mdcx_msg(struct mgcp_ctx *mgcp_ctx)
 		.audio_port = mgcp_ctx->conn_peer_local.port,
 		.ptime = mgcp_ctx->conn_peer_local.ptime,
 		.codecs_len = mgcp_ctx->conn_peer_local.codecs_len,
-		.ptmap_len = mgcp_ctx->conn_peer_local.ptmap_len
+		.ptmap_len = mgcp_ctx->conn_peer_local.ptmap_len,
+		.param_present = mgcp_ctx->conn_peer_local.param_present
 	};
 	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_remote.endpoint, MGCP_ENDPOINT_MAXLEN);
 	memcpy(mgcp_msg.codecs, mgcp_ctx->conn_peer_local.codecs, sizeof(mgcp_msg.codecs));
 	memcpy(mgcp_msg.ptmap, mgcp_ctx->conn_peer_local.ptmap, sizeof(mgcp_msg.ptmap));
+	memcpy(&mgcp_msg.param, &mgcp_ctx->conn_peer_local.param, sizeof(mgcp_ctx->conn_peer_local.param));
 
 	set_conn_mode(&mgcp_msg, &mgcp_ctx->conn_peer_local);
 

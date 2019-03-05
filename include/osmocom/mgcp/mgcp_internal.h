@@ -95,6 +95,9 @@ struct mgcp_rtp_codec {
 	int payload_type;
 	char *audio_name;
 	char *subtype_name;
+
+	bool param_present;
+	struct mgcp_codec_param param;
 };
 
 /* 'mgcp_rtp_end': basically a wrapper around the RTP+RTCP ports */

@@ -467,6 +467,34 @@ static void test_strline(void)
 	"M: recvonly\r\n" \
 	"C: 2\r\n"
 
+#define CRCX_AMR_WITH_FMTP \
+	"CRCX 2 7@mgw MGCP 1.0\r\n" \
+	"M: recvonly\r\n" \
+	"C: 2\r\n" \
+	"X\r\n" \
+	"L: p:20\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"c=IN IP4 123.12.12.123\r\n" \
+	"m=audio 5904 RTP/AVP 111\r\n" \
+	"a=rtpmap:111 AMR/8000/1\r\n" \
+	"a=ptime:20\r\n" \
+	"a=fmtp:111 mode-change-capability=2; octet-align=1\r\n" \
+
+#define CRCX_AMR_WITH_FMTP_RET \
+	"200 2 OK\r\n" \
+	"I: %s\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
+	"s=-\r\n" \
+	"c=IN IP4 0.0.0.0\r\n" \
+	"t=0 0\r\n" \
+	"m=audio 16012 RTP/AVP 111\r\n" \
+	"a=rtpmap:111 AMR/8000/1\r\n" \
+	"a=fmtp:111 octet-align=1\r\n" \
+	"a=ptime:20\r\n"
+
 #define CRCX_NO_LCO_NO_SDP_RET \
 	"200 2 OK\r\n" \
 	"I: %s\r\n" \
@@ -517,6 +545,7 @@ static const struct mgcp_test tests[] = {
 	{"CRCX", CRCX_NO_LCO_NO_SDP, CRCX_NO_LCO_NO_SDP_RET, 97},
 	{"CRCX", CRCX_X_OSMO_IGN, CRCX_X_OSMO_IGN_RET, 97},
 	{"MDCX_TOO_LONG_CI", MDCX_TOO_LONG_CI, MDCX_TOO_LONG_CI_RET},
+	{"CRCX", CRCX_AMR_WITH_FMTP, CRCX_AMR_WITH_FMTP_RET},
 };
 
 static const struct mgcp_test retransmit[] = {
@@ -1246,7 +1275,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 
 	rtp = &conn->end;
 
-	OSMO_ASSERT(mgcp_codec_add(conn, PTYPE_UNDEFINED, "AMR/8000/1") == 0);
+	OSMO_ASSERT(mgcp_codec_add(conn, PTYPE_UNDEFINED, "AMR/8000/1", NULL) == 0);
 	rtp->codec = &rtp->codecs[0];
 
 	for (i = 0; i < ARRAY_SIZE(test_rtp_packets1); ++i) {

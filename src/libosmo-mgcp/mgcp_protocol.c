@@ -724,7 +724,7 @@ static int handle_codec_info(struct mgcp_conn_rtp *conn,
 		/* When no SDP is available, we use the codec information from
 		 * the local connection options (if present) */
 		mgcp_codec_reset_all(conn);
-		rc = mgcp_codec_add(conn, PTYPE_UNDEFINED, endp->local_options.codec);
+		rc = mgcp_codec_add(conn, PTYPE_UNDEFINED, endp->local_options.codec, NULL);
 		if (rc != 0)
 			goto error;
 	}
@@ -735,7 +735,7 @@ static int handle_codec_info(struct mgcp_conn_rtp *conn,
 		 * than it makes sense to pick a sane default: (payload-type 0,
 		 * PCMU), see also: OS#2658 */
 		mgcp_codec_reset_all(conn);
-		rc = mgcp_codec_add(conn, 0, NULL);
+		rc = mgcp_codec_add(conn, 0, NULL, NULL);
 		if (rc != 0)
 			goto error;
 	}
