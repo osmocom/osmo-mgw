@@ -26,6 +26,7 @@
 #include <osmocom/mgcp/mgcp_msg.h>
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_codec.h>
+#include <osmocom/mgcp/mgcp_sdp.h>
 
 #include <errno.h>
 
