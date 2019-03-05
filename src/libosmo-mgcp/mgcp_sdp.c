@@ -208,19 +208,22 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 			/* skip these SDP attributes */
 			break;
 		case 'a':
-			if (sscanf(line, "a=rtpmap:%d %63s",
-				   &payload, audio_name) == 2) {
-				codecs_update(tmp_ctx, codecs,
-					      codecs_used, payload, audio_name);
-			} else
-			    if (sscanf
-				(line, "a=ptime:%d-%d", &ptime, &ptime2) >= 1) {
+			if (sscanf(line, "a=rtpmap:%d %63s", &payload, audio_name) == 2) {
+				codecs_update(tmp_ctx, codecs, codecs_used, payload, audio_name);
+				break;
+			}
+
+			if (sscanf(line, "a=ptime:%d-%d", &ptime, &ptime2) >= 1) {
 				if (ptime2 > 0 && ptime2 != ptime)
 					rtp->packet_duration_ms = 0;
 				else
 					rtp->packet_duration_ms = ptime;
-			} else if (sscanf(line, "a=maxptime:%d", &ptime2) == 1) {
+				break;
+			}
+
+			if (sscanf(line, "a=maxptime:%d", &ptime2) == 1) {
 				rtp->maximum_packet_time = ptime2;
+				break;
 			}
 			break;
 		case 'm':
