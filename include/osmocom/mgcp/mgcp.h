@@ -81,10 +81,11 @@ typedef int (*mgcp_processing_setup)(struct mgcp_endpoint *endp,
 				     struct mgcp_conn_rtp *conn_dst,
 				     struct mgcp_conn_rtp *conn_src);
 
+struct mgcp_rtp_codec;
+
 typedef void (*mgcp_get_format)(struct mgcp_endpoint *endp,
-				int *payload_type,
-				const char**subtype_name,
-				const char**fmtp_extra,
+				const struct mgcp_rtp_codec **codec,
+				const char **fmtp_extra,
 				struct mgcp_conn_rtp *conn);
 
 /**

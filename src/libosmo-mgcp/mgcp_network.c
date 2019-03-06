@@ -416,8 +416,7 @@ int mgcp_setup_rtp_processing_default(struct mgcp_endpoint *endp,
 }
 
 void mgcp_get_net_downlink_format_default(struct mgcp_endpoint *endp,
-					  int *payload_type,
-					  const char **audio_name,
+					  const struct mgcp_rtp_codec **codec,
 					  const char **fmtp_extra,
 					  struct mgcp_conn_rtp *conn)
 {
@@ -425,8 +424,7 @@ void mgcp_get_net_downlink_format_default(struct mgcp_endpoint *endp,
 	     "endpoint:0x%x conn:%s using format defaults\n",
 	     ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn->conn));
 
-	*payload_type = conn->end.codec->payload_type;
-	*audio_name = conn->end.codec->audio_name;
+	*codec = conn->end.codec;
 	*fmtp_extra = conn->end.fmtp_extra;
 }
 

@@ -344,6 +344,7 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 			    const struct mgcp_conn_rtp *conn, struct msgb *sdp,
 			    const char *addr)
 {
+	const struct mgcp_rtp_codec *codec;
 	const char *fmtp_extra;
 	const char *audio_name;
 	int payload_type;
@@ -357,9 +358,11 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 
 	/* FIXME: constify endp and conn args in get_net_donwlink_format_cb() */
 	endp->cfg->get_net_downlink_format_cb((struct mgcp_endpoint *)endp,
-					      &payload_type, &audio_name,
-					      &fmtp_extra,
+					      &codec, &fmtp_extra,
 					      (struct mgcp_conn_rtp *)conn);
+
+	audio_name = codec->audio_name;
+	payload_type = codec->payload_type;
 
 	rc = msgb_printf(sdp,
 			 "v=0\r\n"
