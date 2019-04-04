@@ -110,6 +110,11 @@ struct osmo_mgcpc_ep {
 	/*! Timeout definitions used for this endpoint, see osmo_mgcpc_ep_fsm_timeouts. */
 	const struct osmo_tdef *T_defs;
 
+	/*! True as soon as the first CRCX OK is received. The endpoint name may be determined by the first CRCX
+	 * response, so to dispatch any other messages, the FSM instance *must* wait for the first CRCX OK to arrive
+	 * first. Once the endpoint name is pinpointed, any amount of operations may be dispatched concurrently. */
+	bool first_crcx_complete;
+
 	/*! Endpoint connection slots. Note that each connection has its own set of FSM event numbers to signal success
 	 * and failure, depending on its index within this array. See CI_EV_SUCCESS and CI_EV_FAILURE. */
 	struct osmo_mgcpc_ep_ci ci[USABLE_CI];
@@ -123,6 +128,9 @@ const struct value_string osmo_mgcp_verb_names[] = {
 	{ MGCP_VERB_RSIP, "RSIP" },
 	{}
 };
+
+static void osmo_mgcpc_ep_count(struct osmo_mgcpc_ep *ep, int *occupied, int *pending_not_sent,
+				int *waiting_for_response);
 
 static struct osmo_mgcpc_ep_ci *osmo_mgcpc_ep_check_ci(struct osmo_mgcpc_ep_ci *ci)
 {
@@ -366,6 +374,49 @@ static void on_failure(struct osmo_mgcpc_ep_ci *ci)
 		osmo_fsm_inst_dispatch(notify, notify_failure, notify_data);
 }
 
+static int update_endpoint_name(struct osmo_mgcpc_ep_ci *ci, const char *new_endpoint_name)
+{
+	struct osmo_mgcpc_ep *ep = ci->ep;
+	int rc;
+	int i;
+
+	if (!strcmp(ep->endpoint, new_endpoint_name)) {
+		/* Same endpoint name, nothing to do. */
+		return 0;
+	}
+
+	/* The endpoint name should only change on the very first CRCX response. */
+	if (ep->first_crcx_complete) {
+		LOG_CI(ci, LOGL_ERROR, "Reponse returned mismatching endpoint name."
+		       " This is endpoint %s, instead received %s\n",
+		       ep->endpoint, new_endpoint_name);
+		on_failure(ci);
+		return -EINVAL;
+	}
+
+	/* This is the first CRCX response, update endpoint name. */
+	rc = OSMO_STRLCPY_ARRAY(ep->endpoint, new_endpoint_name);
+	if (rc <= 0 || rc >= sizeof(ep->endpoint)) {
+		LOG_CI(ci, LOGL_ERROR, "Unable to copy endpoint name %s\n", osmo_quote_str(new_endpoint_name, -1));
+		osmo_mgcpc_ep_ci_dlcx(ci);
+		on_failure(ci);
+		return -ENOSPC;
+	}
+
+	/* Make sure already pending requests use this updated endpoint name. */
+	for (i = 0; i < ARRAY_SIZE(ep->ci); i++) {
+		struct osmo_mgcpc_ep_ci *other_ci = &ep->ci[i];
+		if (!other_ci->occupied)
+			continue;
+		if (!other_ci->pending)
+			continue;
+		if (other_ci->sent)
+			continue;
+		OSMO_STRLCPY_ARRAY(other_ci->verb_info.endpoint, ep->endpoint);
+	}
+	return 0;
+}
+
 static void on_success(struct osmo_mgcpc_ep_ci *ci, void *data)
 {
 	struct mgcp_conn_peer *rtp_info;
@@ -386,17 +437,12 @@ static void on_success(struct osmo_mgcpc_ep_ci *ci, void *data)
 		osmo_strlcpy(ci->mgcp_ci_str, mgcp_conn_get_ci(ci->mgcp_client_fi),
 			sizeof(ci->mgcp_ci_str));
 		if (rtp_info->endpoint[0]) {
-			int rc;
-			rc = osmo_strlcpy(ci->ep->endpoint, rtp_info->endpoint,
-					  sizeof(ci->ep->endpoint));
-			if (rc <= 0 || rc >= sizeof(ci->ep->endpoint)) {
-				LOG_CI(ci, LOGL_ERROR, "Unable to copy endpoint name '%s'\n",
-				       rtp_info->endpoint);
-				osmo_mgcpc_ep_ci_dlcx(ci);
-				on_failure(ci);
+			/* On errors, this instance might already be deallocated. Make sure to not access anything after
+			 * error. */
+			if (update_endpoint_name(ci, rtp_info->endpoint))
 				return;
-			}
 		}
+		ci->ep->first_crcx_complete = true;
 		break;
 
 	default:
@@ -591,6 +637,7 @@ static int send_verb(struct osmo_mgcpc_ep_ci *ci)
 		if (!ci->mgcp_client_fi){
 			LOG_CI_VERB(ci, LOGL_ERROR, "Cannot send\n");
 			on_failure(ci);
+			return -EINVAL;
 		}
 		osmo_fsm_inst_update_id(ci->mgcp_client_fi, ci->label);
 		break;
@@ -603,6 +650,7 @@ static int send_verb(struct osmo_mgcpc_ep_ci *ci)
 		if (rc) {
 			LOG_CI_VERB(ci, LOGL_ERROR, "Cannot send (rc=%d %s)\n", rc, strerror(-rc));
 			on_failure(ci);
+			return -EINVAL;
 		}
 		break;
 
@@ -696,16 +744,47 @@ static bool osmo_mgcpc_ep_fsm_check_state_chg_after_response(struct osmo_fsm_ins
 
 static void osmo_mgcpc_ep_fsm_wait_mgw_response_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
 {
+	static int re_enter = 0;
+	int rc;
 	int count = 0;
 	int i;
 	struct osmo_mgcpc_ep *ep = osmo_mgcpc_ep_fi_mgwep(fi);
 
+	re_enter++;
+	OSMO_ASSERT(re_enter < 10);
+
+	/* The first CRCX gives us the endpoint name in the CRCX response. So we must wait for the first CRCX endpoint
+	 * response to come in before sending any other MGCP requests -- otherwise we might end up creating new
+	 * endpoints instead of acting on the same. This FSM always sends out N requests and waits for all of them to
+	 * complete before sending out new requests. Hence we're safe when the very first time at most one request is
+	 * sent (which needs to be a CRCX). */
+
 	for (i = 0; i < ARRAY_SIZE(ep->ci); i++) {
-		count += send_verb(&ep->ci[i]);
+		struct osmo_mgcpc_ep_ci *ci = &ep->ci[i];
+
+		/* Make sure that only CRCX get dispatched if no CRCX were sent yet. */
+		if (!ep->first_crcx_complete) {
+			if (ci->occupied && ci->verb != MGCP_VERB_CRCX)
+				continue;
+		}
+
+		rc = send_verb(&ep->ci[i]);
+		/* Need to be careful not to access the instance after failure. Event chains may already have
+		 * deallocated this memory. */
+		if (rc < 0)
+			return;
+		if (!rc)
+			continue;
+		count++;
+		/* Make sure that we wait for the first CRCX response before dispatching more requests. */
+		if (!ep->first_crcx_complete)
+			break;
 	}
 
 	LOG_MGCPC_EP(ep, LOGL_DEBUG, "Sent messages: %d\n", count);
-	osmo_mgcpc_ep_fsm_check_state_chg_after_response(fi);
+	if (ep->first_crcx_complete)
+		osmo_mgcpc_ep_fsm_check_state_chg_after_response(fi);
+	re_enter--;
 }
 
 static void osmo_mgcpc_ep_fsm_handle_ci_events(struct osmo_fsm_inst *fi, uint32_t event, void *data)
