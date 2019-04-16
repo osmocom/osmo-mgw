@@ -323,8 +323,8 @@ static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *li
 	unsigned int pt;
 	char codec_resp[64];
 	unsigned int codec;
-	
-	
+
+
 	if (strstr(line, "ptime")) {
 		if (sscanf(line, "a=ptime:%u", &r->ptime) != 1)
 			goto response_parse_failure_ptime;
@@ -353,17 +353,17 @@ static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *li
 		} else
 			goto response_parse_failure_rtpmap;
 	}
-	
+
 	return 0;
 
 response_parse_failure_ptime:
 	LOGP(DLMGCP, LOGL_ERROR,
 	     "Failed to parse SDP parameter, invalid ptime (%s)\n", line);
-	return -EINVAL;		
+	return -EINVAL;
 response_parse_failure_rtpmap:
 	LOGP(DLMGCP, LOGL_ERROR,
 	     "Failed to parse SDP parameter, invalid rtpmap (%s)\n", line);
-	return -EINVAL;		
+	return -EINVAL;
 }
 
 /* Parse a line like "c=IN IP4 10.11.12.13" */
@@ -533,7 +533,7 @@ static int parse_head_params(struct mgcp_response *r)
 	/* If there is an SDP body attached, prevent for_each_non_empty_line()
 	 * into running in there, we are not yet interested in the parameters
 	 * stored there. */
-	data_end = mgcp_find_section_end(data);	
+	data_end = mgcp_find_section_end(data);
 	if (data_end)
 		*data_end = '\0';
 
@@ -979,7 +979,7 @@ static int add_lco(struct msgb *msg, struct mgcp_msg *mgcp_msg)
 		for (i = 0; i < mgcp_msg->codecs_len; i++) {
 			pt = mgcp_msg->codecs[i];
 			codec = get_value_string_or_null(osmo_mgcpc_codec_names, pt);
-			
+
 			/* Note: Use codec descriptors from enum mgcp_codecs
 			 * in mgcp_client only! */
 			OSMO_ASSERT(codec);
@@ -1067,7 +1067,7 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 
 	for (i = 0; i < mgcp_msg->codecs_len; i++) {
 		pt = map_codec_to_pt(mgcp_msg->ptmap, mgcp_msg->ptmap_len, mgcp_msg->codecs[i]);
-		
+
 		/* Note: Only dynamic payload type from the range 96-127
 		 * require to be explained further via rtpmap. All others
 		 * are implcitly definedby the number in m=audio */
@@ -1077,11 +1077,11 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 			/* Note: Use codec descriptors from enum mgcp_codecs
 			 * in mgcp_client only! */
 			OSMO_ASSERT(codec);
-			
+
 			rc += msgb_printf(msg, "a=rtpmap:%u %s\r\n", pt, codec);
 		}
 	}
-	
+
 	if (mgcp_msg->ptime)
 		rc += msgb_printf(msg, "a=ptime:%u\r\n", mgcp_msg->ptime);
 
