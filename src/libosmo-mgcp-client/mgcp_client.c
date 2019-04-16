@@ -828,16 +828,15 @@ const char *mgcp_client_endpoint_domain(const struct mgcp_client *mgcp)
 	return mgcp->actual.endpoint_domain_name[0] ? mgcp->actual.endpoint_domain_name : "mgw";
 }
 
-const char *mgcp_client_rtpbridge_wildcard(const struct mgcp_client *mgcp)
+static const char *_mgcp_client_name_append_domain(const struct mgcp_client *mgcp, char *name)
 {
 	static char endpoint[MGCP_ENDPOINT_MAXLEN];
 	int rc;
 
-#define RTPBRIDGE_WILDCARD_FMT "rtpbridge/*@%s"
-	rc = snprintf(endpoint, sizeof(endpoint), RTPBRIDGE_WILDCARD_FMT, mgcp_client_endpoint_domain(mgcp));
+	rc = snprintf(endpoint, sizeof(endpoint), "%s@%s", name, mgcp_client_endpoint_domain(mgcp));
 	if (rc > sizeof(endpoint) - 1) {
-		LOGP(DLMGCP, LOGL_ERROR, "MGCP endpoint exceeds maximum length of %zu: '" RTPBRIDGE_WILDCARD_FMT "'\n",
-		     sizeof(endpoint) - 1, mgcp_client_endpoint_domain(mgcp));
+		LOGP(DLMGCP, LOGL_ERROR, "MGCP endpoint exceeds maximum length of %zu: '%s@%s'\n",
+		     sizeof(endpoint) - 1, name, mgcp_client_endpoint_domain(mgcp));
 		return NULL;
 	}
 	if (rc < 1) {
@@ -845,6 +844,11 @@ const char *mgcp_client_rtpbridge_wildcard(const struct mgcp_client *mgcp)
 		return NULL;
 	}
 	return endpoint;
+}
+
+const char *mgcp_client_rtpbridge_wildcard(const struct mgcp_client *mgcp)
+{
+	return _mgcp_client_name_append_domain(mgcp, "rtpbridge/*");
 }
 
 struct mgcp_response_pending * mgcp_client_pending_add(
