@@ -1677,9 +1677,18 @@ int mgcp_endpoints_allocate(struct mgcp_trunk_config *tcfg)
 		tcfg->endpoints[i].cfg = tcfg->cfg;
 		tcfg->endpoints[i].tcfg = tcfg;
 
-		/* NOTE: Currently all endpoints are of type RTP, this will
-		 * change when new variations are implemented */
-		tcfg->endpoints[i].type = &ep_typeset.rtp;
+		switch (tcfg->trunk_type) {
+		case MGCP_TRUNK_VIRTUAL:
+			tcfg->endpoints[i].type = &ep_typeset.rtp;
+			break;
+		case MGCP_TRUNK_E1:
+			/* FIXME: Implement E1 allocation */
+			LOGP(DLMGCP, LOGL_FATAL, "E1 trunks not implemented!\n");
+			break;
+		default:
+			osmo_panic("Cannot allocate unimplemented trunk type %d! %s:%d\n",
+				   tcfg->trunk_type, __FILE__, __LINE__);
+		}
 	}
 
 	tcfg->number_endpoints = tcfg->vty_number_endpoints;
