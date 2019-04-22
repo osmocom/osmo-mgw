@@ -437,8 +437,8 @@ static struct msgb *handle_audit_endpoint(struct mgcp_parse_data *p)
 /* Try to find a free port by attempting to bind on it. Also handle the
  * counter that points on the next free port. Since we have a pointer
  * to the next free port, binding should in work on the first attempt in
- * general. In case of failure the next port is tryed until the whole port
- * range is tryed once. */
+ * general. In case of failure the next port is tried until the whole port
+ * range is tried once. */
 static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 {
 	int i;
