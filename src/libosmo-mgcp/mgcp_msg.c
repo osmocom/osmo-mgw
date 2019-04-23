@@ -365,8 +365,11 @@ int mgcp_parse_osmux_cid(const char *line)
 {
 	int osmux_cid;
 
-	if (sscanf(line + 2, "Osmux: %u", &osmux_cid) != 1)
+	if (sscanf(line + 2, "Osmux: %u", &osmux_cid) != 1) {
+		LOGP(DLMGCP, LOGL_ERROR, "Failed parsing Osmux in MGCP msg line: %s\n",
+		     line);
 		return -1;
+	}
 
 	if (osmux_cid > OSMUX_CID_MAX) {
 		LOGP(DLMGCP, LOGL_ERROR, "Osmux ID too large: %u > %u\n",
