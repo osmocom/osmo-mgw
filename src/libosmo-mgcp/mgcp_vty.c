@@ -1305,14 +1305,7 @@ DEFUN(cfg_mgcp_osmux,
 	if (strcmp(argv[0], "off") == 0) {
 		g_cfg->osmux = OSMUX_USAGE_OFF;
 		return CMD_SUCCESS;
-	}
-
-	/* Since OSMUX support is not finished, we do not
-	 * allow to turn it on yet. */
-	vty_out(vty, "OSMUX currently unavailable in this software version.%s", VTY_NEWLINE);
-	return CMD_WARNING;
-#if 0
-	if (strcmp(argv[0], "on") == 0)
+	} else if (strcmp(argv[0], "on") == 0)
 		g_cfg->osmux = OSMUX_USAGE_ON;
 	else if (strcmp(argv[0], "only") == 0)
 		g_cfg->osmux = OSMUX_USAGE_ONLY;
@@ -1323,7 +1316,7 @@ DEFUN(cfg_mgcp_osmux,
 	}
 
 	return CMD_SUCCESS;
-#endif
+
 }
 
 DEFUN(cfg_mgcp_osmux_ip,
