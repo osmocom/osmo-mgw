@@ -113,9 +113,9 @@ void test_response_cb(struct mgcp_response *response, void *priv)
 	printf("  ptmap_len = %u\n", response->ptmap_len);
 	for(i=0;i<response->ptmap_len;i++) {
 		printf("  ptmap[%u].codec = %u\n", i, response->ptmap[i].codec);
-		printf("  ptmap[%u].pt = %u\n", i, response->ptmap[i].pt);		
+		printf("  ptmap[%u].pt = %u\n", i, response->ptmap[i].pt);
 	}
-	
+
 }
 
 mgcp_trans_id_t dummy_mgcp_send(struct msgb *msg)
@@ -180,7 +180,7 @@ void test_mgcp_msg(void)
 	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE);
 	mgcp_msg.codecs_len = 2;
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
-	mgcp_msg.codecs_len = 1;	
+	mgcp_msg.codecs_len = 1;
 	printf("%s\n", (char *)msg->data);
 
 	printf("Generated CRCX message (three codecs, one with custom pt):\n");
@@ -190,8 +190,8 @@ void test_mgcp_msg(void)
 	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE);
 	mgcp_msg.codecs_len = 3;
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
-	mgcp_msg.codecs_len = 1;	
-	printf("%s\n", (char *)msg->data);		
+	mgcp_msg.codecs_len = 1;
+	printf("%s\n", (char *)msg->data);
 
 	printf("Generated MDCX message:\n");
 	mgcp_msg.verb = MGCP_VERB_MDCX;
@@ -210,7 +210,7 @@ void test_mgcp_msg(void)
 	     MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT);
 	mgcp_msg.codecs_len = 2;
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
-	mgcp_msg.codecs_len = 1;	
+	mgcp_msg.codecs_len = 1;
 	printf("%s\n", (char *)msg->data);
 
 	printf("Generated MDCX message (three codecs, one with custom pt):\n");
@@ -221,8 +221,8 @@ void test_mgcp_msg(void)
 	     MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT);
 	mgcp_msg.codecs_len = 3;
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
-	mgcp_msg.codecs_len = 1;	
-	printf("%s\n", (char *)msg->data);	
+	mgcp_msg.codecs_len = 1;
+	printf("%s\n", (char *)msg->data);
 
 	printf("Generated DLCX message:\n");
 	mgcp_msg.verb = MGCP_VERB_DLCX;
@@ -286,7 +286,7 @@ void test_mgcp_client_cancel()
 			     | MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE),
 		.ptime = 20,
 		.codecs[0] = CODEC_AMR_8000_1,
-		.codecs_len = 1		
+		.codecs_len = 1
 	};
 
 	printf("\n%s():\n", __func__);
