@@ -82,9 +82,8 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 	int ret = 0;
 
 	if (!mode) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint:0x%x missing connection mode\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPCONN(conn, DLMGCP, LOGL_ERROR,
+			 "missing connection mode\n");
 		return -1;
 	}
 	if (!conn)
@@ -101,9 +100,8 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 	else if (strcmp(mode, "loopback") == 0)
 		conn->mode = MGCP_CONN_LOOPBACK;
 	else {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint:0x%x unknown connection mode: '%s'\n",
-		     ENDPOINT_NUMBER(endp), mode);
+		LOGPCONN(conn, DLMGCP, LOGL_ERROR,
+			 "unknown connection mode: '%s'\n", mode);
 		ret = -1;
 	}
 
@@ -113,18 +111,15 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 		    conn->mode & MGCP_CONN_SEND_ONLY ? 1 : 0;
 	}
 
-	LOGP(DLMGCP, LOGL_DEBUG,
-	     "endpoint:0x%x conn:%s\n",
-	     ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn));
+	LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "conn:%s\n", mgcp_conn_dump(conn));
 
-	LOGP(DLMGCP, LOGL_DEBUG,
-	     "endpoint:0x%x connection mode '%s' %d\n",
-	     ENDPOINT_NUMBER(endp), mode, conn->mode);
+	LOGPCONN(conn, DLMGCP, LOGL_DEBUG, "connection mode '%s' %d\n",
+		 mode, conn->mode);
 
 	/* Special handling für RTP connections */
 	if (conn->type == MGCP_CONN_TYPE_RTP) {
-		LOGP(DLMGCP, LOGL_DEBUG, "endpoint:0x%x output_enabled %d\n",
-		     ENDPOINT_NUMBER(endp), conn->u.rtp.end.output_enabled);
+		LOGPCONN(conn, DLMGCP, LOGL_DEBUG, "output_enabled %d\n",
+			 conn->u.rtp.end.output_enabled);
 	}
 
 	/* The VTY might change the connection mode at any time, so we have
@@ -197,9 +192,8 @@ static struct mgcp_endpoint *find_free_endpoint(struct mgcp_endpoint *endpoints,
 	for (i = 0; i < number_endpoints; i++) {
 		if (endpoints[i].callid == NULL) {
 			endp = &endpoints[i];
-			LOGP(DLMGCP, LOGL_DEBUG,
-			     "endpoint:0x%x found free endpoint\n",
-			     ENDPOINT_NUMBER(endp));
+			LOGPENDP(endp, DLMGCP, LOGL_DEBUG,
+			     "found free endpoint\n");
 			endp->wildcarded_req = true;
 			return endp;
 		}
@@ -422,9 +416,9 @@ int mgcp_verify_call_id(struct mgcp_endpoint *endp, const char *callid)
 		return -1;
 
 	if (strcmp(endp->callid, callid) != 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint:0x%x CallIDs mismatch: '%s' != '%s'\n",
-		     ENDPOINT_NUMBER(endp), endp->callid, callid);
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+			 "CallIDs mismatch: '%s' != '%s'\n",
+			 endp->callid, callid);
 		return -1;
 	}
 
@@ -443,25 +437,23 @@ int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 
 	/* Check for null identifiers */
 	if (!conn_id) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint:0x%x invalid ConnectionIdentifier (missing)\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+			 "invalid ConnectionIdentifier (missing)\n");
 		return 510;
 	}
 
 	/* Check for empty connection identifiers */
 	if (strlen(conn_id) == 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint:0x%x invalid ConnectionIdentifier (empty)\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+			 "invalid ConnectionIdentifier (empty)\n");
 		return 510;
 	}
 
 	/* Check for over long connection identifiers */
 	if (strlen(conn_id) > (MGCP_CONN_ID_MAXLEN-1)) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint:0x%x invalid ConnectionIdentifier (too long: %zu > %d) 0x%s\n",
-		     ENDPOINT_NUMBER(endp), strlen(conn_id), MGCP_CONN_ID_MAXLEN-1, conn_id);
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+			"invalid ConnectionIdentifier (too long: %zu > %d) 0x%s\n",
+			 strlen(conn_id), MGCP_CONN_ID_MAXLEN-1, conn_id);
 		return 510;
 	}
 
@@ -469,9 +461,8 @@ int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 	if (mgcp_conn_get(endp, conn_id))
 		return 0;
 
-	LOGP(DLMGCP, LOGL_ERROR,
-	     "endpoint:0x%x no connection found under ConnectionIdentifier 0x%s\n",
-	     ENDPOINT_NUMBER(endp), conn_id);
+	LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+	     "no connection found under ConnectionIdentifier 0x%s\n", conn_id);
 
 	/* When the conn_id was not found, return error code 515 "The transaction refers to an incorrect
 	 * connection-id (may have been already deleted)." */

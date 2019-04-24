@@ -99,4 +99,3 @@ struct mgcp_endpoint {
 #define ENDPOINT_NUMBER(endp) abs((int)(endp - endp->tcfg->endpoints))
 
 void mgcp_endp_release(struct mgcp_endpoint *endp);
-

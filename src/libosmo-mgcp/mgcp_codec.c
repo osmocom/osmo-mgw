@@ -56,8 +56,8 @@ void mgcp_codec_summary(struct mgcp_conn_rtp *conn)
 	endp = conn->conn->endp;
 
 	if (rtp->codecs_assigned == 0) {
-		LOGP(DLMGCP, LOGL_ERROR, "endpoint:0x%x conn:%s no codecs available\n", ENDPOINT_NUMBER(endp),
-		     mgcp_conn_dump(conn->conn));
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "conn:%s no codecs available\n",
+			 mgcp_conn_dump(conn->conn));
 		return;
 	}
 
@@ -65,8 +65,8 @@ void mgcp_codec_summary(struct mgcp_conn_rtp *conn)
 	for (i = 0; i < rtp->codecs_assigned; i++) {
 		codec = &rtp->codecs[i];
 
-		LOGP(DLMGCP, LOGL_DEBUG, "endpoint:0x%x conn:%s codecs[%u]:%s", ENDPOINT_NUMBER(endp),
-		     mgcp_conn_dump(conn->conn), i, dump_codec(codec));
+		LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "conn:%s codecs[%u]:%s",
+			 mgcp_conn_dump(conn->conn), i, dump_codec(codec));
 
 		if (codec == rtp->codec)
 			LOGPC(DLMGCP, LOGL_DEBUG, " [selected]");

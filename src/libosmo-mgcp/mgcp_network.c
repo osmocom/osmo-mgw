@@ -76,14 +76,12 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 	if (endp->cfg->net_ports.bind_addr_probe && conn->end.addr.s_addr != 0) {
 		rc = osmo_sock_local_ip(addr, inet_ntoa(conn->end.addr));
 		if (rc < 0)
-			LOGP(DRTP, LOGL_ERROR,
-			     "endpoint:0x%x CI:%s local interface auto detection failed, using configured addresses...\n",
-			     ENDPOINT_NUMBER(endp), conn->conn->id);
+			LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
+				 "local interface auto detection failed, using configured addresses...\n");
 		else {
-			LOGP(DRTP, LOGL_DEBUG,
-			     "endpoint:0x%x CI:%s selected local rtp bind ip %s by probing using remote ip %s\n",
-			     ENDPOINT_NUMBER(endp), conn->conn->id, addr,
-			     inet_ntoa(conn->end.addr));
+			LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
+				 "selected local rtp bind ip %s by probing using remote ip %s\n",
+				 addr, inet_ntoa(conn->end.addr));
 			return;
 		}
 	}
@@ -93,17 +91,16 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 		/* Check there is a bind IP for the RTP traffic configured,
 		 * if so, use that IP-Address */
 		osmo_strlcpy(addr, endp->cfg->net_ports.bind_addr, INET_ADDRSTRLEN);
-		LOGP(DRTP, LOGL_DEBUG,
-		     "endpoint:0x%x CI:%s using configured rtp bind ip as local bind ip %s\n",
-		     ENDPOINT_NUMBER(endp), conn->conn->id, addr);
+		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
+			 "using configured rtp bind ip as local bind ip %s\n",
+			 addr);
 	} else {
 		/* No specific bind IP is configured for the RTP traffic, so
 		 * assume the IP where we listen for incoming MGCP messages
 		 * as bind IP */
 		osmo_strlcpy(addr, endp->cfg->source_addr, INET_ADDRSTRLEN);
-		LOGP(DRTP, LOGL_DEBUG,
-		     "endpoint:0x%x CI:%s using mgcp bind ip as local rtp bind ip: %s\n",
-		     ENDPOINT_NUMBER(endp), conn->conn->id, addr);
+		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
+			"using mgcp bind ip as local rtp bind ip: %s\n", addr);
 	}
 }
 
@@ -165,10 +162,8 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	OSMO_ASSERT(endp);
 	OSMO_ASSERT(conn);
 
-	LOGP(DRTP, LOGL_DEBUG,
-	     "endpoint:0x%x sending dummy packet...\n", ENDPOINT_NUMBER(endp));
-	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x conn:%s\n",
-	     ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn->conn));
+	LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,"sending dummy packet... %s\n",
+		 mgcp_conn_dump(conn->conn));
 
 	rc = mgcp_udp_send(conn->end.rtp.fd, &conn->end.addr,
 			   conn->end.rtp_port, buf, 1);
@@ -187,9 +182,9 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 		return rc;
 
 failed:
-	LOGP(DRTP, LOGL_ERROR,
-	     "endpoint:0x%x Failed to send dummy %s packet.\n",
-	     ENDPOINT_NUMBER(endp), was_rtcp ? "RTCP" : "RTP");
+	LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
+		 "Failed to send dummy %s packet.\n",
+		 was_rtcp ? "RTCP" : "RTP");
 
 	return -1;
 }
@@ -228,16 +223,16 @@ static int check_rtp_timestamp(struct mgcp_endpoint *endp,
 	if (seq == sstate->last_seq) {
 		if (timestamp != sstate->last_timestamp) {
 			rate_ctr_inc(sstate->err_ts_ctr);
-			LOGP(DRTP, LOGL_ERROR,
-			     "The %s timestamp delta is != 0 but the sequence "
-			     "number %d is the same, "
-			     "TS offset: %d, SeqNo offset: %d "
-			     "on 0x%x SSRC: %u timestamp: %u "
-			     "from %s:%d\n",
-			     text, seq,
-			     state->patch.timestamp_offset, state->patch.seq_offset,
-			     ENDPOINT_NUMBER(endp), sstate->ssrc, timestamp,
-			     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+			LOGPENDP(endp, DRTP, LOGL_ERROR,
+				 "The %s timestamp delta is != 0 but the sequence "
+				 "number %d is the same, "
+				 "TS offset: %d, SeqNo offset: %d "
+				 "on SSRC: %u timestamp: %u "
+				 "from %s:%d\n",
+				 text, seq,
+				 state->patch.timestamp_offset, state->patch.seq_offset,
+				 sstate->ssrc, timestamp, inet_ntoa(addr->sin_addr),
+				 ntohs(addr->sin_port));
 		}
 		return 0;
 	}
@@ -248,25 +243,25 @@ static int check_rtp_timestamp(struct mgcp_endpoint *endp,
 
 	if (tsdelta == 0) {
 		/* Don't update *tsdelta_out */
-		LOGP(DRTP, LOGL_NOTICE,
-		     "The %s timestamp delta is %d "
-		     "on 0x%x SSRC: %u timestamp: %u "
-		     "from %s:%d\n",
-		     text, tsdelta,
-		     ENDPOINT_NUMBER(endp), sstate->ssrc, timestamp,
-		     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+		LOGPENDP(endp, DRTP, LOGL_NOTICE,
+			 "The %s timestamp delta is %d "
+			 "on SSRC: %u timestamp: %u "
+			 "from %s:%d\n",
+			 text, tsdelta,
+			 sstate->ssrc, timestamp,
+			 inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 
 		return 0;
 	}
 
 	if (sstate->last_tsdelta != tsdelta) {
 		if (sstate->last_tsdelta) {
-			LOGP(DRTP, LOGL_INFO,
-			     "The %s timestamp delta changes from %d to %d "
-			     "on 0x%x SSRC: %u timestamp: %u from %s:%d\n",
-			     text, sstate->last_tsdelta, tsdelta,
-			     ENDPOINT_NUMBER(endp), sstate->ssrc, timestamp,
-			     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+			LOGPENDP(endp, DRTP, LOGL_INFO,
+				 "The %s timestamp delta changes from %d to %d "
+				 "on SSRC: %u timestamp: %u from %s:%d\n",
+				 text, sstate->last_tsdelta, tsdelta,
+				 sstate->ssrc, timestamp,
+				 inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 		}
 	}
 
@@ -278,18 +273,18 @@ static int check_rtp_timestamp(struct mgcp_endpoint *endp,
 
 	if (timestamp_error) {
 		rate_ctr_inc(sstate->err_ts_ctr);
-		LOGP(DRTP, LOGL_NOTICE,
-		     "The %s timestamp has an alignment error of %d "
-		     "on 0x%x SSRC: %u "
-		     "SeqNo delta: %d, TS delta: %d, dTS/dSeq: %d "
-		     "from %s:%d. ptime: %d\n",
-		     text, timestamp_error,
-		     ENDPOINT_NUMBER(endp), sstate->ssrc,
-		     (int16_t)(seq - sstate->last_seq),
-		     (int32_t)(timestamp - sstate->last_timestamp),
-		     tsdelta,
-		     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port),
-		     state->packet_duration);
+		LOGPENDP(endp, DRTP, LOGL_NOTICE,
+			 "The %s timestamp has an alignment error of %d "
+			 "on SSRC: %u "
+			 "SeqNo delta: %d, TS delta: %d, dTS/dSeq: %d "
+			 "from %s:%d. ptime: %d\n",
+			 text, timestamp_error,
+			 sstate->ssrc,
+			 (int16_t)(seq - sstate->last_seq),
+			 (int32_t)(timestamp - sstate->last_timestamp),
+			 tsdelta,
+			 inet_ntoa(addr->sin_addr), ntohs(addr->sin_port),
+			 state->packet_duration);
 	}
 	return 1;
 }
@@ -308,21 +303,19 @@ static int adjust_rtp_timestamp_offset(struct mgcp_endpoint *endp,
 	if (tsdelta == 0) {
 		tsdelta = state->out_stream.last_tsdelta;
 		if (tsdelta != 0) {
-			LOGP(DRTP, LOGL_NOTICE,
-			     "A fixed packet duration is not available on 0x%x, "
-			     "using last output timestamp delta instead: %d "
-			     "from %s:%d\n",
-			     ENDPOINT_NUMBER(endp), tsdelta,
-			     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+			LOGPENDP(endp, DRTP, LOGL_NOTICE,
+				 "A fixed packet duration is not available, "
+				 "using last output timestamp delta instead: %d "
+				 "from %s:%d\n", tsdelta,
+				 inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 		} else {
 			tsdelta = rtp_end->codec->rate * 20 / 1000;
-			LOGP(DRTP, LOGL_NOTICE,
-			     "Fixed packet duration and last timestamp delta "
-			     "are not available on 0x%x, "
-			     "using fixed 20ms instead: %d "
-			     "from %s:%d\n",
-			     ENDPOINT_NUMBER(endp), tsdelta,
-			     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+			LOGPENDP(endp, DRTP, LOGL_NOTICE,
+				 "Fixed packet duration and last timestamp delta "
+				 "are not available, "
+				 "using fixed 20ms instead: %d "
+				 "from %s:%d\n", tsdelta,
+				 inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 		}
 	}
 
@@ -332,13 +325,12 @@ static int adjust_rtp_timestamp_offset(struct mgcp_endpoint *endp,
 	if (state->patch.timestamp_offset != timestamp_offset) {
 		state->patch.timestamp_offset = timestamp_offset;
 
-		LOGP(DRTP, LOGL_NOTICE,
-		     "Timestamp offset change on 0x%x SSRC: %u "
-		     "SeqNo delta: %d, TS offset: %d, "
-		     "from %s:%d\n",
-		     ENDPOINT_NUMBER(endp), state->in_stream.ssrc,
-		     delta_seq, state->patch.timestamp_offset,
-		     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+		LOGPENDP(endp, DRTP, LOGL_NOTICE,
+			 "Timestamp offset change on SSRC: %u "
+			 "SeqNo delta: %d, TS offset: %d, "
+			 "from %s:%d\n", state->in_stream.ssrc,
+			 delta_seq, state->patch.timestamp_offset,
+			 inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 	}
 
 	return timestamp_offset;
@@ -364,14 +356,13 @@ static int align_rtp_timestamp_offset(struct mgcp_endpoint *endp,
 	if (ts_error) {
 		state->patch.timestamp_offset += ptime - ts_error;
 
-		LOGP(DRTP, LOGL_NOTICE,
-		     "Corrected timestamp alignment error of %d on 0x%x SSRC: %u "
-		     "new TS offset: %d, "
-		     "from %s:%d\n",
-		     ts_error,
-		     ENDPOINT_NUMBER(endp), state->in_stream.ssrc,
-		     state->patch.timestamp_offset, inet_ntoa(addr->sin_addr),
-		     ntohs(addr->sin_port));
+		LOGPENDP(endp, DRTP, LOGL_NOTICE,
+			 "Corrected timestamp alignment error of %d on SSRC: %u "
+			 "new TS offset: %d, "
+			 "from %s:%d\n",
+			 ts_error, state->in_stream.ssrc,
+			 state->patch.timestamp_offset, inet_ntoa(addr->sin_addr),
+			 ntohs(addr->sin_port));
 	}
 
 	/* Check we really managed to compensate the timestamp
@@ -397,8 +388,7 @@ int mgcp_rtp_processing_default(struct mgcp_endpoint *endp,
 				struct mgcp_rtp_end *dst_end,
 				char *data, int *len, int buf_size)
 {
-	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x transcoding disabled\n",
-	     ENDPOINT_NUMBER(endp));
+	LOGPENDP(endp, DRTP, LOGL_DEBUG, "transcoding disabled\n");
 	return 0;
 }
 
@@ -411,8 +401,7 @@ int mgcp_setup_rtp_processing_default(struct mgcp_endpoint *endp,
 				      struct mgcp_conn_rtp *conn_dst,
 				      struct mgcp_conn_rtp *conn_src)
 {
-	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x transcoding disabled\n",
-	     ENDPOINT_NUMBER(endp));
+	LOGPENDP(endp, DRTP, LOGL_DEBUG, "transcoding disabled\n");
 	return 0;
 }
 
@@ -421,9 +410,8 @@ void mgcp_get_net_downlink_format_default(struct mgcp_endpoint *endp,
 					  const char **fmtp_extra,
 					  struct mgcp_conn_rtp *conn)
 {
-	LOGP(DRTP, LOGL_DEBUG,
-	     "endpoint:0x%x conn:%s using format defaults\n",
-	     ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn->conn));
+	LOGPENDP(endp, DRTP, LOGL_DEBUG, "conn:%s using format defaults\n",
+		 mgcp_conn_dump(conn->conn));
 
 	*codec = conn->end.codec;
 	*fmtp_extra = conn->end.fmtp_extra;
@@ -459,9 +447,9 @@ void mgcp_rtp_annex_count(struct mgcp_endpoint *endp,
 			if (seq < state->stats.max_seq)
 				state->stats.cycles += RTP_SEQ_MOD;
 		} else if (udelta <= RTP_SEQ_MOD - RTP_MAX_MISORDER) {
-			LOGP(DRTP, LOGL_NOTICE,
-			     "RTP seqno made a very large jump on 0x%x delta: %u\n",
-			     ENDPOINT_NUMBER(endp), udelta);
+			LOGPENDP(endp, DRTP, LOGL_NOTICE,
+				 "RTP seqno made a very large jump on delta: %u\n",
+				 udelta);
 		}
 	}
 
@@ -541,28 +529,27 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 		state->out_stream.last_tsdelta = 0;
 		state->out_stream.last_timestamp = timestamp;
 		state->out_stream.ssrc = ssrc - 1;	/* force output SSRC change */
-		LOGP(DRTP, LOGL_INFO,
-		     "endpoint:0x%x initializing stream, SSRC: %u timestamp: %u "
-		     "pkt-duration: %d, from %s:%d\n",
-		     ENDPOINT_NUMBER(endp), state->in_stream.ssrc,
-		     state->patch.seq_offset, state->packet_duration,
-		     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+		LOGPENDP(endp, DRTP, LOGL_INFO,
+			 "initializing stream, SSRC: %u timestamp: %u "
+			 "pkt-duration: %d, from %s:%d\n",
+			 state->in_stream.ssrc,
+			 state->patch.seq_offset, state->packet_duration,
+			 inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 		if (state->packet_duration == 0) {
 			state->packet_duration =
 			    rtp_end->codec->rate * 20 / 1000;
-			LOGP(DRTP, LOGL_NOTICE,
-			     "endpoint:0x%x fixed packet duration is not available, "
-			     "using fixed 20ms instead: %d from %s:%d\n",
-			     ENDPOINT_NUMBER(endp), state->packet_duration,
-			     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+			LOGPENDP(endp, DRTP, LOGL_NOTICE,
+				 "fixed packet duration is not available, "
+				 "using fixed 20ms instead: %d from %s:%d\n",
+				 state->packet_duration,
+				 inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 		}
 	} else if (state->in_stream.ssrc != ssrc) {
-		LOGP(DRTP, LOGL_NOTICE,
-		     "endpoint:0x%x SSRC changed: %u -> %u  "
-		     "from %s:%d\n",
-		     ENDPOINT_NUMBER(endp),
-		     state->in_stream.ssrc, rtp_hdr->ssrc,
-		     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+		LOGPENDP(endp, DRTP, LOGL_NOTICE,
+			 "SSRC changed: %u -> %u  "
+			 "from %s:%d\n",
+			 state->in_stream.ssrc, rtp_hdr->ssrc,
+			 inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 
 		state->in_stream.ssrc = ssrc;
 		if (rtp_end->force_constant_ssrc) {
@@ -586,13 +573,12 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 			if (rtp_end->force_constant_ssrc != -1)
 				rtp_end->force_constant_ssrc -= 1;
 
-			LOGP(DRTP, LOGL_NOTICE,
-			     "endpoint:0x%x SSRC patching enabled, SSRC: %u "
-			     "SeqNo offset: %d, TS offset: %d "
-			     "from %s:%d\n",
-			     ENDPOINT_NUMBER(endp), state->in_stream.ssrc,
-			     state->patch.seq_offset, state->patch.timestamp_offset,
-			     inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+			LOGPENDP(endp, DRTP, LOGL_NOTICE,
+				 "SSRC patching enabled, SSRC: %u "
+				 "SeqNo offset: %d, TS offset: %d "
+				 "from %s:%d\n", state->in_stream.ssrc,
+				 state->patch.seq_offset, state->patch.timestamp_offset,
+				 inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 		}
 
 		state->in_stream.last_tsdelta = 0;
@@ -679,9 +665,8 @@ static void rfc5993_hr_convert(struct mgcp_endpoint *endp, char *data, int *len)
 	} else {
 		/* It is possible that multiple payloads occur in one RTP
 		 * packet. This is not supported yet. */
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x cannot figure out how to convert RTP packet\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPENDP(endp, DRTP, LOGL_ERROR,
+			 "cannot figure out how to convert RTP packet\n");
 	}
 }
 
@@ -726,9 +711,8 @@ static int amr_oa_bwe_convert(struct mgcp_endpoint *endp, char *data, int *len,
 			rc = payload_len;
 	}
 	if (rc < 0) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x AMR RTP packet conversion failed\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPENDP(endp, DRTP, LOGL_ERROR,
+			 "AMR RTP packet conversion failed\n");
 		return -EINVAL;
 	}
 
@@ -810,19 +794,14 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	OSMO_ASSERT(conn_dst);
 
 	if (is_rtp) {
-		LOGP(DRTP, LOGL_DEBUG,
-		     "endpoint:0x%x delivering RTP packet...\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPENDP(endp, DRTP, LOGL_DEBUG, "delivering RTP packet...\n");
 	} else {
-		LOGP(DRTP, LOGL_DEBUG,
-		     "endpoint:0x%x delivering RTCP packet...\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPENDP(endp, DRTP, LOGL_DEBUG, "delivering RTCP packet...\n");
 	}
 
-	LOGP(DRTP, LOGL_DEBUG,
-	     "endpoint:0x%x loop:%d, mode:%d%s\n",
-	     ENDPOINT_NUMBER(endp), tcfg->audio_loop, conn_src->conn->mode,
-	     conn_src->conn->mode == MGCP_CONN_LOOPBACK ? " (loopback)" : "");
+	LOGPENDP(endp, DRTP, LOGL_DEBUG, "loop:%d, mode:%d%s\n",
+		 tcfg->audio_loop, conn_src->conn->mode,
+		 conn_src->conn->mode == MGCP_CONN_LOOPBACK ? " (loopback)" : "");
 
 	/* FIXME: It is legal that the payload type on the egress connection is
 	 * different from the payload type that has been negotiated on the
@@ -835,9 +814,8 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	if (is_rtp) {
 		rc = mgcp_patch_pt(conn_src, conn_dst, buf, len);
 		if (rc < 0) {
-			LOGP(DRTP, LOGL_DEBUG,
-			     "endpoint:0x%x can not patch PT because no suitable egress codec was found.\n",
-			     ENDPOINT_NUMBER(endp));
+			LOGPENDP(endp, DRTP, LOGL_DEBUG,
+				 "can not patch PT because no suitable egress codec was found.\n");
 		}
 	}
 
@@ -849,13 +827,12 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 
 	if (!rtp_end->output_enabled) {
 		rate_ctr_inc(&conn_dst->rate_ctr_group->ctr[RTP_DROPPED_PACKETS_CTR]);
-		LOGP(DRTP, LOGL_DEBUG,
-		     "endpoint:0x%x output disabled, drop to %s %s "
-		     "rtp_port:%u rtcp_port:%u\n",
-		     ENDPOINT_NUMBER(endp),
-		     dest_name,
-		     inet_ntoa(rtp_end->addr),
-		     ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
+		LOGPENDP(endp, DRTP, LOGL_DEBUG,
+			 "output disabled, drop to %s %s "
+			 "rtp_port:%u rtcp_port:%u\n",
+			 dest_name,
+			 inet_ntoa(rtp_end->addr),
+			 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
 		    );
 	} else if (is_rtp) {
 		int cont;
@@ -882,13 +859,12 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 				      "GSM-HR-08") == 0)
 				rfc5993_hr_convert(endp, buf, &buflen);
 
-			LOGP(DRTP, LOGL_DEBUG,
-			     "endpoint:0x%x process/send to %s %s "
-			     "rtp_port:%u rtcp_port:%u\n",
-			     ENDPOINT_NUMBER(endp), dest_name,
-			     inet_ntoa(rtp_end->addr), ntohs(rtp_end->rtp_port),
-			     ntohs(rtp_end->rtcp_port)
-			    );
+			LOGPENDP(endp, DRTP, LOGL_DEBUG,
+				 "process/send to %s %s "
+				 "rtp_port:%u rtcp_port:%u\n",
+				 dest_name, inet_ntoa(rtp_end->addr),
+				 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
+				);
 
 			/* Forward a copy of the RTP data to a debug ip/port */
 			forward_data(rtp_end->rtp.fd, &conn_src->tap_out,
@@ -906,10 +882,9 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 					data[0] = 0xe4;
 					data[1] = 0x00;
 					rtp_state->patched_first_rtp_payload = true;
-					LOGP(DRTP, LOGL_DEBUG,
-					     "endpoint:0x%x Patching over first two bytes"
-					     " to fake an IuUP Initialization Ack\n",
-					     ENDPOINT_NUMBER(endp));
+					LOGPENDP(endp, DRTP, LOGL_DEBUG,
+						 "Patching over first two bytes"
+						 " to fake an IuUP Initialization Ack\n");
 				}
 			}
 
@@ -928,13 +903,11 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 		} while (buflen > 0);
 		return nbytes;
 	} else if (!tcfg->omit_rtcp) {
-		LOGP(DRTP, LOGL_DEBUG,
-		     "endpoint:0x%x send to %s %s rtp_port:%u rtcp_port:%u\n",
-		     ENDPOINT_NUMBER(endp),
-		     dest_name,
-		     inet_ntoa(rtp_end->addr),
-		     ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
-		    );
+		LOGPENDP(endp, DRTP, LOGL_DEBUG,
+			 "send to %s %s rtp_port:%u rtcp_port:%u\n",
+			 dest_name, inet_ntoa(rtp_end->addr),
+			 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
+			);
 
 		len = mgcp_udp_send(rtp_end->rtcp.fd,
 				    &rtp_end->addr,
@@ -970,20 +943,19 @@ static int receive_from(struct mgcp_endpoint *endp, int fd,
 
 	rc = recvfrom(fd, buf, bufsize, 0, (struct sockaddr *)addr, &slen);
 
-	LOGP(DRTP, LOGL_DEBUG,
+	LOGPENDP(endp, DRTP, LOGL_DEBUG,
 	     "receiving %u bytes length packet from %s:%u ...\n",
 	     rc, inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 
 	if (rc < 0) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x failed to receive packet, errno: %d/%s\n",
-		     ENDPOINT_NUMBER(endp), errno, strerror(errno));
+		LOGPENDP(endp, DRTP, LOGL_ERROR,
+			 "failed to receive packet, errno: %d/%s\n",
+			 errno, strerror(errno));
 		return -1;
 	}
 
 	if (tossed) {
-		LOGP(DRTP, LOGL_ERROR, "endpoint:0x%x packet tossed\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPENDP(endp, DRTP, LOGL_ERROR, "packet tossed\n");
 	}
 
 	return rc;
@@ -994,9 +966,6 @@ static int receive_from(struct mgcp_endpoint *endp, int fd,
 static int check_rtp_origin(struct mgcp_conn_rtp *conn,
 			    struct sockaddr_in *addr)
 {
-	struct mgcp_endpoint *endp;
-	endp = conn->conn->endp;
-
 	if (conn->end.addr.s_addr == 0) {
 		switch (conn->conn->mode) {
 		case MGCP_CONN_LOOPBACK:
@@ -1007,20 +976,18 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn,
 			 * Response is received, but the nano3G expects an IuUP Initialization Ack before it even
 			 * sends the RAB Assignment Response. Hence, if the remote address is 0.0.0.0 and the
 			 * MGCP port is in loopback mode, allow looping back the packet to any source. */
-			LOGP(DRTP, LOGL_ERROR,
-			     "endpoint:0x%x In loopback mode and remote address not set:"
-			     " allowing data from address: %s\n",
-			     ENDPOINT_NUMBER(endp), inet_ntoa(addr->sin_addr));
+			LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
+				 "In loopback mode and remote address not set:"
+				 " allowing data from address: %s\n", inet_ntoa(addr->sin_addr));
 			return 0;
 
 		default:
 			/* Receiving early media before the endpoint is configured. Instead of logging
 			 * this as an error that occurs on every call, keep it more low profile to not
 			 * confuse humans with expected errors. */
-			LOGP(DRTP, LOGL_INFO,
-			     "endpoint:0x%x I:%s Rx RTP from %s, but remote address not set:"
-			     " dropping early media\n",
-			     ENDPOINT_NUMBER(endp), conn->conn->id, inet_ntoa(addr->sin_addr));
+			LOGPCONN(conn->conn, DRTP, LOGL_INFO,
+				 "Rx RTP from %s, but remote address not set:"
+				 " dropping early media\n", inet_ntoa(addr->sin_addr));
 			return -1;
 		}
 	}
@@ -1028,13 +995,11 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn,
 	/* Note: Check if the inbound RTP data comes from the same host to
 	 * which we send our outgoing RTP traffic. */
 	if (conn->end.addr.s_addr != addr->sin_addr.s_addr) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x data from wrong address: %s, ",
-		     ENDPOINT_NUMBER(endp), inet_ntoa(addr->sin_addr));
+		LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
+			 "data from wrong address: %s, ", inet_ntoa(addr->sin_addr));
 		LOGPC(DRTP, LOGL_ERROR, "expected: %s\n",
 		      inet_ntoa(conn->end.addr));
-		LOGP(DRTP, LOGL_ERROR, "endpoint:0x%x packet tossed\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPCONN(conn->conn, DRTP, LOGL_ERROR, "packet tossed\n");
 		return -1;
 	}
 
@@ -1044,14 +1009,12 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn,
 	 * plausibility. */
 	if (conn->end.rtp_port != addr->sin_port &&
 	    conn->end.rtcp_port != addr->sin_port) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x data from wrong source port: %d, ",
-		     ENDPOINT_NUMBER(endp), ntohs(addr->sin_port));
+		LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
+			 "data from wrong source port: %d, ", ntohs(addr->sin_port));
 		LOGPC(DRTP, LOGL_ERROR,
 		      "expected: %d for RTP or %d for RTCP\n",
 		      ntohs(conn->end.rtp_port), ntohs(conn->end.rtcp_port));
-		LOGP(DRTP, LOGL_ERROR, "endpoint:0x%x packet tossed\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPCONN(conn->conn, DRTP, LOGL_ERROR, "packet tossed\n");
 		return -1;
 	}
 
@@ -1062,29 +1025,26 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn,
  * makes sense */
 static int check_rtp_destin(struct mgcp_conn_rtp *conn)
 {
-	struct mgcp_endpoint *endp;
-	endp = conn->conn->endp;
-
 	/* Note: it is legal to create a connection but never setting a port
 	 * and IP-address for outgoing data. */
 	if (strcmp(inet_ntoa(conn->end.addr), "0.0.0.0") == 0 && conn->end.rtp_port == 0) {
-		LOGP(DRTP, LOGL_DEBUG,
-		     "endpoint:0x%x destination IP-address and rtp port is (not yet) known (%s:%u)\n",
-		     ENDPOINT_NUMBER(endp), inet_ntoa(conn->end.addr), conn->end.rtp_port);
+		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
+			 "destination IP-address and rtp port is (not yet) known (%s:%u)\n",
+			 inet_ntoa(conn->end.addr), conn->end.rtp_port);
 		return -1;
 	}
 
 	if (strcmp(inet_ntoa(conn->end.addr), "0.0.0.0") == 0) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x destination IP-address is invalid (%s:%u)\n",
-		     ENDPOINT_NUMBER(endp), inet_ntoa(conn->end.addr), conn->end.rtp_port);
+		LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
+			 "destination IP-address is invalid (%s:%u)\n",
+			 inet_ntoa(conn->end.addr), conn->end.rtp_port);
 		return -1;
 	}
 
 	if (conn->end.rtp_port == 0) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x destination rtp port is invalid (%s:%u)\n",
-		     ENDPOINT_NUMBER(endp), inet_ntoa(conn->end.addr), conn->end.rtp_port);
+		LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
+			 "destination rtp port is invalid (%s:%u)\n",
+			 inet_ntoa(conn->end.addr), conn->end.rtp_port);
 		return -1;
 	}
 
@@ -1152,8 +1112,7 @@ static int mgcp_recv(int *proto, struct sockaddr_in *addr, char *buf,
 	endp = conn->conn->endp;
 	tcfg = endp->tcfg;
 
-	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x receiving RTP/RTCP packet...\n",
-	     ENDPOINT_NUMBER(endp));
+	LOGPCONN(conn->conn, DRTP, LOGL_DEBUG, "receiving RTP/RTCP packet...\n");
 
 	rc = receive_from(endp, fd->fd, addr, buf, buf_size);
 	if (rc <= 0)
@@ -1167,26 +1126,23 @@ static int mgcp_recv(int *proto, struct sockaddr_in *addr, char *buf,
 
 	if (*proto == MGCP_PROTO_RTP) {
 		if (check_rtp(buf, rc) < 0) {
-			LOGP(DRTP, LOGL_ERROR,
-			     "endpoint:0x%x invalid RTP packet received -- packet tossed\n",
-			     ENDPOINT_NUMBER(endp));
+			LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
+				 "invalid RTP packet received -- packet tossed\n");
 			return -1;
 		}
 	} else if (*proto == MGCP_PROTO_RTCP) {
 		if (check_rtcp(buf, rc) < 0) {
-			LOGP(DRTP, LOGL_ERROR,
-			     "endpoint:0x%x invalid RTCP packet received -- packet tossed\n",
-			     ENDPOINT_NUMBER(endp));
+			LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
+				 "invalid RTCP packet received -- packet tossed\n");
 			return -1;
 		}
 	}
 
-	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x ", ENDPOINT_NUMBER(endp));
+	LOGPCONN(conn->conn, DRTP, LOGL_DEBUG, "");
 	LOGPC(DRTP, LOGL_DEBUG, "receiving from %s %s %d\n",
 	      conn->conn->name, inet_ntoa(addr->sin_addr),
 	      ntohs(addr->sin_port));
-	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x conn:%s\n", ENDPOINT_NUMBER(endp),
-	     mgcp_conn_dump(conn->conn));
+	LOGPENDP(endp, DRTP, LOGL_DEBUG, "conn:%s\n", mgcp_conn_dump(conn->conn));
 
 	/* Check if the origin of the RTP packet seems plausible */
 	if (tcfg->rtp_accept_all == 0) {
@@ -1196,11 +1152,10 @@ static int mgcp_recv(int *proto, struct sockaddr_in *addr, char *buf,
 
 	/* Filter out dummy message */
 	if (rc == 1 && buf[0] == MGCP_DUMMY_LOAD) {
-		LOGP(DRTP, LOGL_NOTICE,
-		     "endpoint:0x%x dummy message received\n",
-		     ENDPOINT_NUMBER(endp));
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x packet tossed\n", ENDPOINT_NUMBER(endp));
+		LOGPCONN(conn->conn, DRTP, LOGL_NOTICE,
+			 "dummy message received\n");
+		LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
+			 "packet tossed\n");
 		return 0;
 	}
 
@@ -1224,8 +1179,8 @@ static int mgcp_send_rtp(int proto, struct sockaddr_in *addr, char *buf,
 	struct mgcp_endpoint *endp;
 	endp = conn_src->conn->endp;
 
-	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x destin conn:%s\n",
-	     ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn_dst->conn));
+	LOGPENDP(endp, DRTP, LOGL_DEBUG, "destin conn:%s\n",
+		 mgcp_conn_dump(conn_dst->conn));
 
 	/* Before we try to deliver the packet, we check if the destination
 	 * port and IP-Address make sense at all. If not, we will be unable
@@ -1237,27 +1192,23 @@ static int mgcp_send_rtp(int proto, struct sockaddr_in *addr, char *buf,
 	 * destination connection. */
 	switch (conn_dst->type) {
 	case MGCP_RTP_DEFAULT:
-		LOGP(DRTP, LOGL_DEBUG,
-		     "endpoint:0x%x endpoint type is MGCP_RTP_DEFAULT, "
-		     "using mgcp_send() to forward data directly\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPENDP(endp, DRTP, LOGL_DEBUG,
+			 "endpoint type is MGCP_RTP_DEFAULT, "
+			 "using mgcp_send() to forward data directly\n");
 		return mgcp_send(endp, proto == MGCP_PROTO_RTP,
 				 addr, buf, buf_size, conn_src, conn_dst);
 	case MGCP_OSMUX_BSC_NAT:
 	case MGCP_OSMUX_BSC:
-		LOGP(DRTP, LOGL_DEBUG,
-		     "endpoint:0x%x endpoint type is MGCP_OSMUX_BSC_NAT, "
-		     "using osmux_xfrm_to_osmux() to forward data through OSMUX\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPENDP(endp, DRTP, LOGL_DEBUG,
+			 "endpoint type is MGCP_OSMUX_BSC_NAT, "
+			 "using osmux_xfrm_to_osmux() to forward data through OSMUX\n");
 		return osmux_xfrm_to_osmux(buf, buf_size, conn_dst);
 	}
 
 	/* If the data has not been handled/forwarded until here, it will
 	 * be discarded, this should not happen, normally the MGCP type
 	 * should be properly set */
-	LOGP(DRTP, LOGL_ERROR,
-	     "endpoint:0x%x bad MGCP type -- data discarded!\n",
-	     ENDPOINT_NUMBER(endp));
+	LOGPENDP(endp, DRTP, LOGL_ERROR, "bad MGCP type -- data discarded!\n");
 
 	return -1;
 }
@@ -1273,8 +1224,6 @@ int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
 				unsigned int buf_size, struct mgcp_conn *conn)
 {
 	struct mgcp_conn *conn_dst;
-	struct mgcp_endpoint *endp;
-	endp = conn->endp;
 
 	/*! NOTE: This callback function implements the endpoint specific
 	 *  dispatch bahviour of an rtp bridge/proxy endpoint. It is assumed
@@ -1300,17 +1249,15 @@ int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
 
 	/* There is no destination conn, stop here */
 	if (!conn_dst) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x unable to find destination conn\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPCONN(conn, DRTP, LOGL_ERROR,
+			 "unable to find destination conn\n");
 		return -1;
 	}
 
 	/* The destination conn is not an RTP connection */
 	if (conn_dst->type != MGCP_CONN_TYPE_RTP) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x unable to find suitable destination conn\n",
-		     ENDPOINT_NUMBER(endp));
+		LOGPCONN(conn, DRTP, LOGL_ERROR,
+			 "unable to find suitable destination conn\n");
 		return -1;
 	}
 
@@ -1362,8 +1309,8 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	endp = conn_src->conn->endp;
 	OSMO_ASSERT(endp);
 
-	LOGP(DRTP, LOGL_DEBUG, "endpoint:0x%x source conn:%s\n",
-	     ENDPOINT_NUMBER(endp), mgcp_conn_dump(conn_src->conn));
+	LOGPENDP(endp, DRTP, LOGL_DEBUG, "source conn:%s\n",
+		 mgcp_conn_dump(conn_src->conn));
 
 	/* Receive packet */
 	len = mgcp_recv(&proto, &addr, buf, sizeof(buf), fd);
@@ -1444,20 +1391,21 @@ static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
 {
 	/* NOTE: The port that is used for RTCP is the RTP port incremented by one
 	 * (e.g. RTP-Port = 16000 ==> RTCP-Port = 16001) */
+	 struct mgcp_endpoint *endp = &cfg->trunk.endpoints[endpno];
 
 	if (mgcp_create_bind(source_addr, &rtp_end->rtp,
 			     rtp_end->local_port) != 0) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x failed to create RTP port: %s:%d\n", endpno,
-		     source_addr, rtp_end->local_port);
+		LOGPENDP(endp, DRTP, LOGL_ERROR,
+			 "failed to create RTP port: %s:%d\n",
+			 source_addr, rtp_end->local_port);
 		goto cleanup0;
 	}
 
 	if (mgcp_create_bind(source_addr, &rtp_end->rtcp,
 			     rtp_end->local_port + 1) != 0) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x failed to create RTCP port: %s:%d\n", endpno,
-		     source_addr, rtp_end->local_port + 1);
+		LOGPENDP(endp, DRTP, LOGL_ERROR,
+			 "failed to create RTCP port: %s:%d\n",
+			 source_addr, rtp_end->local_port + 1);
 		goto cleanup1;
 	}
 
@@ -1467,17 +1415,17 @@ static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
 
 	rtp_end->rtp.when = BSC_FD_READ;
 	if (osmo_fd_register(&rtp_end->rtp) != 0) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x failed to register RTP port %d\n", endpno,
-		     rtp_end->local_port);
+		LOGPENDP(endp, DRTP, LOGL_ERROR,
+			 "failed to register RTP port %d\n",
+			 rtp_end->local_port);
 		goto cleanup2;
 	}
 
 	rtp_end->rtcp.when = BSC_FD_READ;
 	if (osmo_fd_register(&rtp_end->rtcp) != 0) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x failed to register RTCP port %d\n", endpno,
-		     rtp_end->local_port + 1);
+		LOGPENDP(endp, DRTP, LOGL_ERROR,
+			 "failed to register RTCP port %d\n",
+			 rtp_end->local_port + 1);
 		goto cleanup3;
 	}
 
@@ -1511,10 +1459,8 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 	end = &conn->end;
 
 	if (end->rtp.fd != -1 || end->rtcp.fd != -1) {
-		LOGP(DRTP, LOGL_ERROR,
-		     "endpoint:0x%x %u was already bound on conn:%s\n",
-		     ENDPOINT_NUMBER(endp), rtp_port,
-		     mgcp_conn_dump(conn->conn));
+		LOGPENDP(endp, DRTP, LOGL_ERROR, "%u was already bound on conn:%s\n",
+			 rtp_port, mgcp_conn_dump(conn->conn));
 
 		/* Double bindings should never occour! Since we always allocate
 		 * connections dynamically and free them when they are not

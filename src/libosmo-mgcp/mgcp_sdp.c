@@ -376,7 +376,7 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 
 	talloc_free(tmp_ctx);
 
-	LOGP(DLMGCP, LOGL_NOTICE,
+	LOGPCONN(conn->conn, DLMGCP, LOGL_NOTICE,
 	     "Got media info via SDP: port:%d, addr:%s, duration:%d, payload-types:",
 	     ntohs(rtp->rtp_port), inet_ntoa(rtp->addr),
 	     rtp->packet_duration_ms);
@@ -571,6 +571,6 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 	return 0;
 
 buffer_too_small:
-	LOGP(DLMGCP, LOGL_ERROR, "SDP messagebuffer too small\n");
+	LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR, "SDP messagebuffer too small\n");
 	return -1;
 }

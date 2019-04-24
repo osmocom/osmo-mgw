@@ -75,8 +75,7 @@ static int mgcp_alloc_id(struct mgcp_endpoint *endp, char *id)
 		}
 	}
 
-	LOGP(DLMGCP, LOGL_ERROR, "endpoint:0x%x, unable to generate a unique connectionIdentifier\n",
-	     ENDPOINT_NUMBER(endp));
+	LOGPENDP(endp, DLMGCP, LOGL_ERROR, "unable to generate a unique connectionIdentifier\n");
 
 	return -1;
 }
@@ -129,7 +128,7 @@ static void mgcp_rtp_conn_cleanup(struct mgcp_conn_rtp *conn_rtp)
 void mgcp_conn_watchdog_cb(void *data)
 {
 	struct mgcp_conn *conn = data;
-	LOGP(DLMGCP, LOGL_ERROR, "endpoint:0x%x CI:%s connection timed out!\n", ENDPOINT_NUMBER(conn->endp), conn->id);
+	LOGPCONN(conn, DLMGCP, LOGL_ERROR, "connection timed out!\n");
 	mgcp_conn_free(conn->endp, conn->id);
 }
 
@@ -139,7 +138,7 @@ void mgcp_conn_watchdog_kick(struct mgcp_conn *conn)
 	if (!timeout)
 		return;
 
-	LOGP(DLMGCP, LOGL_DEBUG, "endpoint:0x%x CI:%s watchdog kicked\n", ENDPOINT_NUMBER(conn->endp), conn->id);
+	LOGPCONN(conn, DLMGCP, LOGL_DEBUG, "watchdog kicked\n");
 	osmo_timer_schedule(&conn->watchdog, timeout, 0);
 }
 
