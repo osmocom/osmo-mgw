@@ -614,31 +614,46 @@ void osmux_disable_conn(struct mgcp_conn_rtp *conn)
 
 	osmux_xfrm_input_close_circuit(conn->osmux.in, conn->osmux.cid);
 	conn->osmux.state = OSMUX_STATE_DISABLED;
-	conn->osmux.cid = -1;
+	conn_osmux_release_cid(conn);
 	osmux_handle_put(conn->osmux.in);
 }
 
 /*! relase OSXMUX cid, that had been allocated to this connection.
  *  \param[in] conn connection with OSMUX cid to release */
-void osmux_release_cid(struct mgcp_conn_rtp *conn)
+void conn_osmux_release_cid(struct mgcp_conn_rtp *conn)
 {
-	if (!conn)
-		return;
-
-	if (conn->osmux.state != OSMUX_STATE_ENABLED)
-		return;
-
-	if (conn->osmux.allocated_cid >= 0)
-		osmux_put_cid(conn->osmux.allocated_cid);
-	conn->osmux.allocated_cid = -1;
+	if (conn->osmux.cid_allocated)
+		osmux_cid_pool_put(conn->osmux.cid);
+	conn->osmux.cid = 0;
+	conn->osmux.cid_allocated = false;
 }
 
 /*! allocate OSXMUX cid to connection.
- *  \param[in] conn connection for which we allocate the OSMUX cid*/
-void osmux_allocate_cid(struct mgcp_conn_rtp *conn)
+ *  \param[in] conn connection for which we allocate the OSMUX cid
+ * \param[in] osmux_cid OSMUX cid to allocate. -1 Means take next available one.
+ * \returns Allocated OSMUX cid, -1 on error (no free  cids avail, or selected one is already taken).
+ */
+int conn_osmux_allocate_cid(struct mgcp_conn_rtp *conn, int osmux_cid)
 {
-	osmux_release_cid(conn);
-	conn->osmux.allocated_cid = osmux_get_cid();
+	if (osmux_cid != -1 && osmux_cid_pool_allocated((uint8_t) osmux_cid)) {
+		LOGP(DLMGCP, LOGL_INFO, "Conn %s: Osmux CID %d already allocated!\n",
+		     conn->conn->id, osmux_cid);
+		return -1;
+	}
+
+	if (osmux_cid == -1) {
+		osmux_cid = osmux_cid_pool_get_next();
+		if (osmux_cid == -1) {
+			LOGP(DLMGCP, LOGL_INFO, "Conn %s: no available Osmux CID to allocate!\n",
+			     conn->conn->id);
+			return -1;
+		}
+	} else
+		osmux_cid_pool_get(osmux_cid);
+
+	conn->osmux.cid = (uint8_t) osmux_cid;
+	conn->osmux.cid_allocated = true;
+	return osmux_cid;
 }
 
 /*! send RTP dummy packet to OSMUX connection port.
@@ -682,7 +697,7 @@ static uint8_t osmux_cid_bitmap[(OSMUX_CID_MAX + 1 + 7) / 8];
 
 /*! count the number of taken OSMUX cids.
  *  \returns number of OSMUX cids in use */
-int osmux_used_cid(void)
+int osmux_cid_pool_count_used(void)
 {
 	int i, j, used = 0;
 
@@ -698,7 +713,7 @@ int osmux_used_cid(void)
 
 /*! take a free OSMUX cid.
  *  \returns OSMUX cid */
-int osmux_get_cid(void)
+int osmux_cid_pool_get_next(void)
 {
 	int i, j;
 
@@ -718,10 +733,24 @@ int osmux_get_cid(void)
 	return -1;
 }
 
+/*! take a specific OSMUX cid.
+ *  \param[in] osmux_cid OSMUX cid */
+void osmux_cid_pool_get(uint8_t osmux_cid)
+{
+	LOGP(DLMGCP, LOGL_DEBUG, "Allocating Osmux CID %u from pool\n", osmux_cid);
+	osmux_cid_bitmap[osmux_cid / 8] |= (1 << (osmux_cid % 8));
+}
+
 /*! put back a no longer used OSMUX cid.
  *  \param[in] osmux_cid OSMUX cid */
-void osmux_put_cid(uint8_t osmux_cid)
+void osmux_cid_pool_put(uint8_t osmux_cid)
 {
 	LOGP(DLMGCP, LOGL_DEBUG, "Osmux CID %u is back to the pool\n", osmux_cid);
 	osmux_cid_bitmap[osmux_cid / 8] &= ~(1 << (osmux_cid % 8));
+}
+
+/*! check if OSMUX cid is already taken */
+bool osmux_cid_pool_allocated(uint8_t osmux_cid)
+{
+	return !!(osmux_cid_bitmap[osmux_cid / 8] & (1 << (osmux_cid % 8)));
 }

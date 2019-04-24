@@ -188,9 +188,9 @@ struct mgcp_conn_rtp {
 	struct {
 		/* Osmux state: disabled, activating, active */
 		enum osmux_state state;
-		/* Allocated Osmux circuit ID for this endpoint */
-		int allocated_cid;
-		/* Used Osmux circuit ID for this endpoint */
+		/* Is cid holding valid data? is it allocated from pool? */
+		bool cid_allocated;
+		/* Allocated Osmux circuit ID for this conn */
 		uint8_t cid;
 		/* handle to batch messages */
 		struct osmux_in_handle *in;

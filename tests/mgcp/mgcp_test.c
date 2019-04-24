@@ -1554,25 +1554,34 @@ static void test_osmux_cid(void)
 {
 	int id, i;
 
-	OSMO_ASSERT(osmux_used_cid() == 0);
-	id = osmux_get_cid();
+	OSMO_ASSERT(osmux_cid_pool_count_used() == 0);
+
+	id = osmux_cid_pool_get_next();
 	OSMO_ASSERT(id == 0);
-	OSMO_ASSERT(osmux_used_cid() == 1);
-	osmux_put_cid(id);
-	OSMO_ASSERT(osmux_used_cid() == 0);
+	OSMO_ASSERT(osmux_cid_pool_count_used() == 1);
+
+	osmux_cid_pool_get(30);
+	OSMO_ASSERT(osmux_cid_pool_count_used() == 2);
+        osmux_cid_pool_get(30);
+	OSMO_ASSERT(osmux_cid_pool_count_used() == 2);
+
+	osmux_cid_pool_put(id);
+	OSMO_ASSERT(osmux_cid_pool_count_used() == 1);
+	osmux_cid_pool_put(30);
+	OSMO_ASSERT(osmux_cid_pool_count_used() == 0);
 
 	for (i = 0; i < 256; ++i) {
-		id = osmux_get_cid();
+		id = osmux_cid_pool_get_next();
 		OSMO_ASSERT(id == i);
-		OSMO_ASSERT(osmux_used_cid() == i + 1);
+		OSMO_ASSERT(osmux_cid_pool_count_used() == i + 1);
 	}
 
-	id = osmux_get_cid();
+	id = osmux_cid_pool_get_next();
 	OSMO_ASSERT(id == -1);
 
 	for (i = 0; i < 256; ++i)
-		osmux_put_cid(i);
-	OSMO_ASSERT(osmux_used_cid() == 0);
+		osmux_cid_pool_put(i);
+	OSMO_ASSERT(osmux_cid_pool_count_used() == 0);
 }
 
 static const struct log_info_cat log_categories[] = {

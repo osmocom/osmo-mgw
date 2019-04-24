@@ -297,7 +297,7 @@ DEFUN(show_mcgp, show_mgcp_cmd,
 	    dump_trunk(vty, trunk, show_stats);
 
 	if (g_cfg->osmux)
-		vty_out(vty, "Osmux used CID: %d%s", osmux_used_cid(),
+		vty_out(vty, "Osmux used CID: %d%s", osmux_cid_pool_count_used(),
 			VTY_NEWLINE);
 
 	return CMD_SUCCESS;

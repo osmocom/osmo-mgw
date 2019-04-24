@@ -15,13 +15,16 @@ int osmux_init(int role, struct mgcp_config *cfg);
 int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		      struct in_addr *addr, uint16_t port);
 void osmux_disable_conn(struct mgcp_conn_rtp *conn);
-void osmux_allocate_cid(struct mgcp_conn_rtp *conn);
-void osmux_release_cid(struct mgcp_conn_rtp *conn);
+int conn_osmux_allocate_cid(struct mgcp_conn_rtp *conn, int osmux_cid);
+void conn_osmux_release_cid(struct mgcp_conn_rtp *conn);
 int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn);
 int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn);
-int osmux_get_cid(void);
-void osmux_put_cid(uint8_t osmux_cid);
-int osmux_used_cid(void);
+
+void osmux_cid_pool_get(uint8_t osmux_cid);
+int osmux_cid_pool_get_next(void);
+void osmux_cid_pool_put(uint8_t osmux_cid);
+bool osmux_cid_pool_allocated(uint8_t osmux_cid);
+int osmux_cid_pool_count_used(void);
 
 enum osmux_state {
 	OSMUX_STATE_DISABLED = 0, /* Osmux not being currently used by endp */

@@ -90,7 +90,8 @@ static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn 
 	static unsigned int rate_ctr_index = 0;
 
 	conn_rtp->type = MGCP_RTP_DEFAULT;
-	conn_rtp->osmux.allocated_cid = -1;
+	conn_rtp->osmux.cid_allocated = false;
+	conn_rtp->osmux.cid = 0;
 
 	/* backpointer to the generic part of the connection */
 	conn->u.rtp.conn = conn;
@@ -120,7 +121,6 @@ static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn 
 static void mgcp_rtp_conn_cleanup(struct mgcp_conn_rtp *conn_rtp)
 {
 	osmux_disable_conn(conn_rtp);
-	osmux_release_cid(conn_rtp);
 	mgcp_free_rtp_port(&conn_rtp->end);
 	rate_ctr_group_free(conn_rtp->rate_ctr_group);
 }
