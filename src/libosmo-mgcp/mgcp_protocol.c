@@ -1151,7 +1151,7 @@ mgcp_header_done:
 			goto error3;
 		}
 	} else
-			conn->conn->mode = conn->conn->mode_orig;
+		conn->conn->mode = conn->conn->mode_orig;
 
 	/* Set local connection options, if present */
 	if (local_options) {
