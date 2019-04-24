@@ -67,6 +67,8 @@ struct mgcp_response_head {
 	char comment[MGCP_COMMENT_MAXLEN];
 	char conn_id[MGCP_CONN_ID_MAXLEN];
 	char endpoint[MGCP_ENDPOINT_MAXLEN];
+	bool x_osmo_osmux_use;
+	uint8_t x_osmo_osmux_cid;
 };
 
 struct mgcp_response {

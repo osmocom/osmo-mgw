@@ -393,6 +393,40 @@ response_parse_failure:
 	return -EINVAL;
 }
 
+/*! Extract OSMUX CID from an MGCP parameter line (string).
+ *  \param[in] line single parameter line from the MGCP message
+ *  \returns OSMUX CID, -1 wildcard, -2 on error
+ * FIXME: This is a copy of function in mgcp_msg.c. Have some common.c file between both libs?
+ */
+static int mgcp_parse_osmux_cid(const char *line)
+{
+	int osmux_cid;
+
+
+	if (strstr(line + 2, "Osmux: *")) {
+		LOGP(DLMGCP, LOGL_DEBUG, "Parsed wilcard Osmux CID\n");
+		return -1;
+	}
+
+	if (sscanf(line + 2, "Osmux: %u", &osmux_cid) != 1) {
+		LOGP(DLMGCP, LOGL_ERROR, "Failed parsing Osmux in MGCP msg line: %s\n",
+		     line);
+		return -2;
+	}
+
+#ifndef OSMUX_CID_MAX
+#define OSMUX_CID_MAX 255 /* FIXME: use OSMUX_CID_MAX from libosmo-netif? */
+#endif
+	if (osmux_cid > OSMUX_CID_MAX) { /* OSMUX_CID_MAX from libosmo-netif */
+		LOGP(DLMGCP, LOGL_ERROR, "Osmux ID too large: %u > %u\n",
+		     osmux_cid, OSMUX_CID_MAX);
+		return -2;
+	}
+	LOGP(DLMGCP, LOGL_DEBUG, "bsc-nat offered Osmux CID %u\n", osmux_cid);
+
+	return osmux_cid;
+}
+
 /* A new section is marked by a double line break, check a few more
  * patterns as there may be variants */
 static char *mgcp_find_section_end(char *string)
@@ -566,6 +600,21 @@ static int parse_head_params(struct mgcp_response *r)
 						   'I', line);
 			if (rc)
 				goto exit;
+			break;
+		case 'X':
+			if (strncmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
+				rc = mgcp_parse_osmux_cid(line);
+				if (rc < 0) {
+					/* -1: we don't want wildcards in response. -2: error */
+					rc = -EINVAL;
+					goto exit;
+				}
+				r->head.x_osmo_osmux_use = true;
+				r->head.x_osmo_osmux_cid = (uint8_t) rc;
+				rc = 0;
+				break;
+			}
+			/* Ignore unknown X-headers */
 			break;
 		default:
 			/* skip unhandled parameters */

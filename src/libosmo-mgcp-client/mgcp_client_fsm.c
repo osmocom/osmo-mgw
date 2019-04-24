@@ -275,6 +275,11 @@ static void mgw_crcx_resp_cb(struct mgcp_response *r, void *priv)
 		return;
 	}
 	LOGPFSML(fi, LOGL_DEBUG, "MGW/CRCX: MGW responded with address %s:%u\n", r->audio_ip, r->audio_port);
+	if (r->head.x_osmo_osmux_use) {
+		LOGPFSML(fi, LOGL_DEBUG, "MGW/CRCX: MGW responded using Osmux %u\n", r->head.x_osmo_osmux_cid);
+		mgcp_ctx->conn_peer_remote.x_osmo_osmux_use = true;
+		mgcp_ctx->conn_peer_remote.x_osmo_osmux_cid = r->head.x_osmo_osmux_cid;
+	}
 
 	osmo_strlcpy(mgcp_ctx->conn_peer_remote.addr, r->audio_ip, sizeof(mgcp_ctx->conn_peer_remote.addr));
 	mgcp_ctx->conn_peer_remote.port = r->audio_port;
