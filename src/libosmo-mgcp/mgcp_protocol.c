@@ -783,7 +783,7 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 	const char *callid = NULL;
 	const char *mode = NULL;
 	char *line;
-	int have_sdp = 0, osmux_cid = -1;
+	int have_sdp = 0, osmux_cid = -2;
 	struct mgcp_conn_rtp *conn = NULL;
 	struct mgcp_conn *_conn = NULL;
 	char conn_name[512];
@@ -917,9 +917,12 @@ mgcp_header_done:
 	/* Annotate Osmux circuit ID and set it to negotiating state until this
 	 * is fully set up from the dummy load. */
 	conn->osmux.state = OSMUX_STATE_DISABLED;
-	if (osmux_cid >= 0) {
-		conn->osmux.cid = osmux_cid;
+	if (osmux_cid >= -1) { /* -1 is wilcard, alloc next avail CID */
 		conn->osmux.state = OSMUX_STATE_NEGOTIATING;
+		if (conn_osmux_allocate_cid(conn, osmux_cid) == -1) {
+			rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_NO_OSMUX]);
+			goto error2;
+		}
 	} else if (endp->cfg->osmux == OSMUX_USAGE_ONLY) {
 		LOGPCONN(_conn, DLMGCP, LOGL_ERROR,
 			 "CRCX: osmux only and no osmux offered\n");

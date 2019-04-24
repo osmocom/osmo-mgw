@@ -354,21 +354,27 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 
 /*! Extract OSMUX CID from an MGCP parameter line (string).
  *  \param[in] line single parameter line from the MGCP message
- *  \returns OSMUX CID, -1 on error */
+ *  \returns OSMUX CID, -1 wildcard, -2 on error */
 int mgcp_parse_osmux_cid(const char *line)
 {
 	int osmux_cid;
 
+
+	if (strstr(line + 2, "Osmux: *")) {
+		LOGP(DLMGCP, LOGL_DEBUG, "Parsed wilcard Osmux CID\n");
+		return -1;
+	}
+
 	if (sscanf(line + 2, "Osmux: %u", &osmux_cid) != 1) {
 		LOGP(DLMGCP, LOGL_ERROR, "Failed parsing Osmux in MGCP msg line: %s\n",
 		     line);
-		return -1;
+		return -2;
 	}
 
 	if (osmux_cid > OSMUX_CID_MAX) {
 		LOGP(DLMGCP, LOGL_ERROR, "Osmux ID too large: %u > %u\n",
 		     osmux_cid, OSMUX_CID_MAX);
-		return -1;
+		return -2;
 	}
 	LOGP(DLMGCP, LOGL_DEBUG, "bsc-nat offered Osmux CID %u\n", osmux_cid);
 
