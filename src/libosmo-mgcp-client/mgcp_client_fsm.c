@@ -126,6 +126,11 @@ static void make_crcx_msg(struct mgcp_msg *mgcp_msg, struct mgcp_conn_peer *info
 		mgcp_msg->x_osmo_ign = info->x_osmo_ign;
 		mgcp_msg->presence |= MGCP_MSG_PRESENCE_X_OSMO_IGN;
 	}
+
+	if (info->x_osmo_osmux_use) {
+		mgcp_msg->x_osmo_osmux_cid = info->x_osmo_osmux_cid;
+		mgcp_msg->presence |= MGCP_MSG_PRESENCE_X_OSMO_OSMUX_CID;
+	}
 }
 
 static void add_audio(struct mgcp_msg *mgcp_msg, struct mgcp_conn_peer *info)

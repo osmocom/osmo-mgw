@@ -50,6 +50,7 @@ enum mgcp_connection_mode {
 };
 
 #define MGCP_X_OSMO_IGN_HEADER "X-Osmo-IGN:"
+#define MGCP_X_OSMO_OSMUX_HEADER "X-Osmux:"
 
 /* Values should be bitwise-OR-able */
 enum mgcp_x_osmo_ign {

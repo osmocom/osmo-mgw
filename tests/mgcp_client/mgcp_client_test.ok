@@ -84,6 +84,22 @@ L: p:20, a:GSM, nt:IN
 M: sendrecv
 X-Osmo-IGN: C
 
+Generate X-Osmo-Osmux message:
+CRCX 13 23@mgw MGCP 1.0
+C: 2f
+I: 11
+L: p:20, a:GSM, nt:IN
+M: sendrecv
+X-Osmux: *
+
+Generate X-Osmo-Osmux message (fixed CID 2):
+CRCX 15 23@mgw MGCP 1.0
+C: 2f
+I: 11
+L: p:20, a:GSM, nt:IN
+M: sendrecv
+X-Osmux: 2
+
 Overfolow test:
 
 

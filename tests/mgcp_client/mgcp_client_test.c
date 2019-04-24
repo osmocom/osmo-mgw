@@ -157,6 +157,7 @@ void test_mgcp_msg(void)
 		.ptmap[0].pt = 96,
 		.ptmap_len = 1,
 		.x_osmo_ign = MGCP_X_OSMO_IGN_CALLID,
+		.x_osmo_osmux_cid = -1, /* wildcard */
 	};
 
 	if (mgcp)
@@ -251,6 +252,27 @@ void test_mgcp_msg(void)
 	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
 	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE
 	     | MGCP_MSG_PRESENCE_X_OSMO_IGN);
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	printf("%s\n", (char *)msg->data);
+
+	printf("Generate X-Osmo-Osmux message:\n");
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	mgcp_msg.verb = MGCP_VERB_CRCX;
+	mgcp_msg.presence =
+	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE
+	     | MGCP_MSG_PRESENCE_X_OSMO_OSMUX_CID);
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	printf("%s\n", (char *)msg->data);
+
+	printf("Generate X-Osmo-Osmux message (fixed CID 2):\n");
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	mgcp_msg.verb = MGCP_VERB_CRCX;
+	mgcp_msg.x_osmo_osmux_cid = 2;
+	mgcp_msg.presence =
+	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE
+	     | MGCP_MSG_PRESENCE_X_OSMO_OSMUX_CID);
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
 	printf("%s\n", (char *)msg->data);
 

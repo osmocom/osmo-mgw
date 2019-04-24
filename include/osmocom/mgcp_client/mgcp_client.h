@@ -95,6 +95,7 @@ enum mgcp_verb {
 #define MGCP_MSG_PRESENCE_AUDIO_IP	0x0008
 #define MGCP_MSG_PRESENCE_AUDIO_PORT	0x0010
 #define MGCP_MSG_PRESENCE_CONN_MODE	0x0020
+#define MGCP_MSG_PRESENCE_X_OSMO_OSMUX_CID 0x4000
 #define MGCP_MSG_PRESENCE_X_OSMO_IGN	0x8000
 
 struct mgcp_msg {
@@ -113,6 +114,8 @@ struct mgcp_msg {
 	struct ptmap ptmap[MGCP_MAX_CODECS];
 	unsigned int ptmap_len;
 	uint32_t x_osmo_ign;
+	bool x_osmo_osmux_use;
+	int x_osmo_osmux_cid; /* -1 is wildcard */
 	bool param_present;
 	struct mgcp_codec_param param;
 };

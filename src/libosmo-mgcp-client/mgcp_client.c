@@ -1104,6 +1104,7 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	int rc = 0;
 	int rc_sdp;
 	bool use_sdp = false;
+	char buf[32];
 
 	msg->l2h = msg->data;
 	msg->cb[MSGB_CB_MGCP_TRANS_ID] = trans_id;
@@ -1206,6 +1207,15 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		rc +=
 		    msgb_printf(msg, MGCP_X_OSMO_IGN_HEADER "%s\r\n",
 				mgcp_msg->x_osmo_ign & MGCP_X_OSMO_IGN_CALLID ? " C": "");
+
+	/* Add X-Osmo-Osmux */
+	if ((mgcp_msg->presence & MGCP_MSG_PRESENCE_X_OSMO_OSMUX_CID)) {
+		snprintf(buf, sizeof(buf), " %d", mgcp_msg->x_osmo_osmux_cid);
+		rc +=
+		    msgb_printf(msg, MGCP_X_OSMO_OSMUX_HEADER "%s\r\n",
+				mgcp_msg->x_osmo_osmux_cid == -1 ? " *": buf);
+	}
+
 
 	/* Add session description protocol (SDP) */
 	if (use_sdp

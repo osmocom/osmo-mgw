@@ -25,3 +25,4 @@
 #
 #library		what		description / commit summary line
 libosmo-mgcp-client	add struct members	    AMR SDP/fmtp parameter generation
+libosmo-mgcp-client     add struct members	    Osmux use+cid fields to struct mgcp_msg and mgcp_conn_peer
