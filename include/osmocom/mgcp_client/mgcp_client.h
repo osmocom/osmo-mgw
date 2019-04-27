@@ -154,7 +154,7 @@ static inline const char *mgcp_client_cmode_name(enum mgcp_connection_mode mode)
 }
 
 enum mgcp_codecs map_str_to_codec(const char *str);
-unsigned int map_codec_to_pt(struct ptmap *ptmap, unsigned int ptmap_len,
+unsigned int map_codec_to_pt(const struct ptmap *ptmap, unsigned int ptmap_len,
 			     enum mgcp_codecs codec);
 enum mgcp_codecs map_pt_to_codec(struct ptmap *ptmap, unsigned int ptmap_len,
 				 unsigned int pt);

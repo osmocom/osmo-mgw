@@ -93,7 +93,7 @@ enum mgcp_codecs map_str_to_codec(const char *str)
 }
 
 /* Check the ptmap for illegal mappings */
-static int check_ptmap(struct ptmap *ptmap)
+static int check_ptmap(const struct ptmap *ptmap)
 {
 	/* Check if there are mappings that leave the IANA assigned dynamic
 	 * payload type range. Under normal conditions such mappings should
@@ -122,7 +122,7 @@ error:
  *  \ptmap[in] ptmap_len length of the payload type map.
  *  \ptmap[in] codec the codec for which the payload type should be looked up.
  *  \returns assigned payload type */
-unsigned int map_codec_to_pt(struct ptmap *ptmap, unsigned int ptmap_len,
+unsigned int map_codec_to_pt(const struct ptmap *ptmap, unsigned int ptmap_len,
 			     enum mgcp_codecs codec)
 {
 	unsigned int i;
