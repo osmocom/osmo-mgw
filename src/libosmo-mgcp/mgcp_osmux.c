@@ -567,7 +567,7 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		     mgcp_conn_dump(conn->conn));
 		return -1;
 	}
-	if (!osmux_xfrm_input_open_circuit(conn->osmux.in, conn->osmux.cid, osmux_dummy)) {
+	if (osmux_xfrm_input_open_circuit(conn->osmux.in, conn->osmux.cid, osmux_dummy) < 0) {
 		LOGP(DLMGCP, LOGL_ERROR, "Cannot open osmux circuit %u for conn:%s\n",
 		     conn->osmux.cid, mgcp_conn_dump(conn->conn));
 		return -1;
