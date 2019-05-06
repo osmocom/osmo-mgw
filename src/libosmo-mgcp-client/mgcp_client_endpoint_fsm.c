@@ -489,6 +489,20 @@ bool osmo_mgcpc_ep_ci_get_crcx_info_to_sockaddr(const struct osmo_mgcpc_ep_ci *c
 	return true;
 }
 
+bool osmo_mgcpc_ep_ci_get_crcx_info_to_osmux_cid(const struct osmo_mgcpc_ep_ci *ci, uint8_t* cid)
+{
+	const struct mgcp_conn_peer *rtp_info;
+
+	rtp_info = osmo_mgcpc_ep_ci_get_rtp_info(ci);
+	if (!rtp_info)
+		return false;
+
+	if (!rtp_info->x_osmo_osmux_use)
+		return false;
+
+	*cid = rtp_info->x_osmo_osmux_cid;
+	return true;
+}
 
 static const struct osmo_tdef_state_timeout osmo_mgcpc_ep_fsm_timeouts[32] = {
 	[OSMO_MGCPC_EP_ST_WAIT_MGW_RESPONSE] = { .T=2427001 },
