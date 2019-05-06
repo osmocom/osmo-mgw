@@ -312,6 +312,11 @@ void mgcp_rtp_annex_count(struct mgcp_endpoint *endp, struct mgcp_rtp_state *sta
 
 int mgcp_set_ip_tos(int fd, int tos);
 
+/* Was conn configured to handle Osmux? */
+static inline bool mgcp_conn_rtp_is_osmux(const struct mgcp_conn_rtp *conn) {
+	return conn->type == MGCP_OSMUX_BSC || conn->type == MGCP_OSMUX_BSC_NAT;
+}
+
 enum {
 	MGCP_DEST_NET = 0,
 	MGCP_DEST_BTS,
