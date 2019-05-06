@@ -300,6 +300,9 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 					     const char *trans_id,
 					     bool add_conn_params)
 {
+	/* TODO: we may want to define another local_ip_osmux var to us for
+	   OSMUX connections. Perhaps adding a new internal API to get it based
+	   on conn type */
 	const char *addr = endp->cfg->local_ip;
 	struct msgb *sdp;
 	int rc;

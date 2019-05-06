@@ -512,6 +512,7 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 	struct sdp_fmtp_param fmtp_param;
 	int rc;
 	int payload_types[1];
+	int local_port;
 	struct sdp_fmtp_param fmtp_params[1];
         unsigned int fmtp_params_len = 0;
 
@@ -541,7 +542,11 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 	if (payload_type >= 0) {
 
 		payload_types[0] = payload_type;
-		rc = add_audio(sdp, payload_types, 1, conn->end.local_port);
+		if (mgcp_conn_rtp_is_osmux(conn))
+			local_port = endp->cfg->osmux_port;
+		else
+			local_port = conn->end.local_port;
+		rc = add_audio(sdp, payload_types, 1, local_port);
 		if (rc < 0)
 			goto buffer_too_small;
 

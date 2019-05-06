@@ -86,7 +86,7 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 		}
 	}
 
-	/* Select from preconfigured IP-Addresses */
+	/* Select from preconfigured IP-Addresses. We don't have bind_addr for Osmux (yet?). */
 	if (endp->cfg->net_ports.bind_addr) {
 		/* Check there is a bind IP for the RTP traffic configured,
 		 * if so, use that IP-Address */
