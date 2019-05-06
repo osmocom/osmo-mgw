@@ -15,6 +15,7 @@
 #include <inttypes.h> /* for PRIu64 */
 #include <netinet/in.h>
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/socket.h>
 #include <osmocom/core/talloc.h>
 
 #include <osmocom/netif/osmux.h>
@@ -517,7 +518,8 @@ int osmux_init(int role, struct mgcp_config *cfg)
 
 	ret = mgcp_create_bind(cfg->osmux_addr, &osmux_fd, cfg->osmux_port);
 	if (ret < 0) {
-		LOGP(DLMGCP, LOGL_ERROR, "cannot bind OSMUX socket\n");
+		LOGP(DLMGCP, LOGL_ERROR, "cannot bind OSMUX socket to %s:%u\n",
+		     cfg->osmux_addr, cfg->osmux_port);
 		return ret;
 	}
 	mgcp_set_ip_tos(osmux_fd.fd, cfg->endp_dscp);
@@ -525,10 +527,14 @@ int osmux_init(int role, struct mgcp_config *cfg)
 
 	ret = osmo_fd_register(&osmux_fd);
 	if (ret < 0) {
-		LOGP(DLMGCP, LOGL_ERROR, "cannot register OSMUX socket\n");
+		LOGP(DLMGCP, LOGL_ERROR, "cannot register OSMUX socket %s\n",
+		     osmo_sock_get_name2(osmux_fd.fd));
 		return ret;
 	}
 	cfg->osmux_init = 1;
+
+	LOGP(DLMGCP, LOGL_INFO, "OSMUX socket listening on %s\n",
+		 osmo_sock_get_name2(osmux_fd.fd));
 
 	return 0;
 }
