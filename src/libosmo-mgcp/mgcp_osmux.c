@@ -664,6 +664,7 @@ int conn_osmux_allocate_cid(struct mgcp_conn_rtp *conn, int osmux_cid)
 
 	conn->osmux.cid = (uint8_t) osmux_cid;
 	conn->osmux.cid_allocated = true;
+	conn->type = MGCP_OSMUX_BSC;
 	return osmux_cid;
 }
 

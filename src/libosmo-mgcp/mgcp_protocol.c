@@ -147,7 +147,7 @@ static int setup_rtp_processing(struct mgcp_endpoint *endp,
 	struct mgcp_conn_rtp *conn_dst = conn;
 	struct mgcp_conn *_conn;
 
-	if (conn->type != MGCP_RTP_DEFAULT) {
+	if (conn->type != MGCP_RTP_DEFAULT && !mgcp_conn_rtp_is_osmux(conn)) {
 		LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
 			 "RTP-setup: Endpoint is not configured as RTP default, stopping here!\n");
 		return 0;
