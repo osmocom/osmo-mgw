@@ -671,12 +671,17 @@ uint32_t mgcp_rtp_packet_duration(struct mgcp_endpoint *endp,
 	    rtp->codec->frame_duration_den;
 }
 
+/*! Initializes osmux socket if not yet initialized. Parses Osmux CID from MGCP line.
+ *  \param[in] endp Endpoint willing to initialize osmux
+ *  \param[in] line Line X-Osmux from MGCP header msg to parse
+ *  \returns OSMUX CID, -1 for wildcard, -2 on parse error, -3 on osmux initalize error
+ */
 static int mgcp_osmux_setup(struct mgcp_endpoint *endp, const char *line)
 {
 	if (!endp->cfg->osmux_init) {
 		if (osmux_init(OSMUX_ROLE_BSC, endp->cfg) < 0) {
 			LOGPENDP(endp, DLMGCP, LOGL_ERROR, "Cannot init OSMUX\n");
-			return -1;
+			return -3;
 		}
 		LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "OSMUX socket has been set up\n");
 	}
