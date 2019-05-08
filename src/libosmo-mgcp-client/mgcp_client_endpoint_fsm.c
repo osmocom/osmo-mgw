@@ -862,7 +862,7 @@ static int osmo_mgcpc_ep_fsm_timer_cb(struct osmo_fsm_inst *fi)
 }
 
 static struct osmo_fsm osmo_mgcpc_ep_fsm = {
-	.name = "mgw-endpoint",
+	.name = "mgw-endp",
 	.states = osmo_mgcpc_ep_fsm_states,
 	.num_states = ARRAY_SIZE(osmo_mgcpc_ep_fsm_states),
 	.log_subsys = DLMGCP,
