@@ -1496,7 +1496,7 @@ static int free_rate_counter_group(struct rate_ctr_group *rate_ctr_group)
 	return 0;
 }
 
-static void alloc_mgcp_rate_counters(struct mgcp_trunk_config *trunk, void *ctx)
+static int alloc_mgcp_rate_counters(struct mgcp_trunk_config *trunk, void *ctx)
 {
 	/* FIXME: Each new rate counter group requires a unique index. At the
 	 * moment we generate an index using a counter, but perhaps there is
@@ -1508,25 +1508,34 @@ static void alloc_mgcp_rate_counters(struct mgcp_trunk_config *trunk, void *ctx)
 
 	if (trunk->mgcp_crcx_ctr_group == NULL) {
 		trunk->mgcp_crcx_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_crcx_ctr_group_desc, crcx_rate_ctr_index);
+		if (!trunk->mgcp_crcx_ctr_group)
+			return -1;
 		talloc_set_destructor(trunk->mgcp_crcx_ctr_group, free_rate_counter_group);
 		crcx_rate_ctr_index++;
 	}
 	if (trunk->mgcp_mdcx_ctr_group == NULL) {
 		trunk->mgcp_mdcx_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_mdcx_ctr_group_desc, mdcx_rate_ctr_index);
+		if (!trunk->mgcp_mdcx_ctr_group)
+			return -1;
 		talloc_set_destructor(trunk->mgcp_mdcx_ctr_group, free_rate_counter_group);
 		mdcx_rate_ctr_index++;
 	}
 	if (trunk->mgcp_dlcx_ctr_group == NULL) {
 		trunk->mgcp_dlcx_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_dlcx_ctr_group_desc, dlcx_rate_ctr_index);
+		if (!trunk->mgcp_dlcx_ctr_group)
+			return -1;
 		talloc_set_destructor(trunk->mgcp_dlcx_ctr_group, free_rate_counter_group);
 		dlcx_rate_ctr_index++;
 	}
 	if (trunk->all_rtp_conn_stats == NULL) {
 		trunk->all_rtp_conn_stats = rate_ctr_group_alloc(ctx, &all_rtp_conn_rate_ctr_group_desc,
 								 all_rtp_conn_rate_ctr_index);
+		if (!trunk->all_rtp_conn_stats)
+			return -1;
 		talloc_set_destructor(trunk->all_rtp_conn_stats, free_rate_counter_group);
 		all_rtp_conn_rate_ctr_index++;
 	}
+	return 0;
 }
 
 /*! allocate configuration with default values.
@@ -1566,7 +1575,10 @@ struct mgcp_config *mgcp_config_alloc(void)
 	cfg->trunk.audio_send_name = 1;
 	cfg->trunk.omit_rtcp = 0;
 	mgcp_trunk_set_keepalive(&cfg->trunk, MGCP_KEEPALIVE_ONCE);
-	alloc_mgcp_rate_counters(&cfg->trunk, cfg);
+	if (alloc_mgcp_rate_counters(&cfg->trunk, cfg) < 0) {
+		talloc_free(cfg);
+		return NULL;
+	}
 
 	INIT_LLIST_HEAD(&cfg->trunks);
 

@@ -81,7 +81,7 @@ static int mgcp_alloc_id(struct mgcp_endpoint *endp, char *id)
 }
 
 /* Initialize rtp connection struct with default values */
-static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *conn)
+static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *conn)
 {
 	struct mgcp_rtp_end *end = &conn_rtp->end;
 	/* FIXME: Each new rate counter group requires an unique index. At the
@@ -109,12 +109,17 @@ static void mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn 
 	end->maximum_packet_time = -1;
 
 	conn_rtp->rate_ctr_group = rate_ctr_group_alloc(conn, &rate_ctr_group_desc, rate_ctr_index);
+	if (!conn_rtp->rate_ctr_group)
+		return -1;
+
 	conn_rtp->state.in_stream.err_ts_ctr = &conn_rtp->rate_ctr_group->ctr[IN_STREAM_ERR_TSTMP_CTR];
 	conn_rtp->state.out_stream.err_ts_ctr = &conn_rtp->rate_ctr_group->ctr[OUT_STREAM_ERR_TSTMP_CTR];
 	rate_ctr_index++;
 
 	/* Make sure codec table is reset */
 	mgcp_codec_reset_all(conn_rtp);
+
+	return 0;
 }
 
 /* Cleanup rtp connection struct */
@@ -175,7 +180,10 @@ struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 
 	switch (type) {
 	case MGCP_CONN_TYPE_RTP:
-		mgcp_rtp_conn_init(&conn->u.rtp, conn);
+		if (mgcp_rtp_conn_init(&conn->u.rtp, conn) < 0) {
+			talloc_free(conn);
+			return NULL;
+		}
 		break;
 	default:
 		/* NOTE: This should never be called with an
