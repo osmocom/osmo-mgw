@@ -1048,6 +1048,7 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 	const char *mode = NULL;
 	struct mgcp_conn_rtp *conn = NULL;
         const char *conn_id = NULL;
+	int osmux_cid = -2;
 	int rc;
 
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "MDCX: modifying existing connection ...\n");
@@ -1094,6 +1095,16 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 			break;
 		case 'Z':
 			silent = strcmp("noanswer", line + 3) == 0;
+			break;
+		case 'X':
+			if (strncmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
+				/* If osmux is disabled, just skip setting it up */
+				if (!p->endp->cfg->osmux)
+					break;
+				osmux_cid = mgcp_osmux_setup(endp, line);
+				break;
+			}
+			/* Ignore unknown X-headers */
 			break;
 		case '\0':
 			have_sdp = 1;
@@ -1166,6 +1177,25 @@ mgcp_header_done:
 		goto error3;
 	}
 
+	if (mgcp_conn_rtp_is_osmux(conn)) {
+		OSMO_ASSERT(conn->osmux.cid_allocated);
+		if (osmux_cid < -1) {
+			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+				 "MDCX: Failed to parse Osmux CID!\n");
+			goto error3;
+		} else if (osmux_cid == -1) {
+			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+				 "MDCX: wilcard in MDCX is not supported!\n");
+			goto error3;
+		} else if (osmux_cid != (int) conn->osmux.cid) {
+			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+				 "MDCX: changing already allocated CID is not supported!\n");
+			goto error3;
+		}
+		/* TODO: In the future (when we have recvCID!=sendCID), we need to
+		   tell Osmux code that osmux_cid is to be used as sendCID for
+		   that conn. */
+	}
 
 	if (setup_rtp_processing(endp, conn) != 0) {
 		rate_ctr_inc(&rate_ctrs->ctr[MGCP_MDCX_FAIL_START_RTP]);
