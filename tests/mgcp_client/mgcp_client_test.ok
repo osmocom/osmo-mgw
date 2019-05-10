@@ -100,6 +100,14 @@ L: p:20, a:GSM, nt:IN
 M: sendrecv
 X-Osmux: 2
 
+Generate X-Osmo-Osmux message (MDCX):
+MDCX 17 23@mgw MGCP 1.0
+C: 2f
+I: 11
+L: p:20, a:GSM, nt:IN
+M: sendrecv
+X-Osmux: 2
+
 Overfolow test:
 
 

@@ -173,6 +173,11 @@ static struct msgb *make_mdcx_msg(struct mgcp_ctx *mgcp_ctx)
 
 	set_conn_mode(&mgcp_msg, &mgcp_ctx->conn_peer_local);
 
+	if (mgcp_ctx->conn_peer_local.x_osmo_osmux_use) {
+		mgcp_msg.x_osmo_osmux_cid = mgcp_ctx->conn_peer_local.x_osmo_osmux_cid;
+		mgcp_msg.presence |= MGCP_MSG_PRESENCE_X_OSMO_OSMUX_CID;
+	}
+
 	/* Note: We take the endpoint and the call_id from the remote
 	 * connection info, because we can be confident that the
 	 * information there is valid. For the local info, we explicitly

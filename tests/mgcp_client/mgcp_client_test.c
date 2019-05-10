@@ -276,6 +276,17 @@ void test_mgcp_msg(void)
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
 	printf("%s\n", (char *)msg->data);
 
+	printf("Generate X-Osmo-Osmux message (MDCX):\n");
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	mgcp_msg.verb = MGCP_VERB_MDCX;
+	mgcp_msg.x_osmo_osmux_cid = 2;
+	mgcp_msg.presence =
+	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE
+	     | MGCP_MSG_PRESENCE_X_OSMO_OSMUX_CID);
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	printf("%s\n", (char *)msg->data);
+
 	printf("Overfolow test:\n");
 	mgcp_msg.verb = MGCP_VERB_MDCX;
 	mgcp_msg.presence =
