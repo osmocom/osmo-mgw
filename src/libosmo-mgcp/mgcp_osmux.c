@@ -559,6 +559,7 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 	 *  overlapping RTP SSRC traveling to the BTSes behind the BSC,
 	 *  similarly, for flows traveling to the MSC.
 	 */
+	struct in_addr addr_unset = {};
 	static const uint32_t rtp_ssrc_winlen = UINT32_MAX / (OSMUX_CID_MAX + 1);
 	uint16_t osmux_dummy = endp->cfg->osmux_dummy;
 
@@ -567,6 +568,13 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
 			 "conn:%s didn't negotiate Osmux, state %d\n",
 			 mgcp_conn_dump(conn->conn), conn->osmux.state);
+		return -1;
+	}
+
+	/* Wait until we have the connection information from MDCX */
+	if (memcmp(&conn->end.addr, &addr_unset, sizeof(addr_unset)) == 0) {
+		LOGPCONN(conn->conn, DLMGCP, LOGL_INFO,
+			"Osmux remote address/port still unknown\n");
 		return -1;
 	}
 
