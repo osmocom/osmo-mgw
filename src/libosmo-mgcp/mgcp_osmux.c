@@ -325,12 +325,14 @@ static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_r
 	case OSMUX_STATE_ACTIVATING:
 	if (osmux_enable_conn(endp, conn, &conn->end.addr, conn->end.rtp_port) < 0) {
 			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
-				 "Could not enable osmux for conn:%s\n",
+				 "Could not enable osmux for conn on %s: %s\n",
+				 sending ? "sent" : "received",
 				 mgcp_conn_dump(conn->conn));
 			return -1;
 		}
 		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
-			 "Osmux CID %u for %s:%u is now enabled\n",
+			 "Osmux %s CID %u towards %s:%u is now enabled\n",
+			 sending ? "sent" : "received",
 			 conn->osmux.cid, inet_ntoa(conn->end.addr),
 			 ntohs(conn->end.rtp_port));
 		return 0;
@@ -697,8 +699,8 @@ int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 		return 0;
 
 	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
-		 "sending OSMUX dummy load to %s CID %u\n",
-		 inet_ntoa(conn->end.addr), conn->osmux.cid);
+		 "sending OSMUX dummy load to %s:%u CID %u\n",
+		 inet_ntoa(conn->end.addr), ntohs(conn->end.rtp_port), conn->osmux.cid);
 
 	return mgcp_udp_send(osmux_fd.fd, &conn->end.addr,
 			     conn->end.rtp_port, buf, sizeof(buf));
