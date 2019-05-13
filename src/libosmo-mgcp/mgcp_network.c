@@ -130,7 +130,7 @@ static uint32_t get_current_ts(unsigned codec_rate)
 /*! send udp packet.
  *  \param[in] fd associated file descriptor
  *  \param[in] addr destination ip-address
- *  \param[in] port destination UDP port
+ *  \param[in] port destination UDP port (network byte order)
  *  \param[in] buf buffer that holds the data to be send
  *  \param[in] len length of the data to be sent
  *  \returns bytes sent, -1 on error */
