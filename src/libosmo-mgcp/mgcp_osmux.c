@@ -324,23 +324,23 @@ static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_r
 	switch(conn->osmux.state) {
 	case OSMUX_STATE_ACTIVATING:
 	if (osmux_enable_conn(endp, conn, &conn->end.addr, htons(endp->cfg->osmux_port)) < 0) {
-			LOGP(DLMGCP, LOGL_ERROR,
-				"Could not enable osmux for conn:%s\n",
-				mgcp_conn_dump(conn->conn));
+			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+				 "Could not enable osmux for conn:%s\n",
+				 mgcp_conn_dump(conn->conn));
 			return -1;
 		}
-		LOGP(DLMGCP, LOGL_ERROR,
-		    "Osmux CID %u for %s:%u is now enabled\n",
-		    conn->osmux.cid, inet_ntoa(conn->end.addr),
-		    endp->cfg->osmux_port);
+		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+			 "Osmux CID %u for %s:%u is now enabled\n",
+			 conn->osmux.cid, inet_ntoa(conn->end.addr),
+			 endp->cfg->osmux_port);
 		return 0;
 	case OSMUX_STATE_ENABLED:
 		return 0;
 	default:
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Osmux %s in conn %s without full negotiation, state %d\n",
-		     sending ? "sent" : "received",
-		     mgcp_conn_dump(conn->conn), conn->osmux.state);
+		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+			 "Osmux %s in conn %s without full negotiation, state %d\n",
+			 sending ? "sent" : "received",
+			 mgcp_conn_dump(conn->conn), conn->osmux.state);
 		return -1;
 	}
 }
@@ -562,19 +562,22 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 
 	/* Check if osmux is enabled for the specified connection */
 	if (conn->osmux.state != OSMUX_STATE_ACTIVATING) {
-		LOGP(DLMGCP, LOGL_ERROR, "conn:%s didn't negotiate Osmux, state %d\n",
-		     mgcp_conn_dump(conn->conn), conn->osmux.state);
+		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+			 "conn:%s didn't negotiate Osmux, state %d\n",
+			 mgcp_conn_dump(conn->conn), conn->osmux.state);
 		return -1;
 	}
 
 	conn->osmux.in = osmux_handle_lookup(endp->cfg, addr, port);
 	if (!conn->osmux.in) {
-		LOGP(DLMGCP, LOGL_ERROR, "Cannot allocate input osmux handle for conn:%s\n",
-		     mgcp_conn_dump(conn->conn));
+		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+			"Cannot allocate input osmux handle for conn:%s\n",
+			mgcp_conn_dump(conn->conn));
 		return -1;
 	}
 	if (osmux_xfrm_input_open_circuit(conn->osmux.in, conn->osmux.cid, osmux_dummy) < 0) {
-		LOGP(DLMGCP, LOGL_ERROR, "Cannot open osmux circuit %u for conn:%s\n",
+		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+			"Cannot open osmux circuit %u for conn:%s\n",
 		     conn->osmux.cid, mgcp_conn_dump(conn->conn));
 		return -1;
 	}
@@ -611,8 +614,9 @@ void osmux_disable_conn(struct mgcp_conn_rtp *conn)
 	if (conn->osmux.state != OSMUX_STATE_ENABLED)
 		return;
 
-	LOGP(DLMGCP, LOGL_INFO, "Releasing connection %s using Osmux CID %u\n",
-	     conn->conn->id, conn->osmux.cid);
+	LOGPCONN(conn->conn, DLMGCP, LOGL_INFO,
+		"Releasing connection %s using Osmux CID %u\n",
+		conn->conn->id, conn->osmux.cid);
 
 	/* We are closing, we don't need pending RTP packets to be transmitted */
 	osmux_xfrm_output_set_tx_cb(&conn->osmux.out, NULL, NULL);
@@ -642,16 +646,17 @@ void conn_osmux_release_cid(struct mgcp_conn_rtp *conn)
 int conn_osmux_allocate_cid(struct mgcp_conn_rtp *conn, int osmux_cid)
 {
 	if (osmux_cid != -1 && osmux_cid_pool_allocated((uint8_t) osmux_cid)) {
-		LOGP(DLMGCP, LOGL_INFO, "Conn %s: Osmux CID %d already allocated!\n",
-		     conn->conn->id, osmux_cid);
+		LOGPCONN(conn->conn, DLMGCP, LOGL_INFO,
+			 "Osmux CID %d already allocated!\n",
+			 osmux_cid);
 		return -1;
 	}
 
 	if (osmux_cid == -1) {
 		osmux_cid = osmux_cid_pool_get_next();
 		if (osmux_cid == -1) {
-			LOGP(DLMGCP, LOGL_INFO, "Conn %s: no available Osmux CID to allocate!\n",
-			     conn->conn->id);
+			LOGPCONN(conn->conn, DLMGCP, LOGL_INFO,
+				 "no available Osmux CID to allocate!\n");
 			return -1;
 		}
 	} else
@@ -690,9 +695,9 @@ int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	if (endp_osmux_state_check(endp, conn, true) < 0)
 		return 0;
 
-	LOGP(DLMGCP, LOGL_DEBUG,
-	     "sending OSMUX dummy load to %s CID %u\n",
-	     inet_ntoa(conn->end.addr), conn->osmux.cid);
+	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
+		 "sending OSMUX dummy load to %s CID %u\n",
+		 inet_ntoa(conn->end.addr), conn->osmux.cid);
 
 	return mgcp_udp_send(osmux_fd.fd, &conn->end.addr,
 			     htons(endp->cfg->osmux_port), buf, sizeof(buf));
