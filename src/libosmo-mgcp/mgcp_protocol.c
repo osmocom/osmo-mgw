@@ -327,7 +327,6 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 		rc = msgb_printf(sdp, "X-Osmux: %u\r\n", conn->osmux.cid);
 		if (rc < 0)
 			goto error;
-		conn->osmux.state = OSMUX_STATE_ACTIVATING;
 	}
 
 	/* Attach line break to separate the parameters from the SDP block */
@@ -918,7 +917,7 @@ mgcp_header_done:
 	 * is fully set up from the dummy load. */
 	conn->osmux.state = OSMUX_STATE_DISABLED;
 	if (osmux_cid >= -1) { /* -1 is wilcard, alloc next avail CID */
-		conn->osmux.state = OSMUX_STATE_NEGOTIATING;
+		conn->osmux.state = OSMUX_STATE_ACTIVATING;
 		if (conn_osmux_allocate_cid(conn, osmux_cid) == -1) {
 			rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_NO_OSMUX]);
 			goto error2;

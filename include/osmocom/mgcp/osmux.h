@@ -28,7 +28,6 @@ int osmux_cid_pool_count_used(void);
 
 enum osmux_state {
 	OSMUX_STATE_DISABLED = 0, /* Osmux not being currently used by endp */
-	OSMUX_STATE_NEGOTIATING,  /* Osmux was locally requested in MGCP CRCX */
 	OSMUX_STATE_ACTIVATING,   /* Osmux was accepted in MGCP CRCX ACK. It can now be enabled by \ref osmux_enable_endpoint. */
 	OSMUX_STATE_ENABLED,	  /* Osmux was initialized by \ref osmux_enable_endpoint and can process frames */
 };
