@@ -348,9 +348,9 @@ static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_r
 static int osmux_legacy_dummy_parse_cid(struct sockaddr_in *addr, struct msgb *msg,
 					uint8_t *osmux_cid)
 {
-	if (msg->len < 1 + sizeof(osmux_cid)) {
+	if (msg->len < 1 + sizeof(*osmux_cid)) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "Discarding truncated Osmux dummy load\n");
+		     "Discarding truncated Osmux dummy load: %s\n", osmo_hexdump(msg->data, msg->len));
 		return -1;
 	}
 
