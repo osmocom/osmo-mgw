@@ -35,7 +35,7 @@ struct osmux_handle {
 	struct llist_head head;
 	struct osmux_in_handle *in;
 	struct in_addr rem_addr;
-	int rem_port;
+	int rem_port; /* network byte order */
 	int refcnt;
 };
 
@@ -543,7 +543,7 @@ int osmux_init(int role, struct mgcp_config *cfg)
  *  \param[in] endp mgcp endpoint (configuration)
  *  \param[in] conn connection to disable
  *  \param[in] addr IP address of remote OSMUX endpoint
- *  \param[in] port portnumber of the remote OSMUX endpoint
+ *  \param[in] port portnumber of the remote OSMUX endpoint (in network byte order)
  *  \returns 0 on success, -1 on ERROR */
 int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		      struct in_addr *addr, uint16_t port)
