@@ -403,12 +403,12 @@ static int mgcp_parse_osmux_cid(const char *line)
 	int osmux_cid;
 
 
-	if (strstr(line + 2, "Osmux: *")) {
+	if (strcasecmp(line + 2, "Osmux: *") == 0) {
 		LOGP(DLMGCP, LOGL_DEBUG, "Parsed wilcard Osmux CID\n");
 		return -1;
 	}
 
-	if (sscanf(line + 2, "Osmux: %u", &osmux_cid) != 1) {
+	if (sscanf(line + 2 + 7, "%u", &osmux_cid) != 1) {
 		LOGP(DLMGCP, LOGL_ERROR, "Failed parsing Osmux in MGCP msg line: %s\n",
 		     line);
 		return -2;
@@ -602,7 +602,8 @@ static int parse_head_params(struct mgcp_response *r)
 				goto exit;
 			break;
 		case 'X':
-			if (strncmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
+		case 'x':
+			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
 				rc = mgcp_parse_osmux_cid(line);
 				if (rc < 0) {
 					/* -1: we don't want wildcards in response. -2: error */

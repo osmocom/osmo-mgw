@@ -360,12 +360,12 @@ int mgcp_parse_osmux_cid(const char *line)
 	int osmux_cid;
 
 
-	if (strstr(line + 2, "Osmux: *")) {
+	if (strcasecmp(line + 2, "Osmux: *") == 0) {
 		LOGP(DLMGCP, LOGL_DEBUG, "Parsed wilcard Osmux CID\n");
 		return -1;
 	}
 
-	if (sscanf(line + 2, "Osmux: %u", &osmux_cid) != 1) {
+	if (sscanf(line + 2 + 7, "%u", &osmux_cid) != 1) {
 		LOGP(DLMGCP, LOGL_ERROR, "Failed parsing Osmux in MGCP msg line: %s\n",
 		     line);
 		return -2;

@@ -816,7 +816,8 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 			mode = (const char *)line + 3;
 			break;
 		case 'X':
-			if (strncmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
+		case 'x':
+			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
 				/* If osmux is disabled, just skip setting it up */
 				if (!p->endp->cfg->osmux)
 					break;
@@ -1099,7 +1100,8 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 			silent = strcmp("noanswer", line + 3) == 0;
 			break;
 		case 'X':
-			if (strncmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
+		case 'x':
+			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
 				/* If osmux is disabled, just skip setting it up */
 				if (!p->endp->cfg->osmux)
 					break;
