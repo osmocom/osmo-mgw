@@ -1233,6 +1233,22 @@ int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
 	 *  destination connection is known the RTP packet is sent via
 	 *  the destination connection. */
 
+
+	 /* Check if the connection is in loopback mode, if yes, just send the
+	 * incoming data back to the origin */
+	if (conn->mode == MGCP_CONN_LOOPBACK) {
+		/* When we are in loopback mode, we loop back all incoming
+		 * packets back to their origin. We will use the originating
+		 * address data from the UDP packet header to patch the
+		 * outgoing address in connection on the fly */
+		if (conn->u.rtp.end.rtp_port == 0) {
+			conn->u.rtp.end.addr = addr->sin_addr;
+			conn->u.rtp.end.rtp_port = addr->sin_port;
+		}
+		return mgcp_send_rtp(proto, addr, buf,
+				     buf_size, &conn->u.rtp, &conn->u.rtp);
+	}
+
 	/* Find a destination connection. */
 	/* NOTE: This code path runs every time an RTP packet is received. The
 	 * function mgcp_find_dst_conn() we use to determine the detination
@@ -1318,21 +1334,6 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 		return -1;
 
 	mgcp_conn_watchdog_kick(conn_src->conn);
-
-	/* Check if the connection is in loopback mode, if yes, just send the
-	 * incoming data back to the origin */
-	if (conn_src->conn->mode == MGCP_CONN_LOOPBACK) {
-		/* When we are in loopback mode, we loop back all incoming
-		 * packets back to their origin. We will use the originating
-		 * address data from the UDP packet header to patch the
-		 * outgoing address in connection on the fly */
-		if (conn_src->end.rtp_port == 0) {
-			conn_src->end.addr = addr.sin_addr;
-			conn_src->end.rtp_port = addr.sin_port;
-		}
-		return mgcp_send_rtp(proto, &addr, buf,
-				     len, conn_src, conn_src);
-	}
 
 	/* If AMR is configured for the ingress connection a conversion of the
 	 * framing mode (octet-aligned vs. bandwith-efficient is explicitly
