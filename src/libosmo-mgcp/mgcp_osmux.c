@@ -20,6 +20,7 @@
 
 #include <osmocom/netif/osmux.h>
 #include <osmocom/netif/rtp.h>
+#include <osmocom/netif/amr.h>
 
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_internal.h>
@@ -554,7 +555,8 @@ int conn_osmux_allocate_cid(struct mgcp_conn_rtp *conn, int osmux_cid)
  *  \returns bytes sent, -1 on error */
 int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 {
-	char buf[1 + sizeof(uint8_t)];
+	struct osmux_hdr *osmuxh;
+	int buf_len;
 	struct in_addr addr_unset = {};
 
 	/*! The dummy packet will not be sent via the actual OSMUX connection,
@@ -566,9 +568,6 @@ int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	 *  endpoint may have already punched the hole in the firewall. This
 	 *  approach is simple though. */
 
-	buf[0] = MGCP_DUMMY_LOAD;
-	memcpy(&buf[1], &conn->osmux.cid, sizeof(conn->osmux.cid));
-
 	/* Wait until we have the connection information from MDCX */
 	if (memcmp(&conn->end.addr, &addr_unset, sizeof(addr_unset)) == 0)
 		return 0;
@@ -576,12 +575,19 @@ int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	if (endp_osmux_state_check(endp, conn, true) < 0)
 		return 0;
 
+	buf_len = sizeof(struct osmux_hdr) + osmo_amr_bytes(AMR_FT_0);
+	osmuxh = (struct osmux_hdr *) alloca(buf_len);
+	memset(osmuxh, 0, buf_len);
+	osmuxh->ft = OSMUX_FT_DUMMY;
+	osmuxh->amr_ft = AMR_FT_0;
+	osmuxh->circuit_id = conn->osmux.cid;
+
 	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
 		 "sending OSMUX dummy load to %s:%u CID %u\n",
 		 inet_ntoa(conn->end.addr), ntohs(conn->end.rtp_port), conn->osmux.cid);
 
 	return mgcp_udp_send(osmux_fd.fd, &conn->end.addr,
-			     conn->end.rtp_port, buf, sizeof(buf));
+			     conn->end.rtp_port, (char*)osmuxh, buf_len);
 }
 
 /* bsc-nat allocates/releases the Osmux circuit ID. +7 to round up to 8 bit boundary. */
