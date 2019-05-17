@@ -125,7 +125,8 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 /* Cleanup rtp connection struct */
 static void mgcp_rtp_conn_cleanup(struct mgcp_conn_rtp *conn_rtp)
 {
-	osmux_disable_conn(conn_rtp);
+	if (mgcp_conn_rtp_is_osmux(conn_rtp))
+		conn_osmux_disable(conn_rtp);
 	mgcp_free_rtp_port(&conn_rtp->end);
 	rate_ctr_group_free(conn_rtp->rate_ctr_group);
 }

@@ -487,26 +487,25 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 
 /*! disable OSXMUX circuit for a specified connection.
  *  \param[in] conn connection to disable */
-void osmux_disable_conn(struct mgcp_conn_rtp *conn)
+void conn_osmux_disable(struct mgcp_conn_rtp *conn)
 {
-	if (!conn)
-		return;
 
-	if (conn->osmux.state != OSMUX_STATE_ENABLED)
-		return;
+	OSMO_ASSERT(conn->osmux.state != OSMUX_STATE_DISABLED);
 
 	LOGPCONN(conn->conn, DLMGCP, LOGL_INFO,
-		"Releasing connection %s using Osmux CID %u\n",
-		conn->conn->id, conn->osmux.cid);
+		"Releasing connection using Osmux CID %u\n", conn->osmux.cid);
 
-	/* We are closing, we don't need pending RTP packets to be transmitted */
-	osmux_xfrm_output_set_tx_cb(&conn->osmux.out, NULL, NULL);
-	osmux_xfrm_output_flush(&conn->osmux.out);
+	if (conn->osmux.state == OSMUX_STATE_ENABLED) {
+		/* We are closing, we don't need pending RTP packets to be transmitted */
+		osmux_xfrm_output_set_tx_cb(&conn->osmux.out, NULL, NULL);
+		osmux_xfrm_output_flush(&conn->osmux.out);
 
-	osmux_xfrm_input_close_circuit(conn->osmux.in, conn->osmux.cid);
-	conn->osmux.state = OSMUX_STATE_DISABLED;
+		osmux_xfrm_input_close_circuit(conn->osmux.in, conn->osmux.cid);
+		conn->osmux.state = OSMUX_STATE_DISABLED;
+		conn_osmux_release_cid(conn);
+		osmux_handle_put(conn->osmux.in);
+	}
 	conn_osmux_release_cid(conn);
-	osmux_handle_put(conn->osmux.in);
 }
 
 /*! relase OSXMUX cid, that had been allocated to this connection.
