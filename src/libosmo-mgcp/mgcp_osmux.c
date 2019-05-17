@@ -473,9 +473,10 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		return -1;
 	}
 
-	osmux_xfrm_output_init(&conn->osmux.out,
+	osmux_xfrm_output_init2(&conn->osmux.out,
 			       (conn->osmux.cid * rtp_ssrc_winlen) +
-			       (random() % rtp_ssrc_winlen));
+			        (random() % rtp_ssrc_winlen),
+			       conn->end.codec->payload_type);
 
 	osmux_xfrm_output_set_tx_cb(&conn->osmux.out,
 				    scheduled_from_osmux_tx_rtp_cb, conn);
