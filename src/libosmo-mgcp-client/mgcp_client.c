@@ -36,6 +36,10 @@
 #include <unistd.h>
 #include <string.h>
 
+#ifndef OSMUX_CID_MAX
+#define OSMUX_CID_MAX 255 /* FIXME: use OSMUX_CID_MAX from libosmo-netif? */
+#endif
+
 /* Codec descripton for dynamic payload types (SDP) */
 const struct value_string osmo_mgcpc_codec_names[] = {
 	{ CODEC_PCMU_8000_1, "PCMU/8000/1" },
@@ -414,9 +418,6 @@ static int mgcp_parse_osmux_cid(const char *line)
 		return -2;
 	}
 
-#ifndef OSMUX_CID_MAX
-#define OSMUX_CID_MAX 255 /* FIXME: use OSMUX_CID_MAX from libosmo-netif? */
-#endif
 	if (osmux_cid > OSMUX_CID_MAX) { /* OSMUX_CID_MAX from libosmo-netif */
 		LOGP(DLMGCP, LOGL_ERROR, "Osmux ID too large: %u > %u\n",
 		     osmux_cid, OSMUX_CID_MAX);
@@ -1260,6 +1261,13 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 
 	/* Add X-Osmo-Osmux */
 	if ((mgcp_msg->presence & MGCP_MSG_PRESENCE_X_OSMO_OSMUX_CID)) {
+		if (mgcp_msg->x_osmo_osmux_cid < -1 || mgcp_msg->x_osmo_osmux_cid > OSMUX_CID_MAX) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "Wrong Osmux CID %d, can not generate MGCP message\n",
+			     mgcp_msg->x_osmo_osmux_cid);
+			msgb_free(msg);
+			return NULL;
+		}
 		snprintf(buf, sizeof(buf), " %d", mgcp_msg->x_osmo_osmux_cid);
 		rc +=
 		    msgb_printf(msg, MGCP_X_OSMO_OSMUX_HEADER "%s\r\n",
