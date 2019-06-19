@@ -187,12 +187,11 @@
         <param name='MASK' doc='List of logging categories to log, e.g. &apos;abc:mno:xyz&apos;. Available log categories depend on the specific application, refer to the &apos;logging level&apos; command. Optionally add individual log levels like &apos;abc,1:mno,3:xyz,5&apos;, where the level numbers are LOGL_DEBUG=1 LOGL_INFO=3 LOGL_NOTICE=5 LOGL_ERROR=7 LOGL_FATAL=8' />
       </params>
     </command>
-    <command id='logging level (rtp|iuup|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (debug|info|notice|error|fatal)'>
+    <command id='logging level (rtp|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro) (debug|info|notice|error|fatal)'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='level' doc='Set the log level for a specified category' />
         <param name='rtp' doc='RTP stream handling' />
-        <param name='iuup' doc='IuUP within RTP stream handling' />
         <param name='lglobal' doc='Library-internal global log family' />
         <param name='llapd' doc='LAPD in libosmogsm' />
         <param name='linp' doc='A-bis Intput Subsystem' />
@@ -211,6 +210,7 @@
         <param name='lm3ua' doc='libosmo-sigtran MTP3 User Adaptation' />
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
+        <param name='lrspro' doc='Remote SIM protocol' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
@@ -522,12 +522,11 @@
         <param name='MASK' doc='List of logging categories to log, e.g. &apos;abc:mno:xyz&apos;. Available log categories depend on the specific application, refer to the &apos;logging level&apos; command. Optionally add individual log levels like &apos;abc,1:mno,3:xyz,5&apos;, where the level numbers are LOGL_DEBUG=1 LOGL_INFO=3 LOGL_NOTICE=5 LOGL_ERROR=7 LOGL_FATAL=8' />
       </params>
     </command>
-    <command id='logging level (rtp|iuup|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (debug|info|notice|error|fatal)'>
+    <command id='logging level (rtp|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro) (debug|info|notice|error|fatal)'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='level' doc='Set the log level for a specified category' />
         <param name='rtp' doc='RTP stream handling' />
-        <param name='iuup' doc='IuUP within RTP stream handling' />
         <param name='lglobal' doc='Library-internal global log family' />
         <param name='llapd' doc='LAPD in libosmogsm' />
         <param name='linp' doc='A-bis Intput Subsystem' />
@@ -546,6 +545,7 @@
         <param name='lm3ua' doc='libosmo-sigtran MTP3 User Adaptation' />
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
+        <param name='lrspro' doc='Remote SIM protocol' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
@@ -561,8 +561,7 @@
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
-        <param name='error' doc='Log error messages and higher levels' />
-        <param name='fatal' doc='Log only fatal messages' />
+        <param name='error' doc='Log error messages and higher levels' />        <param name='fatal' doc='Log only fatal messages' />
       </params>
     </command>
     <command id='logging level force-all (debug|info|notice|error|fatal)'>
@@ -1040,12 +1039,11 @@
         <param name='[last]' doc='Log source file info at the end of a log line. If omitted, log source file info just before the log text.' />
       </params>
     </command>
-    <command id='logging level (rtp|iuup|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf) (debug|info|notice|error|fatal)'>
+    <command id='logging level (rtp|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro) (debug|info|notice|error|fatal)'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='level' doc='Set the log level for a specified category' />
         <param name='rtp' doc='RTP stream handling' />
-        <param name='iuup' doc='IuUP within RTP stream handling' />
         <param name='lglobal' doc='Library-internal global log family' />
         <param name='llapd' doc='LAPD in libosmogsm' />
         <param name='linp' doc='A-bis Intput Subsystem' />
@@ -1064,6 +1062,7 @@
         <param name='lm3ua' doc='libosmo-sigtran MTP3 User Adaptation' />
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
+        <param name='lrspro' doc='Remote SIM protocol' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
@@ -1186,10 +1185,11 @@
         <param name='login' doc='Enable password checking' />
       </params>
     </command>
-    <command id='bind A.B.C.D'>
+    <command id='bind A.B.C.D [&lt;0-65535&gt;]'>
       <params>
         <param name='bind' doc='Accept VTY telnet connections on local interface' />
         <param name='A.B.C.D' doc='Local interface IP address (default: 127.0.0.1)' />
+        <param name='[&lt;0-65535&gt;]' doc='Local TCP port number' />
       </params>
     </command>
   </node>
@@ -1397,6 +1397,19 @@
         <param name='rtp-patch' doc='Modify RTP packet header in both directions' />
       </params>
     </command>
+    <command id='rtp-patch rfc5993hr'>
+      <params>
+        <param name='rtp-patch' doc='Modify RTP packet header in both directions' />
+        <param name='rfc5993hr' doc='Convert GSM-HR from TS101318 to RFC5993 and vice versa' />
+      </params>
+    </command>
+    <command id='no rtp-patch rfc5993hr'>
+      <params>
+        <param name='no' doc='Negate a command or set its defaults' />
+        <param name='rtp-patch' doc='Modify RTP packet header in both directions' />
+        <param name='rfc5993hr' doc='Convert GSM-HR from TS101318 to RFC5993 and vice versa' />
+      </params>
+    </command>
     <command id='sdp audio fmtp-extra .NAME'>
       <params>
         <param name='sdp' doc='Add extra fmtp for the SDP file' />
@@ -1496,6 +1509,12 @@
         <param name='NAME' doc='Qualified domain name expected in MGCP endpoint names, or &apos;*&apos; to accept any domain' />
       </params>
     </command>
+    <command id='conn-timeout &lt;1-65534&gt;'>
+      <params>
+        <param name='conn-timeout' doc='Set a time after which inactive connections (CIs) are closed. This can be used to work around interoperability problems causing connections to stay open forever, and slowly exhausting all available ports. Do not enable when LCLS is used (connections in LCLS state appear to be inactive)!' />
+        <param name='&lt;1-65534&gt;' doc='Timeout value (sec.)' />
+      </params>
+    </command>
     <command id='trunk &lt;1-64&gt;'>
       <params>
         <param name='trunk' doc='Configure a SS7 trunk' />
@@ -1577,6 +1596,19 @@
       <params>
         <param name='rtp-patch' doc='Modify RTP packet header in both directions' />
         <param name='timestamp' doc='Adjust RTP timestamp' />
+      </params>
+    </command>
+    <command id='rtp-patch rfc5993hr'>
+      <params>
+        <param name='rtp-patch' doc='Modify RTP packet header in both directions' />
+        <param name='rfc5993hr' doc='Convert GSM-HR from TS101318 to RFC5993 and vice versa' />
+      </params>
+    </command>
+    <command id='no rtp-patch rfc5993hr'>
+      <params>
+        <param name='no' doc='Negate a command or set its defaults' />
+        <param name='rtp-patch' doc='Modify RTP packet header in both directions' />
+        <param name='rfc5993hr' doc='Convert GSM-HR from TS101318 to RFC5993 and vice versa' />
       </params>
     </command>
     <command id='no rtp-patch timestamp'>
