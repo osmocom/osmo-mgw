@@ -1,6 +1,7 @@
 EXTRA_DIST = osmomgw-usermanual.adoc \
     osmomgw-usermanual-docinfo.xml \
     osmomgw-vty-reference.xml \
+    regen_doc.sh \
     chapters \
     vty
 
