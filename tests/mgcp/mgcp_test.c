@@ -211,10 +211,10 @@ static void test_strline(void)
 /* Test different upper/lower case in options */
 #define MDCX4_PT4 \
 	"MDCX 18983220 1@mgw MGCP 1.0\r\n" \
-	"M: sendrecv\r" \
-	"C: 2\r\n" \
-	"I: %s\r\n" \
-	"L: A:AMR, NT:IN\r\n" \
+	"m: sendrecv\r" \
+	"c: 2\r\n" \
+	"i: %s\r\n" \
+	"l: A:AMR, NT:IN\r\n" \
 	"\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
@@ -260,7 +260,7 @@ static void test_strline(void)
 
 #define CRCX \
 	"CRCX 2 1@mgw MGCP 1.0\r\n" \
-	"M: recvonly\r\n" \
+	"m: recvonly\r\n" \
 	"C: 2\r\n" \
 	"L: p:20\r\n" \
 	"\r\n" \

@@ -65,7 +65,7 @@ Testing CRCX
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 1@mgw MGCP 1.0
-M: recvonly
+m: recvonly
 C: 2
 L: p:20
 
@@ -197,9 +197,9 @@ Testing MDCX4_PT4
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983220 1@mgw MGCP 1.0
-M: sendrecvC: 2
-I: %s
-L: A:AMR, NT:IN
+m: sendrecvc: 2
+i: %s
+l: A:AMR, NT:IN
 
 v=0
 o=- %s 23 IN IP4 0.0.0.0
@@ -383,7 +383,7 @@ Testing CRCX
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 1@mgw MGCP 1.0
-M: recvonly
+m: recvonly
 C: 2
 L: p:20
 
@@ -508,7 +508,7 @@ Testing CRCX
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 1@mgw MGCP 1.0
-M: recvonly
+m: recvonly
 C: 2
 L: p:20
 
@@ -526,7 +526,7 @@ Re-transmitting CRCX
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 1@mgw MGCP 1.0
-M: recvonly
+m: recvonly
 C: 2
 L: p:20
 
@@ -638,7 +638,7 @@ Testing packet loss calculation.
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 1@mgw MGCP 1.0
-M: recvonly
+m: recvonly
 C: 2
 L: p:20
 
@@ -1189,7 +1189,7 @@ Testing no rtpmap name
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 1@mgw MGCP 1.0
-M: recvonly
+m: recvonly
 C: 2
 L: p:20
 

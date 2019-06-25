@@ -813,7 +813,7 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 		if (!mgcp_check_param(endp, line))
 			continue;
 
-		switch (line[0]) {
+		switch (toupper(line[0])) {
 		case 'L':
 			local_options = (const char *)line + 3;
 			break;
@@ -831,7 +831,6 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 			mode = (const char *)line + 3;
 			break;
 		case 'X':
-		case 'x':
 			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
 				/* If osmux is disabled, just skip setting it up */
 				if (!p->endp->cfg->osmux)
@@ -1090,7 +1089,7 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 		if (!mgcp_check_param(endp, line))
 			continue;
 
-		switch (line[0]) {
+		switch (toupper(line[0])) {
 		case 'C':
 			if (mgcp_verify_call_id(endp, line + 3) != 0) {
 				rate_ctr_inc(&rate_ctrs->ctr[MGCP_MDCX_FAIL_INVALID_CALLID]);
@@ -1115,7 +1114,6 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 			silent = strcmp("noanswer", line + 3) == 0;
 			break;
 		case 'X':
-		case 'x':
 			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
 				/* If osmux is disabled, just skip setting it up */
 				if (!p->endp->cfg->osmux)
@@ -1314,7 +1312,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 		if (!mgcp_check_param(endp, line))
 			continue;
 
-		switch (line[0]) {
+		switch (toupper(line[0])) {
 		case 'C':
 			if (mgcp_verify_call_id(endp, line + 3) != 0) {
 				error_code = 516;
@@ -1465,7 +1463,7 @@ static struct msgb *handle_noti_req(struct mgcp_parse_data *p)
 	LOGP(DLMGCP, LOGL_NOTICE, "RQNT: processing request for notification ...\n");
 
 	for_each_line(line, p->save) {
-		switch (line[0]) {
+		switch (toupper(line[0])) {
 		case 'S':
 			tone = extract_tone(line);
 			break;
