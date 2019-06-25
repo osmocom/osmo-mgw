@@ -590,7 +590,7 @@ error:
 static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 				 const char *options)
 {
-	char *p_opt, *a_opt;
+	char *lco_id;
 	char codec[17];
 
 	if (!options)
@@ -608,18 +608,33 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 	talloc_free(lco->string);
 	lco->string = talloc_strdup(ctx, options);
 
-	p_opt = strstr(lco->string, "p:");
-	if (p_opt && sscanf(p_opt, "p:%d-%d",
-			    &lco->pkt_period_min, &lco->pkt_period_max) == 1)
-		lco->pkt_period_max = lco->pkt_period_min;
+	lco_id = lco->string;
+	while ((lco_id = get_lco_identifier(lco_id))) {
+		switch (tolower(lco_id[0])) {
+		case 'p':
+			if (sscanf(lco_id + 1, ":%d-%d",
+				   &lco->pkt_period_min, &lco->pkt_period_max) == 1)
+				lco->pkt_period_max = lco->pkt_period_min;
+			break;
+		case 'a':
+			/* FIXME: LCO also supports the negotiation of more then one codec.
+			 * (e.g. a:PCMU;G726-32) But this implementation only supports a single
+			 * codec only. */
+			if (sscanf(lco_id + 1, ":%16[^,]", codec) == 1) {
+				talloc_free(lco->codec);
+				lco->codec = talloc_strdup(ctx, codec);
+			}
+			break;
+		default:
+			LOGP(DLMGCP, LOGL_NOTICE,
+			     "LCO: unhandled option: '%c'/%d in \"%s\"\n",
+			     *lco_id, *lco_id, lco->string);
+			break;
+		}
 
-	/* FIXME: LCO also supports the negotiation of more then one codec.
-	 * (e.g. a:PCMU;G726-32) But this implementation only supports a single
-	 * codec only. */
-	a_opt = strstr(lco->string, "a:");
-	if (a_opt && sscanf(a_opt, "a:%16[^,]", codec) == 1) {
-		talloc_free(lco->codec);
-		lco->codec = talloc_strdup(ctx, codec);
+		lco_id = strchr(lco_id, ',');
+		if (!lco_id)
+			break;
 	}
 
 	LOGP(DLMGCP, LOGL_DEBUG,

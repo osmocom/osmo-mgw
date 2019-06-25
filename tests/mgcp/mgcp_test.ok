@@ -193,10 +193,34 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing MDCX4_SO
+Testing MDCX4_PT4
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983220 1@mgw MGCP 1.0
+M: sendrecvC: 2
+I: %s
+L: A:AMR, NT:IN
+
+v=0
+o=- %s 23 IN IP4 0.0.0.0
+c=IN IP4 0.0.0.0
+t=0 0
+m=audio 4441 RTP/AVP 99
+a=rtpmap:99 AMR/8000
+a=ptime:40
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+(response contains a connection id)
+Dummy packets: 2
+
+================================================
+Testing MDCX4_SO
+creating message from statically defined input:
+---------8<---------
+MDCX 18983221 1@mgw MGCP 1.0
 M: sendonlyC: 2
 I: %s
 L: p:20, a:AMR, nt:IN
@@ -219,7 +243,7 @@ Response matches our expectations.
 Testing MDCX4_RO
 creating message from statically defined input:
 ---------8<---------
-MDCX 18983221 1@mgw MGCP 1.0
+MDCX 18983222 1@mgw MGCP 1.0
 M: recvonlyC: 2
 I: %s
 L: p:20, a:AMR, nt:IN
@@ -446,7 +470,7 @@ Dummy packets: 2
 Testing MDCX_TOO_LONG_CI
 creating message from statically defined input:
 ---------8<---------
-MDCX 18983222 1@mgw MGCP 1.0
+MDCX 18983223 1@mgw MGCP 1.0
 I: 123456789012345678901234567890123
 
 ---------8<---------
