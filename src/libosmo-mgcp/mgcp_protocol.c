@@ -785,7 +785,7 @@ static bool parse_x_osmo_ign(struct mgcp_endpoint *endp, char *line)
 		if (!token)
 			break;
 
-		if (!strcmp(token, "C"))
+		if (!strcasecmp(token, "C"))
 			endp->x_osmo_ign |= MGCP_X_OSMO_IGN_CALLID;
 		else
 			LOGPENDP(endp, DLMGCP, LOGL_ERROR, "received unknown X-Osmo-IGN item '%s'\n", token);
