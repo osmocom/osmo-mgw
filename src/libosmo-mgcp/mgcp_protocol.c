@@ -559,7 +559,7 @@ int check_local_cx_options(void *ctx, const char *options)
 		 * before. If yes, we must bail, an LCO must only appear once
 		 * in the LCO string */
 		for (i = 0; i < lco_seen_n; i++) {
-			if (strcmp(lco_seen[i], lco_identifier) == 0)
+			if (strcasecmp(lco_seen[i], lco_identifier) == 0)
 				goto error;
 		}
 		lco_seen[lco_seen_n] = lco_identifier;
