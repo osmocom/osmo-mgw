@@ -1382,7 +1382,8 @@ DEFUN(cfg_mgcp_conn_timeout,
       "conn-timeout <0-65534>",
       "Set a time after which inactive connections (CIs) are closed. Set to 0 to disable timeout. This can be used to"
       " work around interoperability problems causing connections to stay open forever, and slowly exhausting all"
-      " available ports. Do not enable when LCLS is used (connections in LCLS state appear to be inactive)!\n"
+      " available ports. Enable keep-alive packets in MGW clients when using this option together with LCLS (OsmoBSC,"
+      " OsmoMSC: 'rtp keep-alive')!\n"
       "Timeout value (sec.)\n")
 {
 	g_cfg->conn_timeout = strtoul(argv[0], NULL, 10);
