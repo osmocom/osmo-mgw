@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
 
 #ifndef OSMUX_CID_MAX
 #define OSMUX_CID_MAX 255 /* FIXME: use OSMUX_CID_MAX from libosmo-netif? */
@@ -573,7 +574,7 @@ static int parse_head_params(struct mgcp_response *r)
 		*data_end = '\0';
 
 	for_each_non_empty_line(line, data_ptr) {
-		switch (line[0]) {
+		switch (toupper(line[0])) {
 		case 'Z':
 			rc = mgcp_parse_head_param(r->head.endpoint,
 						   sizeof(r->head.endpoint),
@@ -603,7 +604,6 @@ static int parse_head_params(struct mgcp_response *r)
 				goto exit;
 			break;
 		case 'X':
-		case 'x':
 			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
 				rc = mgcp_parse_osmux_cid(line);
 				if (rc < 0) {
