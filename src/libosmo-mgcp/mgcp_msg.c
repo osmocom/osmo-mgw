@@ -91,13 +91,13 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 	if (!endp)
 		return -1;
 
-	if (strcmp(mode, "recvonly") == 0)
+	if (strcasecmp(mode, "recvonly") == 0)
 		conn->mode = MGCP_CONN_RECV_ONLY;
-	else if (strcmp(mode, "sendrecv") == 0)
+	else if (strcasecmp(mode, "sendrecv") == 0)
 		conn->mode = MGCP_CONN_RECV_SEND;
-	else if (strcmp(mode, "sendonly") == 0)
+	else if (strcasecmp(mode, "sendonly") == 0)
 		conn->mode = MGCP_CONN_SEND_ONLY;
-	else if (strcmp(mode, "loopback") == 0)
+	else if (strcasecmp(mode, "loopback") == 0)
 		conn->mode = MGCP_CONN_LOOPBACK;
 	else {
 		LOGPCONN(conn, DLMGCP, LOGL_ERROR,

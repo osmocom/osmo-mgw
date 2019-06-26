@@ -165,7 +165,7 @@ static void test_strline(void)
 
 #define MDCX4_PT1 \
 	"MDCX 18983217 1@mgw MGCP 1.0\r\n" \
-	"M: sendrecv\r" \
+	"M: SENDRECV\r" \
 	"C: 2\r\n" \
 	"I: %s\r\n" \
 	"L: p:20-40, a:AMR, nt:IN\r\n" \

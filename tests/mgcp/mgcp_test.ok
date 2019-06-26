@@ -125,7 +125,7 @@ Testing MDCX4_PT1
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983217 1@mgw MGCP 1.0
-M: sendrecvC: 2
+M: SENDRECVC: 2
 I: %s
 L: p:20-40, a:AMR, nt:IN
 
