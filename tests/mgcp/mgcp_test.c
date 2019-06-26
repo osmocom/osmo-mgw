@@ -214,7 +214,7 @@ static void test_strline(void)
 	"m: sendrecv\r" \
 	"c: 2\r\n" \
 	"i: %s\r\n" \
-	"l: A:AMR, NT:IN\r\n" \
+	"l: A:amr, NT:IN\r\n" \
 	"\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \

@@ -592,6 +592,7 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 {
 	char *lco_id;
 	char codec[17];
+	int len;
 
 	if (!options)
 		return 0;
@@ -622,7 +623,11 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 			 * codec only. */
 			if (sscanf(lco_id + 1, ":%16[^,]", codec) == 1) {
 				talloc_free(lco->codec);
-				lco->codec = talloc_strdup(ctx, codec);
+				/* MGCP header is case insensive, and we'll need
+				   codec in uppercase when using it later: */
+				len = strlen(codec);
+				lco->codec = talloc_size(ctx, len + 1);
+				osmo_str_toupper_buf(lco->codec, len + 1, codec);
 			}
 			break;
 		default:

@@ -199,7 +199,7 @@ creating message from statically defined input:
 MDCX 18983220 1@mgw MGCP 1.0
 m: sendrecvc: 2
 i: %s
-l: A:AMR, NT:IN
+l: A:amr, NT:IN
 
 v=0
 o=- %s 23 IN IP4 0.0.0.0

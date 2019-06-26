@@ -99,7 +99,7 @@ void mgcp_codec_reset_all(struct mgcp_conn_rtp *conn)
 	conn->end.codec = NULL;
 }
 
-/* Set members of struct mgcp_rtp_codec, extrapolate in missing information */
+/* Set members of struct mgcp_rtp_codec, extrapolate in missing information. Param audio_name is expected in uppercase. */
 static int codec_set(void *ctx, struct mgcp_rtp_codec *codec, int payload_type, const char *audio_name,
 		     unsigned int pt_offset, struct mgcp_codec_param *param)
 {
@@ -239,7 +239,7 @@ error:
  *  \param[out] codec configuration (caller provided memory).
  *  \param[out] conn related rtp-connection.
  *  \param[in] payload_type codec type id (e.g. 3 for GSM, -1 when undefined).
- *  \param[in] audio_name audio codec name (e.g. "GSM/8000/1").
+ *  \param[in] audio_name audio codec name, in uppercase (e.g. "GSM/8000/1").
  *  \param[in] param optional codec parameters (set to NULL when unused).
  *  \returns 0 on success, -EINVAL on failure. */
 int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *audio_name, struct mgcp_codec_param *param)
