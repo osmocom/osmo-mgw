@@ -325,7 +325,7 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 			}
 			break;
 		case 2:
-			if (strcmp("MGCP", elem)) {
+			if (strcasecmp("MGCP", elem)) {
 				LOGP(DLMGCP, LOGL_ERROR,
 				     "MGCP header parsing error\n");
 				return -510;
