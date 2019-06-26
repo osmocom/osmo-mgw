@@ -1116,7 +1116,7 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 			mode = (const char *)line + 3;
 			break;
 		case 'Z':
-			silent = strcmp("noanswer", line + 3) == 0;
+			silent = strcasecmp("noanswer", line + 3) == 0;
 			break;
 		case 'X':
 			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
@@ -1333,7 +1333,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 			}
 			break;
 		case 'Z':
-			silent = strcmp("noanswer", line + 3) == 0;
+			silent = strcasecmp("noanswer", line + 3) == 0;
 			break;
 		default:
 			LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
