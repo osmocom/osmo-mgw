@@ -1379,10 +1379,10 @@ DEFUN(cfg_mgcp_domain,
 
 DEFUN(cfg_mgcp_conn_timeout,
       cfg_mgcp_conn_timeout_cmd,
-      "conn-timeout <1-65534>",
-      "Set a time after which inactive connections (CIs) are closed. This can be used to work around interoperability"
-      " problems causing connections to stay open forever, and slowly exhausting all available ports. Do not enable"
-      " when LCLS is used (connections in LCLS state appear to be inactive)!\n"
+      "conn-timeout <0-65534>",
+      "Set a time after which inactive connections (CIs) are closed. Set to 0 to disable timeout. This can be used to"
+      " work around interoperability problems causing connections to stay open forever, and slowly exhausting all"
+      " available ports. Do not enable when LCLS is used (connections in LCLS state appear to be inactive)!\n"
       "Timeout value (sec.)\n")
 {
 	g_cfg->conn_timeout = strtoul(argv[0], NULL, 10);
