@@ -1509,10 +1509,10 @@
         <param name='NAME' doc='Qualified domain name expected in MGCP endpoint names, or &apos;*&apos; to accept any domain' />
       </params>
     </command>
-    <command id='conn-timeout &lt;1-65534&gt;'>
+    <command id='conn-timeout &lt;0-65534&gt;'>
       <params>
-        <param name='conn-timeout' doc='Set a time after which inactive connections (CIs) are closed. This can be used to work around interoperability problems causing connections to stay open forever, and slowly exhausting all available ports. Do not enable when LCLS is used (connections in LCLS state appear to be inactive)!' />
-        <param name='&lt;1-65534&gt;' doc='Timeout value (sec.)' />
+        <param name='conn-timeout' doc='Set a time after which inactive connections (CIs) are closed. Set to 0 to disable timeout. This can be used to work around interoperability problems causing connections to stay open forever, and slowly exhausting all available ports. Enable keep-alive packets in MGW clients when using this option together with LCLS (OsmoBSC, OsmoMSC: &apos;rtp keep-alive&apos;)!' />
+        <param name='&lt;0-65534&gt;' doc='Timeout value (sec.)' />
       </params>
     </command>
     <command id='trunk &lt;1-64&gt;'>
