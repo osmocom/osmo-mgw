@@ -11,7 +11,7 @@ indicate collisions or configuration errors.
 
 ==== `X-Osmo-IGN` Format
 
-The value part of X-Osmo-IGN must be one or more items separated by one or more
+The value part of `X-Osmo-IGN` must be one or more items separated by one or more
 spaces. Each item consists of one or more non-whitespace characters.
 
 .Example: `X-Osmo-IGN` format with three ficticious items "X", "abc" and "123".
@@ -19,7 +19,7 @@ spaces. Each item consists of one or more non-whitespace characters.
 X-Osmo-IGN: X abc 123
 ----
 
-`X-Osmo-IGN` must be issued in the MGCP section (typically as its last item),
+`X-Osmo-IGN` must be issued in the MGCP header section (typically as its last item),
 before the SDP section starts.
 
 ==== Supported `X-Osmo-IGN` Items
