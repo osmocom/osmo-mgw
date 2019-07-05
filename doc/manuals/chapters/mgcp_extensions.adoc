@@ -66,3 +66,7 @@ m=audio 5904 RTP/AVP 97
 a=rtpmap:97 GSM-EFR/8000
 a=ptime:40
 ----
+
+=== `X-Osmux`
+
+See <<mgcp-extension-osmux>>
