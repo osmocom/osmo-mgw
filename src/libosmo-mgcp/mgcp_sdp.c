@@ -417,9 +417,6 @@ static int add_audio(struct msgb *sdp, int *payload_types, unsigned int payload_
 	int rc;
 	unsigned int i;
 
-	if (payload_types_len < 0)
-		return -EINVAL;
-
 	rc = msgb_printf(sdp, "m=audio %d RTP/AVP", local_port);
 	if (rc < 0)
 		return -EINVAL;
