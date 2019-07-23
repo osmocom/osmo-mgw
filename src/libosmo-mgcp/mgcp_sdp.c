@@ -29,6 +29,8 @@
 #include <osmocom/mgcp/mgcp_sdp.h>
 
 #include <errno.h>
+#include <stdlib.h>
+#include <limits.h>
 
 /* Two structs to store intermediate parsing results. The function
  * mgcp_parse_sdp_data() is using the following two structs as temporary
@@ -129,6 +131,7 @@ static int pt_from_sdp(void *ctx, struct sdp_rtp_map *codecs,
 	char *str;
 	char *str_ptr;
 	char *pt_str;
+	char *pt_end;
 	unsigned int pt;
 	unsigned int count = 0;
 	unsigned int i;
@@ -154,7 +157,11 @@ static int pt_from_sdp(void *ctx, struct sdp_rtp_map *codecs,
 		if (!pt_str)
 			break;
 
-		pt = atoi(pt_str);
+		errno = 0;
+		pt = strtoul(pt_str, &pt_end, 0);
+		if ((errno == ERANGE && pt == ULONG_MAX) || (errno && !pt) ||
+		    pt_str == pt_end)
+			goto error;
 
 		/* Do not allow duplicate payload types */
 		for (i = 0; i < count; i++)

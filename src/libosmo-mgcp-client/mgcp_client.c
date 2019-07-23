@@ -36,6 +36,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <limits.h>
 
 #ifndef OSMUX_CID_MAX
 #define OSMUX_CID_MAX 255 /* FIXME: use OSMUX_CID_MAX from libosmo-netif? */
@@ -265,6 +267,7 @@ static bool mgcp_line_is_valid(const char *line)
 static int mgcp_parse_audio_port_pt(struct mgcp_response *r, char *line)
 {
 	char *pt_str;
+	char *pt_end;
 	unsigned int pt;
 	unsigned int count = 0;
 	unsigned int i;
@@ -289,7 +292,11 @@ static int mgcp_parse_audio_port_pt(struct mgcp_response *r, char *line)
 		pt_str = strtok(NULL, " ");
 		if (!pt_str)
 			break;
-		pt = atoi(pt_str);
+		errno = 0;
+		pt = strtoul(pt_str, &pt_end, 0);
+		if ((errno == ERANGE && pt == ULONG_MAX) || (errno && !pt) ||
+		    pt_str == pt_end)
+			goto response_parse_failure_pt;
 
 		/* Do not allow duplicate payload types */
 		for (i = 0; i < count; i++)
