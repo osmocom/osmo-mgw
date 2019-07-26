@@ -268,7 +268,7 @@ static int mgcp_parse_audio_port_pt(struct mgcp_response *r, char *line)
 {
 	char *pt_str;
 	char *pt_end;
-	unsigned int pt;
+	unsigned long int pt;
 	unsigned int count = 0;
 	unsigned int i;
 
@@ -296,6 +296,9 @@ static int mgcp_parse_audio_port_pt(struct mgcp_response *r, char *line)
 		pt = strtoul(pt_str, &pt_end, 0);
 		if ((errno == ERANGE && pt == ULONG_MAX) || (errno && !pt) ||
 		    pt_str == pt_end)
+			goto response_parse_failure_pt;
+
+		if (pt >> 7) /* PT is 7 bit field, higher values not allowed */
 			goto response_parse_failure_pt;
 
 		/* Do not allow duplicate payload types */
