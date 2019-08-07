@@ -1,3 +1,109 @@
+osmo-mgw (1.6.0) unstable; urgency=medium
+
+  [ Oliver Smith ]
+  * Cosmetic: fix spaces/tabs in mgcp_requests[]
+  * Inactive connection cleanup (disabled by default)
+  * debian: create -doc subpackage with pdf manuals
+  * vty: allow 0 as conn-timeout to disable it
+  * vty: update desc of conn-timeout
+  * manuals: update VTY documentation
+  * "make dist" fix for: no rule to make mgcp_common.h
+  * contrib/jenkins.sh: run "make maintainer-clean"
+
+  [ Philipp Maier ]
+  * Add option to GSM HR frames to RFC5593 representation
+  * mgcp_sdp: cosmetic: correct typo in comment
+  * mgco_client: cosmetic: remove excess whitespace
+  * mgcp_sdp: mgcp_sdp.c does not include own header file
+  * mgcp_sdp: untangle parsing of a= parameters
+  * mgcp_network: use mgcp_rtp_codec in downlink format callback
+  * AMR: Add function to convert between bw-effient and octet aligned mode
+
+  [ Neels Hofmeyr ]
+  * log: don't spam with "can not patch PT" messages
+  * mgcp client: allow setting conn mode for CRCX and MDCX
+  * make codec_table public as osmo_mgcpc_codec_names
+  * move MGW endpoint FSM from osmo-bsc to here
+  * fix: multiple initial CRCX
+  * constify map_codec_to_pt() ptmap arg
+
+  [ Pau Espin Pedrol ]
+  * mgcp-client: whitespace cleanup in mgcp_client.c
+  * mgcp-client: Sanitize implementation of mgcp_client_rtpbridge_wildcard
+  * libosmo-mgcp: Use trunk type during endpoint allocation
+  * cosmetic: Fix typos in comment
+  * cosmetic: tests: mgcp_client_test: clean trailing whitespace
+  * mgcp_msg: Log faulty line on Osmux parsing error
+  * cosmetic: handle_modify_con: Fix indentation level
+  * Introduce log fmt helpers LOGPENDP and LOGPCONN
+  * create_response_with_sdp: Fix inclusion of X-Osmux
+  * osmux: Cleanup of CID alloc pool APIs
+  * mgcp_osmux.c: osmux_enable_endpoint: Fix incorrect return check
+  * osmux: Log osmux socket during osmux_init
+  * mgcp-cli: Change osmo_mgcpc_ep_fsm name to avoid collision with old osmo-bsc
+  * osmux: Document func and return different rc upon osmux init failure
+  * osmux: Fix reception of legacy dummy payloads
+  * osmux: Use LOGPCONN in several log calls
+  * cosmetic: mgcp_udp_send: Document port param is in network byte order
+  * cosmetic: osmux: Document network byte order in port variable
+  * vty: Allow enabling Osmux
+  * osmux: Allocate CID during CRCX
+  * osmux: Introduce mgcp_conn_rtp_is_osmux() helper
+  * osmux: Mark conn_rtp->type as osmux during CRCX
+  * mgcp-cli: Allow submitting X-Osmux on CRCX request
+  * mgcp-cli: Parse X-Osmux on CRCX response
+  * osmux: Handle Osmux MGCP extension in MDCX messages
+  * mgcp-cli: Allow submitting X-Osmux on MDCX request
+  * mgcp-cli: Parse X-Osmux on MDCX response
+  * osmux: Drop unneeded OSMUX_STATE_NEGOTIATING
+  * mgcp-cli: endpoint_fsm: Add API to retrieve Osmux CID from MGW
+  * osmux: Provide correct local port during mgcp resp
+  * osmux: Use remote port to send osmux frames
+  * osmux: Improve logging around osmux enabling events
+  * osmux: Delay osmux enable of conn until remote addr is configured by MDCX
+  * osmux: Redo read/write osmux glue code to have data routed correctly
+  * mgw, mgcp-li: Handle X-Osmux param name as case insensitive
+  * osmux: Use DUMMY ft msg as per Osmux spec
+  * osmux: Fix loopback for Osmux connections
+  * osmux: Fix CID release for non-enabled connections
+  * osmux: Fix hardcoded rtp payload_type 98 in osmux conn
+  * mgcp-cli: Validate osmux cid value during mgcp_msg_gen
+  * mgw: Support uppercase LCO options
+  * mgw: Support lowercase header parameters
+  * mgcp-cli: Support lowercase header parameters
+  * mgw: Support receiving uppercase connection mode
+  * mgw: Support receiving lowercase LCO codec
+  * mgw: Make check of duplicated LCO fields case insensitive
+  * mgw: Allow receiving lowercase MGCP header keyword
+  * mgw: Allow receiving lowercase X-Osmo-Ign Callid field
+  * mgw: Allow receiving uppercase noanswer keyword
+  * doc: X-Osmo-IGN: small formatting and typo fixes
+  * doc: Add Osmux documentation to OsmoMGW User Manual
+  * Catch unsigned integer MGCP parsing errors with strtoul
+  * Fix return variable of strtoul()
+  * Remove undefined param passed to {logging,osmo_stats}_vty_add_cmds
+  * configure.ac: Require libosmo-netif 0.6.0
+
+  [ Alexander Couzens ]
+  * mgcp_internal: LOGPENDP: ensure *endp is not NULL
+
+  [ Harald Welte ]
+  * handle NULL return of rate_ctr_group_alloc()
+  * update .gitignore
+  * mgcp_sdp: Don't check if an unsigned int is below 0
+
+  [ Vadim Yanitskiy ]
+  * configure.ac: drop useless check for -fvisibility=hidden
+
+  [ Daniel Willmann ]
+  * manuals: Add script to regenerate vty/counter documentation
+  * manuals: Update vty/counter documentation
+
+  [ Hoernchen ]
+  * turn -Werror=null-dereference into a warning
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Wed, 07 Aug 2019 16:52:58 +0200
+
 osmo-mgw (1.5.0) unstable; urgency=medium
 
   [ Pau Espin Pedrol ]
