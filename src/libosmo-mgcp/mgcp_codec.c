@@ -101,7 +101,7 @@ void mgcp_codec_reset_all(struct mgcp_conn_rtp *conn)
 
 /* Set members of struct mgcp_rtp_codec, extrapolate in missing information. Param audio_name is expected in uppercase. */
 static int codec_set(void *ctx, struct mgcp_rtp_codec *codec, int payload_type, const char *audio_name,
-		     unsigned int pt_offset, struct mgcp_codec_param *param)
+		     unsigned int pt_offset, const struct mgcp_codec_param *param)
 {
 	int rate;
 	int channels;
@@ -242,7 +242,7 @@ error:
  *  \param[in] audio_name audio codec name, in uppercase (e.g. "GSM/8000/1").
  *  \param[in] param optional codec parameters (set to NULL when unused).
  *  \returns 0 on success, -EINVAL on failure. */
-int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *audio_name, struct mgcp_codec_param *param)
+int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *audio_name, const struct mgcp_codec_param *param)
 {
 	int rc;
 
