@@ -1716,7 +1716,6 @@ static const struct mgcp_codec_param amr_param_octet_aligned_true = {
 	.amr_octet_aligned = true,
 };
 
-#if 0
 static const struct mgcp_codec_param amr_param_octet_aligned_false = {
 	.amr_octet_aligned_present = true,
 	.amr_octet_aligned = false,
@@ -1725,7 +1724,6 @@ static const struct mgcp_codec_param amr_param_octet_aligned_false = {
 static const struct mgcp_codec_param amr_param_octet_aligned_unset = {
 	.amr_octet_aligned_present = false,
 };
-#endif
 
 struct testcase_mgcp_codec_pt_translate_codec {
 	int payload_type;
@@ -1847,6 +1845,58 @@ static const struct testcase_mgcp_codec_pt_translate test_mgcp_codec_pt_translat
 			{ .payload_type_map = {112, -EINVAL}, },
 			{ .payload_type_map = {0, -EINVAL}, },
 			{ .payload_type_map = {111, -EINVAL} },
+			{ .end = true },
+		},
+	},
+	{
+		.descr = "test AMR with differing octet-aligned settings",
+		.codecs = {
+			{
+				{ 111, "AMR/8000", &amr_param_octet_aligned_true, },
+				{ 112, "AMR/8000", &amr_param_octet_aligned_false, },
+			},
+			{
+				{ 122, "AMR/8000", &amr_param_octet_aligned_false, },
+				{ 121, "AMR/8000", &amr_param_octet_aligned_true, },
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {111, 121}, },
+			{ .payload_type_map = {112, 122} },
+			{ .end = true },
+		},
+	},
+	{
+		.descr = "test AMR with missing octet-aligned settings (defaults to 0)",
+		.codecs = {
+			{
+				{ 111, "AMR/8000", &amr_param_octet_aligned_true, },
+				{ 112, "AMR/8000", &amr_param_octet_aligned_false, },
+			},
+			{
+				{ 122, "AMR/8000", &amr_param_octet_aligned_unset, },
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {111, -EINVAL}, },
+			{ .payload_type_map = {112, 122} },
+			{ .end = true },
+		},
+	},
+	{
+		.descr = "test AMR with NULL param (defaults to 0)",
+		.codecs = {
+			{
+				{ 111, "AMR/8000", &amr_param_octet_aligned_true, },
+				{ 112, "AMR/8000", &amr_param_octet_aligned_false, },
+			},
+			{
+				{ 122, "AMR/8000", NULL, },
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {111, -EINVAL}, },
+			{ .payload_type_map = {112, 122} },
 			{ .end = true },
 		},
 	},
