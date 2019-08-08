@@ -100,7 +100,9 @@ static void codec_free(struct mgcp_rtp_codec *codec)
  *  \param[out] conn related rtp-connection. */
 void mgcp_codec_reset_all(struct mgcp_conn_rtp *conn)
 {
-	memset(conn->end.codecs, 0, sizeof(conn->end.codecs));
+	int i;
+	for (i = 0; i < conn->end.codecs_assigned; i++)
+		codec_free(&conn->end.codecs[i]);
 	conn->end.codecs_assigned = 0;
 	conn->end.codec = NULL;
 }
