@@ -1218,6 +1218,44 @@ p:10, a:PCMU -> p:10, a:PCMU
 p10, aPCMU -> (null)
 '10,a :PCMU' -> '(null)'
 
+Testing mgcp_codec_pt_translate()
+#0: same order, but differing payload type numbers
+ - add codecs on conn0:
+    0: 112 AMR/8000/1 octet-aligned=1  -> rc=0
+    1:   0 PCMU/8000/1  -> rc=0
+    2: 111 GSM-HR-08/8000/1  -> rc=0
+ - add codecs on conn1:
+    0:  96 AMR/8000/1 octet-aligned=1  -> rc=0
+    1:   0 PCMU/8000/1  -> rc=0
+    2:  97 GSM-HR-08/8000/1  -> rc=0
+ - mgcp_codec_pt_translate(conn0, conn1, 112) -> 96
+ - mgcp_codec_pt_translate(conn1, conn0, 96) -> 112
+ - mgcp_codec_pt_translate(conn0, conn1, 0) -> 0
+ - mgcp_codec_pt_translate(conn1, conn0, 0) -> 0
+ - mgcp_codec_pt_translate(conn0, conn1, 111) -> 97
+ - mgcp_codec_pt_translate(conn1, conn0, 97) -> 111
+ - mgcp_codec_pt_translate(conn0, conn1, 123) -> -22
+#1: conn0 has no codecs
+ - add codecs on conn0:
+    (none)
+ - add codecs on conn1:
+    0:  96 AMR/8000/1 octet-aligned=1  -> rc=0
+    1:   0 PCMU/8000/1  -> rc=0
+    2:  97 GSM-HR-08/8000/1  -> rc=0
+ - mgcp_codec_pt_translate(conn0, conn1, 112) -> -22
+ - mgcp_codec_pt_translate(conn0, conn1, 0) -> -22
+ - mgcp_codec_pt_translate(conn0, conn1, 111) -> -22
+#2: conn1 has no codecs
+ - add codecs on conn0:
+    0: 112 AMR/8000/1 octet-aligned=1  -> rc=0
+    1:   0 PCMU/8000/1  -> rc=0
+    2: 111 GSM-HR-08/8000/1  -> rc=0
+ - add codecs on conn1:
+    (none)
+ - mgcp_codec_pt_translate(conn0, conn1, 112) -> -22
+ - mgcp_codec_pt_translate(conn0, conn1, 0) -> -22
+ - mgcp_codec_pt_translate(conn0, conn1, 111) -> -22
+
 Testing test_conn_id_matching
 needle='23AB' found '000023AB'
 needle='0023AB' found '000023AB'
