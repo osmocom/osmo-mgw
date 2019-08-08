@@ -1711,98 +1711,178 @@ static void test_check_local_cx_options(void *ctx)
 	OSMO_ASSERT(check_local_cx_options(ctx, ",,,") == -1);
 }
 
-static void test_mgcp_codec_pt_translate_pars(struct mgcp_rtp_codec *c)
-{
-	c->rate = 8000;
-	c->channels = 1;
-	c->frame_duration_num = 23;
-	c->frame_duration_den = 42;
-}
+static const struct mgcp_codec_param amr_param_octet_aligned_true = {
+	.amr_octet_aligned_present = true,
+	.amr_octet_aligned = true,
+};
+
+#if 0
+static const struct mgcp_codec_param amr_param_octet_aligned_false = {
+	.amr_octet_aligned_present = true,
+	.amr_octet_aligned = false,
+};
+
+static const struct mgcp_codec_param amr_param_octet_aligned_unset = {
+	.amr_octet_aligned_present = false,
+};
+#endif
+
+struct testcase_mgcp_codec_pt_translate_codec {
+	int payload_type;
+	const char *audio_name;
+	const struct mgcp_codec_param *param;
+	int expect_rc;
+};
+
+struct testcase_mgcp_codec_pt_translate_expect {
+	bool end;
+	int payload_type_map[2];
+};
+
+struct testcase_mgcp_codec_pt_translate {
+	const char *descr;
+	/* two conns on an endpoint, each with N configured codecs */
+	struct testcase_mgcp_codec_pt_translate_codec codecs[2][10];
+	struct testcase_mgcp_codec_pt_translate_expect expect[32];
+};
+
+static const struct testcase_mgcp_codec_pt_translate test_mgcp_codec_pt_translate_cases[] = {
+	{
+		.descr = "same order, but differing payload type numbers",
+		.codecs = {
+			{
+				{ 112, "AMR/8000/1", &amr_param_octet_aligned_true, },
+				{ 0, "PCMU/8000/1", NULL, },
+				{ 111, "GSM-HR-08/8000/1", NULL, },
+			},
+			{
+				{ 96, "AMR/8000/1", &amr_param_octet_aligned_true, },
+				{ 0, "PCMU/8000/1", NULL, },
+				{ 97, "GSM-HR-08/8000/1", NULL, },
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {112, 96}, },
+			{ .payload_type_map = {0, 0}, },
+			{ .payload_type_map = {111, 97} },
+			{ .payload_type_map = {123, -EINVAL} },
+			{ .end = true },
+		},
+	},
+	{
+		.descr = "conn0 has no codecs",
+		.codecs = {
+			{
+				/* no codecs */
+			},
+			{
+				{ 96, "AMR/8000/1", &amr_param_octet_aligned_true, },
+				{ 0, "PCMU/8000/1", NULL, },
+				{ 97, "GSM-HR-08/8000/1", NULL, },
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {112, -EINVAL}, },
+			{ .payload_type_map = {0, -EINVAL}, },
+			{ .payload_type_map = {111, -EINVAL} },
+			{ .end = true },
+		},
+	},
+	{
+		.descr = "conn1 has no codecs",
+		.codecs = {
+			{
+				{ 112, "AMR/8000/1", &amr_param_octet_aligned_true, },
+				{ 0, "PCMU/8000/1", NULL, },
+				{ 111, "GSM-HR-08/8000/1", NULL, },
+			},
+			{
+				/* no codecs */
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {112, -EINVAL}, },
+			{ .payload_type_map = {0, -EINVAL}, },
+			{ .payload_type_map = {111, -EINVAL} },
+			{ .end = true },
+		},
+	},
+};
 
 static void test_mgcp_codec_pt_translate(void)
 {
-	struct mgcp_conn_rtp conn_src;
-	struct mgcp_conn_rtp conn_dst;
-	int pt_dst;
+	int i;
+	bool ok = true;
+	printf("\nTesting mgcp_codec_pt_translate()\n");
 
-	/* Setup a realistic set of codec configurations on both
-	 * ends. AMR and HR will use different payload types. PCMU
-	 * must use 0 on both ends since this is not a dynamic payload
-	 * type */
-	test_mgcp_codec_pt_translate_pars(&conn_src.end.codecs[0]);
-	test_mgcp_codec_pt_translate_pars(&conn_dst.end.codecs[0]);
-	test_mgcp_codec_pt_translate_pars(&conn_src.end.codecs[1]);
-	test_mgcp_codec_pt_translate_pars(&conn_dst.end.codecs[1]);
-	test_mgcp_codec_pt_translate_pars(&conn_src.end.codecs[2]);
-	test_mgcp_codec_pt_translate_pars(&conn_dst.end.codecs[2]);
-	conn_src.end.codecs[0].payload_type = 112;
-	conn_dst.end.codecs[0].payload_type = 96;
-	conn_src.end.codecs[1].payload_type = 0;
-	conn_dst.end.codecs[1].payload_type = 0;
-	conn_src.end.codecs[2].payload_type = 111;
-	conn_dst.end.codecs[2].payload_type = 97;
-	conn_src.end.codecs[0].audio_name = "AMR/8000/1";
-	conn_dst.end.codecs[0].audio_name = "AMR/8000/1";
-	conn_src.end.codecs[1].audio_name = "PCMU/8000/1";
-	conn_dst.end.codecs[1].audio_name = "PCMU/8000/1";
-	conn_src.end.codecs[2].audio_name = "GSM-HR-08/8000/1";
-	conn_dst.end.codecs[2].audio_name = "GSM-HR-08/8000/1";
-	conn_src.end.codecs[0].subtype_name = "AMR";
-	conn_dst.end.codecs[0].subtype_name = "AMR";
-	conn_src.end.codecs[1].subtype_name = "PCMU";
-	conn_dst.end.codecs[1].subtype_name = "PCMU";
-	conn_src.end.codecs[2].subtype_name = "GSM-HR-08";
-	conn_dst.end.codecs[2].subtype_name = "GSM-HR-08";
-	conn_src.end.codecs_assigned = 3;
-	conn_dst.end.codecs_assigned = 3;
+	for (i = 0; i < ARRAY_SIZE(test_mgcp_codec_pt_translate_cases); i++) {
+		const struct testcase_mgcp_codec_pt_translate *t = &test_mgcp_codec_pt_translate_cases[i];
+		struct mgcp_conn_rtp conn[2] = {};
+		int rc;
+		int conn_i;
+		int c;
 
-	/* We expect the function to find the PT we must use when we send the
-	 * packet out to the destination. All we know is the context for both
-	 * connections and the payload type from the source packet */
-	pt_dst =
-	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
-				    conn_src.end.codecs[0].payload_type);
-	OSMO_ASSERT(pt_dst == conn_dst.end.codecs[0].payload_type);
-	pt_dst =
-	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
-				    conn_src.end.codecs[1].payload_type);
-	OSMO_ASSERT(pt_dst == conn_dst.end.codecs[1].payload_type);
-	pt_dst =
-	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
-				    conn_src.end.codecs[2].payload_type);
-	OSMO_ASSERT(pt_dst == conn_dst.end.codecs[2].payload_type);
+		printf("#%d: %s\n", i, t->descr);
 
-	/* Try some constellations that must fail */
-	pt_dst = mgcp_codec_pt_translate(&conn_src, &conn_dst, 123);
-	OSMO_ASSERT(pt_dst == -EINVAL);
-	conn_src.end.codecs_assigned = 0;
-	conn_dst.end.codecs_assigned = 3;
-	pt_dst =
-	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
-				    conn_src.end.codecs[0].payload_type);
-	OSMO_ASSERT(pt_dst == -EINVAL);
-	pt_dst =
-	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
-				    conn_src.end.codecs[1].payload_type);
-	OSMO_ASSERT(pt_dst == -EINVAL);
-	pt_dst =
-	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
-				    conn_src.end.codecs[2].payload_type);
-	OSMO_ASSERT(pt_dst == -EINVAL);
-	conn_src.end.codecs_assigned = 3;
-	conn_dst.end.codecs_assigned = 0;
-	pt_dst =
-	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
-				    conn_src.end.codecs[0].payload_type);
-	OSMO_ASSERT(pt_dst == -EINVAL);
-	pt_dst =
-	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
-				    conn_src.end.codecs[1].payload_type);
-	OSMO_ASSERT(pt_dst == -EINVAL);
-	pt_dst =
-	    mgcp_codec_pt_translate(&conn_src, &conn_dst,
-				    conn_src.end.codecs[2].payload_type);
-	OSMO_ASSERT(pt_dst == -EINVAL);
+		for (conn_i = 0; conn_i < 2; conn_i++) {
+			printf(" - add codecs on conn%d:\n", conn_i);
+			for (c = 0; c < ARRAY_SIZE(t->codecs[conn_i]); c++) {
+				const struct testcase_mgcp_codec_pt_translate_codec *codec = &t->codecs[conn_i][c];
+				if (!codec->audio_name)
+					break;
+
+				rc = mgcp_codec_add(&conn[conn_i], codec->payload_type, codec->audio_name, codec->param);
+
+				printf("   %2d: %3d %s%s  -> rc=%d\n", c, codec->payload_type, codec->audio_name,
+				       codec->param ?
+					       (codec->param->amr_octet_aligned_present?
+							(codec->param->amr_octet_aligned ?
+								" octet-aligned=1" : " octet-aligned=0")
+							: " octet-aligned=unset")
+						: "",
+						rc);
+				if (rc != codec->expect_rc) {
+					printf("     ERROR: expected rc=%d\n", codec->expect_rc);
+					ok = false;
+				}
+			}
+			if (!c)
+				printf("    (none)\n");
+		}
+
+		for (c = 0; c < ARRAY_SIZE(t->expect); c++) {
+			const struct testcase_mgcp_codec_pt_translate_expect *expect = &t->expect[c];
+			int result;
+
+			if (expect->end)
+				break;
+
+			result = mgcp_codec_pt_translate(&conn[0], &conn[1], expect->payload_type_map[0]);
+			printf(" - mgcp_codec_pt_translate(conn0, conn1, %d) -> %d\n",
+			       expect->payload_type_map[0], result);
+			if (result != expect->payload_type_map[1]) {
+				printf("     ERROR: expected -> %d\n", expect->payload_type_map[1]);
+				ok = false;
+			}
+
+			/* If the expected result is an error, don't do reverse map test */
+			if (expect->payload_type_map[1] < 0)
+				continue;
+
+			result = mgcp_codec_pt_translate(&conn[1], &conn[0], expect->payload_type_map[1]);
+			printf(" - mgcp_codec_pt_translate(conn1, conn0, %d) -> %d\n",
+			       expect->payload_type_map[1], result);
+			if (result != expect->payload_type_map[0]) {
+				printf("     ERROR: expected -> %d\n", expect->payload_type_map[0]);
+				ok = false;
+			}
+		}
+
+		for (conn_i = 0; conn_i < 2; conn_i++)
+			mgcp_codec_reset_all(&conn[conn_i]);
+	}
+
+	OSMO_ASSERT(ok);
 }
 
 void test_conn_id_matching()
