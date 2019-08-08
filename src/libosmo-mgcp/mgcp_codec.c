@@ -352,7 +352,7 @@ int mgcp_codec_decide(struct mgcp_conn_rtp *conn)
 
 /* Compare two codecs, all parameters must match up, except for the payload type
  * number. */
-static bool codecs_cmp(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_codec *codec_b)
+static bool codecs_same(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_codec *codec_b)
 {
 	if (codec_a->rate != codec_b->rate)
 		return false;
@@ -406,7 +406,7 @@ int mgcp_codec_pt_translate(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp
 	codecs_assigned = rtp_dst->codecs_assigned;
 	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
 	for (i = 0; i < codecs_assigned; i++) {
-		if (codecs_cmp(codec_src, &rtp_dst->codecs[i])) {
+		if (codecs_same(codec_src, &rtp_dst->codecs[i])) {
 			codec_dst = &rtp_dst->codecs[i];
 			break;
 		}
