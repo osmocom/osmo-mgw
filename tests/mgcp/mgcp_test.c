@@ -1900,6 +1900,70 @@ static const struct testcase_mgcp_codec_pt_translate test_mgcp_codec_pt_translat
 			{ .end = true },
 		},
 	},
+	{
+		.descr = "match FOO/8000/1 and FOO/8000 as identical, single channel is implicit",
+		.codecs = {
+			{
+				{ 0, "PCMU/8000/1", NULL, },
+				{ 111, "GSM-HR-08/8000/1", NULL, },
+				{ 112, "AMR/8000/1", &amr_param_octet_aligned_true, },
+			},
+			{
+				{ 97, "GSM-HR-08/8000", NULL, },
+				{ 0, "PCMU/8000", NULL, },
+				{ 96, "AMR/8000", &amr_param_octet_aligned_true, },
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {112, 96}, },
+			{ .payload_type_map = {0, 0}, },
+			{ .payload_type_map = {111, 97} },
+			{ .payload_type_map = {123, -EINVAL} },
+			{ .end = true },
+		},
+	},
+	{
+		.descr = "match FOO/8000/1 and FOO as identical, 8k and single channel are implicit",
+		.codecs = {
+			{
+				{ 0, "PCMU/8000/1", NULL, },
+				{ 111, "GSM-HR-08/8000/1", NULL, },
+				{ 112, "AMR/8000/1", &amr_param_octet_aligned_true, },
+			},
+			{
+				{ 97, "GSM-HR-08", NULL, },
+				{ 0, "PCMU", NULL, },
+				{ 96, "AMR", &amr_param_octet_aligned_true, },
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {112, 96}, },
+			{ .payload_type_map = {0, 0}, },
+			{ .payload_type_map = {111, 97} },
+			{ .payload_type_map = {123, -EINVAL} },
+			{ .end = true },
+		},
+	},
+	{
+		.descr = "test whether channel number matching is waterproof",
+		.codecs = {
+			{
+				{ 111, "GSM-HR-08/8000", },
+				{ 112, "GSM-HR-08/8000/2", .expect_rc = -22},
+				{ 113, "GSM-HR-08/8000/3", .expect_rc = -22},
+			},
+			{
+				{ 122, "GSM-HR-08/8000/2", .expect_rc = -22},
+				{ 121, "GSM-HR-08/8000/1", },
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {111, 121}, },
+			{ .payload_type_map = {112, -EINVAL} },
+			{ .payload_type_map = {113, -EINVAL} },
+			{ .end = true },
+		},
+	},
 };
 
 static void test_mgcp_codec_pt_translate(void)

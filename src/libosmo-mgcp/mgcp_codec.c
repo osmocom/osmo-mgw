@@ -379,8 +379,6 @@ static bool codecs_same(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_codec *c
 		return false;
 	if (codec_a->frame_duration_den != codec_b->frame_duration_den)
 		return false;
-	if (strcmp(codec_a->audio_name, codec_b->audio_name))
-		return false;
 	if (strcmp(codec_a->subtype_name, codec_b->subtype_name))
 		return false;
 	if (!strcmp(codec_a->subtype_name, "AMR")) {
