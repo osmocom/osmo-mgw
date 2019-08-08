@@ -337,7 +337,7 @@ static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *li
 {
 	unsigned int pt;
 	char codec_resp[64];
-	unsigned int codec;
+	enum mgcp_codecs codec;
 
 #define A_PTIME "a=ptime:"
 #define A_RTPMAP "a=rtpmap:"
@@ -354,26 +354,14 @@ static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *li
 			     "Failed to parse SDP parameter, invalid rtpmap: %s\n", osmo_quote_str(line, -1));
 			return -EINVAL;
 		}
-		/* The MGW may assign an own payload type in the
-		 * response if the choosen codec falls into the IANA
-		 * assigned dynamic payload type range (96-127).
-		 * Normally the MGW should obey the 3gpp payload type
-		 * assignments, which are fixed, so we likely wont see
-		 * anything unexpected here. In order to be sure that
-		 * we will now check the codec string and if the result
-		 * does not match to what is IANA / 3gpp assigned, we
-		 * will create an entry in the ptmap table so we can
-		 * lookup later what has been assigned. */
-		codec = map_str_to_codec(codec_resp);
-		if (codec != pt) {
-			if (r->ptmap_len >= ARRAY_SIZE(r->ptmap)) {
-				LOGP(DLMGCP, LOGL_ERROR, "No more space in ptmap array (len=%u)\n", r->ptmap_len);
-				return -ENOSPC;
-			}
-			r->ptmap[r->ptmap_len].pt = pt;
-			r->ptmap[r->ptmap_len].codec = codec;
-			r->ptmap_len++;
+		if (r->ptmap_len >= ARRAY_SIZE(r->ptmap)) {
+			LOGP(DLMGCP, LOGL_ERROR, "No more space in ptmap array (len=%u)\n", r->ptmap_len);
+			return -ENOSPC;
 		}
+		codec = map_str_to_codec(codec_resp);
+		r->ptmap[r->ptmap_len].pt = pt;
+		r->ptmap[r->ptmap_len].codec = codec;
+		r->ptmap_len++;
 	}
 
 	return 0;
