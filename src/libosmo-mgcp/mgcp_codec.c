@@ -76,18 +76,24 @@ void mgcp_codec_summary(struct mgcp_conn_rtp *conn)
 }
 
 /* Initalize or reset codec information with default data. */
-void codec_init(struct mgcp_rtp_codec *codec)
+static void codec_init(struct mgcp_rtp_codec *codec)
+{
+	*codec = (struct mgcp_rtp_codec){
+		.payload_type = -1,
+		.frame_duration_num = DEFAULT_RTP_AUDIO_FRAME_DUR_NUM,
+		.frame_duration_den = DEFAULT_RTP_AUDIO_FRAME_DUR_DEN,
+		.rate = DEFAULT_RTP_AUDIO_DEFAULT_RATE,
+		.channels = DEFAULT_RTP_AUDIO_DEFAULT_CHANNELS,
+	};
+}
+
+static void codec_free(struct mgcp_rtp_codec *codec)
 {
 	if (codec->subtype_name)
 		talloc_free(codec->subtype_name);
 	if (codec->audio_name)
 		talloc_free(codec->audio_name);
-	memset(codec, 0, sizeof(*codec));
-	codec->payload_type = -1;
-	codec->frame_duration_num = DEFAULT_RTP_AUDIO_FRAME_DUR_NUM;
-	codec->frame_duration_den = DEFAULT_RTP_AUDIO_FRAME_DUR_DEN;
-	codec->rate = DEFAULT_RTP_AUDIO_DEFAULT_RATE;
-	codec->channels = DEFAULT_RTP_AUDIO_DEFAULT_CHANNELS;
+	*codec = (struct mgcp_rtp_codec){};
 }
 
 /*! Initalize or reset codec information with default data.
@@ -99,13 +105,30 @@ void mgcp_codec_reset_all(struct mgcp_conn_rtp *conn)
 	conn->end.codec = NULL;
 }
 
-/* Set members of struct mgcp_rtp_codec, extrapolate in missing information. Param audio_name is expected in uppercase. */
-static int codec_set(void *ctx, struct mgcp_rtp_codec *codec, int payload_type, const char *audio_name,
-		     unsigned int pt_offset, const struct mgcp_codec_param *param)
+/*! Add codec configuration depending on payload type and/or codec name. This
+ *  function uses the input parameters to extrapolate the full codec information.
+ *  \param[out] codec configuration (caller provided memory).
+ *  \param[out] conn related rtp-connection.
+ *  \param[in] payload_type codec type id (e.g. 3 for GSM, -1 when undefined).
+ *  \param[in] audio_name audio codec name, in uppercase (e.g. "GSM/8000/1").
+ *  \param[in] param optional codec parameters (set to NULL when unused).
+ *  \returns 0 on success, -EINVAL on failure. */
+int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *audio_name, const struct mgcp_codec_param *param)
 {
 	int rate;
 	int channels;
 	char audio_codec[64];
+	struct mgcp_rtp_codec *codec;
+	unsigned int pt_offset = conn->end.codecs_assigned;
+	void *ctx = conn->conn;
+
+	/* The amount of codecs we can store is limited, make sure we do not
+	 * overrun this limit. */
+	if (conn->end.codecs_assigned >= MGCP_MAX_CODECS)
+		return -EINVAL;
+
+	/* First unused entry */
+	codec = &conn->end.codecs[conn->end.codecs_assigned];
 
 	/* Initalize the codec struct with some default data to begin with */
 	codec_init(codec);
@@ -226,39 +249,12 @@ static int codec_set(void *ctx, struct mgcp_rtp_codec *codec, int payload_type, 
 	} else
 		codec->param_present = false;
 
+	conn->end.codecs_assigned++;
 	return 0;
 error:
 	/* Make sure we leave a clean codec entry on error. */
-	codec_init(codec);
-	memset(codec, 0, sizeof(*codec));
+	codec_free(codec);
 	return -EINVAL;
-}
-
-/*! Add codec configuration depending on payload type and/or codec name. This
- *  function uses the input parameters to extrapolate the full codec information.
- *  \param[out] codec configuration (caller provided memory).
- *  \param[out] conn related rtp-connection.
- *  \param[in] payload_type codec type id (e.g. 3 for GSM, -1 when undefined).
- *  \param[in] audio_name audio codec name, in uppercase (e.g. "GSM/8000/1").
- *  \param[in] param optional codec parameters (set to NULL when unused).
- *  \returns 0 on success, -EINVAL on failure. */
-int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *audio_name, const struct mgcp_codec_param *param)
-{
-	int rc;
-
-	/* The amount of codecs we can store is limited, make sure we do not
-	 * overrun this limit. */
-	if (conn->end.codecs_assigned >= MGCP_MAX_CODECS)
-		return -EINVAL;
-
-	rc = codec_set(conn->conn, &conn->end.codecs[conn->end.codecs_assigned], payload_type, audio_name,
-		       conn->end.codecs_assigned, param);
-	if (rc != 0)
-		return -EINVAL;
-
-	conn->end.codecs_assigned++;
-
-	return 0;
 }
 
 /* Check if the given codec is applicable on the specified endpoint
