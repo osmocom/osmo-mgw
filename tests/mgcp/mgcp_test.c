@@ -1770,6 +1770,49 @@ static const struct testcase_mgcp_codec_pt_translate test_mgcp_codec_pt_translat
 		},
 	},
 	{
+		.descr = "different order and different payload type numbers",
+		.codecs = {
+			{
+				{ 0, "PCMU/8000/1", NULL, },
+				{ 111, "GSM-HR-08/8000/1", NULL, },
+				{ 112, "AMR/8000/1", &amr_param_octet_aligned_true, },
+			},
+			{
+				{ 97, "GSM-HR-08/8000/1", NULL, },
+				{ 0, "PCMU/8000/1", NULL, },
+				{ 96, "AMR/8000/1", &amr_param_octet_aligned_true, },
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {112, 96}, },
+			{ .payload_type_map = {0, 0}, },
+			{ .payload_type_map = {111, 97} },
+			{ .payload_type_map = {123, -EINVAL} },
+			{ .end = true },
+		},
+	},
+	{
+		.descr = "both sides have the same payload_type numbers assigned to differing codecs",
+		.codecs = {
+			{
+				{ 0, "PCMU/8000/1", NULL, },
+				{ 96, "GSM-HR-08/8000/1", NULL, },
+				{ 97, "AMR/8000/1", &amr_param_octet_aligned_true, },
+			},
+			{
+				{ 97, "GSM-HR-08/8000/1", NULL, },
+				{ 0, "PCMU/8000/1", NULL, },
+				{ 96, "AMR/8000/1", &amr_param_octet_aligned_true, },
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {96, 97}, },
+			{ .payload_type_map = {97, 96}, },
+			{ .payload_type_map = {0, 0}, },
+			{ .end = true },
+		},
+	},
+	{
 		.descr = "conn0 has no codecs",
 		.codecs = {
 			{
