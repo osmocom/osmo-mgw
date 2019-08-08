@@ -339,46 +339,44 @@ static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *li
 	char codec_resp[64];
 	unsigned int codec;
 
+#define A_PTIME "a=ptime:"
+#define A_RTPMAP "a=rtpmap:"
 
-	if (strstr(line, "ptime")) {
-		if (sscanf(line, "a=ptime:%u", &r->ptime) != 1)
-			goto response_parse_failure_ptime;
-	} else if (strstr(line, "rtpmap")) {
-		if (sscanf(line, "a=rtpmap:%d %63s", &pt, codec_resp) == 2) {
-			/* The MGW may assign an own payload type in the
-			 * response if the choosen codec falls into the IANA
-			 * assigned dynamic payload type range (96-127).
-			 * Normally the MGW should obey the 3gpp payload type
-			 * assignments, which are fixed, so we likely wont see
-			 * anything unexpected here. In order to be sure that
-			 * we will now check the codec string and if the result
-			 * does not match to what is IANA / 3gpp assigned, we
-			 * will create an entry in the ptmap table so we can
-			 * lookup later what has been assigned. */
-			codec = map_str_to_codec(codec_resp);
-			if (codec != pt) {
-				if (r->ptmap_len < ARRAY_SIZE(r->ptmap)) {
-					r->ptmap[r->ptmap_len].pt = pt;
-					r->ptmap[r->ptmap_len].codec = codec;
-					r->ptmap_len++;
-				} else
-					goto response_parse_failure_rtpmap;
+	if (osmo_str_startswith(line, A_PTIME)) {
+		if (sscanf(line, A_PTIME "%u", &r->ptime) != 1) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "Failed to parse SDP parameter, invalid ptime (%s)\n", line);
+			return -EINVAL;
+		}
+	} else if (osmo_str_startswith(line, A_RTPMAP)) {
+		if (sscanf(line, A_RTPMAP "%d %63s", &pt, codec_resp) != 2) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "Failed to parse SDP parameter, invalid rtpmap: %s\n", osmo_quote_str(line, -1));
+			return -EINVAL;
+		}
+		/* The MGW may assign an own payload type in the
+		 * response if the choosen codec falls into the IANA
+		 * assigned dynamic payload type range (96-127).
+		 * Normally the MGW should obey the 3gpp payload type
+		 * assignments, which are fixed, so we likely wont see
+		 * anything unexpected here. In order to be sure that
+		 * we will now check the codec string and if the result
+		 * does not match to what is IANA / 3gpp assigned, we
+		 * will create an entry in the ptmap table so we can
+		 * lookup later what has been assigned. */
+		codec = map_str_to_codec(codec_resp);
+		if (codec != pt) {
+			if (r->ptmap_len >= ARRAY_SIZE(r->ptmap)) {
+				LOGP(DLMGCP, LOGL_ERROR, "No more space in ptmap array (len=%u)\n", r->ptmap_len);
+				return -ENOSPC;
 			}
-
-		} else
-			goto response_parse_failure_rtpmap;
+			r->ptmap[r->ptmap_len].pt = pt;
+			r->ptmap[r->ptmap_len].codec = codec;
+			r->ptmap_len++;
+		}
 	}
 
 	return 0;
-
-response_parse_failure_ptime:
-	LOGP(DLMGCP, LOGL_ERROR,
-	     "Failed to parse SDP parameter, invalid ptime (%s)\n", line);
-	return -EINVAL;
-response_parse_failure_rtpmap:
-	LOGP(DLMGCP, LOGL_ERROR,
-	     "Failed to parse SDP parameter, invalid rtpmap (%s)\n", line);
-	return -EINVAL;
 }
 
 /* Parse a line like "c=IN IP4 10.11.12.13" */
