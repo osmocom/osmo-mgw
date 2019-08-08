@@ -138,12 +138,13 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 	if (payload_type != PTYPE_UNDEFINED) {
 		/* Make sure we do not get any reserved or undefined type numbers */
 		/* See also: https://www.iana.org/assignments/rtp-parameters/rtp-parameters.xhtml */
-		if (payload_type == 1 || payload_type == 2 || payload_type == 19)
+		if ((payload_type == 1 || payload_type == 2 || payload_type == 19)
+		    || (payload_type >= 72 && payload_type <= 76)
+		    || (payload_type >= 127)) {
+			LOGP(DLMGCP, LOGL_ERROR, "Cannot add codec, payload type number %d is reserved\n",
+			     payload_type);
 			goto error;
-		if (payload_type >= 72 && payload_type <= 76)
-			goto error;
-		if (payload_type >= 127)
-			goto error;
+		}
 
 		codec->payload_type = payload_type;
 	}
@@ -169,6 +170,8 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 			/* The given payload type is not known to us, or it
 			 * it is a dynamic payload type for which we do not
 			 * know the audio name. We must give up here */
+			LOGP(DLMGCP, LOGL_ERROR, "No audio codec name given, and payload type %d unknown\n",
+			     payload_type);
 			goto error;
 		}
 	}
@@ -176,16 +179,23 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 	/* Now we extract the codec subtype name, rate and channels. The latter
 	 * two are optional. If they are not present we use the safe defaults
 	 * above. */
-	if (strlen(audio_name) > sizeof(audio_codec))
+	if (strlen(audio_name) > sizeof(audio_codec)) {
+		LOGP(DLMGCP, LOGL_ERROR, "Audio codec too long: %s\n", osmo_quote_str(audio_name, -1));
 		goto error;
+	}
 	channels = DEFAULT_RTP_AUDIO_DEFAULT_CHANNELS;
 	rate = DEFAULT_RTP_AUDIO_DEFAULT_RATE;
-	if (sscanf(audio_name, "%63[^/]/%d/%d", audio_codec, &rate, &channels) < 1)
+	if (sscanf(audio_name, "%63[^/]/%d/%d", audio_codec, &rate, &channels) < 1) {
+		LOGP(DLMGCP, LOGL_ERROR, "Invalid audio codec: %s\n", osmo_quote_str(audio_name, -1));
 		goto error;
+	}
 
 	/* Note: We only accept configurations with one audio channel! */
-	if (channels != 1)
+	if (channels != 1) {
+		LOGP(DLMGCP, LOGL_ERROR, "Cannot handle audio codec with more than one channel: %s\n",
+		     osmo_quote_str(audio_name, -1));
 		goto error;
+	}
 
 	codec->rate = rate;
 	codec->channels = channels;
@@ -203,6 +213,7 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 
 	/* Derive the payload type if it is unknown */
 	if (codec->payload_type == PTYPE_UNDEFINED) {
+		/* TODO: This is semi dead code, see OS#4150 */
 
 		/* For the known codecs from the static range we restore
 		 * the IANA or 3GPP assigned payload type number */
@@ -238,9 +249,14 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 		 * 110 onwards 3gpp defines prefered codec types, which are
 		 * also fixed, see above)  */
 		if (codec->payload_type < 0) {
+			/* FIXME: pt_offset is completely unrelated and useless here, any of those numbers may already
+			 * have been added to the codecs. Instead, there should be an iterator checking for an actually
+			 * unused dynamic payload type number. */
 			codec->payload_type = 96 + pt_offset;
-			if (codec->payload_type > 109)
+			if (codec->payload_type > 109) {
+				LOGP(DLMGCP, LOGL_ERROR, "Ran out of payload type numbers to assign dynamically\n");
 				goto error;
+			}
 		}
 	}
 
