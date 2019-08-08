@@ -1235,7 +1235,38 @@ Testing mgcp_codec_pt_translate()
  - mgcp_codec_pt_translate(conn0, conn1, 111) -> 97
  - mgcp_codec_pt_translate(conn1, conn0, 97) -> 111
  - mgcp_codec_pt_translate(conn0, conn1, 123) -> -22
-#1: conn0 has no codecs
+#1: different order and different payload type numbers
+ - add codecs on conn0:
+    0:   0 PCMU/8000/1  -> rc=0
+    1: 111 GSM-HR-08/8000/1  -> rc=0
+    2: 112 AMR/8000/1 octet-aligned=1  -> rc=0
+ - add codecs on conn1:
+    0:  97 GSM-HR-08/8000/1  -> rc=0
+    1:   0 PCMU/8000/1  -> rc=0
+    2:  96 AMR/8000/1 octet-aligned=1  -> rc=0
+ - mgcp_codec_pt_translate(conn0, conn1, 112) -> 96
+ - mgcp_codec_pt_translate(conn1, conn0, 96) -> 112
+ - mgcp_codec_pt_translate(conn0, conn1, 0) -> 0
+ - mgcp_codec_pt_translate(conn1, conn0, 0) -> 0
+ - mgcp_codec_pt_translate(conn0, conn1, 111) -> 97
+ - mgcp_codec_pt_translate(conn1, conn0, 97) -> 111
+ - mgcp_codec_pt_translate(conn0, conn1, 123) -> -22
+#2: both sides have the same payload_type numbers assigned to differing codecs
+ - add codecs on conn0:
+    0:   0 PCMU/8000/1  -> rc=0
+    1:  96 GSM-HR-08/8000/1  -> rc=0
+    2:  97 AMR/8000/1 octet-aligned=1  -> rc=0
+ - add codecs on conn1:
+    0:  97 GSM-HR-08/8000/1  -> rc=0
+    1:   0 PCMU/8000/1  -> rc=0
+    2:  96 AMR/8000/1 octet-aligned=1  -> rc=0
+ - mgcp_codec_pt_translate(conn0, conn1, 96) -> 97
+ - mgcp_codec_pt_translate(conn1, conn0, 97) -> 96
+ - mgcp_codec_pt_translate(conn0, conn1, 97) -> 96
+ - mgcp_codec_pt_translate(conn1, conn0, 96) -> 97
+ - mgcp_codec_pt_translate(conn0, conn1, 0) -> 0
+ - mgcp_codec_pt_translate(conn1, conn0, 0) -> 0
+#3: conn0 has no codecs
  - add codecs on conn0:
     (none)
  - add codecs on conn1:
@@ -1245,7 +1276,7 @@ Testing mgcp_codec_pt_translate()
  - mgcp_codec_pt_translate(conn0, conn1, 112) -> -22
  - mgcp_codec_pt_translate(conn0, conn1, 0) -> -22
  - mgcp_codec_pt_translate(conn0, conn1, 111) -> -22
-#2: conn1 has no codecs
+#4: conn1 has no codecs
  - add codecs on conn0:
     0: 112 AMR/8000/1 octet-aligned=1  -> rc=0
     1:   0 PCMU/8000/1  -> rc=0
