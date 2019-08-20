@@ -868,13 +868,23 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 						     addr, buf, buflen);
 
 			if (amr_oa_bwe_convert_indicated(conn_dst->end.codec)) {
-				amr_oa_bwe_convert(endp, buf, &buflen,
-						   conn_dst->end.codec->param.amr_octet_aligned);
+				rc = amr_oa_bwe_convert(endp, buf, &buflen,
+							conn_dst->end.codec->param.amr_octet_aligned);
+				if (rc < 0) {
+					LOGPENDP(endp, DRTP, LOGL_ERROR,
+						 "Error in AMR octet-aligned <-> bandwidth-efficient mode conversion\n");
+					break;
+				}
 			}
 			else if (rtp_end->rfc5993_hr_convert
 			    && strcmp(conn_src->end.codec->subtype_name,
-				      "GSM-HR-08") == 0)
-				rfc5993_hr_convert(endp, buf, &buflen);
+				      "GSM-HR-08") == 0) {
+				rc = rfc5993_hr_convert(endp, buf, &buflen);
+				if (rc < 0) {
+					LOGPENDP(endp, DRTP, LOGL_ERROR, "Error while converting to GSM-HR-08\n");
+					break;
+				}
+			}
 
 			LOGPENDP(endp, DRTP, LOGL_DEBUG,
 				 "process/send to %s %s "
