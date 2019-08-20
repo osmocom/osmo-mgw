@@ -475,7 +475,9 @@ static int mgcp_patch_pt(struct mgcp_conn_rtp *conn_src,
 	uint8_t pt_in;
 	int pt_out;
 
-	OSMO_ASSERT(len >= sizeof(struct rtp_hdr));
+	if (len < sizeof(struct rtp_hdr))
+		return -EINVAL;
+
 	rtp_hdr = (struct rtp_hdr *)data;
 
 	pt_in = rtp_hdr->payload_type;
@@ -641,7 +643,7 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
  * the receiving end expects GSM-HR data to be formated after RFC 5993, this
  * function is used to convert between RFC 5993 and TS 101318, which we normally
  * use. */
-static void rfc5993_hr_convert(struct mgcp_endpoint *endp, char *data, int *len)
+static int rfc5993_hr_convert(struct mgcp_endpoint *endp, char *data, int *len)
 {
 	/* NOTE: *data has an overall length of RTP_BUF_SIZE, so there is
 	 * plenty of space available to store the slightly larger, converted
@@ -649,7 +651,12 @@ static void rfc5993_hr_convert(struct mgcp_endpoint *endp, char *data, int *len)
 
 	struct rtp_hdr *rtp_hdr;
 
-	OSMO_ASSERT(*len >= sizeof(struct rtp_hdr));
+	if (*len < sizeof(struct rtp_hdr)) {
+		LOGPENDP(endp, DRTP, LOGL_ERROR, "AMR RTP packet too short (%d < %zu)\n",
+			 *len, sizeof(struct rtp_hdr));
+		return -EINVAL;
+	}
+
 	rtp_hdr = (struct rtp_hdr *)data;
 
 	if (*len == GSM_HR_BYTES + sizeof(struct rtp_hdr)) {
@@ -667,7 +674,9 @@ static void rfc5993_hr_convert(struct mgcp_endpoint *endp, char *data, int *len)
 		 * packet. This is not supported yet. */
 		LOGPENDP(endp, DRTP, LOGL_ERROR,
 			 "cannot figure out how to convert RTP packet\n");
+		return -ENOTSUP;
 	}
+	return 0;
 }
 
 /* For AMR RTP two framing modes are defined RFC3267. There is a bandwith
@@ -685,7 +694,11 @@ static int amr_oa_bwe_convert(struct mgcp_endpoint *endp, char *data, int *len,
 	unsigned int payload_len;
 	int rc;
 
-	OSMO_ASSERT(*len >= sizeof(struct rtp_hdr));
+	if (*len < sizeof(struct rtp_hdr)) {
+		LOGPENDP(endp, DRTP, LOGL_ERROR, "AMR RTP packet too short (%d < %zu)\n", *len, sizeof(struct rtp_hdr));
+		return -EINVAL;
+	}
+
 	rtp_hdr = (struct rtp_hdr *)data;
 
 	payload_len = *len - sizeof(struct rtp_hdr);
@@ -736,17 +749,21 @@ static bool amr_oa_bwe_convert_indicated(struct mgcp_rtp_codec *codec)
 
 
 /* Check if a given RTP with AMR payload for octet-aligned mode */
-static bool amr_oa_check(char *data, int len)
+static int amr_oa_check(char *data, int len)
 {
 	struct rtp_hdr *rtp_hdr;
 	unsigned int payload_len;
 
-	OSMO_ASSERT(len >= sizeof(struct rtp_hdr));
+	if (len < sizeof(struct rtp_hdr))
+		return -EINVAL;
+
 	rtp_hdr = (struct rtp_hdr *)data;
 
 	payload_len = len - sizeof(struct rtp_hdr);
+	if (payload_len < sizeof(struct amr_hdr))
+		return -EINVAL;
 
-	return osmo_amr_is_oa(rtp_hdr->data, payload_len);
+	return osmo_amr_is_oa(rtp_hdr->data, payload_len) ? 1 : 0;
 }
 
 /* Forward data to a debug tap. This is debug function that is intended for
@@ -1340,7 +1357,10 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	 * define, then we check if the incoming payload matches that
 	 * expectation. */
 	if (amr_oa_bwe_convert_indicated(conn_src->end.codec)) {
-		if (amr_oa_check(buf, len) != conn_src->end.codec->param.amr_octet_aligned)
+		int oa = amr_oa_check(buf, len);
+		if (oa < 0)
+			return -1;
+		if (((bool)oa) != conn_src->end.codec->param.amr_octet_aligned)
 			return -1;
 	}
 
