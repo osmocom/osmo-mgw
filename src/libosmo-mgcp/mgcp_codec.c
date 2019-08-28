@@ -179,7 +179,7 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 	/* Now we extract the codec subtype name, rate and channels. The latter
 	 * two are optional. If they are not present we use the safe defaults
 	 * above. */
-	if (strlen(audio_name) > sizeof(audio_codec)) {
+	if (strlen(audio_name) >= sizeof(audio_codec)) {
 		LOGP(DLMGCP, LOGL_ERROR, "Audio codec too long: %s\n", osmo_quote_str(audio_name, -1));
 		goto error;
 	}
