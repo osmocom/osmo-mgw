@@ -919,7 +919,7 @@ mgcp_header_done:
 	endp->callid = talloc_strdup(tcfg->endpoints, callid);
 
 	snprintf(conn_name, sizeof(conn_name), "%s", callid);
-	_conn = mgcp_conn_alloc(NULL, endp, MGCP_CONN_TYPE_RTP, conn_name);
+	_conn = mgcp_conn_alloc(tcfg->endpoints, endp, MGCP_CONN_TYPE_RTP, conn_name);
 	if (!_conn) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "CRCX: unable to allocate RTP connection\n");
