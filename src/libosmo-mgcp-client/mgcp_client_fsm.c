@@ -525,8 +525,10 @@ static void fsm_cleanup_cb(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause ca
 		LOGPFSML(fi, LOGL_ERROR,
 			 "MGW/DLCX: abrupt FSM termination with connections still present, sending unconditional DLCX...\n");
 		msg = make_dlcx_msg(mgcp_ctx);
-		OSMO_ASSERT(msg);
-		mgcp_client_tx(mgcp, msg, NULL, NULL);
+		if (!msg)
+			LOGPFSML(fi, LOGL_ERROR, "MGW/DLCX: Error composing DLCX message\n");
+		else
+			mgcp_client_tx(mgcp, msg, NULL, NULL);
 	}
 
 	talloc_free(mgcp_ctx);
