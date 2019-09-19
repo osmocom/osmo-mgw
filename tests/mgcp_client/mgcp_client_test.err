@@ -17,8 +17,9 @@ test_mgcp_client_cancel() done
 
 test_sdp_section_start() test [0]:
 body: ""
-DLMGCP MGCP response: cannot find start of SDP parameters
-got rc=-22
+DLMGCP MGCP response contains no SDP parameters
+got rc=0
+got audio_port=0
 
 test_sdp_section_start() test [1]:
 body: "\n\n"
@@ -52,18 +53,21 @@ got audio_port=23
 
 test_sdp_section_start() test [7]:
 body: "some mgcp header data\r\nand header params\n\r\nm=audio 23\r\n"
-DLMGCP MGCP response: cannot find start of SDP parameters
-got rc=-22
+DLMGCP MGCP response contains no SDP parameters
+got rc=0
+got audio_port=0
 
 test_sdp_section_start() test [8]:
 body: "some mgcp header data\r\nand header params\r\n\rm=audio 23\r\n"
-DLMGCP MGCP response: cannot find start of SDP parameters
-got rc=-22
+DLMGCP MGCP response contains no SDP parameters
+got rc=0
+got audio_port=0
 
 test_sdp_section_start() test [9]:
 body: "some mgcp header data\r\nand header params\n\r\rm=audio 23\r\n"
-DLMGCP MGCP response: cannot find start of SDP parameters
-got rc=-22
+DLMGCP MGCP response contains no SDP parameters
+got rc=0
+got audio_port=0
 DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2
 DLMGCP ptmap contains illegal mapping: codec=0 maps to pt=100
 DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2

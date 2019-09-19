@@ -360,7 +360,7 @@ struct sdp_section_start_test {
 static struct sdp_section_start_test sdp_section_start_tests[] = {
 	{
 		.body = "",
-		.expect_rc = -EINVAL,
+		.expect_rc = 0,
 	},
 	{
 		.body = "\n\n",
@@ -399,19 +399,19 @@ static struct sdp_section_start_test sdp_section_start_tests[] = {
 		.body = "some mgcp header data\r\nand header params"
 			"\n\r\n"
 			"m=audio 23\r\n",
-		.expect_rc = -EINVAL,
+		.expect_rc = 0,
 	},
 	{
 		.body = "some mgcp header data\r\nand header params"
 			"\r\n\r"
 			"m=audio 23\r\n",
-		.expect_rc = -EINVAL,
+		.expect_rc = 0,
 	},
 	{
 		.body = "some mgcp header data\r\nand header params"
 			"\n\r\r"
 			"m=audio 23\r\n",
-		.expect_rc = -EINVAL,
+		.expect_rc = 0,
 	},
 };
 

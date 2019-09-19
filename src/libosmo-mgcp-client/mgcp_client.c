@@ -466,9 +466,8 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 	/* Find beginning of the parameter (SDP) section */
 	data_ptr = mgcp_find_section_end(data);
 	if (!data_ptr) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "MGCP response: cannot find start of SDP parameters\n");
-		rc = -EINVAL;
+		LOGP(DLMGCP, LOGL_DEBUG, "MGCP response contains no SDP parameters\n");
+		rc = 0;
 		goto exit;
 	}
 
