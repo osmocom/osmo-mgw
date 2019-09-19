@@ -641,6 +641,13 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp)
 	return real_clock_gettime(clk_id, tp);
 }
 
+static void mgcp_endpoints_release(struct mgcp_trunk_config *trunk)
+{
+	int i;
+	for (i = 1; i < trunk->number_endpoints; i++)
+		mgcp_endp_release(&trunk->endpoints[i]);
+}
+
 #define CONN_UNMODIFIED (0x1000)
 
 static void test_values(void)
@@ -742,6 +749,7 @@ static void test_messages(void)
 {
 	struct mgcp_config *cfg;
 	struct mgcp_endpoint *endp;
+	struct mgcp_trunk_config *trunk2;
 	int i;
 	struct mgcp_conn_rtp *conn = NULL;
 	char last_conn_id[256];
@@ -755,7 +763,8 @@ static void test_messages(void)
 
 	memset(last_conn_id, 0, sizeof(last_conn_id));
 
-	mgcp_endpoints_allocate(mgcp_trunk_alloc(cfg, 1));
+	trunk2 = mgcp_trunk_alloc(cfg, 1);
+	mgcp_endpoints_allocate(trunk2);
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
 		const struct mgcp_test *t = &tests[i];
@@ -873,12 +882,15 @@ static void test_messages(void)
 		}
 	}
 
+	mgcp_endpoints_release(trunk2);
+	mgcp_endpoints_release(&cfg->trunk);
 	talloc_free(cfg);
 }
 
 static void test_retransmission(void)
 {
 	struct mgcp_config *cfg;
+	struct mgcp_trunk_config *trunk2;
 	int i;
 	char last_conn_id[256];
 	int rc;
@@ -890,7 +902,8 @@ static void test_retransmission(void)
 
 	memset(last_conn_id, 0, sizeof(last_conn_id));
 
-	mgcp_endpoints_allocate(mgcp_trunk_alloc(cfg, 1));
+	trunk2 = mgcp_trunk_alloc(cfg, 1);
+	mgcp_endpoints_allocate(trunk2);
 
 	for (i = 0; i < ARRAY_SIZE(retransmit); i++) {
 		const struct mgcp_test *t = &retransmit[i];
@@ -930,6 +943,8 @@ static void test_retransmission(void)
 		msgb_free(msg);
 	}
 
+	mgcp_endpoints_release(trunk2);
+	mgcp_endpoints_release(&cfg->trunk);
 	talloc_free(cfg);
 }
 
@@ -943,6 +958,7 @@ static int rqnt_cb(struct mgcp_endpoint *endp, char _tone)
 static void test_rqnt_cb(void)
 {
 	struct mgcp_config *cfg;
+	struct mgcp_trunk_config *trunk2;
 	struct msgb *inp, *msg;
 	char conn_id[256];
 
@@ -952,7 +968,8 @@ static void test_rqnt_cb(void)
 	cfg->trunk.vty_number_endpoints = 64;
 	mgcp_endpoints_allocate(&cfg->trunk);
 
-	mgcp_endpoints_allocate(mgcp_trunk_alloc(cfg, 1));
+	trunk2 = mgcp_trunk_alloc(cfg, 1);
+	mgcp_endpoints_allocate(trunk2);
 
 	inp = create_msg(CRCX, NULL);
 	msg = mgcp_handle_message(cfg, inp);
@@ -981,6 +998,8 @@ static void test_rqnt_cb(void)
 	inp = create_msg(DLCX, conn_id);
 	msgb_free(mgcp_handle_message(cfg, inp));
 	msgb_free(inp);
+	mgcp_endpoints_release(trunk2);
+	mgcp_endpoints_release(&cfg->trunk);
 	talloc_free(cfg);
 }
 
@@ -1342,12 +1361,12 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 static void test_multilple_codec(void)
 {
 	struct mgcp_config *cfg;
+	struct mgcp_trunk_config *trunk2;
 	struct mgcp_endpoint *endp;
 	struct msgb *inp, *resp;
 	struct in_addr addr;
 	struct mgcp_conn_rtp *conn = NULL;
 	char conn_id[256];
-	int i;
 
 	printf("Testing multiple payload types\n");
 
@@ -1355,7 +1374,9 @@ static void test_multilple_codec(void)
 	cfg->trunk.vty_number_endpoints = 64;
 	mgcp_endpoints_allocate(&cfg->trunk);
 	cfg->policy_cb = mgcp_test_policy_cb;
-	mgcp_endpoints_allocate(mgcp_trunk_alloc(cfg, 1));
+
+	trunk2 = mgcp_trunk_alloc(cfg, 1);
+	mgcp_endpoints_allocate(trunk2);
 
 	/* Allocate endpoint 1@mgw with two codecs */
 	last_endpoint = -1;
@@ -1481,9 +1502,8 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
 
-	for (i = 1; i < cfg->trunk.number_endpoints; i++)
-		mgcp_endp_release(&cfg->trunk.endpoints[i]);
-
+	mgcp_endpoints_release(trunk2);
+	mgcp_endpoints_release(&cfg->trunk);
 	talloc_free(cfg);
 }
 
@@ -1532,12 +1552,13 @@ static void test_no_cycle(void)
 	OSMO_ASSERT(conn->state.stats.cycles == UINT16_MAX + 1);
 	OSMO_ASSERT(conn->state.stats.max_seq == 0);
 
-	mgcp_endp_release(endp);
+	mgcp_endpoints_release(&cfg->trunk);
 	talloc_free(cfg);
 }
 
 static void test_no_name(void)
 {
+	struct mgcp_trunk_config *trunk2;
 	struct mgcp_config *cfg;
 	struct msgb *inp, *msg;
 
@@ -1550,7 +1571,8 @@ static void test_no_name(void)
 
 	cfg->policy_cb = mgcp_test_policy_cb;
 
-	mgcp_endpoints_allocate(mgcp_trunk_alloc(cfg, 1));
+	trunk2 = mgcp_trunk_alloc(cfg, 1);
+	mgcp_endpoints_allocate(trunk2);
 
 	inp = create_msg(CRCX, NULL);
 	msg = mgcp_handle_message(cfg, inp);
@@ -1563,7 +1585,8 @@ static void test_no_name(void)
 	msgb_free(inp);
 	msgb_free(msg);
 
-	mgcp_endp_release(&cfg->trunk.endpoints[1]);
+	mgcp_endpoints_release(trunk2);
+	mgcp_endpoints_release(&cfg->trunk);
 	talloc_free(cfg);
 }
 
