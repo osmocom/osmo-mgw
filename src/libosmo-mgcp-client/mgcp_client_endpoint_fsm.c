@@ -357,6 +357,8 @@ static void on_failure(struct osmo_mgcpc_ep_ci *ci)
 	struct osmo_fsm_inst *notify = ci->notify;
 	uint32_t notify_failure = ci->notify_failure;
 	void *notify_data = ci->notify_data;
+	struct osmo_mgcpc_ep *ep = ci->ep;
+	int i;
 
 	if (!ci->occupied)
 		return;
@@ -364,6 +366,24 @@ static void on_failure(struct osmo_mgcpc_ep_ci *ci)
 	*ci = (struct osmo_mgcpc_ep_ci){
 		.ep = ci->ep,
 	};
+
+	/* An MGCP failure typically means the endpoint becomes unusable, cancel all pending request (except DLCX).
+	 * Particularly, if two CRCX were scheduled and the first fails, we must no longer dispatch the second CRCX. */
+	for (i = 0; i < ARRAY_SIZE(ep->ci); i++) {
+		struct osmo_mgcpc_ep_ci *other_ci = &ep->ci[i];
+		if (other_ci == ci)
+			continue;
+		if (!other_ci->occupied)
+			continue;
+		if (!other_ci->pending)
+			continue;
+		if (other_ci->sent)
+			continue;
+		if (other_ci->verb == MGCP_VERB_DLCX)
+			continue;
+		/* Just clear the pending request, don't fire more events than below. */
+		other_ci->pending = false;
+	}
 
 	/* If this check has terminated the FSM instance, don't fire any more events to prevent use-after-free problems.
 	 * The endpoint FSM does dispatch a term event to its parent, and everything should be cleaned like that. */
