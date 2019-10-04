@@ -255,6 +255,9 @@ struct osmo_mgcpc_ep *osmo_mgcpc_ep_fi_mgwep(struct osmo_fsm_inst *fi)
  * MGCP messages to set up the endpoint will be sent on the given mgcp_client, as soon as the first
  * osmo_mgcpc_ep_ci_request() is invoked.
  *
+ * IMPORTANT: To avoid use-after-free problems, using this FSM requires use of deferred FSM deallocation using
+ * osmo_fsm_set_dealloc_ctx(), e.g. using osmo_select_main_ctx(OTC_SELECT) with osmo_select_main_ctx() as main loop.
+ *
  * A typical sequence of events would be:
  *
  *    ep = osmo_mgcpc_ep_alloc(..., mgcp_client_rtpbridge_wildcard(client));

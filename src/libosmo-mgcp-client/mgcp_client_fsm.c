@@ -708,6 +708,9 @@ void mgcp_conn_delete(struct osmo_fsm_inst *fi)
 
 	OSMO_ASSERT(mgcp_ctx);
 
+	if (fi->proc.terminating)
+		return;
+
 	/* Unlink FSM from parent */
 	osmo_fsm_inst_unlink_parent(fi, NULL);
 
