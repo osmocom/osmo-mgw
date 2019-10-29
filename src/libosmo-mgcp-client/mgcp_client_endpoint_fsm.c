@@ -697,6 +697,14 @@ void osmo_mgcpc_ep_cancel_notify(struct osmo_mgcpc_ep *ep, struct osmo_fsm_inst 
 
 }
 
+/* Return the osmo_mgcpc_ep that this conn belongs to. */
+struct osmo_mgcpc_ep *osmo_mgcpc_ep_ci_ep(struct osmo_mgcpc_ep_ci *conn)
+{
+	if (!conn)
+		return NULL;
+	return conn->ep;
+}
+
 static int send_verb(struct osmo_mgcpc_ep_ci *ci)
 {
 	int rc;

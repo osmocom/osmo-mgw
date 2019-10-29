@@ -30,6 +30,7 @@ void osmo_mgcpc_ep_ci_request(struct osmo_mgcpc_ep_ci *ci,
 			      void *notify_data);
 
 void osmo_mgcpc_ep_cancel_notify(struct osmo_mgcpc_ep *ep, struct osmo_fsm_inst *notify);
+struct osmo_mgcpc_ep *osmo_mgcpc_ep_ci_ep(struct osmo_mgcpc_ep_ci *ci);
 
 /*! Dispatch a DLCX for the given connection.
  * \param ci  Connection identifier as obtained from osmo_mgcpc_ep_ci_add().
