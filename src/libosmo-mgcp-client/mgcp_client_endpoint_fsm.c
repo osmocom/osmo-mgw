@@ -73,6 +73,13 @@ enum osmo_mgcpc_ep_fsm_event {
 
 static struct osmo_fsm osmo_mgcpc_ep_fsm;
 
+struct fsm_notify {
+	struct osmo_fsm_inst *fi;
+	uint32_t success;
+	uint32_t failure;
+	void *data;
+};
+
 /*! One connection on an endpoint, corresponding to a connection identifier (CI) as returned by the MGW.
  * An endpoint has a fixed number of slots of these, which may or may not be in use.
  */
@@ -87,10 +94,7 @@ struct osmo_mgcpc_ep_ci {
 	bool sent;
 	enum mgcp_verb verb;
 	struct mgcp_conn_peer verb_info;
-	struct osmo_fsm_inst *notify;
-	uint32_t notify_success;
-	uint32_t notify_failure;
-	void *notify_data;
+	struct fsm_notify notify;
 
 	bool got_port_info;
 	struct mgcp_conn_peer rtp_info;
@@ -354,14 +358,16 @@ static bool osmo_mgcpc_ep_fsm_check_state_chg_after_response(struct osmo_fsm_ins
 
 static void on_failure(struct osmo_mgcpc_ep_ci *ci)
 {
-	struct osmo_fsm_inst *notify = ci->notify;
-	uint32_t notify_failure = ci->notify_failure;
-	void *notify_data = ci->notify_data;
 	struct osmo_mgcpc_ep *ep = ci->ep;
+	struct fsm_notify notify;
 	int i;
 
 	if (!ci->occupied)
 		return;
+
+	/* When dispatching an event for this CI, the user may decide to trigger the next request for this conn right
+	 * away. So we must be ready with a cleared *ci. Store the notify separately and clear before dispatching. */
+	notify = ci->notify;
 
 	*ci = (struct osmo_mgcpc_ep_ci){
 		.ep = ci->ep,
@@ -390,8 +396,8 @@ static void on_failure(struct osmo_mgcpc_ep_ci *ci)
 	if (!osmo_mgcpc_ep_fsm_check_state_chg_after_response(ci->ep->fi))
 		return;
 
-	if (notify)
-		osmo_fsm_inst_dispatch(notify, notify_failure, notify_data);
+	if (notify.fi)
+		osmo_fsm_inst_dispatch(notify.fi, notify.failure, notify.data);
 }
 
 static int update_endpoint_name(struct osmo_mgcpc_ep_ci *ci, const char *new_endpoint_name)
@@ -472,10 +478,10 @@ static void on_success(struct osmo_mgcpc_ep_ci *ci, void *data)
 	LOG_CI(ci, LOGL_DEBUG, "received successful response to %s: RTP=%s%s\n",
 	       osmo_mgcp_verb_name(ci->verb),
 	       mgcp_conn_peer_name(ci->got_port_info? &ci->rtp_info : NULL),
-	       ci->notify ? "" : " (not sending a notification)");
+	       ci->notify.fi ? "" : " (not sending a notification)");
 
-	if (ci->notify)
-		osmo_fsm_inst_dispatch(ci->notify, ci->notify_success, ci->notify_data);
+	if (ci->notify.fi)
+		osmo_fsm_inst_dispatch(ci->notify.fi, ci->notify.success, ci->notify.data);
 
 	osmo_mgcpc_ep_fsm_check_state_chg_after_response(ci->ep->fi);
 }
@@ -584,16 +590,18 @@ void osmo_mgcpc_ep_ci_request(struct osmo_mgcpc_ep_ci *ci,
 		.occupied = true,
 		/* .pending = true follows below */
 		.verb = verb,
-		.notify = notify,
-		.notify_success = event_success,
-		.notify_failure = event_failure,
-		.notify_data = notify_data,
+		.notify = {
+			.fi = notify,
+			.success = event_success,
+			.failure = event_failure,
+			.data = notify_data,
+		}
 	};
 	osmo_strlcpy(cleared_ci.label, ci->label, sizeof(cleared_ci.label));
 	osmo_strlcpy(cleared_ci.mgcp_ci_str, ci->mgcp_ci_str, sizeof(cleared_ci.mgcp_ci_str));
 	*ci = cleared_ci;
 
-	LOG_CI_VERB(ci, LOGL_DEBUG, "notify=%s\n", osmo_fsm_inst_name(ci->notify));
+	LOG_CI_VERB(ci, LOGL_DEBUG, "notify=%s\n", osmo_fsm_inst_name(ci->notify.fi));
 
 	if (verb_info)
 		ci->verb_info = *verb_info;
@@ -693,8 +701,8 @@ static int send_verb(struct osmo_mgcpc_ep_ci *ci)
 		       osmo_mgcp_verb_name(ci->verb), ci->mgcp_ci_str);
 		/* The way this is designed, we actually need to forget all about the ci right away. */
 		mgcp_conn_delete(ci->mgcp_client_fi);
-		if (ci->notify)
-			osmo_fsm_inst_dispatch(ci->notify, ci->notify_success, ci->notify_data);
+		if (ci->notify.fi)
+			osmo_fsm_inst_dispatch(ci->notify.fi, ci->notify.success, ci->notify.data);
 		*ci = (struct osmo_mgcpc_ep_ci){
 			.ep = ep,
 		};
