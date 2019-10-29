@@ -29,6 +29,8 @@ void osmo_mgcpc_ep_ci_request(struct osmo_mgcpc_ep_ci *ci,
 			      uint32_t event_success, uint32_t event_failure,
 			      void *notify_data);
 
+void osmo_mgcpc_ep_cancel_notify(struct osmo_mgcpc_ep *ep, struct osmo_fsm_inst *notify);
+
 /*! Dispatch a DLCX for the given connection.
  * \param ci  Connection identifier as obtained from osmo_mgcpc_ep_ci_add().
  */

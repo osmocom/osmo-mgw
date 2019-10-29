@@ -74,6 +74,7 @@ enum osmo_mgcpc_ep_fsm_event {
 static struct osmo_fsm osmo_mgcpc_ep_fsm;
 
 struct fsm_notify {
+	struct llist_head entry;
 	struct osmo_fsm_inst *fi;
 	uint32_t success;
 	uint32_t failure;
@@ -122,6 +123,10 @@ struct osmo_mgcpc_ep {
 	/*! Endpoint connection slots. Note that each connection has its own set of FSM event numbers to signal success
 	 * and failure, depending on its index within this array. See CI_EV_SUCCESS and CI_EV_FAILURE. */
 	struct osmo_mgcpc_ep_ci ci[USABLE_CI];
+
+	/*! Internal use: if a function keeps an fsm_notify for later dispatch while already clearing or re-using the
+	 * ci[], the fsm_notify should be kept here to also get canceled by osmo_mgcpc_ep_cancel_notify(). */
+	struct llist_head background_notify;
 };
 
 const struct value_string osmo_mgcp_verb_names[] = {
@@ -300,6 +305,7 @@ struct osmo_mgcpc_ep *osmo_mgcpc_ep_alloc(struct osmo_fsm_inst *parent, uint32_t
 		.fi = fi,
 		.T_defs = T_defs,
 	};
+	INIT_LLIST_HEAD(&ep->background_notify);
 	fi->priv = ep;
 
 	va_start(ap, endpoint_str_fmt);
@@ -368,6 +374,9 @@ static void on_failure(struct osmo_mgcpc_ep_ci *ci)
 	/* When dispatching an event for this CI, the user may decide to trigger the next request for this conn right
 	 * away. So we must be ready with a cleared *ci. Store the notify separately and clear before dispatching. */
 	notify = ci->notify;
+	/* Register the planned notification in ep->background_notify so we also catch any osmo_mgcpc_ep_cancel_notify()
+	 * that might be triggered between clearing the ci and actually dispatching the event. */
+	llist_add(&notify.entry, &ep->background_notify);
 
 	*ci = (struct osmo_mgcpc_ep_ci){
 		.ep = ci->ep,
@@ -393,11 +402,15 @@ static void on_failure(struct osmo_mgcpc_ep_ci *ci)
 
 	/* If this check has terminated the FSM instance, don't fire any more events to prevent use-after-free problems.
 	 * The endpoint FSM does dispatch a term event to its parent, and everything should be cleaned like that. */
-	if (!osmo_mgcpc_ep_fsm_check_state_chg_after_response(ci->ep->fi))
+	if (!osmo_mgcpc_ep_fsm_check_state_chg_after_response(ep->fi)) {
+		/* The ep has deallocated, no need to llist_del(&notify.entry) here. */
 		return;
+	}
 
 	if (notify.fi)
 		osmo_fsm_inst_dispatch(notify.fi, notify.failure, notify.data);
+
+	llist_del(&notify.entry);
 }
 
 static int update_endpoint_name(struct osmo_mgcpc_ep_ci *ci, const char *new_endpoint_name)
@@ -542,6 +555,11 @@ static const struct osmo_tdef_state_timeout osmo_mgcpc_ep_fsm_timeouts[32] = {
 				     ((struct osmo_mgcpc_ep*)fi->priv)->T_defs, 5)
 
 /*! Dispatch an actual CRCX/MDCX/DLCX message for this connection.
+ *
+ * If the 'notify' instance deallocates before it received a notification of event_success or event_failure,
+ * osmo_mgcpc_ep_ci_cancel_notify() or osmo_mgcpc_ep_cancel_notify() must be called. It is not harmful to cancel
+ * notification after an event has been received.
+ *
  * \param ci  Connection identifier as obtained from osmo_mgcpc_ep_ci_add().
  * \param verb  MGCP operation to dispatch.
  * \param verb_info  Parameters for the MGCP operation.
@@ -659,6 +677,26 @@ dispatch_error:
 		osmo_fsm_inst_dispatch(notify, event_failure, notify_data);
 }
 
+/*! No longer notify for any state changes for any conns of this endpoint.
+ * Useful if the notify instance passed to osmo_mgcpc_ep_ci_request() is about to deallocate.
+ * \param ep  The endpoint FSM instance.
+ * \param notify  Which target to cancel notification for, if NULL cancel all notifications. */
+void osmo_mgcpc_ep_cancel_notify(struct osmo_mgcpc_ep *ep, struct osmo_fsm_inst *notify)
+{
+	struct fsm_notify *n;
+	int i;
+	for (i = 0; i < ARRAY_SIZE(ep->ci); i++) {
+		struct osmo_mgcpc_ep_ci *ci = &ep->ci[i];
+		if (!notify || ci->notify.fi == notify)
+			ci->notify.fi = NULL;
+	}
+	llist_for_each_entry(n, &ep->background_notify, entry) {
+		if (!notify || n->fi == notify)
+			n->fi = NULL;
+	}
+
+}
+
 static int send_verb(struct osmo_mgcpc_ep_ci *ci)
 {
 	int rc;
@@ -724,6 +762,7 @@ void osmo_mgcpc_ep_clear(struct osmo_mgcpc_ep *ep)
 {
 	if (!ep)
 		return;
+	osmo_mgcpc_ep_cancel_notify(ep, NULL);
 	osmo_fsm_inst_term(ep->fi, OSMO_FSM_TERM_REGULAR, 0);
 }
 
