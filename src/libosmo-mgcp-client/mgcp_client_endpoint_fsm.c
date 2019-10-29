@@ -663,6 +663,7 @@ static int send_verb(struct osmo_mgcpc_ep_ci *ci)
 {
 	int rc;
 	struct osmo_mgcpc_ep *ep = ci->ep;
+	struct fsm_notify notify;
 
 	if (!ci->occupied || !ci->pending || ci->sent)
 		return 0;
@@ -701,11 +702,14 @@ static int send_verb(struct osmo_mgcpc_ep_ci *ci)
 		       osmo_mgcp_verb_name(ci->verb), ci->mgcp_ci_str);
 		/* The way this is designed, we actually need to forget all about the ci right away. */
 		mgcp_conn_delete(ci->mgcp_client_fi);
-		if (ci->notify.fi)
-			osmo_fsm_inst_dispatch(ci->notify.fi, ci->notify.success, ci->notify.data);
+		notify = ci->notify;
 		*ci = (struct osmo_mgcpc_ep_ci){
 			.ep = ep,
 		};
+		/* When dispatching an event for this CI, the user may decide to trigger the next request for this conn
+		 * right away. So we must be ready with a cleared *ci. */
+		if (notify.fi)
+			osmo_fsm_inst_dispatch(notify.fi, notify.success, notify.data);
 		break;
 
 	default:
