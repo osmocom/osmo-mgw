@@ -620,7 +620,8 @@ struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm
 
 	/* Register the fsm description (if not already done) */
 	if (fsm_registered == false) {
-		osmo_fsm_register(&fsm_mgcp_client);
+		if (osmo_fsm_register(&fsm_mgcp_client) < 0)
+			return NULL;
 		fsm_registered = true;
 	}
 
