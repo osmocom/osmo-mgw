@@ -606,7 +606,6 @@ struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm
 				       uint32_t parent_term_evt, uint32_t parent_evt, struct mgcp_conn_peer *conn_peer)
 {
 	struct mgcp_ctx *mgcp_ctx;
-	static bool fsm_registered = false;
 	struct osmo_fsm_inst *fi;
 	struct in_addr ip_test;
 
@@ -617,13 +616,6 @@ struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm
 	/* Check if IP/Port information in conn info makes sense */
 	if (conn_peer->port && inet_aton(conn_peer->addr, &ip_test) == 0)
 		return NULL;
-
-	/* Register the fsm description (if not already done) */
-	if (fsm_registered == false) {
-		if (osmo_fsm_register(&fsm_mgcp_client) < 0)
-			return NULL;
-		fsm_registered = true;
-	}
 
 	/* Allocate and configure a new fsm instance */
 	fi = osmo_fsm_inst_alloc_child(&fsm_mgcp_client, parent_fi, parent_term_evt);
@@ -748,4 +740,9 @@ const char *osmo_mgcpc_conn_peer_name(const struct mgcp_conn_peer *info)
 	else
 		return "empty";
 	return buf;
+}
+
+static __attribute__((constructor)) void osmo_mgcp_client_fsm_init()
+{
+	OSMO_ASSERT(osmo_fsm_register(&fsm_mgcp_client) == 0);
 }
