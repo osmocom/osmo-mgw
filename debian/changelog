@@ -1,3 +1,45 @@
+osmo-mgw (1.7.0) unstable; urgency=medium
+
+  [ Neels Hofmeyr ]
+  * rename codecs_cmp() to codecs_same()
+  * mgcp_codec: constify 'param' arg
+  * fix crashes: don't assert on incoming RTP packet size
+  * mgcp_send(): stop looping on conversion error
+  * mgcp_codec: split codec_free() off of codec_init()
+  * fix memleak: actually free strings in mgcp_codec_reset_all()
+  * mgcp_test: extend / rewrite test_mgcp_codec_pt_translate()
+  * test_mgcp_codec_pt_translate(): more tests
+  * differentiate AMR octet-aligned=0 vs =1
+  * ptmap: implicitly match  '/8000' and '/8000/1'
+  * mgcp_codec: codec_set(): log about all possible errors
+  * mgcp_codec_add: fix audio_name size check
+  * explicitly free codecs in mgcp_rtp_conn_cleanup()
+  * tweak mgcp_parse_audio_ptime_rtpmap()
+  * SDP: store all ptmap entries
+  * mgcp_client_fsm cleanup: Do not assert on DLCX failure
+  * clear pending requests on MGCP failure
+  * client: endp fsm: add notify struct, prep for cancel-notify
+  * client: endp fsm: clear ci[] before dispatching DLCX success
+  * client: endp fsm: allow cancelling a notify event
+  * client: endp fsm: add osmo_mgcpc_ep_ci_ep()
+  * accept MGCP without SDP
+  * fix use-after-free: require new fsm deferred dealloc, check for term
+
+  [ Pau Espin Pedrol ]
+  * mgcp_test: Correctly release all endpoints allocated
+  * mgw: Allocate mgcp_conn instance under tcfg->endpoints
+
+  [ Harald Welte ]
+  * manual: Fix copy+paste error
+  * mgcp_client: Check for osmo_fsm_register() error return value
+  * Move fsm_mgcp_client regstration to __attribute__((contructor))
+  * exit(2) on unsupported positional arguments on command line
+
+  [ Oliver Smith ]
+  * osmoappdesc.py: switch to python 3
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Fri, 03 Jan 2020 13:35:09 +0100
+
 osmo-mgw (1.6.0) unstable; urgency=medium
 
   [ Oliver Smith ]
