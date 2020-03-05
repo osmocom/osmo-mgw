@@ -255,7 +255,7 @@ static void dump_trunk(struct vty *vty, struct mgcp_trunk_config *cfg, int show_
 		return;
 	}
 
-	for (i = 1; i < cfg->number_endpoints; ++i) {
+	for (i = 0; i < cfg->number_endpoints; ++i) {
 		struct mgcp_endpoint *endp = &cfg->endpoints[i];
 		dump_endpoint(vty, endp, i, cfg->trunk_nr, cfg->trunk_type, show_stats);
 		if (i < cfg->number_endpoints - 1)
