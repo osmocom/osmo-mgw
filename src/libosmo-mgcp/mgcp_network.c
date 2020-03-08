@@ -57,6 +57,22 @@ enum {
 	MGCP_PROTO_RTCP,
 };
 
+static void rtpconn_rate_ctr_add(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *endp,
+				 int id, int inc)
+{
+	struct rate_ctr_group *conn_stats = conn_rtp->rate_ctr_group;
+	struct rate_ctr_group *trunk_stats = endp->tcfg->all_rtp_conn_stats;
+
+	/* add to both the per-connection and the per-trunk global stats */
+	rate_ctr_add(&conn_stats->ctr[id], inc);
+	rate_ctr_add(&trunk_stats->ctr[id], inc);
+}
+
+static void rtpconn_rate_ctr_inc(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *endp, int id)
+{
+	rtpconn_rate_ctr_add(conn_rtp, endp, id, 1);
+}
+
 /*! Determine the local rtp bind IP-address.
  *  \param[out] addr caller provided memory to store the resulting IP-Address
  *  \param[in] endp mgcp endpoint, that holds a copy of the VTY parameters
@@ -845,7 +861,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	dest_name = conn_dst->conn->name;
 
 	if (!rtp_end->output_enabled) {
-		rate_ctr_inc(&conn_dst->rate_ctr_group->ctr[RTP_DROPPED_PACKETS_CTR]);
+		rtpconn_rate_ctr_inc(conn_dst, endp, RTP_DROPPED_PACKETS_CTR);
 		LOGPENDP(endp, DRTP, LOGL_DEBUG,
 			 "output disabled, drop to %s %s "
 			 "rtp_port:%u rtcp_port:%u\n",
@@ -924,8 +940,8 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 			if (len <= 0)
 				return len;
 
-			rate_ctr_inc(&conn_dst->rate_ctr_group->ctr[RTP_PACKETS_TX_CTR]);
-			rate_ctr_add(&conn_dst->rate_ctr_group->ctr[RTP_OCTETS_TX_CTR], len);
+			rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
+			rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
 
 			nbytes += len;
 			buflen = cont;
@@ -942,8 +958,8 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 				    &rtp_end->addr,
 				    rtp_end->rtcp_port, buf, len);
 
-		rate_ctr_inc(&conn_dst->rate_ctr_group->ctr[RTP_PACKETS_TX_CTR]);
-		rate_ctr_add(&conn_dst->rate_ctr_group->ctr[RTP_OCTETS_TX_CTR], len);
+		rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
+		rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
 
 		return len;
 	}
@@ -1189,8 +1205,8 @@ static int mgcp_recv(int *proto, struct sockaddr_in *addr, char *buf,
 	}
 
 	/* Increment RX statistics */
-	rate_ctr_inc(&conn->rate_ctr_group->ctr[RTP_PACKETS_RX_CTR]);
-	rate_ctr_add(&conn->rate_ctr_group->ctr[RTP_OCTETS_RX_CTR], rc);
+	rtpconn_rate_ctr_inc(conn, endp, RTP_PACKETS_RX_CTR);
+	rtpconn_rate_ctr_add(conn, endp, RTP_OCTETS_RX_CTR, rc);
 
 	/* Forward a copy of the RTP data to a debug ip/port */
 	forward_data(fd->fd, &conn->tap_in, buf, rc);

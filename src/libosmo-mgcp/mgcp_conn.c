@@ -259,7 +259,6 @@ aggregate_rtp_conn_stats(struct mgcp_trunk_config *trunk, struct mgcp_conn_rtp *
 {
 	struct rate_ctr_group *all_stats = trunk->all_rtp_conn_stats;
 	struct rate_ctr_group *conn_stats = conn_rtp->rate_ctr_group;
-	int i;
 
 	if (all_stats == NULL || conn_stats == NULL)
 		return;
@@ -269,8 +268,11 @@ aggregate_rtp_conn_stats(struct mgcp_trunk_config *trunk, struct mgcp_conn_rtp *
 	 * All other counters in both counter groups correspond to each other. */
 	OSMO_ASSERT(conn_stats->desc->num_ctr + 1 == all_stats->desc->num_ctr);
 
-	for (i = 0; i < conn_stats->desc->num_ctr; i++)
-		rate_ctr_add(&all_stats->ctr[i], conn_stats->ctr[i].current);
+	/* all other counters are [now] updated in real-time */
+	rate_ctr_add(&all_stats->ctr[IN_STREAM_ERR_TSTMP_CTR],
+		     conn_stats->ctr[IN_STREAM_ERR_TSTMP_CTR].current);
+	rate_ctr_add(&all_stats->ctr[OUT_STREAM_ERR_TSTMP_CTR],
+		     conn_stats->ctr[OUT_STREAM_ERR_TSTMP_CTR].current);
 
 	rate_ctr_inc(&all_stats->ctr[RTP_NUM_CONNECTIONS]);
 }
