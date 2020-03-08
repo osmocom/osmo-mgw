@@ -379,7 +379,7 @@ static void send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
  *   - or a response (three numbers, space, transaction id) */
 struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 {
-	struct mgcp_trunk_config *tcfg = &cfg->trunk;
+	struct mgcp_trunk_config *tcfg = cfg->virt_trunk;
 	struct rate_ctr_group *rate_ctrs = tcfg->mgcp_general_ctr_group;
 	struct mgcp_parse_data pdata;
 	int rc, i, code, handled = 0;
@@ -1657,33 +1657,26 @@ struct mgcp_config *mgcp_config_alloc(void)
 
 	cfg->get_net_downlink_format_cb = &mgcp_get_net_downlink_format_default;
 
-	/* default trunk handling; TODO: avoid duplication with mgcp_trunk_alloc() below */
-	cfg->trunk.cfg = cfg;
-	cfg->trunk.trunk_nr = 0;
-	cfg->trunk.trunk_type = MGCP_TRUNK_VIRTUAL;
-	cfg->trunk.audio_name = talloc_strdup(cfg, "AMR/8000");
-	cfg->trunk.audio_payload = 126;
-	cfg->trunk.audio_send_ptime = 1;
-	cfg->trunk.audio_send_name = 1;
-	cfg->trunk.vty_number_endpoints = 33;
-	cfg->trunk.omit_rtcp = 0;
-	mgcp_trunk_set_keepalive(&cfg->trunk, MGCP_KEEPALIVE_ONCE);
-	if (alloc_mgcp_rate_counters(&cfg->trunk, cfg) < 0) {
+	INIT_LLIST_HEAD(&cfg->trunks);
+
+	/* default trunk handling */
+	cfg->virt_trunk = mgcp_trunk_alloc(cfg, MGCP_TRUNK_VIRTUAL, 0);
+	if (!cfg->virt_trunk) {
 		talloc_free(cfg);
 		return NULL;
 	}
-
-	INIT_LLIST_HEAD(&cfg->trunks);
+	/* virtual trunk is not part of the list! */
+	llist_del(&cfg->virt_trunk->entry);
 
 	return cfg;
 }
 
-/*! allocate configuration with default values.
+/*! allocate configuration with default values. Do not link it into global list yet!
  *  (called once at startup by VTY)
  *  \param[in] cfg mgcp configuration
  *  \param[in] nr trunk number
  *  \returns pointer to allocated trunk configuration */
-struct mgcp_trunk_config *mgcp_trunk_alloc(struct mgcp_config *cfg, int nr)
+struct mgcp_trunk_config *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr)
 {
 	struct mgcp_trunk_config *trunk;
 
@@ -1694,16 +1687,19 @@ struct mgcp_trunk_config *mgcp_trunk_alloc(struct mgcp_config *cfg, int nr)
 	}
 
 	trunk->cfg = cfg;
-	trunk->trunk_type = MGCP_TRUNK_E1;
+	trunk->trunk_type = ttype;
 	trunk->trunk_nr = nr;
-	trunk->audio_name = talloc_strdup(cfg, "AMR/8000");
+	trunk->audio_name = talloc_strdup(trunk, "AMR/8000");
 	trunk->audio_payload = 126;
 	trunk->audio_send_ptime = 1;
 	trunk->audio_send_name = 1;
 	trunk->vty_number_endpoints = 33;
 	trunk->omit_rtcp = 0;
 	mgcp_trunk_set_keepalive(trunk, MGCP_KEEPALIVE_ONCE);
-	alloc_mgcp_rate_counters(trunk, trunk);
+	if (alloc_mgcp_rate_counters(trunk, trunk) < 0) {
+		talloc_free(trunk);
+		return NULL;
+	}
 	llist_add_tail(&trunk->entry, &cfg->trunks);
 
 	return trunk;

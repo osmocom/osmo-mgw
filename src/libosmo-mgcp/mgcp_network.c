@@ -1440,7 +1440,7 @@ static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
 {
 	/* NOTE: The port that is used for RTCP is the RTP port incremented by one
 	 * (e.g. RTP-Port = 16000 ==> RTCP-Port = 16001) */
-	 struct mgcp_endpoint *endp = &cfg->trunk.endpoints[endpno];
+	 struct mgcp_endpoint *endp = &cfg->virt_trunk->endpoints[endpno];
 
 	if (mgcp_create_bind(source_addr, &rtp_end->rtp,
 			     rtp_end->local_port) != 0) {

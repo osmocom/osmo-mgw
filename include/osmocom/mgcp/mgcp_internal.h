@@ -282,7 +282,7 @@ static inline int endp_back_channel(int endpoint)
 	return endpoint + 60;
 }
 
-struct mgcp_trunk_config *mgcp_trunk_alloc(struct mgcp_config *cfg, int index);
+struct mgcp_trunk_config *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int index);
 struct mgcp_trunk_config *mgcp_trunk_num(struct mgcp_config *cfg, int index);
 
 char *get_lco_identifier(const char *options);

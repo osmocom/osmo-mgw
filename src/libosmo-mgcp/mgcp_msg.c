@@ -235,6 +235,7 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 	unsigned int gw = INT_MAX;
 	const char *endpoint_number_str;
 	struct mgcp_endpoint *endp;
+	struct mgcp_trunk_config *virt_trunk = cfg->virt_trunk;
 
 	*cause = 0;
 
@@ -259,15 +260,15 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 		endpoint_number_str =
 		    mgcp + strlen(MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK);
 		if (endpoint_number_str[0] == '*') {
-			endp = find_free_endpoint(cfg->trunk.endpoints,
-						  cfg->trunk.number_endpoints);
+			endp = find_free_endpoint(virt_trunk->endpoints,
+						  virt_trunk->number_endpoints);
 			if (!endp)
 				*cause = -403;
 			return endp;
 		}
 		gw = strtoul(endpoint_number_str, &endptr, 16);
-		if (gw < cfg->trunk.number_endpoints && endptr[0] == '@') {
-			endp = &cfg->trunk.endpoints[gw];
+		if (gw < virt_trunk->number_endpoints && endptr[0] == '@') {
+			endp = &virt_trunk->endpoints[gw];
 			endp->wildcarded_req = false;
 			return endp;
 		}
@@ -278,8 +279,8 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 	     "Addressing virtual trunk without prefix (deprecated), please use %s: '%s'\n",
 	     MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK, mgcp);
 	gw = strtoul(mgcp, &endptr, 16);
-	if (gw < cfg->trunk.number_endpoints && endptr[0] == '@') {
-		endp = &cfg->trunk.endpoints[gw];
+	if (gw < virt_trunk->number_endpoints && endptr[0] == '@') {
+		endp = &virt_trunk->endpoints[gw];
 		endp->wildcarded_req = false;
 		return endp;
 	}

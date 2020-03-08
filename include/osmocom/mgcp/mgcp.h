@@ -261,7 +261,10 @@ struct mgcp_config {
 	uint32_t last_call_id;
 
 	/* trunk handling */
-	struct mgcp_trunk_config trunk;
+
+	/* virtual trunk for RTP - RTP endpoints */
+	struct mgcp_trunk_config *virt_trunk;
+	/* physical trunks with underlying E1 endpoints */
 	struct llist_head trunks;
 
 	enum mgcp_role role;
