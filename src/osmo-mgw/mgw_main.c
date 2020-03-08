@@ -38,6 +38,7 @@
 #include <osmocom/mgcp/vty.h>
 #include <osmocom/mgcp/debug.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_ctrl.h>
 
 #include <osmocom/core/application.h>
 #include <osmocom/core/msgb.h>
@@ -47,6 +48,8 @@
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/socket.h>
+
+#include <osmocom/ctrl/control_vty.h>
 
 #include <osmocom/vty/telnet_interface.h>
 #include <osmocom/vty/logging.h>
@@ -59,6 +62,11 @@
 
 #define _GNU_SOURCE
 #include <getopt.h>
+
+/* can be changed once libosmocore 1.4.0 is released */
+#ifndef OSMO_CTRL_PORT_MGW
+#define OSMO_CTRL_PORT_MGW 4267
+#endif
 
 /* FIXME: Make use of the rtp proxy code */
 
@@ -278,6 +286,7 @@ int main(int argc, char **argv)
 	osmo_talloc_vty_add_cmds();
 	osmo_stats_vty_add_cmds();
 	mgcp_vty_init();
+	ctrl_vty_init(cfg);
 
 	handle_options(argc, argv);
 
@@ -293,6 +302,12 @@ int main(int argc, char **argv)
 			       vty_get_bind_addr(), OSMO_VTY_PORT_MGW);
 	if (rc < 0)
 		return rc;
+
+	cfg->ctrl = mgw_ctrl_interface_setup(cfg, ctrl_vty_get_bind_addr(), OSMO_CTRL_PORT_MGW);
+	if (!cfg->ctrl) {
+		fprintf(stderr, "Failed to init the control interface on %s:%u. Exiting\n",
+			ctrl_vty_get_bind_addr(), OSMO_CTRL_PORT_MGW);
+	}
 
 	/* Set the reset callback function. This functions is called when the
 	 * mgcp-command "RSIP" (Reset in Progress) is received */

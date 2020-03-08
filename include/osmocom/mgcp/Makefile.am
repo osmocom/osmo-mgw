@@ -6,5 +6,6 @@ noinst_HEADERS = \
 	mgcp_endp.h \
 	mgcp_sdp.h \
 	mgcp_codec.h \
+	mgcp_ctrl.h \
 	debug.h \
 	$(NULL)

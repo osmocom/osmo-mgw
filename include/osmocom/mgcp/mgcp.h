@@ -279,6 +279,9 @@ struct mgcp_config {
 
 	/* time after which inactive connections (CIs) get closed */
 	int conn_timeout;
+
+	/* osmocom CTRL interface */
+	struct ctrl_handle *ctrl;
 };
 
 /* config management */
