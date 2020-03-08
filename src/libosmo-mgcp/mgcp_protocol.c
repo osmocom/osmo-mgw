@@ -1620,7 +1620,7 @@ struct mgcp_config *mgcp_config_alloc(void)
 
 	cfg->get_net_downlink_format_cb = &mgcp_get_net_downlink_format_default;
 
-	/* default trunk handling */
+	/* default trunk handling; TODO: avoid duplication with mgcp_trunk_alloc() below */
 	cfg->trunk.cfg = cfg;
 	cfg->trunk.trunk_nr = 0;
 	cfg->trunk.trunk_type = MGCP_TRUNK_VIRTUAL;
@@ -1628,6 +1628,7 @@ struct mgcp_config *mgcp_config_alloc(void)
 	cfg->trunk.audio_payload = 126;
 	cfg->trunk.audio_send_ptime = 1;
 	cfg->trunk.audio_send_name = 1;
+	cfg->trunk.vty_number_endpoints = 33;
 	cfg->trunk.omit_rtcp = 0;
 	mgcp_trunk_set_keepalive(&cfg->trunk, MGCP_KEEPALIVE_ONCE);
 	if (alloc_mgcp_rate_counters(&cfg->trunk, cfg) < 0) {
