@@ -828,7 +828,7 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 	inet_aton(mgcp->actual.remote_addr, &addr.sin_addr);
 	mgcp->remote_addr = htonl(addr.sin_addr.s_addr);
 
-	osmo_wqueue_init(wq, 10);
+	osmo_wqueue_init(wq, 1024);
 	wq->bfd.when = BSC_FD_READ;
 	wq->bfd.data = mgcp;
 	wq->read_cb = mgcp_do_read;
