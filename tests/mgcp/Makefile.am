@@ -36,6 +36,7 @@ mgcp_test_LDADD = \
 	$(LIBOSMOVTY_LIBS) \
 	$(LIBOSMOGSM_LIBS) \
 	$(LIBRARY_DL) \
+	$(LIBRARY_DLSYM) \
 	$(LIBOSMONETIF_LIBS) \
 	-lm  \
 	$(NULL)

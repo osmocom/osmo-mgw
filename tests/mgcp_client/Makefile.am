@@ -35,6 +35,7 @@ mgcp_client_test_LDADD = \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
 	$(LIBRARY_DL) \
+	$(LIBRARY_DLSYM) \
 	$(LIBOSMONETIF_LIBS) \
 	$(NULL)
 
