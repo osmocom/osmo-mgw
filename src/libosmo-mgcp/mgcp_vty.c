@@ -262,6 +262,12 @@ static void dump_trunk(struct vty *vty, struct mgcp_trunk_config *cfg, int show_
 			vty_out(vty, "%s", VTY_NEWLINE);
 	}
 
+	vty_out(vty, "%s", VTY_NEWLINE);
+	vty_out(vty, "Rate counters:%s", VTY_NEWLINE);
+	if (show_stats && cfg->mgcp_general_ctr_group) {
+		vty_out(vty, "   %s:%s", cfg->mgcp_general_ctr_group->desc->group_description, VTY_NEWLINE);
+		vty_out_rate_ctr_group_fmt(vty, "   %25n: %10c (%S/s %M/m %H/h %D/d) %d", cfg->mgcp_crcx_ctr_group);
+	}
 	if (show_stats && cfg->mgcp_crcx_ctr_group) {
 		vty_out(vty, "   %s:%s", cfg->mgcp_crcx_ctr_group->desc->group_description, VTY_NEWLINE);
 		vty_out_rate_ctr_group_fmt(vty, "   %25n: %10c (%S/s %M/m %H/h %D/d) %d", cfg->mgcp_crcx_ctr_group);
