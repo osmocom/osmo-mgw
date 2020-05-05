@@ -53,6 +53,22 @@ struct mgcp_request {
 #define MGCP_REQUEST(NAME, REQ, DEBUG_NAME) \
 	{ .name = NAME, .handle_request = REQ, .debug_name = DEBUG_NAME },
 
+static const struct rate_ctr_desc mgcp_general_ctr_desc[] = {
+	[MGCP_GENERAL_RX_MSGS_TOTAL] = {"mgcp:rx_msgs", "Total number of MGCP messages received."},
+	[MGCP_GENERAL_RX_MSGS_HANDLED] = {"mgcp:rx_msgs_handled", "Number of handled MGCP messages."},
+	[MGCP_GENERAL_RX_MSGS_UNHANDLED] = {"mgcp:rx_msgs_unhandled", "Number of unhandled MGCP messages."},
+	[MGCP_GENERAL_RX_FAIL_MSG_PARSE] = {"mgcp:err_rx_msg_parse", "error parsing MGCP message."},
+	[MGCP_GENERAL_RX_FAIL_NO_ENDPOINT] = {"mgcp:err_rx_no_endpoint", "can't find MGCP endpoint."},
+};
+
+const static struct rate_ctr_group_desc mgcp_general_ctr_group_desc = {
+	.group_name_prefix = "mgcp",
+	.group_description = "mgcp general statistics",
+	.class_id = OSMO_STATS_CLASS_GLOBAL,
+	.num_ctr = ARRAY_SIZE(mgcp_general_ctr_desc),
+	.ctr_desc = mgcp_general_ctr_desc
+};
+
 static const struct rate_ctr_desc mgcp_crcx_ctr_desc[] = {
 	[MGCP_CRCX_SUCCESS] = {"crcx:success", "CRCX command processed successfully."},
 	[MGCP_CRCX_FAIL_BAD_ACTION] = {"crcx:bad_action", "bad action in CRCX command."},
@@ -361,24 +377,33 @@ static void send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
  *   - or a response (three numbers, space, transaction id) */
 struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 {
+	struct mgcp_trunk_config *tcfg = &cfg->trunk;
+	struct rate_ctr_group *rate_ctrs = tcfg->mgcp_general_ctr_group;
 	struct mgcp_parse_data pdata;
 	int rc, i, code, handled = 0;
 	struct msgb *resp = NULL;
 	char *data;
 
+	/* Count all messages, even incorect ones */
+	rate_ctr_inc(&rate_ctrs->ctr[MGCP_GENERAL_RX_MSGS_TOTAL]);
+
 	if (msgb_l2len(msg) < 4) {
 		LOGP(DLMGCP, LOGL_ERROR, "msg too short: %d\n", msg->len);
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_GENERAL_RX_FAIL_MSG_PARSE]);
 		return NULL;
 	}
 
-	if (mgcp_msg_terminate_nul(msg))
+	if (mgcp_msg_terminate_nul(msg)) {
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_GENERAL_RX_FAIL_MSG_PARSE]);
 		return NULL;
+	}
 
 	mgcp_disp_msg(msg->l2h, msgb_l2len(msg), "Received message");
 
 	/* attempt to treat it as a response */
 	if (sscanf((const char *)&msg->l2h[0], "%3d %*s", &code) == 1) {
 		LOGP(DLMGCP, LOGL_DEBUG, "Response: Code: %d\n", code);
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_GENERAL_RX_FAIL_MSG_PARSE]);
 		return NULL;
 	}
 
@@ -400,6 +425,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 	/* check for general parser failure */
 	if (rc < 0) {
 		LOGP(DLMGCP, LOGL_NOTICE, "%s: failed to find the endpoint\n", msg->l2h);
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_GENERAL_RX_FAIL_NO_ENDPOINT]);
 		return create_err_response(NULL, -rc, (const char *) msg->l2h, pdata.trans);
 	}
 
@@ -413,9 +439,13 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 		}
 	}
 
-	if (!handled)
+	if (handled) {
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_GENERAL_RX_MSGS_HANDLED]);
+	} else {
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_GENERAL_RX_MSGS_UNHANDLED]);
 		LOGP(DLMGCP, LOGL_NOTICE, "MSG with type: '%.4s' not handled\n",
 		     &msg->l2h[0]);
+	}
 
 	return resp;
 }
@@ -1556,11 +1586,19 @@ static int alloc_mgcp_rate_counters(struct mgcp_trunk_config *trunk, void *ctx)
 	/* FIXME: Each new rate counter group requires a unique index. At the
 	 * moment we generate an index using a counter, but perhaps there is
 	 * a better way of assigning indices? */
+	static unsigned int general_rate_ctr_index = 0;
 	static unsigned int crcx_rate_ctr_index = 0;
 	static unsigned int mdcx_rate_ctr_index = 0;
 	static unsigned int dlcx_rate_ctr_index = 0;
 	static unsigned int all_rtp_conn_rate_ctr_index = 0;
 
+	if (trunk->mgcp_general_ctr_group == NULL) {
+		trunk->mgcp_general_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_general_ctr_group_desc, general_rate_ctr_index);
+		if (!trunk->mgcp_general_ctr_group)
+			return -1;
+		talloc_set_destructor(trunk->mgcp_general_ctr_group, free_rate_counter_group);
+		general_rate_ctr_index++;
+	}
 	if (trunk->mgcp_crcx_ctr_group == NULL) {
 		trunk->mgcp_crcx_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_crcx_ctr_group_desc, crcx_rate_ctr_index);
 		if (!trunk->mgcp_crcx_ctr_group)

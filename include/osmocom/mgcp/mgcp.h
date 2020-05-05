@@ -119,6 +119,15 @@ struct mgcp_port_range {
 #define MGCP_KEEPALIVE_ONCE (-1)
 #define MGCP_KEEPALIVE_NEVER 0
 
+/* Global MCGP general rate counters */
+enum {
+	MGCP_GENERAL_RX_MSGS_TOTAL,
+	MGCP_GENERAL_RX_MSGS_HANDLED,
+	MGCP_GENERAL_RX_MSGS_UNHANDLED,
+	MGCP_GENERAL_RX_FAIL_MSG_PARSE,
+	MGCP_GENERAL_RX_FAIL_NO_ENDPOINT,
+};
+
 /* Global MCGP CRCX related rate counters */
 enum {
 	MGCP_CRCX_SUCCESS,
@@ -207,6 +216,8 @@ struct mgcp_trunk_config {
 	int vty_number_endpoints;
 	struct mgcp_endpoint *endpoints;
 
+	/* Rate counter group which contains stats for generic MGCP events. */
+	struct rate_ctr_group *mgcp_general_ctr_group;
 	/* Rate counter group which contains stats for processed CRCX commands. */
 	struct rate_ctr_group *mgcp_crcx_ctr_group;
 	/* Rate counter group which contains stats for processed MDCX commands. */
