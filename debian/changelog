@@ -1,3 +1,9 @@
+osmo-mgw (1.7.0-fw.3) unstable; urgency=medium
+
+  * merged fairwaves/wip-counters:c2a04fba04fbb
+
+ -- Kirill Zakharenko <kirill.zakharenko@fairwaves.co>  Tue, 5 May 2020 21:23:29 +0300
+
 osmo-mgw (1.7.0-fw.2) unstable; urgency=medium
 
   * merged fairwaves/wip-counters:832d36a01449
