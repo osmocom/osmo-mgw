@@ -54,11 +54,13 @@ struct mgcp_request {
 	{ .name = NAME, .handle_request = REQ, .debug_name = DEBUG_NAME },
 
 static const struct rate_ctr_desc mgcp_general_ctr_desc[] = {
-	[MGCP_GENERAL_RX_MSGS_TOTAL] = {"mgcp:rx_msgs", "Total number of MGCP messages received."},
-	[MGCP_GENERAL_RX_MSGS_HANDLED] = {"mgcp:rx_msgs_handled", "Number of handled MGCP messages."},
-	[MGCP_GENERAL_RX_MSGS_UNHANDLED] = {"mgcp:rx_msgs_unhandled", "Number of unhandled MGCP messages."},
+	/* rx_msgs = rx_msgs_retransmitted + rx_msgs_handled + rx_msgs_unhandled + err_rx_msg_parse + err_rx_no_endpoint */
+	[MGCP_GENERAL_RX_MSGS_TOTAL] = {"mgcp:rx_msgs", "total number of MGCP messages received."},
+	[MGCP_GENERAL_RX_MSGS_RETRANSMITTED] = {"mgcp:rx_msgs_retransmitted", "number of received retransmissions."},
+	[MGCP_GENERAL_RX_MSGS_HANDLED] = {"mgcp:rx_msgs_handled", "number of handled MGCP messages."},
+	[MGCP_GENERAL_RX_MSGS_UNHANDLED] = {"mgcp:rx_msgs_unhandled", "number of unhandled MGCP messages."},
 	[MGCP_GENERAL_RX_FAIL_MSG_PARSE] = {"mgcp:err_rx_msg_parse", "error parsing MGCP message."},
-	[MGCP_GENERAL_RX_FAIL_NO_ENDPOINT] = {"mgcp:err_rx_no_endpoint", "can't find MGCP endpoint."},
+	[MGCP_GENERAL_RX_FAIL_NO_ENDPOINT] = {"mgcp:err_rx_no_endpoint", "can't find MGCP endpoint, probably we've used all allocated endpoints."},
 };
 
 const static struct rate_ctr_group_desc mgcp_general_ctr_group_desc = {
@@ -419,6 +421,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 	if (pdata.endp && pdata.trans
 	    && pdata.endp->last_trans
 	    && strcmp(pdata.endp->last_trans, pdata.trans) == 0) {
+		rate_ctr_inc(&rate_ctrs->ctr[MGCP_GENERAL_RX_MSGS_RETRANSMITTED]);
 		return do_retransmission(pdata.endp);
 	}
 
