@@ -1310,8 +1310,8 @@ int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
 
 	/* There is no destination conn, stop here */
 	if (!conn_dst) {
-		LOGPCONN(conn, DRTP, LOGL_ERROR,
-			 "unable to find destination conn\n");
+		LOGPCONN(conn, DRTP, LOGL_DEBUG,
+			 "no connection to forward an incoming RTP packet to\n");
 		return -1;
 	}
 
