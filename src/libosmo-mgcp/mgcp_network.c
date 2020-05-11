@@ -1271,7 +1271,7 @@ int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
 	struct mgcp_conn *conn_dst;
 
 	/*! NOTE: This callback function implements the endpoint specific
-	 *  dispatch bahviour of an rtp bridge/proxy endpoint. It is assumed
+	 *  dispatch behaviour of an rtp bridge/proxy endpoint. It is assumed
 	 *  that the endpoint will hold only two connections. This premise
 	 *  is used to determine the opposite connection (it is always the
 	 *  connection that is not the originating connection). Once the
