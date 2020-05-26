@@ -24,3 +24,4 @@
 # If any interfaces have been removed or changed since the last public release, a=0.
 #
 #library		what		description / commit summary line
+libsomo-mgcp		ABI change	mgcp.h, struct mgcp_config, remove realloc_cb (unused)
