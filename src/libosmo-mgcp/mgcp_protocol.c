@@ -1085,10 +1085,6 @@ error2:
 	return create_err_response(endp, error_code, "CRCX", p->trans);
 }
 
-
-
-
-
 /* MDCX command handler, processes the received command */
 static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 {
