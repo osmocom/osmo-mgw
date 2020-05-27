@@ -28,6 +28,11 @@
 #include <osmocom/core/rate_ctr.h>
 #include <inttypes.h>
 
+#define LOGPCONN(conn, cat, level, fmt, args...) \
+LOGPENDP((conn)->endp, cat, level, "CI:%s " fmt, \
+         (conn)->id, \
+         ## args)
+
 /* RTP connection related counters */
 enum {
 	IN_STREAM_ERR_TSTMP_CTR,

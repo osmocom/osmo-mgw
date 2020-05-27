@@ -340,13 +340,3 @@ enum {
 
 void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn);
 void mgcp_conn_watchdog_kick(struct mgcp_conn *conn);
-
-#define LOGPENDP(endp, cat, level, fmt, args...) \
-LOGP(cat, level, "endpoint:0x%x " fmt, \
-     endp ? ENDPOINT_NUMBER(endp) : -1, \
-     ## args)
-
-#define LOGPCONN(conn, cat, level, fmt, args...) \
-LOGPENDP((conn)->endp, cat, level, "CI:%s " fmt, \
-         (conn)->id, \
-         ## args)

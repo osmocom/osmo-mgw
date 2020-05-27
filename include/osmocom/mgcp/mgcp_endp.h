@@ -27,6 +27,11 @@ struct sockaddr_in;
 struct mgcp_conn;
 struct mgcp_endpoint;
 
+#define LOGPENDP(endp, cat, level, fmt, args...) \
+LOGP(cat, level, "endpoint:0x%x " fmt, \
+     endp ? ENDPOINT_NUMBER(endp) : -1, \
+     ## args)
+
 /* Callback type for RTP dispatcher functions
    (e.g mgcp_dispatch_rtp_bridge_cb, see below) */
 typedef int (*mgcp_dispatch_rtp_cb) (int proto, struct sockaddr_in *addr,
