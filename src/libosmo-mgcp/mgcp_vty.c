@@ -535,7 +535,7 @@ ALIAS_DEPRECATED(cfg_mgcp_rtp_ip_dscp, cfg_mgcp_rtp_ip_tos_cmd,
 		 RTP_STR
 		 "Apply IP_TOS to the audio stream\n" "The DSCP value\n")
 #define FORCE_PTIME_STR "Force a fixed ptime for packets sent"
-    DEFUN(cfg_mgcp_rtp_force_ptime,
+DEFUN(cfg_mgcp_rtp_force_ptime,
       cfg_mgcp_rtp_force_ptime_cmd,
       "rtp force-ptime (10|20|40)",
       RTP_STR FORCE_PTIME_STR
@@ -601,7 +601,7 @@ ALIAS_DEPRECATED(cfg_mgcp_sdp_payload_number,
 		 "sdp audio payload number <0-255>",
 		 SDP_STR AUDIO_STR AUDIO_STR "Number\n" "Payload number\n")
 
-    DEFUN(cfg_mgcp_sdp_payload_name,
+DEFUN(cfg_mgcp_sdp_payload_name,
       cfg_mgcp_sdp_payload_name_cmd,
       "sdp audio-payload name NAME",
       SDP_STR AUDIO_STR "Name\n" "Payload name\n")
@@ -614,7 +614,7 @@ ALIAS_DEPRECATED(cfg_mgcp_sdp_payload_name, cfg_mgcp_sdp_payload_name_cmd_old,
 		 "sdp audio payload name NAME",
 		 SDP_STR AUDIO_STR AUDIO_STR "Name\n" "Payload name\n")
 
-    DEFUN(cfg_mgcp_sdp_payload_send_ptime,
+DEFUN(cfg_mgcp_sdp_payload_send_ptime,
       cfg_mgcp_sdp_payload_send_ptime_cmd,
       "sdp audio-payload send-ptime",
       SDP_STR AUDIO_STR "Send SDP ptime (packet duration) attribute\n")
@@ -804,7 +804,7 @@ ALIAS_DEPRECATED(cfg_mgcp_agent_addr, cfg_mgcp_agent_addr_cmd_old,
 		 CALL_AGENT_STR CALL_AGENT_STR IP_STR
 		 "IPv4 Address of the callagent\n")
 
-    DEFUN(cfg_mgcp_trunk, cfg_mgcp_trunk_cmd,
+DEFUN(cfg_mgcp_trunk, cfg_mgcp_trunk_cmd,
       "trunk <1-64>", "Configure a SS7 trunk\n" "Trunk Nr\n")
 {
 	struct mgcp_trunk_config *trunk;
@@ -911,7 +911,7 @@ ALIAS_DEPRECATED(cfg_trunk_payload_number, cfg_trunk_payload_number_cmd_old,
 		 "sdp audio payload number <0-255>",
 		 SDP_STR AUDIO_STR AUDIO_STR "Number\n" "Payload Number\n")
 
-    DEFUN(cfg_trunk_payload_name,
+DEFUN(cfg_trunk_payload_name,
       cfg_trunk_payload_name_cmd,
       "sdp audio-payload name NAME",
       SDP_STR AUDIO_STR "Payload\n" "Payload Name\n")
@@ -926,7 +926,7 @@ ALIAS_DEPRECATED(cfg_trunk_payload_name, cfg_trunk_payload_name_cmd_old,
 		 "sdp audio payload name NAME",
 		 SDP_STR AUDIO_STR AUDIO_STR "Payload\n" "Payload Name\n")
 
-    DEFUN(cfg_trunk_loop,
+DEFUN(cfg_trunk_loop,
       cfg_trunk_loop_cmd,
       "loop (0|1)",
       "Loop audio for all endpoints on this trunk\n" "Don't Loop\n" "Loop\n")
