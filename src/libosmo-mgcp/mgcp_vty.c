@@ -813,14 +813,11 @@ ALIAS_DEPRECATED(cfg_mgcp_agent_addr, cfg_mgcp_agent_addr_cmd_old,
 	trunk = mgcp_trunk_num(g_cfg, index);
 	if (!trunk) {
 		trunk = mgcp_trunk_alloc(g_cfg, MGCP_TRUNK_E1, index);
-		if (!trunk)
+		if (!trunk) {
+			vty_out(vty, "%%Unable to allocate trunk %u.%s",
+				index, VTY_NEWLINE);
 			return CMD_WARNING;
-	}
-
-	if (!trunk) {
-		vty_out(vty, "%%Unable to allocate trunk %u.%s",
-			index, VTY_NEWLINE);
-		return CMD_WARNING;
+		}
 	}
 
 	vty->node = TRUNK_NODE;
