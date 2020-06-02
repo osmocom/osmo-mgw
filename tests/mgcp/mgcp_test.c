@@ -26,6 +26,7 @@
 #include <osmocom/mgcp/mgcp_stat.h>
 #include <osmocom/mgcp/mgcp_msg.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_trunk.h>
 #include <osmocom/mgcp/mgcp_sdp.h>
 #include <osmocom/mgcp/mgcp_codec.h>
 
@@ -70,7 +71,7 @@ static void test_strline(void)
 }
 
 #define AUEP1	"AUEP 158663169 ds/e1-1/2@mgw MGCP 1.0\r\n"
-#define AUEP1_RET "200 158663169 OK\r\n"
+#define AUEP1_RET "500 158663169 FAIL\r\n"
 #define AUEP2	"AUEP 18983213 ds/e1-2/1@mgw MGCP 1.0\r\n"
 #define AUEP2_RET "500 18983213 FAIL\r\n"
 #define EMPTY	"\r\n"
@@ -81,7 +82,7 @@ static void test_strline(void)
 #define MDCX_WRONG_EP "MDCX 18983213 ds/e1-3/1@mgw MGCP 1.0\r\n"
 #define MDCX_ERR_RET "500 18983213 FAIL\r\n"
 #define MDCX_UNALLOCATED "MDCX 18983214 ds/e1-1/2@mgw MGCP 1.0\r\n"
-#define MDCX_RET "400 18983214 FAIL\r\n"
+#define MDCX_RET "500 18983214 FAIL\r\n"
 
 #define MDCX3 \
 	"MDCX 18983215 1@mgw MGCP 1.0\r\n" \
@@ -593,12 +594,22 @@ static struct msgb *create_msg(const char *str, const char *conn_id)
 
 static int last_endpoint = -1;
 
-static int mgcp_test_policy_cb(struct mgcp_trunk *cfg, int endpoint,
-			       int state, const char *transactio_id)
+static int mgcp_test_policy_cb(struct mgcp_endpoint *endp,
+			       int state, const char *transaction_id)
 {
-	fprintf(stderr, "Policy CB got state %d on endpoint 0x%x\n",
-		state, endpoint);
-	last_endpoint = endpoint;
+	unsigned int i;
+	struct mgcp_trunk *trunk;
+
+	fprintf(stderr, "Policy CB got state %d on endpoint %s\n",
+		state, endp->name);
+
+	trunk = endp->trunk;
+	last_endpoint = -1;
+	for (i = 0; i < trunk->vty_number_endpoints; i++) {
+		if (strcmp(endp->name, trunk->endpoints[i]->name) == 0)
+			last_endpoint = i;
+	}
+
 	return MGCP_POLICY_CONT;
 }
 
@@ -645,7 +656,7 @@ static void mgcp_endpoints_release(struct mgcp_trunk *trunk)
 {
 	int i;
 	for (i = 1; i < trunk->number_endpoints; i++)
-		mgcp_endp_release(&trunk->endpoints[i]);
+		mgcp_endp_release(trunk->endpoints[i]);
 }
 
 #define CONN_UNMODIFIED (0x1000)
@@ -758,13 +769,13 @@ static void test_messages(void)
 	cfg = mgcp_config_alloc();
 
 	cfg->virt_trunk->vty_number_endpoints = 64;
-	mgcp_endpoints_allocate(cfg->virt_trunk);
+        mgcp_trunk_alloc_endpts(cfg->virt_trunk);
 	cfg->policy_cb = mgcp_test_policy_cb;
 
 	memset(last_conn_id, 0, sizeof(last_conn_id));
 
 	trunk2 = mgcp_trunk_alloc(cfg, MGCP_TRUNK_E1, 1);
-	mgcp_endpoints_allocate(trunk2);
+        mgcp_trunk_alloc_endpts(trunk2);
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
 		const struct mgcp_test *t = &tests[i];
@@ -810,7 +821,7 @@ static void test_messages(void)
 			printf("Dummy packets: %d\n", dummy_packets);
 
 		if (last_endpoint != -1) {
-			endp = &cfg->virt_trunk->endpoints[last_endpoint];
+			endp = cfg->virt_trunk->endpoints[last_endpoint];
 
 			conn = mgcp_conn_get_rtp(endp, "1");
 			if (conn) {
@@ -866,7 +877,7 @@ static void test_messages(void)
 		/* Check detected payload type */
 		if (conn && t->ptype != PTYPE_IGNORE) {
 			OSMO_ASSERT(last_endpoint != -1);
-			endp = &cfg->virt_trunk->endpoints[last_endpoint];
+			endp = cfg->virt_trunk->endpoints[last_endpoint];
 
 			fprintf(stderr, "endpoint 0x%x: "
 				"payload type %d (expected %d)\n",
@@ -898,12 +909,12 @@ static void test_retransmission(void)
 	cfg = mgcp_config_alloc();
 
 	cfg->virt_trunk->vty_number_endpoints = 64;
-	mgcp_endpoints_allocate(cfg->virt_trunk);
+        mgcp_trunk_alloc_endpts(cfg->virt_trunk);
 
 	memset(last_conn_id, 0, sizeof(last_conn_id));
 
 	trunk2 = mgcp_trunk_alloc(cfg, MGCP_TRUNK_E1, 1);
-	mgcp_endpoints_allocate(trunk2);
+        mgcp_trunk_alloc_endpts(trunk2);
 
 	for (i = 0; i < ARRAY_SIZE(retransmit); i++) {
 		const struct mgcp_test *t = &retransmit[i];
@@ -966,10 +977,10 @@ static void test_rqnt_cb(void)
 	cfg->rqnt_cb = rqnt_cb;
 
 	cfg->virt_trunk->vty_number_endpoints = 64;
-	mgcp_endpoints_allocate(cfg->virt_trunk);
+        mgcp_trunk_alloc_endpts(cfg->virt_trunk);
 
 	trunk2 = mgcp_trunk_alloc(cfg, MGCP_TRUNK_E1, 1);
-	mgcp_endpoints_allocate(trunk2);
+        mgcp_trunk_alloc_endpts(trunk2);
 
 	inp = create_msg(CRCX, NULL);
 	msg = mgcp_handle_message(cfg, inp);
@@ -1035,6 +1046,7 @@ static void test_packet_loss_calc(void)
 {
 	int i;
 	struct mgcp_endpoint endp;
+	struct mgcp_endpoint *endpoints[1];
 	struct mgcp_config cfg = {0};
 	struct mgcp_trunk trunk;
 
@@ -1046,7 +1058,8 @@ static void test_packet_loss_calc(void)
 	endp.cfg = &cfg;
 	endp.type = &ep_typeset.rtp;
 	trunk.vty_number_endpoints = 1;
-	trunk.endpoints = &endp;
+	trunk.endpoints = endpoints;
+	trunk.endpoints[0] = &endp;
 	endp.trunk = &trunk;
 	INIT_LLIST_HEAD(&endp.conns);
 
@@ -1264,6 +1277,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 
 	struct mgcp_trunk trunk;
 	struct mgcp_endpoint endp;
+	struct mgcp_endpoint *endpoints[1];
 	struct mgcp_config cfg = {0};
 	struct mgcp_rtp_state state;
 	struct mgcp_rtp_end *rtp;
@@ -1296,7 +1310,8 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	endp.type = &ep_typeset.rtp;
 
 	trunk.vty_number_endpoints = 1;
-	trunk.endpoints = &endp;
+	trunk.endpoints = endpoints;
+	trunk.endpoints[0] = &endp;
 	trunk.force_constant_ssrc = patch_ssrc;
 	trunk.force_aligned_timing = patch_ts;
 
@@ -1372,11 +1387,11 @@ static void test_multilple_codec(void)
 
 	cfg = mgcp_config_alloc();
 	cfg->virt_trunk->vty_number_endpoints = 64;
-	mgcp_endpoints_allocate(cfg->virt_trunk);
+        mgcp_trunk_alloc_endpts(cfg->virt_trunk);
 	cfg->policy_cb = mgcp_test_policy_cb;
 
 	trunk2 = mgcp_trunk_alloc(cfg, MGCP_TRUNK_E1, 1);
-	mgcp_endpoints_allocate(trunk2);
+        mgcp_trunk_alloc_endpts(trunk2);
 
 	/* Allocate endpoint 1@mgw with two codecs */
 	last_endpoint = -1;
@@ -1388,7 +1403,7 @@ static void test_multilple_codec(void)
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 1);
-	endp = &cfg->virt_trunk->endpoints[last_endpoint];
+	endp = cfg->virt_trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 18);
@@ -1403,7 +1418,7 @@ static void test_multilple_codec(void)
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 2);
-	endp = &cfg->virt_trunk->endpoints[last_endpoint];
+	endp = cfg->virt_trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 18);
@@ -1423,7 +1438,7 @@ static void test_multilple_codec(void)
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 3);
-	endp = &cfg->virt_trunk->endpoints[last_endpoint];
+	endp = cfg->virt_trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
@@ -1438,7 +1453,7 @@ static void test_multilple_codec(void)
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 4);
-	endp = &cfg->virt_trunk->endpoints[last_endpoint];
+	endp = cfg->virt_trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 18);
@@ -1456,7 +1471,7 @@ static void test_multilple_codec(void)
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 5);
-	endp = &cfg->virt_trunk->endpoints[last_endpoint];
+	endp = cfg->virt_trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 3);
@@ -1467,7 +1482,7 @@ static void test_multilple_codec(void)
 	msgb_free(inp);
 	msgb_free(resp);
 	OSMO_ASSERT(last_endpoint == 5);
-	endp = &cfg->virt_trunk->endpoints[last_endpoint];
+	endp = cfg->virt_trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 3);
@@ -1497,7 +1512,7 @@ static void test_multilple_codec(void)
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 5);
-	endp = &cfg->virt_trunk->endpoints[last_endpoint];
+	endp = cfg->virt_trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
@@ -1518,9 +1533,9 @@ static void test_no_cycle(void)
 
 	cfg = mgcp_config_alloc();
 	cfg->virt_trunk->vty_number_endpoints = 64;
-	mgcp_endpoints_allocate(cfg->virt_trunk);
+        mgcp_trunk_alloc_endpts(cfg->virt_trunk);
 
-	endp = &cfg->virt_trunk->endpoints[1];
+	endp = cfg->virt_trunk->endpoints[1];
 
 	_conn = mgcp_conn_alloc(NULL, endp, MGCP_CONN_TYPE_RTP,
 				"test-connection");
@@ -1567,12 +1582,12 @@ static void test_no_name(void)
 
 	cfg->virt_trunk->vty_number_endpoints = 64;
 	cfg->virt_trunk->audio_send_name = 0;
-	mgcp_endpoints_allocate(cfg->virt_trunk);
+        mgcp_trunk_alloc_endpts(cfg->virt_trunk);
 
 	cfg->policy_cb = mgcp_test_policy_cb;
 
 	trunk2 = mgcp_trunk_alloc(cfg, MGCP_TRUNK_E1, 1);
-	mgcp_endpoints_allocate(trunk2);
+        mgcp_trunk_alloc_endpts(trunk2);
 
 	inp = create_msg(CRCX, NULL);
 	msg = mgcp_handle_message(cfg, inp);

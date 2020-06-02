@@ -32,7 +32,6 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/select.h>
-#include <osmocom/core/stats.h>
 
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_common.h>
@@ -40,6 +39,7 @@
 #include <osmocom/mgcp/mgcp_stat.h>
 #include <osmocom/mgcp/mgcp_msg.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_trunk.h>
 #include <osmocom/mgcp/mgcp_sdp.h>
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/mgcp/mgcp_conn.h>
@@ -53,101 +53,6 @@ struct mgcp_request {
 #define MGCP_REQUEST(NAME, REQ, DEBUG_NAME) \
 	{ .name = NAME, .handle_request = REQ, .debug_name = DEBUG_NAME },
 
-static const struct rate_ctr_desc mgcp_general_ctr_desc[] = {
-	/* rx_msgs = rx_msgs_retransmitted + rx_msgs_handled + rx_msgs_unhandled + err_rx_msg_parse + err_rx_no_endpoint */
-	[MGCP_GENERAL_RX_MSGS_TOTAL] = {"mgcp:rx_msgs", "total number of MGCP messages received."},
-	[MGCP_GENERAL_RX_MSGS_RETRANSMITTED] = {"mgcp:rx_msgs_retransmitted", "number of received retransmissions."},
-	[MGCP_GENERAL_RX_MSGS_HANDLED] = {"mgcp:rx_msgs_handled", "number of handled MGCP messages."},
-	[MGCP_GENERAL_RX_MSGS_UNHANDLED] = {"mgcp:rx_msgs_unhandled", "number of unhandled MGCP messages."},
-	[MGCP_GENERAL_RX_FAIL_MSG_PARSE] = {"mgcp:err_rx_msg_parse", "error parsing MGCP message."},
-	[MGCP_GENERAL_RX_FAIL_NO_ENDPOINT] = {"mgcp:err_rx_no_endpoint", "can't find MGCP endpoint, probably we've used all allocated endpoints."},
-};
-
-const static struct rate_ctr_group_desc mgcp_general_ctr_group_desc = {
-	.group_name_prefix = "mgcp",
-	.group_description = "mgcp general statistics",
-	.class_id = OSMO_STATS_CLASS_GLOBAL,
-	.num_ctr = ARRAY_SIZE(mgcp_general_ctr_desc),
-	.ctr_desc = mgcp_general_ctr_desc
-};
-
-static const struct rate_ctr_desc mgcp_crcx_ctr_desc[] = {
-	[MGCP_CRCX_SUCCESS] = {"crcx:success", "CRCX command processed successfully."},
-	[MGCP_CRCX_FAIL_BAD_ACTION] = {"crcx:bad_action", "bad action in CRCX command."},
-	[MGCP_CRCX_FAIL_UNHANDLED_PARAM] = {"crcx:unhandled_param", "unhandled parameter in CRCX command."},
-	[MGCP_CRCX_FAIL_MISSING_CALLID] = {"crcx:missing_callid", "missing CallId in CRCX command."},
-	[MGCP_CRCX_FAIL_INVALID_MODE] = {"crcx:invalid_mode", "invalid connection mode in CRCX command."},
-	[MGCP_CRCX_FAIL_LIMIT_EXCEEDED] = {"crcx:limit_exceeded", "limit of concurrent connections was reached."},
-	[MGCP_CRCX_FAIL_UNKNOWN_CALLID] = {"crcx:unkown_callid", "unknown CallId in CRCX command."},
-	[MGCP_CRCX_FAIL_ALLOC_CONN] = {"crcx:alloc_conn_fail", "connection allocation failure."},
-	[MGCP_CRCX_FAIL_NO_REMOTE_CONN_DESC] = {"crcx:no_remote_conn_desc", "no opposite end specified for connection."},
-	[MGCP_CRCX_FAIL_START_RTP] = {"crcx:start_rtp_failure", "failure to start RTP processing."},
-	[MGCP_CRCX_FAIL_REJECTED_BY_POLICY] = {"crcx:conn_rejected", "connection rejected by policy."},
-	[MGCP_CRCX_FAIL_NO_OSMUX] = {"crcx:no_osmux", "no osmux offered by peer."},
-	[MGCP_CRCX_FAIL_INVALID_CONN_OPTIONS] = {"crcx:conn_opt", "connection options invalid."},
-	[MGCP_CRCX_FAIL_CODEC_NEGOTIATION] = {"crcx:codec_nego", "codec negotiation failure."},
-	[MGCP_CRCX_FAIL_BIND_PORT] = {"crcx:bind_port", "port bind failure."},
-};
-
-const static struct rate_ctr_group_desc mgcp_crcx_ctr_group_desc = {
-	.group_name_prefix = "crcx",
-	.group_description = "crxc statistics",
-	.class_id = OSMO_STATS_CLASS_GLOBAL,
-	.num_ctr = ARRAY_SIZE(mgcp_crcx_ctr_desc),
-	.ctr_desc = mgcp_crcx_ctr_desc
-};
-
-static const struct rate_ctr_desc mgcp_mdcx_ctr_desc[] = {
-	[MGCP_MDCX_SUCCESS] = {"mdcx:success", "MDCX command processed successfully."},
-	[MGCP_MDCX_FAIL_WILDCARD] = {"mdcx:wildcard", "wildcard endpoint names in MDCX commands are unsupported."},
-	[MGCP_MDCX_FAIL_NO_CONN] = {"mdcx:no_conn", "endpoint specified in MDCX command has no active connections."},
-	[MGCP_MDCX_FAIL_INVALID_CALLID] = {"mdcx:callid", "invalid CallId specified in MDCX command."},
-	[MGCP_MDCX_FAIL_INVALID_CONNID] = {"mdcx:connid", "invalid connection ID specified in MDCX command."},
-	[MGCP_MDCX_FAIL_UNHANDLED_PARAM] = {"crcx:unhandled_param", "unhandled parameter in MDCX command."},
-	[MGCP_MDCX_FAIL_NO_CONNID] = {"mdcx:no_connid", "no connection ID specified in MDCX command."},
-	[MGCP_MDCX_FAIL_CONN_NOT_FOUND] = {"mdcx:conn_not_found", "connection specified in MDCX command does not exist."},
-	[MGCP_MDCX_FAIL_INVALID_MODE] = {"mdcx:invalid_mode", "invalid connection mode in MDCX command."},
-	[MGCP_MDCX_FAIL_INVALID_CONN_OPTIONS] = {"mdcx:conn_opt", "connection options invalid."},
-	[MGCP_MDCX_FAIL_NO_REMOTE_CONN_DESC] = {"mdcx:no_remote_conn_desc", "no opposite end specified for connection."},
-	[MGCP_MDCX_FAIL_START_RTP] = {"mdcx:start_rtp_failure", "failure to start RTP processing."},
-	[MGCP_MDCX_FAIL_REJECTED_BY_POLICY] = {"mdcx:conn_rejected", "connection rejected by policy."},
-	[MGCP_MDCX_DEFERRED_BY_POLICY] = {"mdcx:conn_deferred", "connection deferred by policy."},
-};
-
-const static struct rate_ctr_group_desc mgcp_mdcx_ctr_group_desc = {
-	.group_name_prefix = "mdcx",
-	.group_description = "mdcx statistics",
-	.class_id = OSMO_STATS_CLASS_GLOBAL,
-	.num_ctr = ARRAY_SIZE(mgcp_mdcx_ctr_desc),
-	.ctr_desc = mgcp_mdcx_ctr_desc
-};
-
-static const struct rate_ctr_desc mgcp_dlcx_ctr_desc[] = {
-	[MGCP_DLCX_SUCCESS] = {"dlcx:success", "DLCX command processed successfully."},
-	[MGCP_DLCX_FAIL_WILDCARD] = {"dlcx:wildcard", "wildcard names in DLCX commands are unsupported."},
-	[MGCP_DLCX_FAIL_NO_CONN] = {"dlcx:no_conn", "endpoint specified in DLCX command has no active connections."},
-	[MGCP_DLCX_FAIL_INVALID_CALLID] = {"dlcx:callid", "CallId specified in DLCX command mismatches endpoint's CallId ."},
-	[MGCP_DLCX_FAIL_INVALID_CONNID] = {"dlcx:connid", "connection ID specified in DLCX command does not exist on endpoint."},
-	[MGCP_DLCX_FAIL_UNHANDLED_PARAM] = {"dlcx:unhandled_param", "unhandled parameter in DLCX command."},
-	[MGCP_DLCX_FAIL_REJECTED_BY_POLICY] = {"dlcx:rejected", "connection deletion rejected by policy."},
-	[MGCP_DLCX_DEFERRED_BY_POLICY] = {"dlcx:deferred", "connection deletion deferred by policy."},
-};
-
-const static struct rate_ctr_group_desc mgcp_dlcx_ctr_group_desc = {
-	.group_name_prefix = "dlcx",
-	.group_description = "dlcx statistics",
-	.class_id = OSMO_STATS_CLASS_GLOBAL,
-	.num_ctr = ARRAY_SIZE(mgcp_dlcx_ctr_desc),
-	.ctr_desc = mgcp_dlcx_ctr_desc
-};
-
-const static struct rate_ctr_group_desc all_rtp_conn_rate_ctr_group_desc = {
-	.group_name_prefix = "all_rtp_conn",
-	.group_description = "aggregated statistics for all rtp connections",
-	.class_id = 1,
-	.num_ctr = ARRAY_SIZE(all_rtp_conn_rate_ctr_desc),
-	.ctr_desc = all_rtp_conn_rate_ctr_desc
-};
 
 static struct msgb *handle_audit_endpoint(struct mgcp_parse_data *data);
 static struct msgb *handle_create_con(struct mgcp_parse_data *data);
@@ -297,9 +202,7 @@ static int add_params(struct msgb *msg, const struct mgcp_endpoint *endp,
 	/* NOTE: Only in the virtual trunk we allow dynamic endpoint names */
 	if (endp->wildcarded_req
 	    && endp->trunk->trunk_type == MGCP_TRUNK_VIRTUAL) {
-		rc = msgb_printf(msg, "Z: %s%x@%s\r\n",
-				 MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK,
-				 ENDPOINT_NUMBER(endp), endp->cfg->domain);
+		rc = msgb_printf(msg, "Z: %s\r\n", endp->name);
 		if (rc < 0)
 			return -EINVAL;
 	}
@@ -379,8 +282,7 @@ static void send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
  *   - or a response (three numbers, space, transaction id) */
 struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 {
-	struct mgcp_trunk *trunk = cfg->virt_trunk;
-	struct rate_ctr_group *rate_ctrs = trunk->mgcp_general_ctr_group;
+	struct rate_ctr_group *rate_ctrs = cfg->ratectr.mgcp_general_ctr_group;
 	struct mgcp_parse_data pdata;
 	int rc, i, code, handled = 0;
 	struct msgb *resp = NULL;
@@ -832,7 +734,7 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 {
 	struct mgcp_trunk *trunk = p->endp->trunk;
 	struct mgcp_endpoint *endp = p->endp;
-	struct rate_ctr_group *rate_ctrs = trunk->mgcp_crcx_ctr_group;
+	struct rate_ctr_group *rate_ctrs = trunk->ratectr.mgcp_crcx_ctr_group;
 	int error_code = 400;
 	const char *local_options = NULL;
 	const char *callid = NULL;
@@ -1043,8 +945,7 @@ mgcp_header_done:
 	/* policy CB */
 	if (p->cfg->policy_cb) {
 		int rc;
-		rc = p->cfg->policy_cb(trunk, ENDPOINT_NUMBER(endp),
-				       MGCP_ENDP_CRCX, p->trans);
+		rc = p->cfg->policy_cb(endp, MGCP_ENDP_CRCX, p->trans);
 		switch (rc) {
 		case MGCP_POLICY_REJECT:
 			LOGPCONN(_conn, DLMGCP, LOGL_NOTICE,
@@ -1066,7 +967,7 @@ mgcp_header_done:
 	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
 		 "CRCX: Creating connection: port: %u\n", conn->end.local_port);
 	if (p->cfg->change_cb)
-		p->cfg->change_cb(trunk, ENDPOINT_NUMBER(endp), MGCP_ENDP_CRCX);
+		p->cfg->change_cb(endp, MGCP_ENDP_CRCX);
 
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
 	OSMO_ASSERT(trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
@@ -1088,9 +989,8 @@ error2:
 /* MDCX command handler, processes the received command */
 static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 {
-	struct mgcp_trunk *trunk = p->endp->trunk;
 	struct mgcp_endpoint *endp = p->endp;
-	struct rate_ctr_group *rate_ctrs = trunk->mgcp_mdcx_ctr_group;
+	struct rate_ctr_group *rate_ctrs = endp->trunk->ratectr.mgcp_mdcx_ctr_group;
 	int error_code = 500;
 	int silent = 0;
 	int have_sdp = 0;
@@ -1257,8 +1157,7 @@ mgcp_header_done:
 	/* policy CB */
 	if (p->cfg->policy_cb) {
 		int rc;
-		rc = p->cfg->policy_cb(endp->trunk, ENDPOINT_NUMBER(endp),
-				       MGCP_ENDP_MDCX, p->trans);
+		rc = p->cfg->policy_cb(endp, MGCP_ENDP_MDCX, p->trans);
 		switch (rc) {
 		case MGCP_POLICY_REJECT:
 			LOGPCONN(conn->conn, DLMGCP, LOGL_NOTICE,
@@ -1287,8 +1186,7 @@ mgcp_header_done:
 	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
 		 "MDCX: modified conn:%s\n", mgcp_conn_dump(conn->conn));
 	if (p->cfg->change_cb)
-		p->cfg->change_cb(endp->trunk, ENDPOINT_NUMBER(endp),
-				  MGCP_ENDP_MDCX);
+		p->cfg->change_cb(endp, MGCP_ENDP_MDCX);
 
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
 	OSMO_ASSERT(endp->trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
@@ -1314,9 +1212,8 @@ out_silent:
 /* DLCX command handler, processes the received command */
 static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 {
-	struct mgcp_trunk *trunk = p->endp->trunk;
 	struct mgcp_endpoint *endp = p->endp;
-	struct rate_ctr_group *rate_ctrs = trunk->mgcp_dlcx_ctr_group;
+	struct rate_ctr_group *rate_ctrs = endp->trunk->ratectr.mgcp_dlcx_ctr_group;
 	int error_code = 400;
 	int silent = 0;
 	char *line;
@@ -1377,8 +1274,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 	/* policy CB */
 	if (p->cfg->policy_cb) {
 		int rc;
-		rc = p->cfg->policy_cb(endp->trunk, ENDPOINT_NUMBER(endp),
-				       MGCP_ENDP_DLCX, p->trans);
+		rc = p->cfg->policy_cb(endp, MGCP_ENDP_DLCX, p->trans);
 		switch (rc) {
 		case MGCP_POLICY_REJECT:
 			LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "DLCX: rejected by policy\n");
@@ -1442,8 +1338,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 	}
 
 	if (p->cfg->change_cb)
-		p->cfg->change_cb(endp->trunk, ENDPOINT_NUMBER(endp),
-				  MGCP_ENDP_DLCX);
+		p->cfg->change_cb(endp, MGCP_ENDP_DLCX);
 
 	rate_ctr_inc(&rate_ctrs->ctr[MGCP_DLCX_SUCCESS]);
 	if (silent)
@@ -1548,7 +1443,7 @@ static void mgcp_keepalive_timer_cb(void *_trunk)
 	/* Send walk over all endpoints and send out dummy packets through
 	 * every connection present on each endpoint */
 	for (i = 1; i < trunk->number_endpoints; ++i) {
-		struct mgcp_endpoint *endp = &trunk->endpoints[i];
+		struct mgcp_endpoint *endp = trunk->endpoints[i];
 		llist_for_each_entry(conn, &endp->conns, entry) {
 			if (conn->mode == MGCP_CONN_RECV_ONLY)
 				send_dummy(endp, &conn->u.rtp);
@@ -1574,66 +1469,12 @@ void mgcp_trunk_set_keepalive(struct mgcp_trunk *trunk, int interval)
 				    trunk->keepalive_interval, 0);
 }
 
-static int free_rate_counter_group(struct rate_ctr_group *rate_ctr_group)
-{
-	rate_ctr_group_free(rate_ctr_group);
-	return 0;
-}
-
-static int alloc_mgcp_rate_counters(struct mgcp_trunk *trunk, void *ctx)
-{
-	/* FIXME: Each new rate counter group requires a unique index. At the
-	 * moment we generate an index using a counter, but perhaps there is
-	 * a better way of assigning indices? */
-	static unsigned int general_rate_ctr_index = 0;
-	static unsigned int crcx_rate_ctr_index = 0;
-	static unsigned int mdcx_rate_ctr_index = 0;
-	static unsigned int dlcx_rate_ctr_index = 0;
-	static unsigned int all_rtp_conn_rate_ctr_index = 0;
-
-	if (trunk->mgcp_general_ctr_group == NULL) {
-		trunk->mgcp_general_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_general_ctr_group_desc, general_rate_ctr_index);
-		if (!trunk->mgcp_general_ctr_group)
-			return -1;
-		talloc_set_destructor(trunk->mgcp_general_ctr_group, free_rate_counter_group);
-		general_rate_ctr_index++;
-	}
-	if (trunk->mgcp_crcx_ctr_group == NULL) {
-		trunk->mgcp_crcx_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_crcx_ctr_group_desc, crcx_rate_ctr_index);
-		if (!trunk->mgcp_crcx_ctr_group)
-			return -1;
-		talloc_set_destructor(trunk->mgcp_crcx_ctr_group, free_rate_counter_group);
-		crcx_rate_ctr_index++;
-	}
-	if (trunk->mgcp_mdcx_ctr_group == NULL) {
-		trunk->mgcp_mdcx_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_mdcx_ctr_group_desc, mdcx_rate_ctr_index);
-		if (!trunk->mgcp_mdcx_ctr_group)
-			return -1;
-		talloc_set_destructor(trunk->mgcp_mdcx_ctr_group, free_rate_counter_group);
-		mdcx_rate_ctr_index++;
-	}
-	if (trunk->mgcp_dlcx_ctr_group == NULL) {
-		trunk->mgcp_dlcx_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_dlcx_ctr_group_desc, dlcx_rate_ctr_index);
-		if (!trunk->mgcp_dlcx_ctr_group)
-			return -1;
-		talloc_set_destructor(trunk->mgcp_dlcx_ctr_group, free_rate_counter_group);
-		dlcx_rate_ctr_index++;
-	}
-	if (trunk->all_rtp_conn_stats == NULL) {
-		trunk->all_rtp_conn_stats = rate_ctr_group_alloc(ctx, &all_rtp_conn_rate_ctr_group_desc,
-								 all_rtp_conn_rate_ctr_index);
-		if (!trunk->all_rtp_conn_stats)
-			return -1;
-		talloc_set_destructor(trunk->all_rtp_conn_stats, free_rate_counter_group);
-		all_rtp_conn_rate_ctr_index++;
-	}
-	return 0;
-}
-
 /*! allocate configuration with default values.
  *  (called once at startup by main function) */
 struct mgcp_config *mgcp_config_alloc(void)
 {
+	/* FIXME: This is unrelated to the protocol, put this in some
+	 * appropiate place! */
 	struct mgcp_config *cfg;
 
 	cfg = talloc_zero(NULL, struct mgcp_config);
@@ -1657,107 +1498,19 @@ struct mgcp_config *mgcp_config_alloc(void)
 
 	cfg->get_net_downlink_format_cb = &mgcp_get_net_downlink_format_default;
 
-	INIT_LLIST_HEAD(&cfg->trunks);
-
-	/* default trunk handling */
+	/* Allocate virtual trunk */
 	cfg->virt_trunk = mgcp_trunk_alloc(cfg, MGCP_TRUNK_VIRTUAL, 0);
 	if (!cfg->virt_trunk) {
 		talloc_free(cfg);
 		return NULL;
 	}
-	/* virtual trunk is not part of the list! */
-	llist_del(&cfg->virt_trunk->entry);
+
+	/* Initalize list head for user configurable trunks */
+	INIT_LLIST_HEAD(&cfg->trunks);
+
+        mgcp_ratectr_global_alloc(cfg, &cfg->ratectr);
 
 	return cfg;
-}
-
-/*! allocate configuration with default values. Do not link it into global list yet!
- *  (called once at startup by VTY)
- *  \param[in] cfg mgcp configuration
- *  \param[in] nr trunk number
- *  \returns pointer to allocated trunk configuration */
-struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr)
-{
-	struct mgcp_trunk *trunk;
-
-	trunk = talloc_zero(cfg, struct mgcp_trunk);
-	if (!trunk) {
-		LOGP(DLMGCP, LOGL_ERROR, "Failed to allocate.\n");
-		return NULL;
-	}
-
-	trunk->cfg = cfg;
-	trunk->trunk_type = ttype;
-	trunk->trunk_nr = nr;
-	trunk->audio_name = talloc_strdup(trunk, "AMR/8000");
-	trunk->audio_payload = 126;
-	trunk->audio_send_ptime = 1;
-	trunk->audio_send_name = 1;
-	trunk->vty_number_endpoints = 33;
-	trunk->omit_rtcp = 0;
-	mgcp_trunk_set_keepalive(trunk, MGCP_KEEPALIVE_ONCE);
-	if (alloc_mgcp_rate_counters(trunk, trunk) < 0) {
-		talloc_free(trunk);
-		return NULL;
-	}
-	llist_add_tail(&trunk->entry, &cfg->trunks);
-
-	return trunk;
-}
-
-/*! get trunk configuration by trunk number (index).
- *  \param[in] cfg mgcp configuration
- *  \param[in] index trunk number
- *  \returns pointer to trunk configuration, NULL on error */
-struct mgcp_trunk *mgcp_trunk_num(struct mgcp_config *cfg, int index)
-{
-	struct mgcp_trunk *trunk;
-
-	llist_for_each_entry(trunk, &cfg->trunks, entry)
-	    if (trunk->trunk_nr == index)
-		return trunk;
-
-	return NULL;
-}
-
-/*! allocate endpoints and set default values.
- *  (called once at startup by VTY)
- *  \param[in] trunk trunk configuration
- *  \returns 0 on success, -1 on failure */
-int mgcp_endpoints_allocate(struct mgcp_trunk *trunk)
-{
-	int i;
-
-	trunk->endpoints = _talloc_zero_array(trunk->cfg,
-					     sizeof(struct mgcp_endpoint),
-					     trunk->vty_number_endpoints,
-					     "endpoints");
-	if (!trunk->endpoints)
-		return -1;
-
-	for (i = 0; i < trunk->vty_number_endpoints; ++i) {
-		INIT_LLIST_HEAD(&trunk->endpoints[i].conns);
-		trunk->endpoints[i].cfg = trunk->cfg;
-		trunk->endpoints[i].trunk = trunk;
-
-		switch (trunk->trunk_type) {
-		case MGCP_TRUNK_VIRTUAL:
-			trunk->endpoints[i].type = &ep_typeset.rtp;
-			break;
-		case MGCP_TRUNK_E1:
-			/* FIXME: Implement E1 allocation */
-			LOGP(DLMGCP, LOGL_FATAL, "E1 trunks not implemented!\n");
-			break;
-		default:
-			osmo_panic("Cannot allocate unimplemented trunk type %d! %s:%d\n",
-				   trunk->trunk_type, __FILE__, __LINE__);
-		}
-	}
-
-	trunk->number_endpoints = trunk->vty_number_endpoints;
-	alloc_mgcp_rate_counters(trunk, trunk->cfg);
-
-	return 0;
 }
 
 static int send_agent(struct mgcp_config *cfg, const char *buf, int len)
@@ -1790,17 +1543,16 @@ int mgcp_send_reset_all(struct mgcp_config *cfg)
 
 /*! Reset a single endpoint by sending RSIP message to self.
  *  (called by VTY)
- *  \param[in] endp trunk endpoint
- *  \param[in] endpoint number
+ *  \param[in] endp to reset
  *  \returns 0 on success, -1 on error */
-int mgcp_send_reset_ep(struct mgcp_endpoint *endp, int endpoint)
+int mgcp_send_reset_ep(struct mgcp_endpoint *endp)
 {
 	char buf[MGCP_ENDPOINT_MAXLEN + 128];
 	int len;
 	int rc;
 
 	len = snprintf(buf, sizeof(buf),
-		       "RSIP 39 %x@%s MGCP 1.0\r\n", endpoint, endp->cfg->domain);
+		       "RSIP 39 %s MGCP 1.0\r\n", endp->name);
 	if (len < 0)
 		return -1;
 

@@ -19,6 +19,7 @@
  */
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_trunk.h>
 #include <errno.h>
 
 /* Helper function to dump codec information of a specified codec to a printable

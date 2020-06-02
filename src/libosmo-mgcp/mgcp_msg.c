@@ -129,167 +129,6 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 	return ret;
 }
 
-/* We have a null terminated string with the endpoint name here. We only
- * support two kinds. Simple ones as seen on the BSC level and the ones
- * seen on the trunk side. (helper function for find_endpoint()) */
-static struct mgcp_endpoint *find_e1_endpoint(struct mgcp_config *cfg,
-					      const char *mgcp)
-{
-	char *rest = NULL;
-	struct mgcp_trunk *trunk;
-	int trunk_index, endp;
-	struct mgcp_endpoint *endp_ptr;
-
-	trunk_index = strtoul(mgcp + 6, &rest, 10);
-	if (rest == NULL || rest[0] != '/' || trunk_index < 1) {
-		LOGP(DLMGCP, LOGL_ERROR, "Wrong trunk name '%s'\n", mgcp);
-		return NULL;
-	}
-
-	endp = strtoul(rest + 1, &rest, 10);
-	if (rest == NULL || rest[0] != '@') {
-		LOGP(DLMGCP, LOGL_ERROR, "Wrong endpoint name '%s'\n", mgcp);
-		return NULL;
-	}
-
-	/* signalling is on timeslot 1 */
-	if (endp == 1)
-		return NULL;
-
-	trunk = mgcp_trunk_num(cfg, trunk_index);
-	if (!trunk) {
-		LOGP(DLMGCP, LOGL_ERROR, "The trunk %d is not declared.\n",
-		     trunk_index);
-		return NULL;
-	}
-
-	if (!trunk->endpoints) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Endpoints of trunk %d not allocated.\n", trunk_index);
-		return NULL;
-	}
-
-	if (endp < 1 || endp >= trunk->number_endpoints) {
-		LOGP(DLMGCP, LOGL_ERROR, "Failed to find endpoint '%s'\n",
-		     mgcp);
-		return NULL;
-	}
-
-	endp_ptr = &trunk->endpoints[endp];
-	endp_ptr->wildcarded_req = false;
-	return endp_ptr;
-}
-
-/* Find an endpoint that is not in use. Do this by going through the endpoint
- * array, check the callid. A callid nullpointer indicates that the endpoint
- * is free */
-static struct mgcp_endpoint *find_free_endpoint(struct mgcp_endpoint *endpoints,
-						unsigned int number_endpoints)
-{
-	struct mgcp_endpoint *endp;
-	unsigned int i;
-
-	for (i = 0; i < number_endpoints; i++) {
-		if (endpoints[i].callid == NULL) {
-			endp = &endpoints[i];
-			LOGPENDP(endp, DLMGCP, LOGL_DEBUG,
-			     "found free endpoint\n");
-			endp->wildcarded_req = true;
-			return endp;
-		}
-	}
-
-	LOGP(DLMGCP, LOGL_ERROR, "Not able to find a free endpoint\n");
-	return NULL;
-}
-
-/* Check if the domain name, which is supplied with the endpoint name
- * matches the configuration. */
-static int check_domain_name(struct mgcp_config *cfg, const char *mgcp)
-{
-	char *domain_to_check;
-
-	domain_to_check = strstr(mgcp, "@");
-	if (!domain_to_check)
-		return -EINVAL;
-
-	/* Accept any domain if configured as "*" */
-	if (!strcmp(cfg->domain, "*"))
-		return 0;
-
-	if (strcmp(domain_to_check+1, cfg->domain) != 0) {
-		LOGP(DLMGCP, LOGL_ERROR, "Wrong domain name '%s', expecting '%s'\n", mgcp, cfg->domain);
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
-/* Search the endpoint pool for the endpoint that had been selected via the
- * MGCP message (helper function for mgcp_analyze_header()) */
-static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
-					   const char *mgcp,
-					   int *cause)
-{
-	char *endptr = NULL;
-	unsigned int gw = INT_MAX;
-	const char *endpoint_number_str;
-	struct mgcp_endpoint *endp;
-	struct mgcp_trunk *virt_trunk = cfg->virt_trunk;
-
-	*cause = 0;
-
-	/* Check if the domainname in the request is correct */
-	if (check_domain_name(cfg, mgcp)) {
-		*cause = -500;
-		return NULL;
-	}
-
-	/* Check if the E1 trunk is requested */
-	if (strncmp(mgcp, "ds/e1", 5) == 0) {
-		endp = find_e1_endpoint(cfg, mgcp);
-		if (!endp)
-			*cause = -500;
-		return endp;
-	}
-
-	/* Check if the virtual trunk is addressed (new, correct way with prefix) */
-	if (strncmp
-	    (mgcp, MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK,
-	     strlen(MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK)) == 0) {
-		endpoint_number_str =
-		    mgcp + strlen(MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK);
-		if (endpoint_number_str[0] == '*') {
-			endp = find_free_endpoint(virt_trunk->endpoints,
-						  virt_trunk->number_endpoints);
-			if (!endp)
-				*cause = -403;
-			return endp;
-		}
-		gw = strtoul(endpoint_number_str, &endptr, 16);
-		if (gw < virt_trunk->number_endpoints && endptr[0] == '@') {
-			endp = &virt_trunk->endpoints[gw];
-			endp->wildcarded_req = false;
-			return endp;
-		}
-	}
-
-	/* Deprecated method without prefix */
-	LOGP(DLMGCP, LOGL_NOTICE,
-	     "Addressing virtual trunk without prefix (deprecated), please use %s: '%s'\n",
-	     MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK, mgcp);
-	gw = strtoul(mgcp, &endptr, 16);
-	if (gw < virt_trunk->number_endpoints && endptr[0] == '@') {
-		endp = &virt_trunk->endpoints[gw];
-		endp->wildcarded_req = false;
-		return endp;
-	}
-
-	LOGP(DLMGCP, LOGL_ERROR, "Not able to find the endpoint: '%s'\n", mgcp);
-	*cause = -500;
-	return NULL;
-}
-
 /*! Analyze and parse the the hader of an MGCP messeage string.
  *  \param[out] pdata caller provided memory to store the parsing results
  *  \param[in] data mgcp message string
@@ -317,7 +156,7 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 			pdata->trans = elem;
 			break;
 		case 1:
-			pdata->endp = find_endpoint(pdata->cfg, elem, &cause);
+			pdata->endp = mgcp_endp_by_name(&cause, elem, pdata->cfg);
 			if (!pdata->endp) {
 				LOGP(DLMGCP, LOGL_ERROR,
 				     "Unable to find Endpoint `%s'\n", elem);
@@ -391,8 +230,8 @@ int mgcp_check_param(const struct mgcp_endpoint *endp, const char *line)
 	const size_t line_len = strlen(line);
 	if (line[0] != '\0' && line_len < 2) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "Wrong MGCP option format: '%s' on 0x%x\n",
-		     line, ENDPOINT_NUMBER(endp));
+		     "Wrong MGCP option format: '%s' on %s\n",
+		     line, endp->name);
 		return 0;
 	}
 

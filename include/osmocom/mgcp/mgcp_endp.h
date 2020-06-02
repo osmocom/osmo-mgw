@@ -28,8 +28,8 @@ struct mgcp_conn;
 struct mgcp_endpoint;
 
 #define LOGPENDP(endp, cat, level, fmt, args...) \
-LOGP(cat, level, "endpoint:0x%x " fmt, \
-     endp ? ENDPOINT_NUMBER(endp) : -1, \
+LOGP(cat, level, "endpoint:%s " fmt, \
+     endp ? endp->name : "none", \
      ## args)
 
 /* Callback type for RTP dispatcher functions
@@ -68,6 +68,9 @@ extern const struct mgcp_endpoint_typeset ep_typeset;
 /*! MGCP endpoint model */
 struct mgcp_endpoint {
 
+	/*! Unique endpoint name, used for addressing via MGCP */
+	char *name;
+
 	/*! Call identifier string (as supplied by the call agant) */
 	char *callid;
 
@@ -80,7 +83,7 @@ struct mgcp_endpoint {
 	/*! Backpointer to the MGW configuration */
 	struct mgcp_config *cfg;
 
-	/*! Backpointer to the Trunk specific configuration */
+	/*! Backpointer to the trunk this endpoint belongs to */
 	struct mgcp_trunk *trunk;
 
 	/*! Endpoint properties (see above) */
@@ -100,7 +103,9 @@ struct mgcp_endpoint {
 	uint32_t x_osmo_ign;
 };
 
-/*! Extract endpoint number for a given endpoint */
-#define ENDPOINT_NUMBER(endp) abs((int)(endp - endp->trunk->endpoints))
-
+struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk, char *name);
 void mgcp_endp_release(struct mgcp_endpoint *endp);
+struct mgcp_endpoint *mgcp_endp_by_name_trunk(int *cause, const char *epname,
+					      const struct mgcp_trunk *trunk);
+struct mgcp_endpoint *mgcp_endp_by_name(int *cause, const char *epname,
+					struct mgcp_config *cfg);

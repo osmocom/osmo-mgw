@@ -27,6 +27,7 @@
 #include <osmocom/mgcp/osmux.h>
 #include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_trunk.h>
 
 static struct osmo_fd osmux_fd;
 
@@ -204,7 +205,7 @@ osmux_conn_lookup(struct mgcp_config *cfg, uint8_t cid,
 
 	for (i=0; i<cfg->virt_trunk->number_endpoints; i++) {
 
-		endp = &cfg->virt_trunk->endpoints[i];
+		endp = cfg->virt_trunk->endpoints[i];
 
 		llist_for_each_entry(conn, &endp->conns, entry) {
 			if (conn->type != MGCP_CONN_TYPE_RTP)

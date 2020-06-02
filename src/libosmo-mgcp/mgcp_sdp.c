@@ -25,6 +25,7 @@
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/mgcp_msg.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_trunk.h>
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/mgcp/mgcp_sdp.h>
 
@@ -358,10 +359,11 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 			break;
 		default:
 			if (p->endp)
+				/* TODO: Check spec: We used the bare endpoint number before,
+				 * now we use the endpoint name as a whole? Is this allowed? */
 				LOGP(DLMGCP, LOGL_NOTICE,
-				     "Unhandled SDP option: '%c'/%d on 0x%x\n",
-				     line[0], line[0],
-				     ENDPOINT_NUMBER(p->endp));
+				     "Unhandled SDP option: '%c'/%d on %s\n",
+				     line[0], line[0], endp->name);
 			else
 				LOGP(DLMGCP, LOGL_NOTICE,
 				     "Unhandled SDP option: '%c'/%d\n",
@@ -381,7 +383,7 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 		codec_param = param_by_pt(codecs[i].payload_type, fmtp_params, fmtp_used);
 		rc = mgcp_codec_add(conn, codecs[i].payload_type, codecs[i].map_line, codec_param);
 		if (rc < 0)
-			LOGP(DLMGCP, LOGL_NOTICE, "endpoint:0x%x, failed to add codec\n", ENDPOINT_NUMBER(p->endp));
+			LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "failed to add codec\n");
 	}
 
 	talloc_free(tmp_ctx);

@@ -40,5 +40,7 @@ libosmo_mgcp_a_SOURCES = \
 	mgcp_conn.c \
 	mgcp_stat.c \
 	mgcp_endp.c \
+	mgcp_trunk.c \
 	mgcp_ctrl.c \
+	mgcp_ratectr.c \
 	$(NULL)

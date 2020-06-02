@@ -38,6 +38,7 @@
 #include <osmocom/mgcp/vty.h>
 #include <osmocom/mgcp/debug.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_trunk.h>
 #include <osmocom/mgcp/mgcp_ctrl.h>
 
 #include <osmocom/core/application.h>
@@ -203,7 +204,7 @@ static int read_call_agent(struct osmo_fd *fd, unsigned int what)
 		/* Walk over all endpoints and trigger a release, this will release all
 		 * endpoints, possible open connections are forcefully dropped */
 		for (i = 1; i < reset_trunk->number_endpoints; ++i)
-			mgcp_endp_release(&reset_trunk->endpoints[i]);
+			mgcp_endp_release(reset_trunk->endpoints[i]);
 	}
 
 	return 0;

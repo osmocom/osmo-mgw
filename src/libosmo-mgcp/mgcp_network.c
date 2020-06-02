@@ -42,6 +42,7 @@
 #include <osmocom/mgcp/osmux.h>
 #include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_trunk.h>
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/mgcp/debug.h>
 #include <osmocom/codec/codec.h>
@@ -61,11 +62,11 @@ static void rtpconn_rate_ctr_add(struct mgcp_conn_rtp *conn_rtp, struct mgcp_end
 				 int id, int inc)
 {
 	struct rate_ctr_group *conn_stats = conn_rtp->rate_ctr_group;
-	struct rate_ctr_group *trunk_stats = endp->trunk->all_rtp_conn_stats;
+	struct rate_ctr_group *mgw_stats = endp->trunk->ratectr.all_rtp_conn_stats;
 
-	/* add to both the per-connection and the per-trunk global stats */
+	/* add to both the per-connection and the global stats */
 	rate_ctr_add(&conn_stats->ctr[id], inc);
-	rate_ctr_add(&trunk_stats->ctr[id], inc);
+	rate_ctr_add(&mgw_stats->ctr[id], inc);
 }
 
 static void rtpconn_rate_ctr_inc(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *endp, int id)
@@ -648,9 +649,8 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 		return;
 
 #if 0
-	DEBUGP(DRTP,
-	       "endpoint:0x%x payload hdr payload %u -> endp payload %u\n",
-	       ENDPOINT_NUMBER(endp), rtp_hdr->payload_type, payload);
+	LOGPENDP(endp, DRTP, LOGL_DEBUG, "payload hdr payload %u -> endp payload %u\n",
+		 rtp_hdr->payload_type, payload);
 	rtp_hdr->payload_type = payload;
 #endif
 }
@@ -1436,11 +1436,10 @@ int mgcp_create_bind(const char *source_addr, struct osmo_fd *fd, int port)
 
 /* Bind RTP and RTCP port (helper function for mgcp_bind_net_rtp_port()) */
 static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
-		    struct mgcp_rtp_end *rtp_end, int endpno)
+		    struct mgcp_rtp_end *rtp_end, struct mgcp_endpoint *endp)
 {
 	/* NOTE: The port that is used for RTCP is the RTP port incremented by one
 	 * (e.g. RTP-Port = 16000 ==> RTCP-Port = 16001) */
-	 struct mgcp_endpoint *endp = &cfg->virt_trunk->endpoints[endpno];
 
 	if (mgcp_create_bind(source_addr, &rtp_end->rtp,
 			     rtp_end->local_port) != 0) {
@@ -1527,8 +1526,7 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 
 	mgcp_get_local_addr(local_ip_addr, conn);
 
-	return bind_rtp(endp->cfg, local_ip_addr, end,
-			ENDPOINT_NUMBER(endp));
+	return bind_rtp(endp->cfg, local_ip_addr, end, endp);
 }
 
 /*! free allocated RTP and RTCP ports.

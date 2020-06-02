@@ -29,6 +29,7 @@
 #include <osmocom/mgcp/vty.h>
 #include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_trunk.h>
 
 #include <string.h>
 #include <inttypes.h>
@@ -49,7 +50,7 @@ static struct mgcp_trunk *find_trunk(struct mgcp_config *cfg, int nr)
 	if (nr == 0)
 		trunk = cfg->virt_trunk;
 	else
-		trunk = mgcp_trunk_num(cfg, nr);
+		trunk = mgcp_trunk_by_num(cfg, nr);
 
 	return trunk;
 }
@@ -208,15 +209,13 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_conn_rtp *conn)
 		end->force_output_ptime, VTY_NEWLINE);
 }
 
-static void dump_endpoint(struct vty *vty, struct mgcp_endpoint *endp, int epidx,
+static void dump_endpoint(struct vty *vty, struct mgcp_endpoint *endp,
 			  int trunk_nr, enum mgcp_trunk_type trunk_type, int show_stats)
 {
 	struct mgcp_conn *conn;
 
-	vty_out(vty, "%s trunk %d endpoint %s%.2x:%s",
-		trunk_type == MGCP_TRUNK_VIRTUAL ? "Virtual" : "E1", trunk_nr,
-		trunk_type == MGCP_TRUNK_VIRTUAL ? MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK : "",
-		epidx, VTY_NEWLINE);
+	vty_out(vty, "%s trunk %d endpoint %s:%s",
+		trunk_type == MGCP_TRUNK_VIRTUAL ? "Virtual" : "E1", trunk_nr, endp->name, VTY_NEWLINE);
 
 	if (llist_empty(&endp->conns)) {
 		vty_out(vty, "   No active connections%s", VTY_NEWLINE);
@@ -244,50 +243,84 @@ static void dump_endpoint(struct vty *vty, struct mgcp_endpoint *endp, int epidx
 	}
 }
 
-static void dump_trunk(struct vty *vty, struct mgcp_trunk *cfg, int show_stats)
+static void dump_ratectr_global(struct vty *vty, struct mgcp_ratectr_global *ratectr)
+{
+	vty_out(vty, "%s", VTY_NEWLINE);
+	vty_out(vty, "Rate counters (global):%s", VTY_NEWLINE);
+
+	if (ratectr->mgcp_general_ctr_group) {
+		vty_out(vty, "   %s:%s",
+			ratectr->mgcp_general_ctr_group->desc->
+			group_description, VTY_NEWLINE);
+		vty_out_rate_ctr_group_fmt(vty,
+					   "   %25n: %10c (%S/s %M/m %H/h %D/d) %d",
+					   ratectr->mgcp_general_ctr_group);
+	}
+}
+
+static void dump_ratectr_trunk(struct vty *vty, struct mgcp_ratectr_trunk *ratectr)
+{
+	vty_out(vty, "%s", VTY_NEWLINE);
+	vty_out(vty, "Rate counters (trunk):%s", VTY_NEWLINE);
+
+	if (ratectr->mgcp_crcx_ctr_group) {
+		vty_out(vty, "   %s:%s",
+			ratectr->mgcp_crcx_ctr_group->desc->group_description,
+			VTY_NEWLINE);
+		vty_out_rate_ctr_group_fmt(vty,
+					   "   %25n: %10c (%S/s %M/m %H/h %D/d) %d",
+					   ratectr->mgcp_crcx_ctr_group);
+	}
+	if (ratectr->mgcp_dlcx_ctr_group) {
+		vty_out(vty, "   %s:%s",
+			ratectr->mgcp_dlcx_ctr_group->desc->group_description,
+			VTY_NEWLINE);
+		vty_out_rate_ctr_group_fmt(vty,
+					   "   %25n: %10c (%S/s %M/m %H/h %D/d) %d",
+					   ratectr->mgcp_dlcx_ctr_group);
+	}
+	if (ratectr->mgcp_mdcx_ctr_group) {
+		vty_out(vty, "   %s:%s",
+			ratectr->mgcp_mdcx_ctr_group->desc->group_description,
+			VTY_NEWLINE);
+		vty_out_rate_ctr_group_fmt(vty,
+					   "   %25n: %10c (%S/s %M/m %H/h %D/d) %d",
+					   ratectr->mgcp_mdcx_ctr_group);
+	}
+	if (ratectr->all_rtp_conn_stats) {
+		vty_out(vty, "   %s:%s",
+			ratectr->all_rtp_conn_stats->desc->group_description,
+			VTY_NEWLINE);
+		vty_out_rate_ctr_group_fmt(vty,
+					   "   %25n: %10c (%S/s %M/m %H/h %D/d) %d",
+					   ratectr->all_rtp_conn_stats);
+	}
+}
+
+
+static void dump_trunk(struct vty *vty, struct mgcp_trunk *trunk, int show_stats)
 {
 	int i;
 
 	vty_out(vty, "%s trunk %d with %d endpoints:%s",
-		cfg->trunk_type == MGCP_TRUNK_VIRTUAL ? "Virtual" : "E1",
-		cfg->trunk_nr, cfg->number_endpoints - 1, VTY_NEWLINE);
+		trunk->trunk_type == MGCP_TRUNK_VIRTUAL ? "Virtual" : "E1",
+		trunk->trunk_nr, trunk->number_endpoints - 1, VTY_NEWLINE);
 
-	if (!cfg->endpoints) {
+	if (!trunk->endpoints) {
 		vty_out(vty, "No endpoints allocated yet.%s", VTY_NEWLINE);
 		return;
 	}
 
-	for (i = 0; i < cfg->number_endpoints; ++i) {
-		struct mgcp_endpoint *endp = &cfg->endpoints[i];
-		dump_endpoint(vty, endp, i, cfg->trunk_nr, cfg->trunk_type, show_stats);
-		if (i < cfg->number_endpoints - 1)
+	for (i = 0; i < trunk->number_endpoints; ++i) {
+		struct mgcp_endpoint *endp = trunk->endpoints[i];
+		dump_endpoint(vty, endp, trunk->trunk_nr, trunk->trunk_type,
+			      show_stats);
+		if (i < trunk->number_endpoints - 1)
 			vty_out(vty, "%s", VTY_NEWLINE);
 	}
 
-	if (show_stats) {
-		vty_out(vty, "%s", VTY_NEWLINE);
-		vty_out(vty, "Rate counters:%s", VTY_NEWLINE);
-	}
-	if (show_stats && cfg->mgcp_general_ctr_group) {
-		vty_out(vty, "   %s:%s", cfg->mgcp_general_ctr_group->desc->group_description, VTY_NEWLINE);
-		vty_out_rate_ctr_group_fmt(vty, "   %25n: %10c (%S/s %M/m %H/h %D/d) %d", cfg->mgcp_general_ctr_group);
-	}
-	if (show_stats && cfg->mgcp_crcx_ctr_group) {
-		vty_out(vty, "   %s:%s", cfg->mgcp_crcx_ctr_group->desc->group_description, VTY_NEWLINE);
-		vty_out_rate_ctr_group_fmt(vty, "   %25n: %10c (%S/s %M/m %H/h %D/d) %d", cfg->mgcp_crcx_ctr_group);
-	}
-	if (show_stats && cfg->mgcp_dlcx_ctr_group) {
-		vty_out(vty, "   %s:%s", cfg->mgcp_dlcx_ctr_group->desc->group_description, VTY_NEWLINE);
-		vty_out_rate_ctr_group_fmt(vty, "   %25n: %10c (%S/s %M/m %H/h %D/d) %d", cfg->mgcp_dlcx_ctr_group);
-	}
-	if (show_stats && cfg->mgcp_mdcx_ctr_group) {
-		vty_out(vty, "   %s:%s", cfg->mgcp_mdcx_ctr_group->desc->group_description, VTY_NEWLINE);
-		vty_out_rate_ctr_group_fmt(vty, "   %25n: %10c (%S/s %M/m %H/h %D/d) %d", cfg->mgcp_mdcx_ctr_group);
-	}
-	if (show_stats && cfg->all_rtp_conn_stats) {
-		vty_out(vty, "   %s:%s", cfg->all_rtp_conn_stats->desc->group_description, VTY_NEWLINE);
-		vty_out_rate_ctr_group_fmt(vty, "   %25n: %10c (%S/s %M/m %H/h %D/d) %d", cfg->all_rtp_conn_stats);
-	}
+	if (show_stats)
+		dump_ratectr_trunk(vty, &trunk->ratectr);
 }
 
 #define SHOW_MGCP_STR "Display information about the MGCP Media Gateway\n"
@@ -304,11 +337,14 @@ DEFUN(show_mcgp, show_mgcp_cmd,
 	dump_trunk(vty, g_cfg->virt_trunk, show_stats);
 
 	llist_for_each_entry(trunk, &g_cfg->trunks, entry)
-	    dump_trunk(vty, trunk, show_stats);
+		dump_trunk(vty, trunk, show_stats);
 
 	if (g_cfg->osmux)
 		vty_out(vty, "Osmux used CID: %d%s", osmux_cid_pool_count_used(),
 			VTY_NEWLINE);
+
+	if (show_stats)
+		dump_ratectr_global(vty, &g_cfg->ratectr);
 
 	return CMD_SUCCESS;
 }
@@ -316,32 +352,26 @@ DEFUN(show_mcgp, show_mgcp_cmd,
 static void
 dump_mgcp_endpoint(struct vty *vty, struct mgcp_trunk *trunk, const char *epname)
 {
-	const size_t virt_prefix_len = sizeof(MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK) - 1;
-	unsigned long epidx;
-	char *endp;
-	int i;
+	struct mgcp_endpoint *endp;
 
-	if (strncmp(epname, MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK, virt_prefix_len) == 0)
-		epname += virt_prefix_len;
-	errno = 0;
-	epidx = strtoul(epname, &endp, 16);
-	if (epname[0] == '\0' || *endp != '\0') {
-		vty_out(vty, "endpoint name '%s' is not a hex number%s", epname, VTY_NEWLINE);
-		return;
-	}
-	if ((errno == ERANGE && epidx == ULONG_MAX) /* parsed value out of range */
-	    || epidx >= trunk->number_endpoints) {
-		vty_out(vty, "endpoint %.2lx not configured on trunk %d%s", epidx, trunk->trunk_nr, VTY_NEWLINE);
-		return;
-	}
-
-	for (i = 0; i < trunk->number_endpoints; ++i) {
-		struct mgcp_endpoint *endp = &trunk->endpoints[i];
-		if (i == epidx) {
-			dump_endpoint(vty, endp, i, trunk->trunk_nr, trunk->trunk_type, true);
-			break;
+	if (trunk) {
+		/* If a trunk is given, search on that specific trunk only */
+		endp = mgcp_endp_by_name_trunk(NULL, epname, trunk);
+		if (!endp) {
+			vty_out(vty, "endpoint %s not configured on trunk %d%s", epname, trunk->trunk_nr, VTY_NEWLINE);
+			return;
+		}
+	} else {
+		/* If no trunk is given, search on all possible trunks */
+		endp = mgcp_endp_by_name(NULL, epname, g_cfg);
+		if (!endp) {
+			vty_out(vty, "endpoint %s not configured%s", epname, VTY_NEWLINE);
+			return;
 		}
 	}
+
+	trunk = endp->trunk;
+	dump_endpoint(vty, endp, trunk->trunk_nr, trunk->trunk_type, true);
 }
 
 DEFUN(show_mcgp_endpoint, show_mgcp_endpoint_cmd,
@@ -350,12 +380,7 @@ DEFUN(show_mcgp_endpoint, show_mgcp_endpoint_cmd,
       SHOW_MGCP_STR
       "Display information about an endpoint\n" "The name of the endpoint\n")
 {
-	struct mgcp_trunk *trunk;
-
-	dump_mgcp_endpoint(vty, g_cfg->virt_trunk, argv[0]);
-	llist_for_each_entry(trunk, &g_cfg->trunks, entry)
-		dump_mgcp_endpoint(vty, trunk, argv[0]);
-
+	dump_mgcp_endpoint(vty, NULL, argv[0]);
 	return CMD_SUCCESS;
 }
 
@@ -810,7 +835,7 @@ DEFUN(cfg_mgcp_trunk, cfg_mgcp_trunk_cmd,
 	struct mgcp_trunk *trunk;
 	int index = atoi(argv[0]);
 
-	trunk = mgcp_trunk_num(g_cfg, index);
+	trunk = mgcp_trunk_by_num(g_cfg, index);
 	if (!trunk) {
 		trunk = mgcp_trunk_alloc(g_cfg, MGCP_TRUNK_E1, index);
 		if (!trunk) {
@@ -1138,7 +1163,7 @@ DEFUN(loop_conn,
 		return CMD_WARNING;
 	}
 
-	endp = &trunk->endpoints[endp_no];
+	endp = trunk->endpoints[endp_no];
 	int loop = atoi(argv[2]);
 	llist_for_each_entry(conn, &endp->conns, entry) {
 		if (conn->type == MGCP_CONN_TYPE_RTP)
@@ -1197,7 +1222,7 @@ DEFUN(tap_rtp,
 		return CMD_WARNING;
 	}
 
-	endp = &trunk->endpoints[endp_no];
+	endp = trunk->endpoints[endp_no];
 
 	conn_id = argv[2];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
@@ -1250,7 +1275,7 @@ DEFUN(free_endp, free_endp_cmd,
 		return CMD_WARNING;
 	}
 
-	endp = &trunk->endpoints[endp_no];
+	endp = trunk->endpoints[endp_no];
 	mgcp_endp_release(endp);
 	return CMD_SUCCESS;
 }
@@ -1283,8 +1308,8 @@ DEFUN(reset_endp, reset_endp_cmd,
 		return CMD_WARNING;
 	}
 
-	endp = &trunk->endpoints[endp_no];
-	rc = mgcp_send_reset_ep(endp, ENDPOINT_NUMBER(endp));
+	endp = trunk->endpoints[endp_no];
+	rc = mgcp_send_reset_ep(endp);
 	if (rc < 0) {
 		vty_out(vty, "Error %d sending reset.%s", rc, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -1521,7 +1546,7 @@ int mgcp_parse_config(const char *config_file, struct mgcp_config *cfg,
 		return -1;
 	}
 
-	if (mgcp_endpoints_allocate(g_cfg->virt_trunk) != 0) {
+	if (mgcp_trunk_alloc_endpts(g_cfg->virt_trunk) != 0) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "Failed to initialize the virtual trunk (%d endpoints)\n",
 		     g_cfg->virt_trunk->number_endpoints);
@@ -1529,7 +1554,7 @@ int mgcp_parse_config(const char *config_file, struct mgcp_config *cfg,
 	}
 
 	llist_for_each_entry(trunk, &g_cfg->trunks, entry) {
-		if (mgcp_endpoints_allocate(trunk) != 0) {
+		if (mgcp_trunk_alloc_endpts(trunk) != 0) {
 			LOGP(DLMGCP, LOGL_ERROR,
 			     "Failed to initialize trunk %d (%d endpoints)\n",
 			     trunk->trunk_nr, trunk->number_endpoints);

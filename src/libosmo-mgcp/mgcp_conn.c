@@ -25,6 +25,7 @@
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/mgcp_common.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_trunk.h>
 #include <osmocom/mgcp/mgcp_sdp.h>
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/gsm/gsm_utils.h>
@@ -254,10 +255,9 @@ struct mgcp_conn_rtp *mgcp_conn_get_rtp(struct mgcp_endpoint *endp,
 	return NULL;
 }
 
-static void
-aggregate_rtp_conn_stats(struct mgcp_trunk *trunk, struct mgcp_conn_rtp *conn_rtp)
+static void aggregate_rtp_conn_stats(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn_rtp)
 {
-	struct rate_ctr_group *all_stats = trunk->all_rtp_conn_stats;
+	struct rate_ctr_group *all_stats = endp->trunk->ratectr.all_rtp_conn_stats;
 	struct rate_ctr_group *conn_stats = conn_rtp->rate_ctr_group;
 
 	if (all_stats == NULL || conn_stats == NULL)
@@ -296,7 +296,7 @@ void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id)
 
 	switch (conn->type) {
 	case MGCP_CONN_TYPE_RTP:
-		aggregate_rtp_conn_stats(endp->trunk, &conn->u.rtp);
+		aggregate_rtp_conn_stats(endp, &conn->u.rtp);
 		mgcp_rtp_conn_cleanup(&conn->u.rtp);
 		break;
 	default:

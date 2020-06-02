@@ -34,6 +34,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include "mgcp_ratectr.h"
+
 #define RTP_PORT_DEFAULT_RANGE_START 16002
 #define RTP_PORT_DEFAULT_RANGE_END RTP_PORT_DEFAULT_RANGE_START + 64
 
@@ -59,8 +61,8 @@ struct mgcp_rtp_end;
 #define MGCP_POLICY_REJECT	5
 #define MGCP_POLICY_DEFER	6
 
-typedef int (*mgcp_change)(struct mgcp_trunk *cfg, int endpoint, int state);
-typedef int (*mgcp_policy)(struct mgcp_trunk *cfg, int endpoint, int state, const char *transactio_id);
+typedef int (*mgcp_change)(struct mgcp_endpoint *endp, int state);
+typedef int (*mgcp_policy)(struct mgcp_endpoint *endp, int state, const char *transaction_id);
 typedef int (*mgcp_reset)(struct mgcp_trunk *cfg);
 typedef int (*mgcp_rqnt)(struct mgcp_endpoint *endp, char tone);
 
@@ -177,57 +179,6 @@ enum {
 	MGCP_DLCX_DEFERRED_BY_POLICY,
 };
 
-struct mgcp_trunk {
-	struct llist_head entry;
-
-	struct mgcp_config *cfg;
-
-	int trunk_nr;
-	int trunk_type;
-
-	char *audio_fmtp_extra;
-	char *audio_name;
-	int audio_payload;
-	int audio_send_ptime;
-	int audio_send_name;
-	int audio_loop;
-
-	int no_audio_transcoding;
-
-	int omit_rtcp;
-	int keepalive_interval;
-
-	/* RTP patching */
-	int force_constant_ssrc; /* 0: don't, 1: once */
-	int force_aligned_timing;
-	bool rfc5993_hr_convert;
-
-	/* spec handling */
-	int force_realloc;
-
-	/* timer */
-	struct osmo_timer_list keepalive_timer;
-
-	/* When set, incoming RTP packets are not filtered
-	 * when ports and ip-address do not match (debug) */
-	int rtp_accept_all;
-
-	unsigned int number_endpoints;
-	int vty_number_endpoints;
-	struct mgcp_endpoint *endpoints;
-
-	/* Rate counter group which contains stats for generic MGCP events. */
-	struct rate_ctr_group *mgcp_general_ctr_group;
-	/* Rate counter group which contains stats for processed CRCX commands. */
-	struct rate_ctr_group *mgcp_crcx_ctr_group;
-	/* Rate counter group which contains stats for processed MDCX commands. */
-	struct rate_ctr_group *mgcp_mdcx_ctr_group;
-	/* Rate counter group which contains stats for processed DLCX commands. */
-	struct rate_ctr_group *mgcp_dlcx_ctr_group;
-	/* Rate counter group which aggregates stats of individual RTP connections. */
-	struct rate_ctr_group *all_rtp_conn_stats;
-};
-
 enum mgcp_role {
 	MGCP_BSC = 0,
 	MGCP_BSC_NAT,
@@ -295,6 +246,10 @@ struct mgcp_config {
 
 	/* osmocom CTRL interface */
 	struct ctrl_handle *ctrl;
+
+	/* global rate counters to measure the MGWs overall performance and
+	 * health */
+	struct mgcp_ratectr_global ratectr;
 };
 
 /* config management */
@@ -302,7 +257,6 @@ struct mgcp_config *mgcp_config_alloc(void);
 int mgcp_parse_config(const char *config_file, struct mgcp_config *cfg,
 		      enum mgcp_role role);
 int mgcp_vty_init(void);
-int mgcp_endpoints_allocate(struct mgcp_trunk *cfg);
 void mgcp_trunk_set_keepalive(struct mgcp_trunk *trunk, int interval);
 
 /*
@@ -311,7 +265,7 @@ void mgcp_trunk_set_keepalive(struct mgcp_trunk *trunk, int interval);
 struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg);
 
 
-int mgcp_send_reset_ep(struct mgcp_endpoint *endp, int endpoint);
+int mgcp_send_reset_ep(struct mgcp_endpoint *endp);
 int mgcp_send_reset_all(struct mgcp_config *cfg);
 
 
