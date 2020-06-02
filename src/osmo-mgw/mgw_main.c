@@ -71,7 +71,7 @@
 /* FIXME: Make use of the rtp proxy code */
 
 static struct mgcp_config *cfg;
-static struct mgcp_trunk_config *reset_trunk;
+static struct mgcp_trunk *reset_trunk;
 static int reset_endpoints = 0;
 static int daemonize = 0;
 
@@ -148,13 +148,13 @@ static void handle_options(int argc, char **argv)
 
 /* Callback function to be called when the RSIP ("Reset in Progress") mgcp
  * command is received */
-static int mgcp_rsip_cb(struct mgcp_trunk_config *tcfg)
+static int mgcp_rsip_cb(struct mgcp_trunk *trunk)
 {
 	/* Set flag so that, when read_call_agent() is called next time
 	 * the reset can progress */
 	reset_endpoints = 1;
 
-	reset_trunk = tcfg;
+	reset_trunk = trunk;
 
 	return 0;
 }

@@ -81,7 +81,7 @@ struct mgcp_endpoint {
 	struct mgcp_config *cfg;
 
 	/*! Backpointer to the Trunk specific configuration */
-	struct mgcp_trunk_config *tcfg;
+	struct mgcp_trunk *trunk;
 
 	/*! Endpoint properties (see above) */
 	const struct mgcp_endpoint_type *type;
@@ -101,6 +101,6 @@ struct mgcp_endpoint {
 };
 
 /*! Extract endpoint number for a given endpoint */
-#define ENDPOINT_NUMBER(endp) abs((int)(endp - endp->tcfg->endpoints))
+#define ENDPOINT_NUMBER(endp) abs((int)(endp - endp->trunk->endpoints))
 
 void mgcp_endp_release(struct mgcp_endpoint *endp);

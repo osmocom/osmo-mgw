@@ -254,11 +254,11 @@ static struct msgb *create_resp(struct mgcp_endpoint *endp, int code,
 	 * Remember the last transmission per endpoint.
 	 */
 	if (endp) {
-		struct mgcp_trunk_config *tcfg = endp->tcfg;
+		struct mgcp_trunk *trunk = endp->trunk;
 		talloc_free(endp->last_response);
 		talloc_free(endp->last_trans);
-		endp->last_trans = talloc_strdup(tcfg->endpoints, trans);
-		endp->last_response = talloc_strndup(tcfg->endpoints,
+		endp->last_trans = talloc_strdup(trunk->endpoints, trans);
+		endp->last_response = talloc_strndup(trunk->endpoints,
 						     (const char *)res->l2h,
 						     msgb_l2len(res));
 	}
@@ -296,7 +296,7 @@ static int add_params(struct msgb *msg, const struct mgcp_endpoint *endp,
 
 	/* NOTE: Only in the virtual trunk we allow dynamic endpoint names */
 	if (endp->wildcarded_req
-	    && endp->tcfg->trunk_type == MGCP_TRUNK_VIRTUAL) {
+	    && endp->trunk->trunk_type == MGCP_TRUNK_VIRTUAL) {
 		rc = msgb_printf(msg, "Z: %s%x@%s\r\n",
 				 MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK,
 				 ENDPOINT_NUMBER(endp), endp->cfg->domain);
@@ -379,8 +379,8 @@ static void send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
  *   - or a response (three numbers, space, transaction id) */
 struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 {
-	struct mgcp_trunk_config *tcfg = cfg->virt_trunk;
-	struct rate_ctr_group *rate_ctrs = tcfg->mgcp_general_ctr_group;
+	struct mgcp_trunk *trunk = cfg->virt_trunk;
+	struct rate_ctr_group *rate_ctrs = trunk->mgcp_general_ctr_group;
 	struct mgcp_parse_data pdata;
 	int rc, i, code, handled = 0;
 	struct msgb *resp = NULL;
@@ -692,13 +692,13 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 void mgcp_rtp_end_config(struct mgcp_endpoint *endp, int expect_ssrc_change,
 			 struct mgcp_rtp_end *rtp)
 {
-	struct mgcp_trunk_config *tcfg = endp->tcfg;
+	struct mgcp_trunk *trunk = endp->trunk;
 
-	int patch_ssrc = expect_ssrc_change && tcfg->force_constant_ssrc;
+	int patch_ssrc = expect_ssrc_change && trunk->force_constant_ssrc;
 
-	rtp->force_aligned_timing = tcfg->force_aligned_timing;
+	rtp->force_aligned_timing = trunk->force_aligned_timing;
 	rtp->force_constant_ssrc = patch_ssrc ? 1 : 0;
-	rtp->rfc5993_hr_convert = tcfg->rfc5993_hr_convert;
+	rtp->rfc5993_hr_convert = trunk->rfc5993_hr_convert;
 
 	LOGPENDP(endp, DLMGCP, LOGL_DEBUG,
 		 "Configuring RTP endpoint: local port %d%s%s\n",
@@ -830,9 +830,9 @@ static bool parse_x_osmo_ign(struct mgcp_endpoint *endp, char *line)
 /* CRCX command handler, processes the received command */
 static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 {
-	struct mgcp_trunk_config *tcfg = p->endp->tcfg;
+	struct mgcp_trunk *trunk = p->endp->trunk;
 	struct mgcp_endpoint *endp = p->endp;
-	struct rate_ctr_group *rate_ctrs = tcfg->mgcp_crcx_ctr_group;
+	struct rate_ctr_group *rate_ctrs = trunk->mgcp_crcx_ctr_group;
 	int error_code = 400;
 	const char *local_options = NULL;
 	const char *callid = NULL;
@@ -915,7 +915,7 @@ mgcp_header_done:
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			"CRCX: endpoint full, max. %i connections allowed!\n",
 			endp->type->max_conns);
-		if (tcfg->force_realloc) {
+		if (trunk->force_realloc) {
 			/* There is no more room for a connection, make some
 			 * room by blindly tossing the oldest of the two two
 			 * connections */
@@ -934,7 +934,7 @@ mgcp_header_done:
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "CRCX: already seized by other call (%s)\n",
 			 endp->callid);
-		if (tcfg->force_realloc)
+		if (trunk->force_realloc)
 			/* This is not our call, toss everything by releasing
 			 * the entire endpoint. (rude!) */
 			mgcp_endp_release(endp);
@@ -949,10 +949,10 @@ mgcp_header_done:
 	/* Set the callid, creation of another connection will only be possible
 	 * when the callid matches up. (Connections are distinguished by their
 	 * connection ids) */
-	endp->callid = talloc_strdup(tcfg->endpoints, callid);
+	endp->callid = talloc_strdup(trunk->endpoints, callid);
 
 	snprintf(conn_name, sizeof(conn_name), "%s", callid);
-	_conn = mgcp_conn_alloc(tcfg->endpoints, endp, MGCP_CONN_TYPE_RTP, conn_name);
+	_conn = mgcp_conn_alloc(trunk->endpoints, endp, MGCP_CONN_TYPE_RTP, conn_name);
 	if (!_conn) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "CRCX: unable to allocate RTP connection\n");
@@ -987,7 +987,7 @@ mgcp_header_done:
 
 	/* Set local connection options, if present */
 	if (local_options) {
-		rc = set_local_cx_options(endp->tcfg->endpoints,
+		rc = set_local_cx_options(endp->trunk->endpoints,
 					  &endp->local_options, local_options);
 		if (rc != 0) {
 			LOGPCONN(_conn, DLMGCP, LOGL_ERROR,
@@ -1007,8 +1007,8 @@ mgcp_header_done:
 		goto error2;
 	}
 
-	conn->end.fmtp_extra = talloc_strdup(tcfg->endpoints,
-					     tcfg->audio_fmtp_extra);
+	conn->end.fmtp_extra = talloc_strdup(trunk->endpoints,
+					     trunk->audio_fmtp_extra);
 
 	if (p->cfg->force_ptime) {
 		conn->end.packet_duration_ms = p->cfg->force_ptime;
@@ -1043,7 +1043,7 @@ mgcp_header_done:
 	/* policy CB */
 	if (p->cfg->policy_cb) {
 		int rc;
-		rc = p->cfg->policy_cb(tcfg, ENDPOINT_NUMBER(endp),
+		rc = p->cfg->policy_cb(trunk, ENDPOINT_NUMBER(endp),
 				       MGCP_ENDP_CRCX, p->trans);
 		switch (rc) {
 		case MGCP_POLICY_REJECT:
@@ -1066,12 +1066,12 @@ mgcp_header_done:
 	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
 		 "CRCX: Creating connection: port: %u\n", conn->end.local_port);
 	if (p->cfg->change_cb)
-		p->cfg->change_cb(tcfg, ENDPOINT_NUMBER(endp), MGCP_ENDP_CRCX);
+		p->cfg->change_cb(trunk, ENDPOINT_NUMBER(endp), MGCP_ENDP_CRCX);
 
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
-	OSMO_ASSERT(tcfg->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
+	OSMO_ASSERT(trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
 	if (conn->conn->mode & MGCP_CONN_RECV_ONLY
-	    && tcfg->keepalive_interval != MGCP_KEEPALIVE_NEVER)
+	    && trunk->keepalive_interval != MGCP_KEEPALIVE_NEVER)
 		send_dummy(endp, conn);
 
 	LOGPCONN(_conn, DLMGCP, LOGL_NOTICE,
@@ -1088,9 +1088,9 @@ error2:
 /* MDCX command handler, processes the received command */
 static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 {
-	struct mgcp_trunk_config *tcfg = p->endp->tcfg;
+	struct mgcp_trunk *trunk = p->endp->trunk;
 	struct mgcp_endpoint *endp = p->endp;
-	struct rate_ctr_group *rate_ctrs = tcfg->mgcp_mdcx_ctr_group;
+	struct rate_ctr_group *rate_ctrs = trunk->mgcp_mdcx_ctr_group;
 	int error_code = 500;
 	int silent = 0;
 	int have_sdp = 0;
@@ -1198,7 +1198,7 @@ mgcp_header_done:
 
 	/* Set local connection options, if present */
 	if (local_options) {
-		rc = set_local_cx_options(endp->tcfg->endpoints,
+		rc = set_local_cx_options(endp->trunk->endpoints,
 					  &endp->local_options, local_options);
 		if (rc != 0) {
 			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
@@ -1257,7 +1257,7 @@ mgcp_header_done:
 	/* policy CB */
 	if (p->cfg->policy_cb) {
 		int rc;
-		rc = p->cfg->policy_cb(endp->tcfg, ENDPOINT_NUMBER(endp),
+		rc = p->cfg->policy_cb(endp->trunk, ENDPOINT_NUMBER(endp),
 				       MGCP_ENDP_MDCX, p->trans);
 		switch (rc) {
 		case MGCP_POLICY_REJECT:
@@ -1287,13 +1287,13 @@ mgcp_header_done:
 	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
 		 "MDCX: modified conn:%s\n", mgcp_conn_dump(conn->conn));
 	if (p->cfg->change_cb)
-		p->cfg->change_cb(endp->tcfg, ENDPOINT_NUMBER(endp),
+		p->cfg->change_cb(endp->trunk, ENDPOINT_NUMBER(endp),
 				  MGCP_ENDP_MDCX);
 
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
-	OSMO_ASSERT(endp->tcfg->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
+	OSMO_ASSERT(endp->trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
 	if (conn->conn->mode & MGCP_CONN_RECV_ONLY
-	    && endp->tcfg->keepalive_interval != MGCP_KEEPALIVE_NEVER)
+	    && endp->trunk->keepalive_interval != MGCP_KEEPALIVE_NEVER)
 		send_dummy(endp, conn);
 
 	rate_ctr_inc(&rate_ctrs->ctr[MGCP_MDCX_SUCCESS]);
@@ -1314,9 +1314,9 @@ out_silent:
 /* DLCX command handler, processes the received command */
 static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 {
-	struct mgcp_trunk_config *tcfg = p->endp->tcfg;
+	struct mgcp_trunk *trunk = p->endp->trunk;
 	struct mgcp_endpoint *endp = p->endp;
-	struct rate_ctr_group *rate_ctrs = tcfg->mgcp_dlcx_ctr_group;
+	struct rate_ctr_group *rate_ctrs = trunk->mgcp_dlcx_ctr_group;
 	int error_code = 400;
 	int silent = 0;
 	char *line;
@@ -1377,7 +1377,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 	/* policy CB */
 	if (p->cfg->policy_cb) {
 		int rc;
-		rc = p->cfg->policy_cb(endp->tcfg, ENDPOINT_NUMBER(endp),
+		rc = p->cfg->policy_cb(endp->trunk, ENDPOINT_NUMBER(endp),
 				       MGCP_ENDP_DLCX, p->trans);
 		switch (rc) {
 		case MGCP_POLICY_REJECT:
@@ -1442,7 +1442,7 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 	}
 
 	if (p->cfg->change_cb)
-		p->cfg->change_cb(endp->tcfg, ENDPOINT_NUMBER(endp),
+		p->cfg->change_cb(endp->trunk, ENDPOINT_NUMBER(endp),
 				  MGCP_ENDP_DLCX);
 
 	rate_ctr_inc(&rate_ctrs->ctr[MGCP_DLCX_SUCCESS]);
@@ -1472,7 +1472,7 @@ static struct msgb *handle_rsip(struct mgcp_parse_data *p)
 	LOGP(DLMGCP, LOGL_NOTICE, "RSIP: resetting all endpoints ...\n");
 
 	if (p->cfg->reset_cb)
-		p->cfg->reset_cb(p->endp->tcfg);
+		p->cfg->reset_cb(p->endp->trunk);
 	return NULL;
 }
 
@@ -1518,37 +1518,37 @@ static struct msgb *handle_noti_req(struct mgcp_parse_data *p)
 
 /* Connection keepalive timer, will take care that dummy packets are send
  * regularly, so that NAT connections stay open */
-static void mgcp_keepalive_timer_cb(void *_tcfg)
+static void mgcp_keepalive_timer_cb(void *_trunk)
 {
-	struct mgcp_trunk_config *tcfg = _tcfg;
+	struct mgcp_trunk *trunk = _trunk;
 	struct mgcp_conn *conn;
 	int i;
 
 	LOGP(DLMGCP, LOGL_DEBUG, "triggered trunk %d keepalive timer\n",
-	     tcfg->trunk_nr);
+	     trunk->trunk_nr);
 
 	/* Do not accept invalid configuration values
 	 * valid is MGCP_KEEPALIVE_NEVER, MGCP_KEEPALIVE_ONCE and
 	 * values greater 0 */
-	OSMO_ASSERT(tcfg->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
+	OSMO_ASSERT(trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
 
 	/* The dummy packet functionality has been disabled, we will exit
 	 * immediately, no further timer is scheduled, which means we will no
 	 * longer send dummy packets even when we did before */
-	if (tcfg->keepalive_interval == MGCP_KEEPALIVE_NEVER)
+	if (trunk->keepalive_interval == MGCP_KEEPALIVE_NEVER)
 		return;
 
 	/* In cases where only one dummy packet is sent, we do not need
 	 * the timer since the functions that handle the CRCX and MDCX are
 	 * triggering the sending of the dummy packet. So we behave like in
 	 * the  MGCP_KEEPALIVE_NEVER case */
-	if (tcfg->keepalive_interval == MGCP_KEEPALIVE_ONCE)
+	if (trunk->keepalive_interval == MGCP_KEEPALIVE_ONCE)
 		return;
 
 	/* Send walk over all endpoints and send out dummy packets through
 	 * every connection present on each endpoint */
-	for (i = 1; i < tcfg->number_endpoints; ++i) {
-		struct mgcp_endpoint *endp = &tcfg->endpoints[i];
+	for (i = 1; i < trunk->number_endpoints; ++i) {
+		struct mgcp_endpoint *endp = &trunk->endpoints[i];
 		llist_for_each_entry(conn, &endp->conns, entry) {
 			if (conn->mode == MGCP_CONN_RECV_ONLY)
 				send_dummy(endp, &conn->u.rtp);
@@ -1557,21 +1557,21 @@ static void mgcp_keepalive_timer_cb(void *_tcfg)
 
 	/* Schedule the keepalive timer for the next round */
 	LOGP(DLMGCP, LOGL_DEBUG, "rescheduling trunk %d keepalive timer\n",
-	     tcfg->trunk_nr);
-	osmo_timer_schedule(&tcfg->keepalive_timer, tcfg->keepalive_interval,
+	     trunk->trunk_nr);
+	osmo_timer_schedule(&trunk->keepalive_timer, trunk->keepalive_interval,
 			    0);
 }
 
-void mgcp_trunk_set_keepalive(struct mgcp_trunk_config *tcfg, int interval)
+void mgcp_trunk_set_keepalive(struct mgcp_trunk *trunk, int interval)
 {
-	tcfg->keepalive_interval = interval;
-	osmo_timer_setup(&tcfg->keepalive_timer, mgcp_keepalive_timer_cb, tcfg);
+	trunk->keepalive_interval = interval;
+	osmo_timer_setup(&trunk->keepalive_timer, mgcp_keepalive_timer_cb, trunk);
 
 	if (interval <= 0)
-		osmo_timer_del(&tcfg->keepalive_timer);
+		osmo_timer_del(&trunk->keepalive_timer);
 	else
-		osmo_timer_schedule(&tcfg->keepalive_timer,
-				    tcfg->keepalive_interval, 0);
+		osmo_timer_schedule(&trunk->keepalive_timer,
+				    trunk->keepalive_interval, 0);
 }
 
 static int free_rate_counter_group(struct rate_ctr_group *rate_ctr_group)
@@ -1580,7 +1580,7 @@ static int free_rate_counter_group(struct rate_ctr_group *rate_ctr_group)
 	return 0;
 }
 
-static int alloc_mgcp_rate_counters(struct mgcp_trunk_config *trunk, void *ctx)
+static int alloc_mgcp_rate_counters(struct mgcp_trunk *trunk, void *ctx)
 {
 	/* FIXME: Each new rate counter group requires a unique index. At the
 	 * moment we generate an index using a counter, but perhaps there is
@@ -1676,11 +1676,11 @@ struct mgcp_config *mgcp_config_alloc(void)
  *  \param[in] cfg mgcp configuration
  *  \param[in] nr trunk number
  *  \returns pointer to allocated trunk configuration */
-struct mgcp_trunk_config *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr)
+struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr)
 {
-	struct mgcp_trunk_config *trunk;
+	struct mgcp_trunk *trunk;
 
-	trunk = talloc_zero(cfg, struct mgcp_trunk_config);
+	trunk = talloc_zero(cfg, struct mgcp_trunk);
 	if (!trunk) {
 		LOGP(DLMGCP, LOGL_ERROR, "Failed to allocate.\n");
 		return NULL;
@@ -1709,9 +1709,9 @@ struct mgcp_trunk_config *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_tr
  *  \param[in] cfg mgcp configuration
  *  \param[in] index trunk number
  *  \returns pointer to trunk configuration, NULL on error */
-struct mgcp_trunk_config *mgcp_trunk_num(struct mgcp_config *cfg, int index)
+struct mgcp_trunk *mgcp_trunk_num(struct mgcp_config *cfg, int index)
 {
-	struct mgcp_trunk_config *trunk;
+	struct mgcp_trunk *trunk;
 
 	llist_for_each_entry(trunk, &cfg->trunks, entry)
 	    if (trunk->trunk_nr == index)
@@ -1722,27 +1722,27 @@ struct mgcp_trunk_config *mgcp_trunk_num(struct mgcp_config *cfg, int index)
 
 /*! allocate endpoints and set default values.
  *  (called once at startup by VTY)
- *  \param[in] tcfg trunk configuration
+ *  \param[in] trunk trunk configuration
  *  \returns 0 on success, -1 on failure */
-int mgcp_endpoints_allocate(struct mgcp_trunk_config *tcfg)
+int mgcp_endpoints_allocate(struct mgcp_trunk *trunk)
 {
 	int i;
 
-	tcfg->endpoints = _talloc_zero_array(tcfg->cfg,
+	trunk->endpoints = _talloc_zero_array(trunk->cfg,
 					     sizeof(struct mgcp_endpoint),
-					     tcfg->vty_number_endpoints,
+					     trunk->vty_number_endpoints,
 					     "endpoints");
-	if (!tcfg->endpoints)
+	if (!trunk->endpoints)
 		return -1;
 
-	for (i = 0; i < tcfg->vty_number_endpoints; ++i) {
-		INIT_LLIST_HEAD(&tcfg->endpoints[i].conns);
-		tcfg->endpoints[i].cfg = tcfg->cfg;
-		tcfg->endpoints[i].tcfg = tcfg;
+	for (i = 0; i < trunk->vty_number_endpoints; ++i) {
+		INIT_LLIST_HEAD(&trunk->endpoints[i].conns);
+		trunk->endpoints[i].cfg = trunk->cfg;
+		trunk->endpoints[i].trunk = trunk;
 
-		switch (tcfg->trunk_type) {
+		switch (trunk->trunk_type) {
 		case MGCP_TRUNK_VIRTUAL:
-			tcfg->endpoints[i].type = &ep_typeset.rtp;
+			trunk->endpoints[i].type = &ep_typeset.rtp;
 			break;
 		case MGCP_TRUNK_E1:
 			/* FIXME: Implement E1 allocation */
@@ -1750,12 +1750,12 @@ int mgcp_endpoints_allocate(struct mgcp_trunk_config *tcfg)
 			break;
 		default:
 			osmo_panic("Cannot allocate unimplemented trunk type %d! %s:%d\n",
-				   tcfg->trunk_type, __FILE__, __LINE__);
+				   trunk->trunk_type, __FILE__, __LINE__);
 		}
 	}
 
-	tcfg->number_endpoints = tcfg->vty_number_endpoints;
-	alloc_mgcp_rate_counters(tcfg, tcfg->cfg);
+	trunk->number_endpoints = trunk->vty_number_endpoints;
+	alloc_mgcp_rate_counters(trunk, trunk->cfg);
 
 	return 0;
 }

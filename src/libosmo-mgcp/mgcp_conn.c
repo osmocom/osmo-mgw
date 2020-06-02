@@ -255,7 +255,7 @@ struct mgcp_conn_rtp *mgcp_conn_get_rtp(struct mgcp_endpoint *endp,
 }
 
 static void
-aggregate_rtp_conn_stats(struct mgcp_trunk_config *trunk, struct mgcp_conn_rtp *conn_rtp)
+aggregate_rtp_conn_stats(struct mgcp_trunk *trunk, struct mgcp_conn_rtp *conn_rtp)
 {
 	struct rate_ctr_group *all_stats = trunk->all_rtp_conn_stats;
 	struct rate_ctr_group *conn_stats = conn_rtp->rate_ctr_group;
@@ -296,7 +296,7 @@ void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id)
 
 	switch (conn->type) {
 	case MGCP_CONN_TYPE_RTP:
-		aggregate_rtp_conn_stats(endp->tcfg, &conn->u.rtp);
+		aggregate_rtp_conn_stats(endp->trunk, &conn->u.rtp);
 		mgcp_rtp_conn_cleanup(&conn->u.rtp);
 		break;
 	default:

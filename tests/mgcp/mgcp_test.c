@@ -593,7 +593,7 @@ static struct msgb *create_msg(const char *str, const char *conn_id)
 
 static int last_endpoint = -1;
 
-static int mgcp_test_policy_cb(struct mgcp_trunk_config *cfg, int endpoint,
+static int mgcp_test_policy_cb(struct mgcp_trunk *cfg, int endpoint,
 			       int state, const char *transactio_id)
 {
 	fprintf(stderr, "Policy CB got state %d on endpoint 0x%x\n",
@@ -641,7 +641,7 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp)
 	return real_clock_gettime(clk_id, tp);
 }
 
-static void mgcp_endpoints_release(struct mgcp_trunk_config *trunk)
+static void mgcp_endpoints_release(struct mgcp_trunk *trunk)
 {
 	int i;
 	for (i = 1; i < trunk->number_endpoints; i++)
@@ -749,7 +749,7 @@ static void test_messages(void)
 {
 	struct mgcp_config *cfg;
 	struct mgcp_endpoint *endp;
-	struct mgcp_trunk_config *trunk2;
+	struct mgcp_trunk *trunk2;
 	int i;
 	struct mgcp_conn_rtp *conn = NULL;
 	char last_conn_id[256];
@@ -890,7 +890,7 @@ static void test_messages(void)
 static void test_retransmission(void)
 {
 	struct mgcp_config *cfg;
-	struct mgcp_trunk_config *trunk2;
+	struct mgcp_trunk *trunk2;
 	int i;
 	char last_conn_id[256];
 	int rc;
@@ -958,7 +958,7 @@ static int rqnt_cb(struct mgcp_endpoint *endp, char _tone)
 static void test_rqnt_cb(void)
 {
 	struct mgcp_config *cfg;
-	struct mgcp_trunk_config *trunk2;
+	struct mgcp_trunk *trunk2;
 	struct msgb *inp, *msg;
 	char conn_id[256];
 
@@ -1036,7 +1036,7 @@ static void test_packet_loss_calc(void)
 	int i;
 	struct mgcp_endpoint endp;
 	struct mgcp_config cfg = {0};
-	struct mgcp_trunk_config trunk;
+	struct mgcp_trunk trunk;
 
 	printf("Testing packet loss calculation.\n");
 
@@ -1047,7 +1047,7 @@ static void test_packet_loss_calc(void)
 	endp.type = &ep_typeset.rtp;
 	trunk.vty_number_endpoints = 1;
 	trunk.endpoints = &endp;
-	endp.tcfg = &trunk;
+	endp.trunk = &trunk;
 	INIT_LLIST_HEAD(&endp.conns);
 
 	for (i = 0; i < ARRAY_SIZE(pl_test_dat); ++i) {
@@ -1262,7 +1262,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 {
 	int i;
 
-	struct mgcp_trunk_config trunk;
+	struct mgcp_trunk trunk;
 	struct mgcp_endpoint endp;
 	struct mgcp_config cfg = {0};
 	struct mgcp_rtp_state state;
@@ -1300,7 +1300,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	trunk.force_constant_ssrc = patch_ssrc;
 	trunk.force_aligned_timing = patch_ts;
 
-	endp.tcfg = &trunk;
+	endp.trunk = &trunk;
 
 	INIT_LLIST_HEAD(&endp.conns);
 	_conn = mgcp_conn_alloc(NULL, &endp, MGCP_CONN_TYPE_RTP,
@@ -1361,7 +1361,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 static void test_multilple_codec(void)
 {
 	struct mgcp_config *cfg;
-	struct mgcp_trunk_config *trunk2;
+	struct mgcp_trunk *trunk2;
 	struct mgcp_endpoint *endp;
 	struct msgb *inp, *resp;
 	struct in_addr addr;
@@ -1558,7 +1558,7 @@ static void test_no_cycle(void)
 
 static void test_no_name(void)
 {
-	struct mgcp_trunk_config *trunk2;
+	struct mgcp_trunk *trunk2;
 	struct mgcp_config *cfg;
 	struct msgb *inp, *msg;
 

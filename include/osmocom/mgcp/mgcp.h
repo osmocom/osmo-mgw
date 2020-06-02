@@ -42,7 +42,7 @@
  */
 struct mgcp_endpoint;
 struct mgcp_config;
-struct mgcp_trunk_config;
+struct mgcp_trunk;
 struct mgcp_rtp_end;
 
 #define MGCP_ENDP_CRCX 1
@@ -59,9 +59,9 @@ struct mgcp_rtp_end;
 #define MGCP_POLICY_REJECT	5
 #define MGCP_POLICY_DEFER	6
 
-typedef int (*mgcp_change)(struct mgcp_trunk_config *cfg, int endpoint, int state);
-typedef int (*mgcp_policy)(struct mgcp_trunk_config *cfg, int endpoint, int state, const char *transactio_id);
-typedef int (*mgcp_reset)(struct mgcp_trunk_config *cfg);
+typedef int (*mgcp_change)(struct mgcp_trunk *cfg, int endpoint, int state);
+typedef int (*mgcp_policy)(struct mgcp_trunk *cfg, int endpoint, int state, const char *transactio_id);
+typedef int (*mgcp_reset)(struct mgcp_trunk *cfg);
 typedef int (*mgcp_rqnt)(struct mgcp_endpoint *endp, char tone);
 
 /**
@@ -177,7 +177,7 @@ enum {
 	MGCP_DLCX_DEFERRED_BY_POLICY,
 };
 
-struct mgcp_trunk_config {
+struct mgcp_trunk {
 	struct llist_head entry;
 
 	struct mgcp_config *cfg;
@@ -263,7 +263,7 @@ struct mgcp_config {
 	/* trunk handling */
 
 	/* virtual trunk for RTP - RTP endpoints */
-	struct mgcp_trunk_config *virt_trunk;
+	struct mgcp_trunk *virt_trunk;
 	/* physical trunks with underlying E1 endpoints */
 	struct llist_head trunks;
 
@@ -302,8 +302,8 @@ struct mgcp_config *mgcp_config_alloc(void);
 int mgcp_parse_config(const char *config_file, struct mgcp_config *cfg,
 		      enum mgcp_role role);
 int mgcp_vty_init(void);
-int mgcp_endpoints_allocate(struct mgcp_trunk_config *cfg);
-void mgcp_trunk_set_keepalive(struct mgcp_trunk_config *tcfg, int interval);
+int mgcp_endpoints_allocate(struct mgcp_trunk *cfg);
+void mgcp_trunk_set_keepalive(struct mgcp_trunk *trunk, int interval);
 
 /*
  * format helper functions

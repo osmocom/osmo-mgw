@@ -292,7 +292,7 @@ static bool is_codec_compatible(const struct mgcp_endpoint *endp, const struct m
 	 * We do not compare to the full audio_name because we expect that
 	 * "GSM", "GSM/8000" and "GSM/8000/1" are all compatible when the
 	 * audio name of the codec is set to "GSM" */
-	if (sscanf(endp->tcfg->audio_name, "%63[^/]/%*d/%*d", codec_name) < 1)
+	if (sscanf(endp->trunk->audio_name, "%63[^/]/%*d/%*d", codec_name) < 1)
 		return false;
 
 	/* Finally we check if the subtype_name we have generated from the
@@ -302,9 +302,9 @@ static bool is_codec_compatible(const struct mgcp_endpoint *endp, const struct m
 		return true;
 
 	/* FIXME: It is questinable that the method to pick a compatible
-	 * codec can work properly. Since this useses tcfg->audio_name, as
+	 * codec can work properly. Since this useses trunk->audio_name, as
 	 * a reference, which is set to "AMR/8000" permanently.
-	 * tcfg->audio_name must be updated by the first connection that
+	 * trunk->audio_name must be updated by the first connection that
 	 * has been made on an endpoint, so that the second connection
 	 * can make a meaningful decision here */
 
@@ -335,7 +335,7 @@ int mgcp_codec_decide(struct mgcp_conn_rtp *conn)
 	for (i = 0; i < rtp->codecs_assigned; i++) {
 		/* When no transcoding is available, avoid codecs that would
 		 * require transcoding. */
-		if (endp->tcfg->no_audio_transcoding && !is_codec_compatible(endp, &rtp->codecs[i])) {
+		if (endp->trunk->no_audio_transcoding && !is_codec_compatible(endp, &rtp->codecs[i])) {
 			LOGP(DLMGCP, LOGL_NOTICE, "transcoding not available, skipping codec: %d/%s\n",
 			     rtp->codecs[i].payload_type, rtp->codecs[i].subtype_name);
 			continue;

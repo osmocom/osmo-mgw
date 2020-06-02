@@ -61,7 +61,7 @@ static void rtpconn_rate_ctr_add(struct mgcp_conn_rtp *conn_rtp, struct mgcp_end
 				 int id, int inc)
 {
 	struct rate_ctr_group *conn_stats = conn_rtp->rate_ctr_group;
-	struct rate_ctr_group *trunk_stats = endp->tcfg->all_rtp_conn_stats;
+	struct rate_ctr_group *trunk_stats = endp->trunk->all_rtp_conn_stats;
 
 	/* add to both the per-connection and the per-trunk global stats */
 	rate_ctr_add(&conn_stats->ctr[id], inc);
@@ -187,7 +187,7 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	if (rc == -1)
 		goto failed;
 
-	if (endp->tcfg->omit_rtcp)
+	if (endp->trunk->omit_rtcp)
 		return rc;
 
 	was_rtcp = 1;
@@ -819,7 +819,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	 *  connection in loopback mode exists), then the source connection
 	 *  shall be specified as destination connection */
 
-	struct mgcp_trunk_config *tcfg = endp->tcfg;
+	struct mgcp_trunk *trunk = endp->trunk;
 	struct mgcp_rtp_end *rtp_end;
 	struct mgcp_rtp_state *rtp_state;
 	char *dest_name;
@@ -835,7 +835,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	}
 
 	LOGPENDP(endp, DRTP, LOGL_DEBUG, "loop:%d, mode:%d%s\n",
-		 tcfg->audio_loop, conn_src->conn->mode,
+		 trunk->audio_loop, conn_src->conn->mode,
 		 conn_src->conn->mode == MGCP_CONN_LOOPBACK ? " (loopback)" : "");
 
 	/* FIXME: It is legal that the payload type on the egress connection is
@@ -947,7 +947,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 			buflen = cont;
 		} while (buflen > 0);
 		return nbytes;
-	} else if (!tcfg->omit_rtcp) {
+	} else if (!trunk->omit_rtcp) {
 		LOGPENDP(endp, DRTP, LOGL_DEBUG,
 			 "send to %s %s rtp_port:%u rtcp_port:%u\n",
 			 dest_name, inet_ntoa(rtp_end->addr),
@@ -1150,12 +1150,12 @@ static int mgcp_recv(int *proto, struct sockaddr_in *addr, char *buf,
 {
 	struct mgcp_endpoint *endp;
 	struct mgcp_conn_rtp *conn;
-	struct mgcp_trunk_config *tcfg;
+	struct mgcp_trunk *trunk;
 	int rc;
 
 	conn = (struct mgcp_conn_rtp*) fd->data;
 	endp = conn->conn->endp;
-	tcfg = endp->tcfg;
+	trunk = endp->trunk;
 
 	LOGPCONN(conn->conn, DRTP, LOGL_DEBUG, "receiving RTP/RTCP packet...\n");
 
@@ -1190,7 +1190,7 @@ static int mgcp_recv(int *proto, struct sockaddr_in *addr, char *buf,
 	LOGPENDP(endp, DRTP, LOGL_DEBUG, "conn:%s\n", mgcp_conn_dump(conn->conn));
 
 	/* Check if the origin of the RTP packet seems plausible */
-	if (tcfg->rtp_accept_all == 0) {
+	if (trunk->rtp_accept_all == 0) {
 		if (check_rtp_origin(conn, addr) != 0)
 			return -1;
 	}

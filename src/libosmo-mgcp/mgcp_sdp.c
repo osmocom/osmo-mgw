@@ -557,7 +557,7 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 		if (rc < 0)
 			goto buffer_too_small;
 
-		if (endp->tcfg->audio_send_name) {
+		if (endp->trunk->audio_send_name) {
 			rc = add_rtpmap(sdp, payload_type, audio_name);
 			if (rc < 0)
 				goto buffer_too_small;
@@ -573,7 +573,7 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 		if (rc < 0)
 			goto buffer_too_small;
 	}
-	if (conn->end.packet_duration_ms > 0 && endp->tcfg->audio_send_ptime) {
+	if (conn->end.packet_duration_ms > 0 && endp->trunk->audio_send_ptime) {
 		rc = msgb_printf(sdp, "a=ptime:%u\r\n",
 				 conn->end.packet_duration_ms);
 		if (rc < 0)

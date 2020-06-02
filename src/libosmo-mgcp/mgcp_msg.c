@@ -136,12 +136,12 @@ static struct mgcp_endpoint *find_e1_endpoint(struct mgcp_config *cfg,
 					      const char *mgcp)
 {
 	char *rest = NULL;
-	struct mgcp_trunk_config *tcfg;
-	int trunk, endp;
+	struct mgcp_trunk *trunk;
+	int trunk_index, endp;
 	struct mgcp_endpoint *endp_ptr;
 
-	trunk = strtoul(mgcp + 6, &rest, 10);
-	if (rest == NULL || rest[0] != '/' || trunk < 1) {
+	trunk_index = strtoul(mgcp + 6, &rest, 10);
+	if (rest == NULL || rest[0] != '/' || trunk_index < 1) {
 		LOGP(DLMGCP, LOGL_ERROR, "Wrong trunk name '%s'\n", mgcp);
 		return NULL;
 	}
@@ -156,26 +156,26 @@ static struct mgcp_endpoint *find_e1_endpoint(struct mgcp_config *cfg,
 	if (endp == 1)
 		return NULL;
 
-	tcfg = mgcp_trunk_num(cfg, trunk);
-	if (!tcfg) {
+	trunk = mgcp_trunk_num(cfg, trunk_index);
+	if (!trunk) {
 		LOGP(DLMGCP, LOGL_ERROR, "The trunk %d is not declared.\n",
-		     trunk);
+		     trunk_index);
 		return NULL;
 	}
 
-	if (!tcfg->endpoints) {
+	if (!trunk->endpoints) {
 		LOGP(DLMGCP, LOGL_ERROR,
-		     "Endpoints of trunk %d not allocated.\n", trunk);
+		     "Endpoints of trunk %d not allocated.\n", trunk_index);
 		return NULL;
 	}
 
-	if (endp < 1 || endp >= tcfg->number_endpoints) {
+	if (endp < 1 || endp >= trunk->number_endpoints) {
 		LOGP(DLMGCP, LOGL_ERROR, "Failed to find endpoint '%s'\n",
 		     mgcp);
 		return NULL;
 	}
 
-	endp_ptr = &tcfg->endpoints[endp];
+	endp_ptr = &trunk->endpoints[endp];
 	endp_ptr->wildcarded_req = false;
 	return endp_ptr;
 }
@@ -235,7 +235,7 @@ static struct mgcp_endpoint *find_endpoint(struct mgcp_config *cfg,
 	unsigned int gw = INT_MAX;
 	const char *endpoint_number_str;
 	struct mgcp_endpoint *endp;
-	struct mgcp_trunk_config *virt_trunk = cfg->virt_trunk;
+	struct mgcp_trunk *virt_trunk = cfg->virt_trunk;
 
 	*cause = 0;
 
