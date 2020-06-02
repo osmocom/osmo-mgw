@@ -9,8 +9,6 @@ struct mgcp_trunk {
 	int trunk_type;
 
 	char *audio_fmtp_extra;
-	char *audio_name;
-	int audio_payload;
 	int audio_send_ptime;
 	int audio_send_name;
 	int audio_loop;

@@ -114,12 +114,6 @@ static int config_write_mgcp(struct vty *vty)
 			VTY_NEWLINE);
 	} else
 		vty_out(vty, " no rtp-patch%s", VTY_NEWLINE);
-	if (trunk->audio_payload != -1)
-		vty_out(vty, " sdp audio-payload number %d%s",
-			trunk->audio_payload, VTY_NEWLINE);
-	if (trunk->audio_name)
-		vty_out(vty, " sdp audio-payload name %s%s",
-			trunk->audio_name, VTY_NEWLINE);
 	if (trunk->audio_fmtp_extra)
 		vty_out(vty, " sdp audio fmtp-extra %s%s",
 			trunk->audio_fmtp_extra, VTY_NEWLINE);
@@ -611,13 +605,11 @@ DEFUN(cfg_mgcp_no_allow_transcoding,
 
 #define SDP_STR "SDP File related options\n"
 #define AUDIO_STR "Audio payload options\n"
-DEFUN(cfg_mgcp_sdp_payload_number,
+DEFUN_DEPRECATED(cfg_mgcp_sdp_payload_number,
       cfg_mgcp_sdp_payload_number_cmd,
       "sdp audio-payload number <0-255>",
       SDP_STR AUDIO_STR "Number\n" "Payload number\n")
 {
-	unsigned int payload = atoi(argv[0]);
-	g_cfg->virt_trunk->audio_payload = payload;
 	return CMD_SUCCESS;
 }
 
@@ -626,12 +618,11 @@ ALIAS_DEPRECATED(cfg_mgcp_sdp_payload_number,
 		 "sdp audio payload number <0-255>",
 		 SDP_STR AUDIO_STR AUDIO_STR "Number\n" "Payload number\n")
 
-DEFUN(cfg_mgcp_sdp_payload_name,
+DEFUN_DEPRECATED(cfg_mgcp_sdp_payload_name,
       cfg_mgcp_sdp_payload_name_cmd,
       "sdp audio-payload name NAME",
       SDP_STR AUDIO_STR "Name\n" "Payload name\n")
 {
-	osmo_talloc_replace_string(g_cfg, &g_cfg->virt_trunk->audio_name, argv[0]);
 	return CMD_SUCCESS;
 }
 
@@ -856,10 +847,6 @@ static int config_write_trunk(struct vty *vty)
 
 	llist_for_each_entry(trunk, &g_cfg->trunks, entry) {
 		vty_out(vty, " trunk %d%s", trunk->trunk_nr, VTY_NEWLINE);
-		vty_out(vty, "  sdp audio-payload number %d%s",
-			trunk->audio_payload, VTY_NEWLINE);
-		vty_out(vty, "  sdp audio-payload name %s%s",
-			trunk->audio_name, VTY_NEWLINE);
 		vty_out(vty, "  %ssdp audio-payload send-ptime%s",
 			trunk->audio_send_ptime ? "" : "no ", VTY_NEWLINE);
 		vty_out(vty, "  %ssdp audio-payload send-name%s",
@@ -920,15 +907,11 @@ DEFUN(cfg_trunk_sdp_fmtp_extra,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_payload_number,
+DEFUN_DEPRECATED(cfg_trunk_payload_number,
       cfg_trunk_payload_number_cmd,
       "sdp audio-payload number <0-255>",
       SDP_STR AUDIO_STR "Number\n" "Payload Number\n")
 {
-	struct mgcp_trunk *trunk = vty->index;
-	unsigned int payload = atoi(argv[0]);
-
-	trunk->audio_payload = payload;
 	return CMD_SUCCESS;
 }
 
@@ -936,14 +919,11 @@ ALIAS_DEPRECATED(cfg_trunk_payload_number, cfg_trunk_payload_number_cmd_old,
 		 "sdp audio payload number <0-255>",
 		 SDP_STR AUDIO_STR AUDIO_STR "Number\n" "Payload Number\n")
 
-DEFUN(cfg_trunk_payload_name,
+DEFUN_DEPRECATED(cfg_trunk_payload_name,
       cfg_trunk_payload_name_cmd,
       "sdp audio-payload name NAME",
       SDP_STR AUDIO_STR "Payload\n" "Payload Name\n")
 {
-	struct mgcp_trunk *trunk = vty->index;
-
-	osmo_talloc_replace_string(g_cfg, &trunk->audio_name, argv[0]);
 	return CMD_SUCCESS;
 }
 

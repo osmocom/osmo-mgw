@@ -1458,11 +1458,9 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 18);
 
-	/* Allocate 5@mgw at select GSM.. */
+	/* Allocate 5@mgw and let osmo-mgw pick a codec from the list */
 	last_endpoint = -1;
 	inp = create_msg(CRCX_MULT_GSM_EXACT, NULL);
-	talloc_free(cfg->virt_trunk->audio_name);
-	cfg->virt_trunk->audio_name = "GSM/8000";
 	cfg->virt_trunk->no_audio_transcoding = 1;
 	resp = mgcp_handle_message(cfg, inp);
 	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
@@ -1474,7 +1472,7 @@ static void test_multilple_codec(void)
 	endp = cfg->virt_trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec->payload_type == 3);
+	OSMO_ASSERT(conn->end.codec->payload_type == 0);
 
 	inp = create_msg(MDCX_NAT_DUMMY, conn_id);
 	last_endpoint = -1;

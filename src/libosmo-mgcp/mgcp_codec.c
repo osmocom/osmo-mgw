@@ -280,36 +280,16 @@ error:
  * Helper function for mgcp_codec_decide() */
 static bool is_codec_compatible(const struct mgcp_endpoint *endp, const struct mgcp_rtp_codec *codec)
 {
-	char codec_name[64];
-
 	/* A codec name must be set, if not, this might mean that the codec
 	 * (payload type) that was assigned is unknown to us so we must stop
 	 * here. */
 	if (!codec->subtype_name)
 		return false;
 
-	/* We now extract the codec_name (letters before the /, e.g. "GSM"
-	 * from the audio name that is stored in the trunk configuration.
-	 * We do not compare to the full audio_name because we expect that
-	 * "GSM", "GSM/8000" and "GSM/8000/1" are all compatible when the
-	 * audio name of the codec is set to "GSM" */
-	if (sscanf(endp->trunk->audio_name, "%63[^/]/%*d/%*d", codec_name) < 1)
-		return false;
+	/* FIXME: implement meaningful checks to make sure that the given codec
+	 * is compatible with the given endpoint */
 
-	/* Finally we check if the subtype_name we have generated from the
-	 * audio_name in the trunc struct patches the codec_name of the
-	 * given codec */
-	if (strcasecmp(codec_name, codec->subtype_name) == 0)
-		return true;
-
-	/* FIXME: It is questinable that the method to pick a compatible
-	 * codec can work properly. Since this useses trunk->audio_name, as
-	 * a reference, which is set to "AMR/8000" permanently.
-	 * trunk->audio_name must be updated by the first connection that
-	 * has been made on an endpoint, so that the second connection
-	 * can make a meaningful decision here */
-
-	return false;
+	return true;
 }
 
 /*! Decide for one suitable codec
