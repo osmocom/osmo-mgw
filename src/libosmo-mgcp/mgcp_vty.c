@@ -71,100 +71,100 @@ static int config_write_mgcp(struct vty *vty)
 	struct mgcp_trunk *trunk = g_cfg->virt_trunk;
 
 	vty_out(vty, "mgcp%s", VTY_NEWLINE);
-	vty_out(vty, "  domain %s%s", g_cfg->domain, VTY_NEWLINE);
+	vty_out(vty, " domain %s%s", g_cfg->domain, VTY_NEWLINE);
 	if (g_cfg->local_ip)
 		vty_out(vty, "  local ip %s%s", g_cfg->local_ip, VTY_NEWLINE);
-	vty_out(vty, "  bind ip %s%s", g_cfg->source_addr, VTY_NEWLINE);
-	vty_out(vty, "  bind port %u%s", g_cfg->source_port, VTY_NEWLINE);
-	vty_out(vty, "  rtp port-range %u %u%s",
+	vty_out(vty, " bind ip %s%s", g_cfg->source_addr, VTY_NEWLINE);
+	vty_out(vty, " bind port %u%s", g_cfg->source_port, VTY_NEWLINE);
+	vty_out(vty, " rtp port-range %u %u%s",
 		g_cfg->net_ports.range_start, g_cfg->net_ports.range_end,
 		VTY_NEWLINE);
 	if (g_cfg->net_ports.bind_addr)
-		vty_out(vty, "  rtp bind-ip %s%s",
+		vty_out(vty, " rtp bind-ip %s%s",
 			g_cfg->net_ports.bind_addr, VTY_NEWLINE);
 	if (g_cfg->net_ports.bind_addr_probe)
-		vty_out(vty, "  rtp ip-probing%s", VTY_NEWLINE);
+		vty_out(vty, " rtp ip-probing%s", VTY_NEWLINE);
 	else
-		vty_out(vty, "  no rtp ip-probing%s", VTY_NEWLINE);
-	vty_out(vty, "  rtp ip-dscp %d%s", g_cfg->endp_dscp, VTY_NEWLINE);
+		vty_out(vty, " no rtp ip-probing%s", VTY_NEWLINE);
+	vty_out(vty, " rtp ip-dscp %d%s", g_cfg->endp_dscp, VTY_NEWLINE);
 	if (trunk->keepalive_interval == MGCP_KEEPALIVE_ONCE)
-		vty_out(vty, "  rtp keep-alive once%s", VTY_NEWLINE);
+		vty_out(vty, " rtp keep-alive once%s", VTY_NEWLINE);
 	else if (trunk->keepalive_interval)
-		vty_out(vty, "  rtp keep-alive %d%s",
+		vty_out(vty, " rtp keep-alive %d%s",
 			trunk->keepalive_interval, VTY_NEWLINE);
 	else
-		vty_out(vty, "  no rtp keep-alive%s", VTY_NEWLINE);
+		vty_out(vty, " no rtp keep-alive%s", VTY_NEWLINE);
 
 	if (trunk->omit_rtcp)
-		vty_out(vty, "  rtcp-omit%s", VTY_NEWLINE);
+		vty_out(vty, " rtcp-omit%s", VTY_NEWLINE);
 	else
-		vty_out(vty, "  no rtcp-omit%s", VTY_NEWLINE);
+		vty_out(vty, " no rtcp-omit%s", VTY_NEWLINE);
 	if (trunk->force_constant_ssrc
 	    || trunk->force_aligned_timing
 	    || trunk->rfc5993_hr_convert) {
-		vty_out(vty, "  %srtp-patch ssrc%s",
+		vty_out(vty, " %srtp-patch ssrc%s",
 			trunk->force_constant_ssrc ? "" : "no ",
 			VTY_NEWLINE);
-		vty_out(vty, "  %srtp-patch timestamp%s",
+		vty_out(vty, " %srtp-patch timestamp%s",
 			trunk->force_aligned_timing ? "" : "no ",
 			VTY_NEWLINE);
-		vty_out(vty, "  %srtp-patch rfc5993hr%s",
+		vty_out(vty, " %srtp-patch rfc5993hr%s",
 			trunk->rfc5993_hr_convert ? "" : "no ",
 			VTY_NEWLINE);
 	} else
-		vty_out(vty, "  no rtp-patch%s", VTY_NEWLINE);
+		vty_out(vty, " no rtp-patch%s", VTY_NEWLINE);
 	if (trunk->audio_payload != -1)
-		vty_out(vty, "  sdp audio-payload number %d%s",
+		vty_out(vty, " sdp audio-payload number %d%s",
 			trunk->audio_payload, VTY_NEWLINE);
 	if (trunk->audio_name)
-		vty_out(vty, "  sdp audio-payload name %s%s",
+		vty_out(vty, " sdp audio-payload name %s%s",
 			trunk->audio_name, VTY_NEWLINE);
 	if (trunk->audio_fmtp_extra)
-		vty_out(vty, "  sdp audio fmtp-extra %s%s",
+		vty_out(vty, " sdp audio fmtp-extra %s%s",
 			trunk->audio_fmtp_extra, VTY_NEWLINE);
-	vty_out(vty, "  %ssdp audio-payload send-ptime%s",
+	vty_out(vty, " %ssdp audio-payload send-ptime%s",
 		trunk->audio_send_ptime ? "" : "no ", VTY_NEWLINE);
-	vty_out(vty, "  %ssdp audio-payload send-name%s",
+	vty_out(vty, " %ssdp audio-payload send-name%s",
 		trunk->audio_send_name ? "" : "no ", VTY_NEWLINE);
-	vty_out(vty, "  loop %u%s", ! !trunk->audio_loop, VTY_NEWLINE);
-	vty_out(vty, "  number endpoints %u%s",
+	vty_out(vty, " loop %u%s", ! !trunk->audio_loop, VTY_NEWLINE);
+	vty_out(vty, " number endpoints %u%s",
 		trunk->vty_number_endpoints - 1, VTY_NEWLINE);
-	vty_out(vty, "  %sallow-transcoding%s",
+	vty_out(vty, " %sallow-transcoding%s",
 		trunk->no_audio_transcoding ? "no " : "", VTY_NEWLINE);
 	if (g_cfg->call_agent_addr)
-		vty_out(vty, "  call-agent ip %s%s", g_cfg->call_agent_addr,
+		vty_out(vty, " call-agent ip %s%s", g_cfg->call_agent_addr,
 			VTY_NEWLINE);
 	if (g_cfg->force_ptime > 0)
-		vty_out(vty, "  rtp force-ptime %d%s", g_cfg->force_ptime,
+		vty_out(vty, " rtp force-ptime %d%s", g_cfg->force_ptime,
 			VTY_NEWLINE);
 
 	switch (g_cfg->osmux) {
 	case OSMUX_USAGE_ON:
-		vty_out(vty, "  osmux on%s", VTY_NEWLINE);
+		vty_out(vty, " osmux on%s", VTY_NEWLINE);
 		break;
 	case OSMUX_USAGE_ONLY:
-		vty_out(vty, "  osmux only%s", VTY_NEWLINE);
+		vty_out(vty, " osmux only%s", VTY_NEWLINE);
 		break;
 	case OSMUX_USAGE_OFF:
 	default:
-		vty_out(vty, "  osmux off%s", VTY_NEWLINE);
+		vty_out(vty, " osmux off%s", VTY_NEWLINE);
 		break;
 	}
 	if (g_cfg->osmux) {
-		vty_out(vty, "  osmux bind-ip %s%s",
+		vty_out(vty, " osmux bind-ip %s%s",
 			g_cfg->osmux_addr, VTY_NEWLINE);
-		vty_out(vty, "  osmux batch-factor %d%s",
+		vty_out(vty, " osmux batch-factor %d%s",
 			g_cfg->osmux_batch, VTY_NEWLINE);
-		vty_out(vty, "  osmux batch-size %u%s",
+		vty_out(vty, " osmux batch-size %u%s",
 			g_cfg->osmux_batch_size, VTY_NEWLINE);
-		vty_out(vty, "  osmux port %u%s",
+		vty_out(vty, " osmux port %u%s",
 			g_cfg->osmux_port, VTY_NEWLINE);
-		vty_out(vty, "  osmux dummy %s%s",
+		vty_out(vty, " osmux dummy %s%s",
 			g_cfg->osmux_dummy ? "on" : "off", VTY_NEWLINE);
 	}
 
 	if (g_cfg->conn_timeout)
-		vty_out(vty, "  conn-timeout %u%s", g_cfg->conn_timeout, VTY_NEWLINE);
+		vty_out(vty, " conn-timeout %u%s", g_cfg->conn_timeout, VTY_NEWLINE);
 
 	return CMD_SUCCESS;
 }
