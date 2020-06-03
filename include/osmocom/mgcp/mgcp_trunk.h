@@ -45,3 +45,8 @@ struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_typ
 int mgcp_trunk_alloc_endpts(struct mgcp_trunk *tcfg);
 struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, int index);
 struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char *epname);
+
+/* The virtual trunk is always created on trunk id 0 for historical reasons,
+ * use this define constant as ID when allocating a virtual trunk. Other
+ * trunks may be assigned with arbritrary id numbers */
+#define MGCP_VIRT_TRUNK_ID 0

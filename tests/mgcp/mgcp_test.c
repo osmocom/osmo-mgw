@@ -760,6 +760,7 @@ static void test_messages(void)
 {
 	struct mgcp_config *cfg;
 	struct mgcp_endpoint *endp;
+	struct mgcp_trunk *trunk;
 	struct mgcp_trunk *trunk2;
 	int i;
 	struct mgcp_conn_rtp *conn = NULL;
@@ -767,9 +768,10 @@ static void test_messages(void)
 	int rc;
 
 	cfg = mgcp_config_alloc();
+	trunk = mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
 
-	cfg->virt_trunk->vty_number_endpoints = 64;
-        mgcp_trunk_alloc_endpts(cfg->virt_trunk);
+	trunk->vty_number_endpoints = 64;
+        mgcp_trunk_alloc_endpts(trunk);
 	cfg->policy_cb = mgcp_test_policy_cb;
 
 	memset(last_conn_id, 0, sizeof(last_conn_id));
@@ -788,7 +790,7 @@ static void test_messages(void)
 		last_endpoint = -1;
 		dummy_packets = 0;
 
-		osmo_talloc_replace_string(cfg, &cfg->virt_trunk->audio_fmtp_extra,
+		osmo_talloc_replace_string(cfg, &trunk->audio_fmtp_extra,
 					   t->extra_fmtp);
 
 		inp = create_msg(t->req, last_conn_id);
@@ -821,7 +823,7 @@ static void test_messages(void)
 			printf("Dummy packets: %d\n", dummy_packets);
 
 		if (last_endpoint != -1) {
-			endp = cfg->virt_trunk->endpoints[last_endpoint];
+			endp = trunk->endpoints[last_endpoint];
 
 			conn = mgcp_conn_get_rtp(endp, "1");
 			if (conn) {
@@ -877,7 +879,7 @@ static void test_messages(void)
 		/* Check detected payload type */
 		if (conn && t->ptype != PTYPE_IGNORE) {
 			OSMO_ASSERT(last_endpoint != -1);
-			endp = cfg->virt_trunk->endpoints[last_endpoint];
+			endp = trunk->endpoints[last_endpoint];
 
 			fprintf(stderr, "endpoint 0x%x: "
 				"payload type %d (expected %d)\n",
@@ -894,22 +896,24 @@ static void test_messages(void)
 	}
 
 	mgcp_endpoints_release(trunk2);
-	mgcp_endpoints_release(cfg->virt_trunk);
+	mgcp_endpoints_release(trunk);
 	talloc_free(cfg);
 }
 
 static void test_retransmission(void)
 {
 	struct mgcp_config *cfg;
+	struct mgcp_trunk *trunk;
 	struct mgcp_trunk *trunk2;
 	int i;
 	char last_conn_id[256];
 	int rc;
 
 	cfg = mgcp_config_alloc();
+	trunk = mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
 
-	cfg->virt_trunk->vty_number_endpoints = 64;
-        mgcp_trunk_alloc_endpts(cfg->virt_trunk);
+	trunk->vty_number_endpoints = 64;
+        mgcp_trunk_alloc_endpts(trunk);
 
 	memset(last_conn_id, 0, sizeof(last_conn_id));
 
@@ -955,7 +959,7 @@ static void test_retransmission(void)
 	}
 
 	mgcp_endpoints_release(trunk2);
-	mgcp_endpoints_release(cfg->virt_trunk);
+	mgcp_endpoints_release(trunk);
 	talloc_free(cfg);
 }
 
@@ -969,15 +973,17 @@ static int rqnt_cb(struct mgcp_endpoint *endp, char _tone)
 static void test_rqnt_cb(void)
 {
 	struct mgcp_config *cfg;
+	struct mgcp_trunk *trunk;
 	struct mgcp_trunk *trunk2;
 	struct msgb *inp, *msg;
 	char conn_id[256];
 
 	cfg = mgcp_config_alloc();
+	trunk = mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
 	cfg->rqnt_cb = rqnt_cb;
 
-	cfg->virt_trunk->vty_number_endpoints = 64;
-        mgcp_trunk_alloc_endpts(cfg->virt_trunk);
+	trunk->vty_number_endpoints = 64;
+        mgcp_trunk_alloc_endpts(trunk);
 
 	trunk2 = mgcp_trunk_alloc(cfg, MGCP_TRUNK_E1, 1);
         mgcp_trunk_alloc_endpts(trunk2);
@@ -1010,7 +1016,7 @@ static void test_rqnt_cb(void)
 	msgb_free(mgcp_handle_message(cfg, inp));
 	msgb_free(inp);
 	mgcp_endpoints_release(trunk2);
-	mgcp_endpoints_release(cfg->virt_trunk);
+	mgcp_endpoints_release(trunk);
 	talloc_free(cfg);
 }
 
@@ -1376,6 +1382,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 static void test_multilple_codec(void)
 {
 	struct mgcp_config *cfg;
+	struct mgcp_trunk *trunk;
 	struct mgcp_trunk *trunk2;
 	struct mgcp_endpoint *endp;
 	struct msgb *inp, *resp;
@@ -1386,8 +1393,9 @@ static void test_multilple_codec(void)
 	printf("Testing multiple payload types\n");
 
 	cfg = mgcp_config_alloc();
-	cfg->virt_trunk->vty_number_endpoints = 64;
-        mgcp_trunk_alloc_endpts(cfg->virt_trunk);
+	trunk = mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
+	trunk->vty_number_endpoints = 64;
+        mgcp_trunk_alloc_endpts(trunk);
 	cfg->policy_cb = mgcp_test_policy_cb;
 
 	trunk2 = mgcp_trunk_alloc(cfg, MGCP_TRUNK_E1, 1);
@@ -1403,7 +1411,7 @@ static void test_multilple_codec(void)
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 1);
-	endp = cfg->virt_trunk->endpoints[last_endpoint];
+	endp = trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 18);
@@ -1418,7 +1426,7 @@ static void test_multilple_codec(void)
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 2);
-	endp = cfg->virt_trunk->endpoints[last_endpoint];
+	endp = trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 18);
@@ -1438,7 +1446,7 @@ static void test_multilple_codec(void)
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 3);
-	endp = cfg->virt_trunk->endpoints[last_endpoint];
+	endp = trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
@@ -1453,7 +1461,7 @@ static void test_multilple_codec(void)
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 4);
-	endp = cfg->virt_trunk->endpoints[last_endpoint];
+	endp = trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 18);
@@ -1461,7 +1469,7 @@ static void test_multilple_codec(void)
 	/* Allocate 5@mgw and let osmo-mgw pick a codec from the list */
 	last_endpoint = -1;
 	inp = create_msg(CRCX_MULT_GSM_EXACT, NULL);
-	cfg->virt_trunk->no_audio_transcoding = 1;
+	trunk->no_audio_transcoding = 1;
 	resp = mgcp_handle_message(cfg, inp);
 	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
 					      sizeof(conn_id)) == 0);
@@ -1469,7 +1477,7 @@ static void test_multilple_codec(void)
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 5);
-	endp = cfg->virt_trunk->endpoints[last_endpoint];
+	endp = trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
@@ -1480,7 +1488,7 @@ static void test_multilple_codec(void)
 	msgb_free(inp);
 	msgb_free(resp);
 	OSMO_ASSERT(last_endpoint == 5);
-	endp = cfg->virt_trunk->endpoints[last_endpoint];
+	endp = trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 3);
@@ -1502,7 +1510,7 @@ static void test_multilple_codec(void)
 
 	last_endpoint = -1;
 	inp = create_msg(CRCX_MULT_GSM_EXACT, NULL);
-	cfg->virt_trunk->no_audio_transcoding = 0;
+	trunk->no_audio_transcoding = 0;
 	resp = mgcp_handle_message(cfg, inp);
 	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
 					      sizeof(conn_id)) == 0);
@@ -1510,13 +1518,13 @@ static void test_multilple_codec(void)
 	msgb_free(resp);
 
 	OSMO_ASSERT(last_endpoint == 5);
-	endp = cfg->virt_trunk->endpoints[last_endpoint];
+	endp = trunk->endpoints[last_endpoint];
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
 
 	mgcp_endpoints_release(trunk2);
-	mgcp_endpoints_release(cfg->virt_trunk);
+	mgcp_endpoints_release(trunk);
 	talloc_free(cfg);
 }
 
@@ -1526,14 +1534,16 @@ static void test_no_cycle(void)
 	struct mgcp_endpoint *endp;
 	struct mgcp_conn_rtp *conn = NULL;
 	struct mgcp_conn *_conn = NULL;
+	struct mgcp_trunk *trunk;
 
 	printf("Testing no sequence flow on initial packet\n");
 
 	cfg = mgcp_config_alloc();
-	cfg->virt_trunk->vty_number_endpoints = 64;
-        mgcp_trunk_alloc_endpts(cfg->virt_trunk);
+	trunk = mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
+	trunk->vty_number_endpoints = 64;
+        mgcp_trunk_alloc_endpts(trunk);
 
-	endp = cfg->virt_trunk->endpoints[1];
+	endp = trunk->endpoints[1];
 
 	_conn = mgcp_conn_alloc(NULL, endp, MGCP_CONN_TYPE_RTP,
 				"test-connection");
@@ -1565,22 +1575,24 @@ static void test_no_cycle(void)
 	OSMO_ASSERT(conn->state.stats.cycles == UINT16_MAX + 1);
 	OSMO_ASSERT(conn->state.stats.max_seq == 0);
 
-	mgcp_endpoints_release(cfg->virt_trunk);
+	mgcp_endpoints_release(trunk);
 	talloc_free(cfg);
 }
 
 static void test_no_name(void)
 {
+	struct mgcp_trunk *trunk;
 	struct mgcp_trunk *trunk2;
 	struct mgcp_config *cfg;
 	struct msgb *inp, *msg;
 
 	printf("Testing no rtpmap name\n");
 	cfg = mgcp_config_alloc();
+	trunk = mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
 
-	cfg->virt_trunk->vty_number_endpoints = 64;
-	cfg->virt_trunk->audio_send_name = 0;
-        mgcp_trunk_alloc_endpts(cfg->virt_trunk);
+	trunk->vty_number_endpoints = 64;
+	trunk->audio_send_name = 0;
+        mgcp_trunk_alloc_endpts(trunk);
 
 	cfg->policy_cb = mgcp_test_policy_cb;
 
@@ -1599,7 +1611,7 @@ static void test_no_name(void)
 	msgb_free(msg);
 
 	mgcp_endpoints_release(trunk2);
-	mgcp_endpoints_release(cfg->virt_trunk);
+	mgcp_endpoints_release(trunk);
 	talloc_free(cfg);
 }
 

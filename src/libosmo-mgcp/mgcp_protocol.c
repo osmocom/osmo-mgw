@@ -1498,15 +1498,13 @@ struct mgcp_config *mgcp_config_alloc(void)
 
 	cfg->get_net_downlink_format_cb = &mgcp_get_net_downlink_format_default;
 
+	INIT_LLIST_HEAD(&cfg->trunks);
+
 	/* Allocate virtual trunk */
-	cfg->virt_trunk = mgcp_trunk_alloc(cfg, MGCP_TRUNK_VIRTUAL, 0);
-	if (!cfg->virt_trunk) {
+	if (!mgcp_trunk_alloc(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID)) {
 		talloc_free(cfg);
 		return NULL;
 	}
-
-	/* Initalize list head for user configurable trunks */
-	INIT_LLIST_HEAD(&cfg->trunks);
 
         mgcp_ratectr_global_alloc(cfg, &cfg->ratectr);
 

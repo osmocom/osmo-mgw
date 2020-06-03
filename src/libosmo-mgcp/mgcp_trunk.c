@@ -52,11 +52,7 @@ struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_typ
 
 	mgcp_trunk_set_keepalive(trunk, MGCP_KEEPALIVE_ONCE);
 
-	/* Note: Trunk Nr.0 is reserved as "virtual trunk",
-	 * it is not stored using a separate pointer and
-	 * not in the trunk list. */
-	if (nr > 0)
-		llist_add_tail(&trunk->entry, &cfg->trunks);
+	llist_add_tail(&trunk->entry, &cfg->trunks);
 
         mgcp_ratectr_trunk_alloc(cfg, &trunk->ratectr);
 
@@ -152,7 +148,7 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 
 	prefix_len = sizeof(MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK) - 1;
 	if (strncmp(epname, MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK, prefix_len) == 0) {
-		return cfg->virt_trunk;
+		return  mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
 	}
 
 	/* E1 trunks are not implemented yet, so we deny any request for an
@@ -175,7 +171,7 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 	if ((epname[0] >= '0' && epname[0] <= '9') || (epname[0] >= 'a' && epname[0] <= 'f')) {
 		LOGP(DLMGCP, LOGL_ERROR, "missing trunk prefix in endpoint name \"%s\", assuming trunk \"%s\"!\n", epname,
 		     MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK);
-		return cfg->virt_trunk;
+		return  mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
 	}
 
 	LOGP(DLMGCP, LOGL_ERROR, "unable to find trunk for endpoint name \"%s\"!\n", epname);
