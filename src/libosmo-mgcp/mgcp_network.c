@@ -1328,6 +1328,23 @@ int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
 
 }
 
+/*! dispatch incoming RTP packet to E1 subslot, handle RTCP packets locally.
+ *  \param[in] proto protocol (MGCP_CONN_TYPE_RTP or MGCP_CONN_TYPE_RTCP).
+ *  \param[in] addr socket address where the RTP packet has been received from.
+ *  \param[in] buf buffer that hold the RTP payload.
+ *  \param[in] buf_size size data length of buf.
+ *  \param[in] conn originating connection.
+ *  \returns 0 on success, -1 on ERROR. */
+int mgcp_dispatch_e1_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
+				unsigned int buf_size, struct mgcp_conn *conn)
+{
+	/* FIXME: integrate E1 support from libsomoabis, also implement
+	 * handling for RTCP packets, which can not converted to E1. */
+	LOGPCONN(conn, DRTP, LOGL_FATAL,
+		 "cannot dispatch! E1 support is not implemented yet!\n");
+	return -1;
+}
+
 /*! cleanup an endpoint when a connection on an RTP bridge endpoint is removed.
  *  \param[in] endp Endpoint on which the connection resides.
  *  \param[in] conn Connection that is about to be removed (ignored). */
@@ -1344,6 +1361,15 @@ void mgcp_cleanup_rtp_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *co
 	llist_for_each_entry(conn_cleanup, &endp->conns, entry) {
 		conn_cleanup->priv = NULL;
 	}
+}
+
+/*! cleanup an endpoint when a connection on an E1 endpoint is removed.
+ *  \param[in] endp Endpoint on which the connection resides.
+ *  \param[in] conn Connection that is about to be removed (ignored). */
+void mgcp_cleanup_e1_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *conn)
+{
+	LOGPCONN(conn, DRTP, LOGL_FATAL,
+		 "cannot dispatch! E1 support is not implemented yet!\n");
 }
 
 /* Handle incoming RTP data from NET */

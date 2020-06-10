@@ -262,6 +262,9 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn);
 int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
 				unsigned int buf_size, struct mgcp_conn *conn);
 void mgcp_cleanup_rtp_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *conn);
+int mgcp_dispatch_e1_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
+				unsigned int buf_size, struct mgcp_conn *conn);
+void mgcp_cleanup_e1_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *conn);
 int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 			   struct mgcp_conn_rtp *conn);
 void mgcp_free_rtp_port(struct mgcp_rtp_end *end);

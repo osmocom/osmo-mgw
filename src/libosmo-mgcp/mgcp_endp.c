@@ -28,9 +28,17 @@
 /* Endpoint typeset definition */
 const struct mgcp_endpoint_typeset ep_typeset = {
 	/* Specify endpoint properties for RTP endpoint */
-	.rtp.max_conns = 2,
-	.rtp.dispatch_rtp_cb = mgcp_dispatch_rtp_bridge_cb,
-	.rtp.cleanup_cb = mgcp_cleanup_rtp_bridge_cb
+	.rtp = {
+		.max_conns = 2,
+		.dispatch_rtp_cb = mgcp_dispatch_rtp_bridge_cb,
+		.cleanup_cb = mgcp_cleanup_rtp_bridge_cb,
+	},
+	/* Specify endpoint properties for E1 endpoint */
+	.e1 = {
+		.max_conns = 1,
+		.dispatch_rtp_cb = mgcp_dispatch_e1_bridge_cb,
+		.cleanup_cb = mgcp_cleanup_e1_bridge_cb,
+	},
 };
 
 /* Generate virtual endpoint name from given parameters */

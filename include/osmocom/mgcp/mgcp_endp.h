@@ -60,6 +60,7 @@ struct mgcp_endpoint_type {
 /*! MGCP endpoint typeset */
 struct mgcp_endpoint_typeset {
 	struct mgcp_endpoint_type rtp;
+	struct mgcp_endpoint_type e1;
 };
 
 /*! static MGCP endpoint typeset (pre-initalized, read-only) */
