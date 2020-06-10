@@ -103,7 +103,7 @@ struct mgcp_endpoint {
 	uint32_t x_osmo_ign;
 };
 
-struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk, char *name);
+struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk, unsigned int index);
 void mgcp_endp_release(struct mgcp_endpoint *endp);
 struct mgcp_endpoint *mgcp_endp_by_name_trunk(int *cause, const char *epname,
 					      const struct mgcp_trunk *trunk);

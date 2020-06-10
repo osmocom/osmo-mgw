@@ -33,11 +33,20 @@ const struct mgcp_endpoint_typeset ep_typeset = {
 	.rtp.cleanup_cb = mgcp_cleanup_rtp_bridge_cb
 };
 
+/* Generate virtual endpoint name from given parameters */
+static char *gen_virtual_epname(void *ctx, const char *domain,
+			       unsigned int index)
+{
+	return talloc_asprintf(ctx, "%s%x@%s",
+		 MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK, index, domain);
+}
+
 /*! allocate an endpoint and set default values.
  *  \param[in] trunk configuration.
- *  \param[in] name endpoint name.
+ *  \param[in] name endpoint index.
  *  \returns endpoint on success, NULL on failure. */
-struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk, char *name)
+struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk,
+				      unsigned int index)
 {
 	struct mgcp_endpoint *endp;
 
@@ -48,15 +57,18 @@ struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk, char *name)
 	INIT_LLIST_HEAD(&endp->conns);
 	endp->cfg = trunk->cfg;
 	endp->trunk = trunk;
-	endp->name = talloc_strdup(endp, name);
 
 	switch (trunk->trunk_type) {
 	case MGCP_TRUNK_VIRTUAL:
 		endp->type = &ep_typeset.rtp;
+		endp->name = gen_virtual_epname(endp, trunk->cfg->domain, index);
 		break;
 	case MGCP_TRUNK_E1:
-		/* FIXME: Implement E1 allocation */
+		/* FIXME: E1 trunk implementation is work in progress, this endpoint
+		 * name is incomplete (subslots) */
+		endp->name = talloc_asprintf(endp, "%s-1/%x", MGCP_ENDPOINT_PREFIX_E1_TRUNK, index);
 		LOGP(DLMGCP, LOGL_FATAL, "E1 trunks not implemented!\n");
+		endp->type = &ep_typeset.rtp;
 		break;
 	default:
 		osmo_panic("Cannot allocate unimplemented trunk type %d! %s:%d\n",

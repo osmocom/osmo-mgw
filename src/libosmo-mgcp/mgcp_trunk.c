@@ -66,7 +66,6 @@ struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_typ
 int mgcp_trunk_alloc_endpts(struct mgcp_trunk *trunk)
 {
 	int i;
-	char ep_name_buf[MGCP_ENDPOINT_MAXLEN];
 	struct mgcp_endpoint *endp;
 
 	/* Make sure the amount of requested endpoints does not execeed
@@ -90,22 +89,7 @@ int mgcp_trunk_alloc_endpts(struct mgcp_trunk *trunk)
 
 	/* create endpoints */
 	for (i = 0; i < trunk->vty_number_endpoints; ++i) {
-		switch (trunk->trunk_type) {
-		case MGCP_TRUNK_VIRTUAL:
-			snprintf(ep_name_buf, sizeof(ep_name_buf), "%s%x@%s", MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK, i,
-				 trunk->cfg->domain);
-			break;
-		case MGCP_TRUNK_E1:
-			/* FIXME: E1 trunk implementation is work in progress, this endpoint
-			 * name is incomplete (subslots) */
-			snprintf(ep_name_buf, sizeof(ep_name_buf), "%s-1/%x", MGCP_ENDPOINT_PREFIX_E1_TRUNK, i);
-			break;
-		default:
-			osmo_panic("Cannot allocate unimplemented trunk type %d! %s:%d\n",
-				   trunk->trunk_type, __FILE__, __LINE__);
-		}
-
-		endp = mgcp_endp_alloc(trunk, ep_name_buf);
+		endp = mgcp_endp_alloc(trunk, i);
 		if (!endp) {
 			talloc_free(trunk->endpoints);
 			return -1;
