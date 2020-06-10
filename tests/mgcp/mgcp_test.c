@@ -2130,6 +2130,48 @@ void test_conn_id_matching()
 	talloc_free(conn);
 }
 
+void test_e1_trunk_nr_from_epname()
+{
+	int trunk_nr;
+
+	/* Note: e1_trunk_nr_from_epname does not check the text
+	 * after the E1 trunk number, after the delimiter
+	 * character "/" arbitrary text may follow. */
+	trunk_nr = e1_trunk_nr_from_epname("ds/e1-1/s-1/su16-0");
+	OSMO_ASSERT(trunk_nr == 1);
+	trunk_nr = e1_trunk_nr_from_epname("ds/e1-2/s-2/su16-0");
+	OSMO_ASSERT(trunk_nr == 2);
+	trunk_nr = e1_trunk_nr_from_epname("ds/e1-3/s-23/su32-0");
+	OSMO_ASSERT(trunk_nr == 3);
+	trunk_nr = e1_trunk_nr_from_epname("ds/e1-3/xxxxxxx");
+	OSMO_ASSERT(trunk_nr == 3);
+	trunk_nr = e1_trunk_nr_from_epname("ds/e1-24/s-1/su16-0");
+	OSMO_ASSERT(trunk_nr == 24);
+	trunk_nr = e1_trunk_nr_from_epname("ds/e1-64/s-1/su16-0");
+	OSMO_ASSERT(trunk_nr == 64);
+
+	/* The following endpoint strings should fail, either the
+	 * trunk number exceeds the valid range or the trunk prefix
+	 * is wrong. Also when the delimiter character "/" at the
+	 * end of the trunk is wrong the parsing should fail. */
+	trunk_nr = e1_trunk_nr_from_epname("ds/e1-0/s-1/su16-0");
+	OSMO_ASSERT(trunk_nr == -EINVAL);
+	trunk_nr = e1_trunk_nr_from_epname("ds/e1-65/s-1/su16-0");
+	OSMO_ASSERT(trunk_nr == -EINVAL);
+	trunk_nr = e1_trunk_nr_from_epname("ds/e1--1/s-1/su16-0");
+	OSMO_ASSERT(trunk_nr == -EINVAL);
+	trunk_nr = e1_trunk_nr_from_epname("xxxxxx4zyz");
+	OSMO_ASSERT(trunk_nr == -EINVAL);
+	trunk_nr = e1_trunk_nr_from_epname("ds/e1+2/s-1/su16-0");
+	OSMO_ASSERT(trunk_nr == -EINVAL);
+	trunk_nr = e1_trunk_nr_from_epname("ds/e2-24/s-1/su16-0");
+	OSMO_ASSERT(trunk_nr == -EINVAL);
+	trunk_nr = e1_trunk_nr_from_epname("ds/e1-24s-1/su16-0");
+	OSMO_ASSERT(trunk_nr == -EINVAL);
+
+	return;
+}
+
 int main(int argc, char **argv)
 {
 	void *ctx = talloc_named_const(NULL, 0, "mgcp_test");
@@ -2155,6 +2197,7 @@ int main(int argc, char **argv)
 	test_check_local_cx_options(ctx);
 	test_mgcp_codec_pt_translate();
 	test_conn_id_matching();
+	test_e1_trunk_nr_from_epname();
 
 	OSMO_ASSERT(talloc_total_size(msgb_ctx) == 0);
 	OSMO_ASSERT(talloc_total_blocks(msgb_ctx) == 1);

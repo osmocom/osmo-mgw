@@ -118,6 +118,27 @@ struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, int index)
 	return NULL;
 }
 
+/* Made public for unit-testing, do not use from outside this file */
+int e1_trunk_nr_from_epname(const char *epname)
+{
+	unsigned long int trunk_nr;
+	size_t prefix_len;
+	char *str_trunk_nr_end;
+
+	prefix_len = sizeof(MGCP_ENDPOINT_PREFIX_E1_TRUNK) - 1;
+	if (strncmp(epname, MGCP_ENDPOINT_PREFIX_E1_TRUNK, prefix_len) != 0)
+		return -EINVAL;
+
+	errno = 0;
+	trunk_nr = strtoul(epname + prefix_len, &str_trunk_nr_end, 10);
+	if (errno == ERANGE || trunk_nr > 64 || trunk_nr == 0
+	    || epname + prefix_len == str_trunk_nr_end
+	    || str_trunk_nr_end[0] != '/')
+		return -EINVAL;
+	else
+		return trunk_nr;
+}
+
 /*! Find a trunk by the trunk prefix in the endpoint name.
  *  \param[in] epname endpoint name with trunk prefix to look up.
  *  \param[in] cfg that contains the trunks where the endpoint is located.
@@ -126,6 +147,7 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 {
 	size_t prefix_len;
 	char epname_lc[MGCP_ENDPOINT_MAXLEN];
+	unsigned long int trunk_nr;
 
 	osmo_str_tolower_buf(epname_lc, sizeof(epname_lc), epname);
 	epname = epname_lc;
@@ -135,13 +157,12 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 		return mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
 	}
 
-	/* E1 trunks are not implemented yet, so we deny any request for an
-	 * e1 trunk for now. */
 	prefix_len = sizeof(MGCP_ENDPOINT_PREFIX_E1_TRUNK) - 1;
 	if (strncmp(epname, MGCP_ENDPOINT_PREFIX_E1_TRUNK, prefix_len) == 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "endpoint name \"%s\" suggests an E1 trunk, but E1 trunks are not implemented in this version of osmo-mgw!\n", epname);
-		return NULL;
+		trunk_nr = e1_trunk_nr_from_epname(epname);
+		if (trunk_nr < 0)
+			return NULL;
+		return mgcp_trunk_by_num(cfg, trunk_nr);
 	}
 
 	/* Earlier versions of osmo-mgw were accepting endpoint names
