@@ -148,7 +148,7 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 
 	prefix_len = sizeof(MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK) - 1;
 	if (strncmp(epname, MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK, prefix_len) == 0) {
-		return  mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
+		return mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
 	}
 
 	/* E1 trunks are not implemented yet, so we deny any request for an
