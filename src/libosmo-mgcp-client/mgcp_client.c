@@ -985,7 +985,7 @@ struct mgcp_response_pending * mgcp_client_pending_add(
 int mgcp_client_tx(struct mgcp_client *mgcp, struct msgb *msg,
 		   mgcp_response_cb_t response_cb, void *priv)
 {
-	struct mgcp_response_pending *pending;
+	struct mgcp_response_pending *pending = NULL;
 	mgcp_trans_id_t trans_id;
 	int rc;
 
@@ -997,10 +997,13 @@ int mgcp_client_tx(struct mgcp_client *mgcp, struct msgb *msg,
 		return -EINVAL;
 	}
 
-	pending = mgcp_client_pending_add(mgcp, trans_id, response_cb, priv);
-	if (!pending) {
-		talloc_free(msg);
-		return -ENOMEM;
+	/* Do not allocate a dummy 'mgcp_response_pending' entry */
+	if (response_cb != NULL) {
+		pending = mgcp_client_pending_add(mgcp, trans_id, response_cb, priv);
+		if (!pending) {
+			talloc_free(msg);
+			return -ENOMEM;
+		}
 	}
 
 	if (msgb_l2len(msg) > 4096) {
@@ -1023,6 +1026,8 @@ int mgcp_client_tx(struct mgcp_client *mgcp, struct msgb *msg,
 	return 0;
 
 mgcp_tx_error:
+	if (!pending)
+		return -1;
 	/* Dequeue pending response, it's going to be free()d */
 	llist_del(&pending->entry);
 	/* Pass NULL to response cb to indicate an error */
