@@ -110,3 +110,4 @@ struct mgcp_endpoint *mgcp_endp_by_name_trunk(int *cause, const char *epname,
 					      const struct mgcp_trunk *trunk);
 struct mgcp_endpoint *mgcp_endp_by_name(int *cause, const char *epname,
 					struct mgcp_config *cfg);
+bool mgcp_endp_avail(struct mgcp_endpoint *endp);

@@ -199,6 +199,8 @@ static void dump_endpoint(struct vty *vty, struct mgcp_endpoint *endp,
 
 	vty_out(vty, "%s trunk %d endpoint %s:%s",
 		trunk_type == MGCP_TRUNK_VIRTUAL ? "Virtual" : "E1", trunk_nr, endp->name, VTY_NEWLINE);
+	vty_out(vty, "   Availability: %s%s",
+		mgcp_endp_avail(endp) ? "available" : "not in service", VTY_NEWLINE);
 
 	if (llist_empty(&endp->conns)) {
 		vty_out(vty, "   No active connections%s", VTY_NEWLINE);

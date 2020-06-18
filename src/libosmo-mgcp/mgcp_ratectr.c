@@ -63,6 +63,7 @@ static const struct rate_ctr_desc mgcp_crcx_ctr_desc[] = {
 	[MGCP_CRCX_FAIL_INVALID_CONN_OPTIONS] = { "crcx:conn_opt", "connection options invalid." },
 	[MGCP_CRCX_FAIL_CODEC_NEGOTIATION] = { "crcx:codec_nego", "codec negotiation failure." },
 	[MGCP_CRCX_FAIL_BIND_PORT] = { "crcx:bind_port", "port bind failure." },
+	[MGCP_CRCX_FAIL_AVAIL] = { "crcx:unavailable", "endpoint unavailable." },
 };
 
 const static struct rate_ctr_group_desc mgcp_crcx_ctr_group_desc = {
@@ -90,6 +91,7 @@ static const struct rate_ctr_desc mgcp_mdcx_ctr_desc[] = {
 	[MGCP_MDCX_FAIL_START_RTP] = { "mdcx:start_rtp_failure", "failure to start RTP processing." },
 	[MGCP_MDCX_FAIL_REJECTED_BY_POLICY] = { "mdcx:conn_rejected", "connection rejected by policy." },
 	[MGCP_MDCX_DEFERRED_BY_POLICY] = { "mdcx:conn_deferred", "connection deferred by policy." },
+	[MGCP_MDCX_FAIL_AVAIL] = { "mdcx:unavailable", "endpoint unavailable." },
 };
 
 const static struct rate_ctr_group_desc mgcp_mdcx_ctr_group_desc = {
@@ -111,6 +113,7 @@ static const struct rate_ctr_desc mgcp_dlcx_ctr_desc[] = {
 	[MGCP_DLCX_FAIL_UNHANDLED_PARAM] = { "dlcx:unhandled_param", "unhandled parameter in DLCX command." },
 	[MGCP_DLCX_FAIL_REJECTED_BY_POLICY] = { "dlcx:rejected", "connection deletion rejected by policy." },
 	[MGCP_DLCX_DEFERRED_BY_POLICY] = { "dlcx:deferred", "connection deletion deferred by policy." },
+	[MGCP_DLCX_FAIL_AVAIL] = { "dlcx:unavailable", "endpoint unavailable." },
 };
 
 const static struct rate_ctr_group_desc mgcp_dlcx_ctr_group_desc = {

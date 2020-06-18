@@ -25,6 +25,33 @@
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
 
+#define E1_TIMESLOTS 32
+#define E1_RATE_MAX 64
+#define E1_OFFS_MAX 8
+
+/* A 64k timeslot on an E1 line can be subdevied into the following
+ * subslot combinations:
+ *
+ * subslot:                                          offset:
+ * [          ][          ][   16k    ][8k_subslot]  0
+ * [          ][   32k    ][_subslot__][8k_subslot]  1
+ * [          ][ subslot  ][   16k    ][8k_subslot]  2
+ * [   64k    ][__________][_subslot__][8k_subslot]  3
+ * [ timeslot ][          ][   16k    ][8k_subslot]  4
+ * [          ][   32K    ][_subslot__][8k_subslot]  5
+ * [          ][ subslot  ][   16k    ][8k_subslot]  6
+ * [          ][          ][ subslot  ][8k_subslot]  7
+ *
+ * Since overlapping assignment of subslots is not possible there is a limited
+ * set of subslot assignments possible. The e1_rates array lists the possible
+ * assignments as depicted above. Also each subslot assignment comes along with
+ * a bit offset in the E1 bitstream. The e1_offsets arrays lists the bit
+ * offsets. */
+static const uint8_t e1_rates[] =
+		{ 64, 32, 32, 16, 16, 16, 16, 8, 8, 8, 8, 8, 8, 8, 8 };
+static const uint8_t e1_offsets[] =
+		{ 0, 0, 4, 0, 2, 4, 6, 0, 1, 2, 3, 4, 5, 6, 7 };
+
 /* Endpoint typeset definition */
 const struct mgcp_endpoint_typeset ep_typeset = {
 	/* Specify endpoint properties for RTP endpoint */
@@ -53,35 +80,13 @@ static char *gen_virtual_epname(void *ctx, const char *domain,
 static char *gen_e1_epname(void *ctx, uint8_t trunk_nr, uint8_t ts_nr,
 			  uint8_t ss_nr)
 {
-	/* A 64k timeslot on an E1 line can be subdevied into the following
-	 * subslot combinations:
-	 *
-	 * subslot:                                          offset:
-	 * [          ][          ][   16k    ][8k_subslot]  0
-	 * [          ][   32k    ][_subslot__][8k_subslot]  1
-	 * [          ][ subslot  ][   16k    ][8k_subslot]  2
-	 * [   64k    ][__________][_subslot__][8k_subslot]  3
-	 * [ timeslot ][          ][   16k    ][8k_subslot]  4
-	 * [          ][   32K    ][_subslot__][8k_subslot]  5
-	 * [          ][ subslot  ][   16k    ][8k_subslot]  6
-	 * [          ][          ][ subslot  ][8k_subslot]  7
-	 *
-	 * Since overlapping assignment of subsolts is not possible there is
-	 * a limited set of subsolt assignments possible. The rates array
-	 * lists the possible assignments as depicted above. Also each subslot
-	 * assignment comes along with a bit offset in the E1 bitstream. The
-	 * offsets arrays lists the bit offsets. */
-	static const uint8_t rates[] =
-		{ 64, 32, 32, 16, 16, 16, 16, 8, 8, 8, 8, 8, 8, 8, 8 };
-	static const uint8_t offsets[] =
-		{ 0, 0, 4, 0, 2, 4, 6, 0, 1, 2, 3, 4, 5, 6, 7 };
 	unsigned int rate;
 	unsigned int offset;
 
-	OSMO_ASSERT(ss_nr < sizeof(rates));
+	OSMO_ASSERT(ss_nr < sizeof(e1_rates));
 
-	rate = rates[ss_nr];
-	offset = offsets[ss_nr];
+	rate = e1_rates[ss_nr];
+	offset = e1_offsets[ss_nr];
 
 	return talloc_asprintf(ctx, "%s%u/s-%u/su%u-%u",
 			MGCP_ENDPOINT_PREFIX_E1_TRUNK, trunk_nr, ts_nr, rate, offset);
@@ -213,7 +218,9 @@ static struct mgcp_endpoint *find_free_endpoint(const struct mgcp_trunk *trunk)
 
 	for (i = 0; i < trunk->number_endpoints; i++) {
 		endp = trunk->endpoints[i];
-		if (endp->callid == NULL)
+		/* A free endpoint must not serve a call already and it must
+		 * be available. */
+		if (endp->callid == NULL && mgcp_endp_avail(endp))
 			return endp;
 	}
 
@@ -361,4 +368,248 @@ struct mgcp_endpoint *mgcp_endp_by_name(int *cause, const char *epname,
 	if (cause)
 		*cause = 0;
 	return endp;
+}
+
+/* Get the E1 timeslot number from a given E1 endpoint name
+ * (e.g. ds/e1-0/s-30/su16-4), returns 0xff on error. */
+static uint8_t e1_ts_nr_from_epname(const char *epname)
+{
+	char buf[MGCP_ENDPOINT_MAXLEN + 1];
+	char *save_ptr = NULL;
+	char *buf_ptr = buf;
+	char *token;
+	unsigned long int res = 0;
+
+	strncpy(buf, epname, MGCP_ENDPOINT_MAXLEN);
+
+	while (1) {
+		token = strtok_r(buf_ptr, "/", &save_ptr);
+		buf_ptr = NULL;
+		if (!token)
+			break;
+		if (strncmp(token, "s-", 2) == 0) {
+			errno = 0;
+			res = strtoul(token + 2, NULL, 10);
+			if (errno == ERANGE || res > E1_TIMESLOTS)
+				return 0xff;
+			return (uint8_t) res;
+		}
+	}
+
+	return 0xff;
+}
+
+/* Get the E1 timeslot number from a given E1 endpoint name
+ * (e.g. ds/e1-0/s-30/su16-4), returns 0xff on error. */
+static uint8_t e1_rate_from_epname(const char *epname)
+{
+	char buf[MGCP_ENDPOINT_MAXLEN + 1];
+	char *save_ptr = NULL;
+	char *buf_ptr = buf;
+	char *token;
+	unsigned long int res = 0;
+	unsigned int i;
+
+	strncpy(buf, epname, MGCP_ENDPOINT_MAXLEN);
+
+	while (1) {
+		token = strtok_r(buf_ptr, "/", &save_ptr);
+		buf_ptr = NULL;
+		if (!token)
+			break;
+		if (strncmp(token, "su", 2) == 0) {
+			errno = 0;
+			res = strtoul(token + 2, NULL, 10);
+			if (errno == ERANGE || res > E1_RATE_MAX)
+				return 0xff;
+			/* Make sure the rate is a valid rate */
+			for (i = 0; i < sizeof(e1_rates); i++) {
+				if (res == e1_rates[i])
+					return (uint8_t) res;
+			}
+			return 0xff;
+		}
+	}
+
+	return 0xff;
+}
+
+/* Get the E1 bitstream offset from a given E1 endpoint name
+ * (e.g. ds/e1-0/s-30/su16-4), returns 0xff on error. */
+static uint8_t e1_offs_from_epname(const char *epname)
+{
+	char buf[MGCP_ENDPOINT_MAXLEN + 1];
+	char *save_ptr = NULL;
+	char *buf_ptr = buf;
+	char *token;
+	unsigned long int res = 0;
+
+	strncpy(buf, epname, MGCP_ENDPOINT_MAXLEN);
+
+	while (1) {
+		token = strtok_r(buf_ptr, "/", &save_ptr);
+		buf_ptr = NULL;
+		if (!token)
+			break;
+		if (strncmp(token, "su", 2) == 0) {
+			token = strstr(token, "-");
+			if (!token)
+				return 0xff;
+			token += 1;
+			errno = 0;
+			res = strtoul(token, NULL, 10);
+			if (errno == ERANGE || res > E1_OFFS_MAX)
+				return 0xff;
+			return (uint8_t) res;
+		}
+	}
+
+	return 0xff;
+}
+
+/* Get the E1 subslot number (internal) from a given E1 endpoint name
+ * (e.g. ds/e1-0/s-30/su16-4), returns 0xff on error. */
+static uint8_t e1_ss_nr_from_epname(const char *epname)
+{
+	uint8_t rate;
+	uint8_t offs;
+	unsigned int i;
+
+	rate = e1_rate_from_epname(epname);
+	offs = e1_offs_from_epname(epname);
+
+	osmo_static_assert(sizeof(e1_rates) == sizeof(e1_offsets), e1_rates_e1_offsets_size);
+
+	for (i = 0; i < sizeof(e1_rates); i++) {
+		if ((e1_rates[i] == rate) && (e1_offsets[i] == offs))
+			return i;
+	}
+
+	return 0xff;
+}
+
+/* Check if the selected E1 endpoint is avalable, which means that none of
+ * the overlapping endpoints are currently serving a call. (if the system
+ * is properly configured such a situation should never ocurr!) */
+static bool endp_avail_e1(struct mgcp_endpoint *endp)
+{
+	/* The following map shows the overlapping of the subslots and their
+	 * respective rates. The numbers on the right running from top to bottom
+	 * are the bit offsets in the whole 64k timeslot. The numbers inside the
+	 * boxes symbolize the internal subslot number (array index) and the
+	 * rate in the form: i:r where i is the subslot number and r the
+	 * respective rate.
+	 *
+	 * +--------+--------+--------+--------+ 0
+	 * |        |        |        |  7:8k  |
+	 * |        |        + 3:16k  +--------+ 1
+	 * |        |        |        |  8:8k  |
+	 * |        | 1:32k  +--------+--------+ 2
+	 * |        |        |        |  9:8k  |
+	 * |        |        + 4:16k  +--------+ 3
+	 * |        |        |        | 10:8k  |
+	 * | 0:64k  +--------+--------+--------+ 4
+	 * |        |        |        | 11:8k  |
+	 * |        |        + 5:16k  +--------+ 5
+	 * |        |        |        | 12:8k  |
+	 * |        | 2:32k  +--------+--------+ 6
+	 * |        |        |        | 13:8k  |
+	 * |        |        + 6:16k  +--------+ 7
+	 * |        |        |        | 14:8k  |
+	 * +--------+--------+--------+--------+ 8
+	 *
+	 * The following array contains tables with the subslot numbers that must be
+	 * unused for each subslot. During this test we do not have to check the
+	 * endpoint we need to verify, only the overlaps need to be checked. This is
+	 * also the reason why the related subslot number is missing from each each
+	 * line. */
+	const int8_t interlock_tab[15][16] =
+		{ { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, -1 },
+		{ 0, 3, 4, 7, 8, 9, 10, -1, -1, -1, -1, -1, -1, -1, -1 },
+		{ 0, 5, 6, 11, 12, 13, 14, -1, -1, -1, -1, -1, -1, -1, -1 },
+		{ 0, 1, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
+		{ 0, 1, 9, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
+		{ 0, 2, 11, 12, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
+		{ 0, 2, 13, 14, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
+		{ 0, 1, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
+		{ 0, 1, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
+		{ 0, 1, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
+		{ 0, 1, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
+		{ 0, 2, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
+		{ 0, 2, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
+		{ 0, 2, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
+		{ 0, 2, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 } };
+
+	const int8_t *interlock;
+	unsigned int i;
+	uint8_t ts_nr = 0;
+	uint8_t ss_nr = 0;
+	char *epname_check;
+	struct mgcp_endpoint *endp_check;
+	bool available = true;
+
+	/* This function must only be used with E1 type endpoints! */
+	OSMO_ASSERT(endp->trunk->trunk_type == MGCP_TRUNK_E1);
+
+	ts_nr = e1_ts_nr_from_epname(endp->name);
+	ss_nr = e1_ss_nr_from_epname(endp->name);
+	if (ts_nr == 0xff || ss_nr == 0xff) {
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+			 "cannot check endpoint availability, endpoint name not parseable!\n");
+		return false;
+	}
+
+	interlock = interlock_tab[ss_nr];
+
+	for (i = 0; i < sizeof(interlock_tab[0]); i++) {
+		/* Detect row end */
+		if (interlock[i] == -1)
+			break;
+
+		/* Pick overlapping endpoint to check */
+		epname_check =
+		    gen_e1_epname(endp, endp->trunk->trunk_nr, ts_nr,
+				  interlock[i]);
+		endp_check = find_specific_endpoint(epname_check, endp->trunk);
+		if (!endp_check) {
+			LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+				 "cannot check endpoint availability, overlapping endpoint:%s not found!\n",
+				 epname_check);
+			talloc_free(epname_check);
+			continue;
+		}
+		talloc_free(epname_check);
+
+		/* Check if overlapping endpoint currently serves another call
+		 * (This is an exceptional situation, that should not occur
+		 * in a properly configured environment!) */
+		if (endp_check->callid) {
+			LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+				 "endpoint unavailable - overlapping endpoint:%s already serves a call!\n",
+				 endp_check->name);
+			available = false;
+		}
+	}
+
+	return available;
+}
+
+/*! check if an endpoint is available for any kind of operation.
+ *  \param[in] endp endpoint to check.
+ *  \returns true if endpoint is avalable, false it is blocked for any reason. */
+bool mgcp_endp_avail(struct mgcp_endpoint *endp)
+{
+	switch (endp->trunk->trunk_type) {
+	case MGCP_TRUNK_VIRTUAL:
+		/* There are no obstacles that may render a virtual trunk
+		 * endpoint unusable, so virtual trunk endpoints are always
+		 * available */
+		return true;
+	case MGCP_TRUNK_E1:
+		return endp_avail_e1(endp);
+	default:
+		OSMO_ASSERT(false);
+	}
+
+	return false;
 }
