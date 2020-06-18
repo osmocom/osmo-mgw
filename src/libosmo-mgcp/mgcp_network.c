@@ -1330,8 +1330,7 @@ int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
 
 /*! cleanup an endpoint when a connection on an RTP bridge endpoint is removed.
  *  \param[in] endp Endpoint on which the connection resides.
- *  \param[in] conn Connection that is about to be removed (ignored).
- *  \returns 0 on success, -1 on ERROR. */
+ *  \param[in] conn Connection that is about to be removed (ignored). */
 void mgcp_cleanup_rtp_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *conn)
 {
 	struct mgcp_conn *conn_cleanup;
