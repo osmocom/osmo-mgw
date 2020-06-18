@@ -432,3 +432,28 @@ int mgcp_codec_pt_translate(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp
 
 	return codec_dst->payload_type;
 }
+
+/* Find the payload type number configured for a specific codec by SDP.
+ * For example, IuUP gets assigned a payload type number, and the endpoint needs to translate that to the number
+ * assigned to "AMR" on the other conn (by a=rtpmap:N).
+ * \param conn  The side of an endpoint to get the payload type number for (to translate the payload type number to).
+ * \param subtype_name  SDP codec name without parameters (e.g. "AMR").
+ * \param match_nr  Index for the match found, first being match_nr == 0. Iterate all matches by calling multiple times
+ *                  with incrementing match_nr.
+ * \return codec definition for that conn matching the subtype_name, or NULL if no such match_nr is found.
+ */
+const struct mgcp_rtp_codec *mgcp_codec_pt_find_by_subtype_name(struct mgcp_conn_rtp *conn,
+								const char *subtype_name, unsigned int match_nr)
+{
+	int i;
+	for (i = 0; i < conn->end.codecs_assigned; i++) {
+		if (!strcmp(conn->end.codecs[i].subtype_name, subtype_name)) {
+			if (match_nr) {
+				match_nr--;
+				continue;
+			}
+			return &conn->end.codecs[i];
+		}
+	}
+	return NULL;
+}

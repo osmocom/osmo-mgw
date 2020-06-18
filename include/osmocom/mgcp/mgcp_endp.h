@@ -23,8 +23,11 @@
 
 #pragma once
 
+#include <osmocom/core/msgb.h>
+
 struct sockaddr_in;
 struct mgcp_conn;
+struct mgcp_conn_rtp;
 struct mgcp_endpoint;
 
 /* Number of E1 subslots (different variants, not all useable at the same time) */
@@ -35,11 +38,19 @@ LOGP(cat, level, "endpoint:%s " fmt, \
      endp ? endp->name : "none", \
      ## args)
 
-/* Callback type for RTP dispatcher functions
-   (e.g mgcp_dispatch_rtp_bridge_cb, see below) */
-typedef int (*mgcp_dispatch_rtp_cb) (int proto, struct sockaddr_in *addr,
-				     char *buf, unsigned int buf_size,
-				     struct mgcp_conn *conn);
+struct osmo_rtp_msg_ctx {
+	int proto;
+	struct mgcp_conn_rtp *conn_src;
+	struct sockaddr_in *from_addr;
+};
+
+#define OSMO_RTP_MSG_CTX(MSGB) ((struct osmo_rtp_msg_ctx*)(MSGB)->cb)
+
+osmo_static_assert(sizeof(((struct msgb*)0)->cb) >= sizeof(struct osmo_rtp_msg_ctx), osmo_rtp_msg_ctx_fits_in_msgb_cb);
+
+/* Callback type for RTP dispatcher functions (e.g mgcp_dispatch_rtp_bridge_cb, see below).
+ * The OSMO_RTP_MSG_CTX() should be set appropriately on the msg. */
+typedef int (*mgcp_dispatch_rtp_cb) (struct msgb *msg);
 
 /* Callback type for endpoint specific cleanup actions. This function
  * is automatically executed when a connection is freed (see mgcp_conn_free()

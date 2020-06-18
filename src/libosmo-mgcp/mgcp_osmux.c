@@ -236,13 +236,15 @@ static void scheduled_from_osmux_tx_rtp_cb(struct msgb *msg, void *data)
 {
 	struct mgcp_conn_rtp *conn = data;
 	struct mgcp_endpoint *endp = conn->conn->endp;
-	struct sockaddr_in addr = {
-		.sin_addr = conn->end.addr,
-		.sin_port = conn->end.rtp_port,
-	}; /* FIXME: not set/used in cb */
+	struct sockaddr_in addr = { /* FIXME: do we know the source address?? */ };
+	struct osmo_rtp_msg_ctx *mc = OSMO_RTP_MSG_CTX(msg);
+	*mc = (struct osmo_rtp_msg_ctx){
+		.proto = MGCP_PROTO_RTP,
+		.conn_src = conn,
+		.from_addr = &addr,
+	};
 
-
-	endp->type->dispatch_rtp_cb(MGCP_PROTO_RTP, &addr, (char *)msg->data, msg->len, conn->conn);
+	endp->type->dispatch_rtp_cb(msg);
 	msgb_free(msg);
 }
 
