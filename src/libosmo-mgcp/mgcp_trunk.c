@@ -25,12 +25,12 @@
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
 
-/*! allocate trunk and add it (if required) to the trunk list
- *  (called once at startup by VTY)
- *  \param[in] cfg mgcp configuration
- *  \param[in] nr trunk number
- *  \param[in] ttype trunk type
- *  \returns pointer to allocated trunk, NULL on failure */
+/*! allocate trunk and add it (if required) to the trunk list.
+ *  (called once at startup by VTY).
+ *  \param[in] cfg mgcp configuration.
+ *  \param[in] nr trunk number.
+ *  \param[in] ttype trunk type.
+ *  \returns pointer to allocated trunk, NULL on failure. */
 struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr)
 {
 	struct mgcp_trunk *trunk;
@@ -63,10 +63,10 @@ struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_typ
 	return trunk;
 }
 
-/*! allocate endpoints and set default values.
- *  (called once at startup by VTY)
- *  \param[in] trunk trunk configuration
- *  \returns 0 on success, -1 on failure */
+/*! allocate endpoints and set default values
+ *  (called once at startup by VTY).
+ *  \param[in] trunk trunk configuration.
+ *  \returns 0 on success, -1 on failure. */
 int mgcp_trunk_alloc_endpts(struct mgcp_trunk *trunk)
 {
 	int i;
@@ -124,9 +124,9 @@ int mgcp_trunk_alloc_endpts(struct mgcp_trunk *trunk)
 }
 
 /*! get trunk configuration by trunk number (index).
- *  \param[in] cfg mgcp configuration
- *  \param[in] index trunk number
- *  \returns pointer to trunk configuration, NULL on error */
+ *  \param[in] cfg mgcp configuration.
+ *  \param[in] index trunk number.
+ *  \returns pointer to trunk configuration, NULL on error. */
 struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, int index)
 {
 	struct mgcp_trunk *trunk;
