@@ -41,6 +41,44 @@ static char *gen_virtual_epname(void *ctx, const char *domain,
 		 MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK, index, domain);
 }
 
+/* Generate E1 endpoint name from given numeric parameters */
+static char *gen_e1_epname(void *ctx, uint8_t trunk_nr, uint8_t ts_nr,
+			  uint8_t ss_nr)
+{
+	/* A 64k timeslot on an E1 line can be subdevied into the following
+	 * subslot combinations:
+	 *
+	 * subslot:                                          offset:
+	 * [          ][          ][   16k    ][8k_subslot]  0
+	 * [          ][   32k    ][_subslot__][8k_subslot]  1
+	 * [          ][ subslot  ][   16k    ][8k_subslot]  2
+	 * [   64k    ][__________][_subslot__][8k_subslot]  3
+	 * [ timeslot ][          ][   16k    ][8k_subslot]  4
+	 * [          ][   32K    ][_subslot__][8k_subslot]  5
+	 * [          ][ subslot  ][   16k    ][8k_subslot]  6
+	 * [          ][          ][ subslot  ][8k_subslot]  7
+	 *
+	 * Since overlapping assignment of subsolts is not possible there is
+	 * a limited set of subsolt assignments possible. The rates array
+	 * lists the possible assignments as depicted above. Also each subslot
+	 * assignment comes along with a bit offset in the E1 bitstream. The
+	 * offsets arrays lists the bit offsets. */
+	static const uint8_t rates[] =
+		{ 64, 32, 32, 16, 16, 16, 16, 8, 8, 8, 8, 8, 8, 8, 8 };
+	static const uint8_t offsets[] =
+		{ 0, 0, 4, 0, 2, 4, 6, 0, 1, 2, 3, 4, 5, 6, 7 };
+	unsigned int rate;
+	unsigned int offset;
+
+	OSMO_ASSERT(ss_nr < sizeof(rates));
+
+	rate = rates[ss_nr];
+	offset = offsets[ss_nr];
+
+	return talloc_asprintf(ctx, "%s%u/s-%u/su%u-%u",
+			MGCP_ENDPOINT_PREFIX_E1_TRUNK, trunk_nr, ts_nr, rate, offset);
+}
+
 /*! allocate an endpoint and set default values.
  *  \param[in] trunk configuration.
  *  \param[in] name endpoint index.
@@ -64,11 +102,8 @@ struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk,
 		endp->name = gen_virtual_epname(endp, trunk->cfg->domain, index);
 		break;
 	case MGCP_TRUNK_E1:
-		/* FIXME: E1 trunk implementation is work in progress, this endpoint
-		 * name is incomplete (subslots) */
-		endp->name = talloc_asprintf(endp, "%s-1/%x", MGCP_ENDPOINT_PREFIX_E1_TRUNK, index);
-		LOGP(DLMGCP, LOGL_FATAL, "E1 trunks not implemented!\n");
 		endp->type = &ep_typeset.rtp;
+		endp->name = gen_e1_epname(endp, trunk->trunk_nr, index / 15, index % 15);
 		break;
 	default:
 		osmo_panic("Cannot allocate unimplemented trunk type %d! %s:%d\n",
