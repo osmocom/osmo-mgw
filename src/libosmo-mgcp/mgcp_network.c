@@ -75,8 +75,8 @@ static void rtpconn_rate_ctr_inc(struct mgcp_conn_rtp *conn_rtp, struct mgcp_end
 }
 
 /*! Determine the local rtp bind IP-address.
- *  \param[out] addr caller provided memory to store the resulting IP-Address
- *  \param[in] endp mgcp endpoint, that holds a copy of the VTY parameters
+ *  \param[out] addr caller provided memory to store the resulting IP-Address.
+ *  \param[in] endp mgcp endpoint, that holds a copy of the VTY parameters.
  *
  *  The local bind IP-address is automatically selected by probing the
  *  IP-Address of the interface that is pointing towards the remote IP-Address,
@@ -145,12 +145,12 @@ static uint32_t get_current_ts(unsigned codec_rate)
 }
 
 /*! send udp packet.
- *  \param[in] fd associated file descriptor
- *  \param[in] addr destination ip-address
- *  \param[in] port destination UDP port (network byte order)
- *  \param[in] buf buffer that holds the data to be send
- *  \param[in] len length of the data to be sent
- *  \returns bytes sent, -1 on error */
+ *  \param[in] fd associated file descriptor.
+ *  \param[in] addr destination ip-address.
+ *  \param[in] port destination UDP port (network byte order).
+ *  \param[in] buf buffer that holds the data to be send.
+ *  \param[in] len length of the data to be sent.
+ *  \returns bytes sent, -1 on error. */
 int mgcp_udp_send(int fd, struct in_addr *addr, int port, char *buf, int len)
 {
 	struct sockaddr_in out;
@@ -167,9 +167,9 @@ int mgcp_udp_send(int fd, struct in_addr *addr, int port, char *buf, int len)
 }
 
 /*! send RTP dummy packet (to keep NAT connection open).
- *  \param[in] endp mcgp endpoint that holds the RTP connection
- *  \param[in] conn associated RTP connection
- *  \returns bytes sent, -1 on error */
+ *  \param[in] endp mcgp endpoint that holds the RTP connection.
+ *  \param[in] conn associated RTP connection.
+ *  \returns bytes sent, -1 on error. */
 int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 {
 	static char buf[] = { MGCP_DUMMY_LOAD };
@@ -395,12 +395,12 @@ static int align_rtp_timestamp_offset(struct mgcp_endpoint *endp,
 }
 
 /*! dummy callback to disable transcoding (see also cfg->rtp_processing_cb).
- *  \param[in] associated endpoint
- *  \param[in] destination RTP end
- *  \param[in,out] pointer to buffer with voice data
- *  \param[in] voice data length
- *  \param[in] maximum size of caller provided voice data buffer
- *  \returns ignores input parameters, return always 0 */
+ *  \param[in] associated endpoint.
+ *  \param[in] destination RTP end.
+ *  \param[in,out] pointer to buffer with voice data.
+ *  \param[in] voice data length.
+ *  \param[in] maximum size of caller provided voice data buffer.
+ *  \returns ignores input parameters, return always 0. */
 int mgcp_rtp_processing_default(struct mgcp_endpoint *endp,
 				struct mgcp_rtp_end *dst_end,
 				char *data, int *len, int buf_size)
@@ -410,10 +410,10 @@ int mgcp_rtp_processing_default(struct mgcp_endpoint *endp,
 }
 
 /*! dummy callback to disable transcoding (see also cfg->setup_rtp_processing_cb).
- *  \param[in] associated endpoint
- *  \param[in] destination RTP connnection
- *  \param[in] source RTP connection
- *  \returns ignores input parameters, return always 0 */
+ *  \param[in] associated endpoint.
+ *  \param[in] destination RTP connnection.
+ *  \param[in] source RTP connection.
+ *  \returns ignores input parameters, return always 0. */
 int mgcp_setup_rtp_processing_default(struct mgcp_endpoint *endp,
 				      struct mgcp_conn_rtp *conn_dst,
 				      struct mgcp_conn_rtp *conn_src)
@@ -803,14 +803,14 @@ static void forward_data(int fd, struct mgcp_rtp_tap *tap, const char *buf,
 }
 
 /*! Send RTP/RTCP data to a specified destination connection.
- *  \param[in] endp associated endpoint (for configuration, logging)
- *  \param[in] is_rtp flag to specify if the packet is of type RTP or RTCP
- *  \param[in] spoofed source address (set to NULL to disable)
- *  \param[in] buf buffer that contains the RTP/RTCP data
- *  \param[in] len length of the buffer that contains the RTP/RTCP data
- *  \param[in] conn_src associated source connection
- *  \param[in] conn_dst associated destination connection
- *  \returns 0 on success, -1 on ERROR */
+ *  \param[in] endp associated endpoint (for configuration, logging).
+ *  \param[in] is_rtp flag to specify if the packet is of type RTP or RTCP.
+ *  \param[in] spoofed source address (set to NULL to disable).
+ *  \param[in] buf buffer that contains the RTP/RTCP data.
+ *  \param[in] len length of the buffer that contains the RTP/RTCP data.
+ *  \param[in] conn_src associated source connection.
+ *  \param[in] conn_dst associated destination connection.
+ *  \returns 0 on success, -1 on ERROR. */
 int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	      char *buf, int len, struct mgcp_conn_rtp *conn_src,
 	      struct mgcp_conn_rtp *conn_dst)
@@ -1259,12 +1259,12 @@ static int mgcp_send_rtp(int proto, struct sockaddr_in *addr, char *buf,
 }
 
 /*! dispatch incoming RTP packet to opposite RTP connection.
- *  \param[in] proto protocol (MGCP_CONN_TYPE_RTP or MGCP_CONN_TYPE_RTCP)
- *  \param[in] addr socket address where the RTP packet has been received from
- *  \param[in] buf buffer that hold the RTP payload
- *  \param[in] buf_size size data length of buf
- *  \param[in] conn originating connection
- *  \returns 0 on success, -1 on ERROR */
+ *  \param[in] proto protocol (MGCP_CONN_TYPE_RTP or MGCP_CONN_TYPE_RTCP).
+ *  \param[in] addr socket address where the RTP packet has been received from.
+ *  \param[in] buf buffer that hold the RTP payload.
+ *  \param[in] buf_size size data length of buf.
+ *  \param[in] conn originating connection.
+ *  \returns 0 on success, -1 on ERROR. */
 int mgcp_dispatch_rtp_bridge_cb(int proto, struct sockaddr_in *addr, char *buf,
 				unsigned int buf_size, struct mgcp_conn *conn)
 {
@@ -1399,9 +1399,9 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 }
 
 /*! set IP Type of Service parameter.
- *  \param[in] fd associated file descriptor
- *  \param[in] tos dscp value
- *  \returns 0 on success, -1 on ERROR */
+ *  \param[in] fd associated file descriptor.
+ *  \param[in] tos dscp value.
+ *  \returns 0 on success, -1 on ERROR. */
 int mgcp_set_ip_tos(int fd, int tos)
 {
 	int ret;
@@ -1413,10 +1413,10 @@ int mgcp_set_ip_tos(int fd, int tos)
 }
 
 /*! bind RTP port to osmo_fd.
- *  \param[in] source_addr source (local) address to bind on
- *  \param[in] fd associated file descriptor
- *  \param[in] port to bind on
- *  \returns 0 on success, -1 on ERROR */
+ *  \param[in] source_addr source (local) address to bind on.
+ *  \param[in] fd associated file descriptor.
+ *  \param[in] port to bind on.
+ *  \returns 0 on success, -1 on ERROR. */
 int mgcp_create_bind(const char *source_addr, struct osmo_fd *fd, int port)
 {
 	int rc;
@@ -1492,10 +1492,10 @@ cleanup0:
 }
 
 /*! bind RTP port to endpoint/connection.
- *  \param[in] endp endpoint that holds the RTP connection
- *  \param[in] rtp_port port number to bind on
- *  \param[in] conn associated RTP connection
- *  \returns 0 on success, -1 on ERROR */
+ *  \param[in] endp endpoint that holds the RTP connection.
+ *  \param[in] rtp_port port number to bind on.
+ *  \param[in] conn associated RTP connection.
+ *  \returns 0 on success, -1 on ERROR. */
 int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 			   struct mgcp_conn_rtp *conn)
 {
