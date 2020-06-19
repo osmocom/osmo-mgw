@@ -98,18 +98,21 @@ static void print_help()
 	printf(" -s --disable-color\n");
 	printf(" -D --daemonize Fork the process into a background daemon\n");
 	printf(" -V --version Print the version number\n");
+	printf(" --vty-ref-xml Generate the VTY reference XML output and exit.\n");
 }
 
 static void handle_options(int argc, char **argv)
 {
 	while (1) {
 		int option_index = 0, c;
+		static int long_option = 0;
 		static struct option long_options[] = {
 			{"help", 0, 0, 'h'},
 			{"config-file", 1, 0, 'c'},
 			{"daemonize", 0, 0, 'D'},
 			{"version", 0, 0, 'V'},
 			{"disable-color", 0, 0, 's'},
+			{"vty-ref-xml", 0, &long_option, 1},
 			{0, 0, 0, 0},
 		};
 
@@ -123,6 +126,15 @@ static void handle_options(int argc, char **argv)
 			print_help();
 			exit(0);
 			break;
+		case 0:
+			switch (long_option) {
+			case 1:
+				vty_dump_xml_ref(stdout);
+				exit(0);
+			default:
+				fprintf(stderr, "error parsing cmdline options\n");
+				exit(2);
+			}
 		case 'c':
 			config_file = talloc_strdup(tall_bsc_ctx, optarg);
 			break;
