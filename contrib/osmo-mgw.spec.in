@@ -114,7 +114,7 @@ make %{?_smp_mflags} check || (find . -name testsuite.log -exec cat {} +)
 %{_bindir}/osmo-mgw
 %{_unitdir}/osmo-mgw.service
 %dir %{_sysconfdir}/osmocom
-%config %{_sysconfdir}/osmocom/osmo-mgw.cfg
+%config(noreplace) %{_sysconfdir}/osmocom/osmo-mgw.cfg
 
 %files -n libosmo-mgcp-client6
 %{_libdir}/libosmo-mgcp-client.so.6*
