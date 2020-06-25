@@ -72,4 +72,9 @@ DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2
 DLMGCP ptmap contains illegal mapping: codec=0 maps to pt=100
 DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2
 DLMGCP ptmap contains illegal mapping: codec=0 maps to pt=100
+DLMGCP MGCP client: using endpoint domain '@mgw'
+DLMGCP Cannot compose MGCP e1-endpoint name (ds/e1-15/s-1/su128-0@mgw), rate(128)/offset(0) combination is invalid!
+DLMGCP Cannot compose MGCP e1-endpoint name (ds/e1-15/s-1/su8-16@mgw), rate(8)/offset(16) combination is invalid!
+DLMGCP Cannot compose MGCP e1-endpoint name (ds/e1-15/s-0/su8-2@mgw), E1-timeslot number (0) is invalid!
+DLMGCP Cannot compose MGCP e1-endpoint name (ds/e1-15/s-64/su8-2@mgw), E1-timeslot number (64) is invalid!
 Done

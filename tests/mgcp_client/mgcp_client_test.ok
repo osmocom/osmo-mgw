@@ -178,4 +178,19 @@ test_sdp_section_start() test [9]:
  2 <= 2
  100 <= 100
 
+ds/e1-1/s-15/su64-0@mgw
+ds/e1-2/s-14/su32-0@mgw
+ds/e1-3/s-13/su32-4@mgw
+ds/e1-4/s-12/su16-0@mgw
+ds/e1-5/s-11/su16-2@mgw
+ds/e1-6/s-10/su16-4@mgw
+ds/e1-7/s-9/su16-6@mgw
+ds/e1-8/s-8/su8-0@mgw
+ds/e1-9/s-7/su8-1@mgw
+ds/e1-10/s-6/su8-2@mgw
+ds/e1-11/s-5/su8-3@mgw
+ds/e1-12/s-4/su8-4@mgw
+ds/e1-13/s-3/su8-5@mgw
+ds/e1-14/s-2/su8-6@mgw
+ds/e1-15/s-1/su8-7@mgw
 Done

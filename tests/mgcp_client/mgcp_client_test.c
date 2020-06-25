@@ -547,6 +547,57 @@ static void test_map_codec_to_pt_and_map_pt_to_codec(void)
 	printf("\n");
 }
 
+void test_mgcp_client_e1_epname(void)
+{
+	char *epname;
+
+	if (mgcp)
+		talloc_free(mgcp);
+	mgcp = mgcp_client_init(ctx, &conf);
+
+	/* Valid endpoint names */
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 1, 15, 64, 0);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 2, 14, 32, 0);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 3, 13, 32, 4);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 4, 12, 16, 0);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 5, 11, 16, 2);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 6, 10, 16, 4);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 7, 9, 16, 6);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 8, 8, 8, 0);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 9, 7, 8, 1);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 10, 6, 8, 2);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 11, 5, 8, 3);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 12, 4, 8, 4);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 13, 3, 8, 5);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 14, 2, 8, 6);
+	printf("%s\n", epname);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 15, 1, 8, 7);
+	printf("%s\n", epname);
+
+	/* A few invalid enpoint names */
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 15, 1, 128, 0);
+	OSMO_ASSERT(epname == NULL);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 15, 1, 8, 16);
+	OSMO_ASSERT(epname == NULL);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 15, 0, 8, 2);
+	OSMO_ASSERT(epname == NULL);
+	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 15, 64, 8, 2);
+	OSMO_ASSERT(epname == NULL);
+}
+
 static const struct log_info_cat log_categories[] = {
 };
 
@@ -575,6 +626,7 @@ int main(int argc, char **argv)
 	test_sdp_section_start();
 	test_map_codec_to_pt_and_map_pt_to_codec();
 	test_map_pt_to_codec();
+	test_mgcp_client_e1_epname();
 
 	printf("Done\n");
 	fprintf(stderr, "Done\n");

@@ -902,6 +902,58 @@ const char *mgcp_client_rtpbridge_wildcard(const struct mgcp_client *mgcp)
 	return _mgcp_client_name_append_domain(mgcp, "rtpbridge/*");
 }
 
+/*! Compose endpoint name for an E1 endpoint.
+ *  \param[in] ctx talloc context.
+ *  \param[in] mgcp MGCP client descriptor.
+ *  \param[in] trunk_id id number of the E1 trunk (1-64).
+ *  \param[in] ts timeslot on the E1 trunk (1-31).
+ *  \param[in] rate bitrate used on the E1 trunk (e.g 16 for 16kbit).
+ *  \param[in] offset bit offset of the E1 subslot (e.g. 4 for the third 16k subslot).
+ *  \returns string containing the endpoint name (e.g. ds/e1-1/s-1/su16-4). */
+const char *mgcp_client_e1_epname(void *ctx, const struct mgcp_client *mgcp, uint8_t trunk_id, uint8_t ts,
+				  uint8_t rate, uint8_t offset)
+{
+	/* See also comment in libosmo-mgcp, mgcp_client.c, gen_e1_epname() */
+	const uint8_t valid_rates[] = { 64, 32, 32, 16, 16, 16, 16, 8, 8, 8, 8, 8, 8, 8, 8 };
+	const uint8_t valid_offsets[] = { 0, 0, 4, 0, 2, 4, 6, 0, 1, 2, 3, 4, 5, 6, 7 };
+
+	uint8_t i;
+	bool rate_offs_valid = false;
+	char *epname;
+
+	epname =
+	    talloc_asprintf(ctx, "ds/e1-%u/s-%u/su%u-%u@%s", trunk_id, ts, rate, offset,
+			    mgcp_client_endpoint_domain(mgcp));
+	if (!epname) {
+		LOGP(DLMGCP, LOGL_ERROR, "Cannot compose MGCP e1-endpoint name!\n");
+		return NULL;
+	}
+
+	/* Check if the supplied rate/offset pair resembles a valid combination */
+	for (i = 0; i < sizeof(valid_rates); i++) {
+		if (valid_rates[i] == rate && valid_offsets[i] == offset)
+			rate_offs_valid = true;
+	}
+	if (!rate_offs_valid) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "Cannot compose MGCP e1-endpoint name (%s), rate(%u)/offset(%u) combination is invalid!\n", epname,
+		     rate, offset);
+		talloc_free(epname);
+		return NULL;
+	}
+
+	/* An E1 line has a maximum of 32 timeslots, while the first (ts=0) is
+	 * reserverd for framing and alignment, so we can not use it here. */
+	if (ts == 0 || ts > 31) {
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "Cannot compose MGCP e1-endpoint name (%s), E1-timeslot number (%u) is invalid!\n", epname, ts);
+		talloc_free(epname);
+		return NULL;
+	}
+
+	return epname;
+}
+
 struct mgcp_response_pending * mgcp_client_pending_add(
 					struct mgcp_client *mgcp,
 					mgcp_trans_id_t trans_id,

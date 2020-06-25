@@ -137,6 +137,8 @@ uint32_t mgcp_client_remote_addr_n(struct mgcp_client *mgcp);
 
 const char *mgcp_client_endpoint_domain(const struct mgcp_client *mgcp);
 const char *mgcp_client_rtpbridge_wildcard(const struct mgcp_client *mgcp);
+const char *mgcp_client_e1_epname(void *ctx, const struct mgcp_client *mgcp, uint8_t trunk_id, uint8_t ts,
+				  uint8_t rate, uint8_t offset);
 
 /* Invoked when an MGCP response is received or sending failed.  When the
  * response is passed as NULL, this indicates failure during transmission. */
