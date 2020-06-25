@@ -892,6 +892,9 @@ static const char *_mgcp_client_name_append_domain(const struct mgcp_client *mgc
 	return endpoint;
 }
 
+/*! Compose endpoint name for a wildcarded request to the virtual trunk
+ *  \param[in] mgcp MGCP client descriptor.
+ *  \returns string containing the endpoint name (e.g. rtpbridge\*@mgw) */
 const char *mgcp_client_rtpbridge_wildcard(const struct mgcp_client *mgcp)
 {
 	return _mgcp_client_name_append_domain(mgcp, "rtpbridge/*");
