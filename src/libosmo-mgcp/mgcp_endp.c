@@ -77,8 +77,8 @@ static char *gen_virtual_epname(void *ctx, const char *domain,
 }
 
 /* Generate E1 endpoint name from given numeric parameters */
-static char *gen_e1_epname(void *ctx, uint8_t trunk_nr, uint8_t ts_nr,
-			  uint8_t ss_nr)
+static char *gen_e1_epname(void *ctx, const char *domain, uint8_t trunk_nr,
+			   uint8_t ts_nr, uint8_t ss_nr)
 {
 	unsigned int rate;
 	unsigned int offset;
@@ -88,8 +88,9 @@ static char *gen_e1_epname(void *ctx, uint8_t trunk_nr, uint8_t ts_nr,
 	rate = e1_rates[ss_nr];
 	offset = e1_offsets[ss_nr];
 
-	return talloc_asprintf(ctx, "%s%u/s-%u/su%u-%u",
-			MGCP_ENDPOINT_PREFIX_E1_TRUNK, trunk_nr, ts_nr, rate, offset);
+	return talloc_asprintf(ctx, "%s%u/s-%u/su%u-%u@%s",
+			       MGCP_ENDPOINT_PREFIX_E1_TRUNK, trunk_nr, ts_nr,
+			       rate, offset, domain);
 }
 
 /*! allocate an endpoint and set default values.
@@ -116,7 +117,9 @@ struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk,
 		break;
 	case MGCP_TRUNK_E1:
 		endp->type = &ep_typeset.rtp;
-		endp->name = gen_e1_epname(endp, trunk->trunk_nr, index / 15, index % 15);
+		endp->name = gen_e1_epname(endp, trunk->cfg->domain,
+					   trunk->trunk_nr,
+					   index / 15, index % 15);
 		break;
 	default:
 		osmo_panic("Cannot allocate unimplemented trunk type %d! %s:%d\n",
@@ -353,11 +356,9 @@ struct mgcp_endpoint *mgcp_endp_by_name(int *cause, const char *epname,
 	if (!trunk)
 		return NULL;
 
-	/* Virtual endpoints require a domain name (see RFC3435, section E.3) */
-	  if (trunk->trunk_type == MGCP_TRUNK_VIRTUAL) {
-		  if (check_domain_name(epname, cfg))
-			return NULL;
-	}
+	/* All endpoint names require a domain as suffix */
+	if (check_domain_name(epname, cfg))
+		return NULL;
 
 	/* Identify the endpoint on the trunk */
         endp = mgcp_endp_by_name_trunk(cause, epname, trunk);
@@ -567,9 +568,9 @@ static bool endp_avail_e1(struct mgcp_endpoint *endp)
 			break;
 
 		/* Pick overlapping endpoint to check */
-		epname_check =
-		    gen_e1_epname(endp, endp->trunk->trunk_nr, ts_nr,
-				  interlock[i]);
+		epname_check = gen_e1_epname(endp, endp->trunk->cfg->domain,
+					     endp->trunk->trunk_nr, ts_nr,
+					     interlock[i]);
 		endp_check = find_specific_endpoint(epname_check, endp->trunk);
 		if (!endp_check) {
 			LOGPENDP(endp, DLMGCP, LOGL_ERROR,
