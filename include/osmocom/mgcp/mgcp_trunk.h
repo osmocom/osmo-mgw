@@ -1,5 +1,10 @@
 #pragma once
 
+enum mgcp_trunk_type {
+	MGCP_TRUNK_VIRTUAL,
+	MGCP_TRUNK_E1,
+};
+
 struct mgcp_trunk {
 	struct llist_head entry;
 

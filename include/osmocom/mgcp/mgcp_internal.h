@@ -32,11 +32,6 @@
 
 #define CI_UNUSED 0
 
-enum mgcp_trunk_type {
-	MGCP_TRUNK_VIRTUAL,
-	MGCP_TRUNK_E1,
-};
-
 struct mgcp_rtp_stream_state {
 	uint32_t ssrc;
 	uint16_t last_seq;
