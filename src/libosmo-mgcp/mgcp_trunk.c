@@ -28,8 +28,8 @@
 /*! allocate trunk and add it (if required) to the trunk list.
  *  (called once at startup by VTY).
  *  \param[in] cfg mgcp configuration.
- *  \param[in] nr trunk number.
  *  \param[in] ttype trunk type.
+ *  \param[in] nr trunk number.
  *  \returns pointer to allocated trunk, NULL on failure. */
 struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr)
 {
