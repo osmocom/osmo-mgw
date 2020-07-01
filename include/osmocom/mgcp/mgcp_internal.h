@@ -32,11 +32,6 @@
 
 #define CI_UNUSED 0
 
-/* FIXME: This this is only needed to compile the currently
- * broken OSMUX support. Remove when fixed */
-#define CONN_ID_BTS "0"
-#define CONN_ID_NET "1"
-
 enum mgcp_trunk_type {
 	MGCP_TRUNK_VIRTUAL,
 	MGCP_TRUNK_E1,
