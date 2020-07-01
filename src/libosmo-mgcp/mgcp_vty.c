@@ -57,7 +57,7 @@ struct cmd_node trunk_node = {
 
 static int config_write_mgcp(struct vty *vty)
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 
 	vty_out(vty, "mgcp%s", VTY_NEWLINE);
@@ -377,7 +377,7 @@ DEFUN(show_mcgp_trunk_endpoint, show_mgcp_trunk_endpoint_cmd,
 	struct mgcp_trunk *trunk;
 	int trunkidx = atoi(argv[0]);
 
-	trunk = mgcp_trunk_by_num(g_cfg, trunkidx);
+	trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_E1, trunkidx);
 	if (!trunk) {
 		vty_out(vty, "trunk %d not found%s", trunkidx, VTY_NEWLINE);
 		return CMD_WARNING;
@@ -567,7 +567,7 @@ DEFUN(cfg_mgcp_sdp_fmtp_extra,
       "Add extra fmtp for the SDP file\n" "Audio\n" "Fmtp-extra\n"
       "Extra Information\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	char *txt = argv_concat(argv, argc, 0);
 	if (!txt)
@@ -582,7 +582,7 @@ DEFUN(cfg_mgcp_allow_transcoding,
       cfg_mgcp_allow_transcoding_cmd,
       "allow-transcoding", "Allow transcoding\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->no_audio_transcoding = 0;
 	return CMD_SUCCESS;
@@ -592,7 +592,7 @@ DEFUN(cfg_mgcp_no_allow_transcoding,
       cfg_mgcp_no_allow_transcoding_cmd,
       "no allow-transcoding", NO_STR "Allow transcoding\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->no_audio_transcoding = 1;
 	return CMD_SUCCESS;
@@ -630,7 +630,7 @@ DEFUN(cfg_mgcp_sdp_payload_send_ptime,
       "sdp audio-payload send-ptime",
       SDP_STR AUDIO_STR "Send SDP ptime (packet duration) attribute\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->audio_send_ptime = 1;
 	return CMD_SUCCESS;
@@ -641,7 +641,7 @@ DEFUN(cfg_mgcp_no_sdp_payload_send_ptime,
       "no sdp audio-payload send-ptime",
       NO_STR SDP_STR AUDIO_STR "Send SDP ptime (packet duration) attribute\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->audio_send_ptime = 0;
 	return CMD_SUCCESS;
@@ -652,7 +652,7 @@ DEFUN(cfg_mgcp_sdp_payload_send_name,
       "sdp audio-payload send-name",
       SDP_STR AUDIO_STR "Send SDP rtpmap with the audio name\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->audio_send_name = 1;
 	return CMD_SUCCESS;
@@ -663,7 +663,7 @@ DEFUN(cfg_mgcp_no_sdp_payload_send_name,
       "no sdp audio-payload send-name",
       NO_STR SDP_STR AUDIO_STR "Send SDP rtpmap with the audio name\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->audio_send_name = 0;
 	return CMD_SUCCESS;
@@ -674,7 +674,7 @@ DEFUN(cfg_mgcp_loop,
       "loop (0|1)",
       "Loop audio for all endpoints on main trunk\n" "Don't Loop\n" "Loop\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	if (g_cfg->osmux) {
 		vty_out(vty, "Cannot use `loop' with `osmux'.%s", VTY_NEWLINE);
@@ -690,7 +690,7 @@ DEFUN(cfg_mgcp_force_realloc,
       "Force endpoint reallocation when the endpoint is still seized\n"
       "Don't force reallocation\n" "force reallocation\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->force_realloc = atoi(argv[0]);
 	return CMD_SUCCESS;
@@ -702,7 +702,7 @@ DEFUN(cfg_mgcp_rtp_accept_all,
       "Accept all RTP packets, even when the originating IP/Port does not match\n"
       "enable filter\n" "disable filter\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->rtp_accept_all = atoi(argv[0]);
 	return CMD_SUCCESS;
@@ -713,7 +713,7 @@ DEFUN(cfg_mgcp_number_endp,
       "number endpoints <0-65534>",
       "Number options\n" "Endpoints available\n" "Number endpoints\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	/* + 1 as we start counting at one */
 	trunk->vty_number_endpoints = atoi(argv[0]) + 1;
@@ -722,7 +722,7 @@ DEFUN(cfg_mgcp_number_endp,
 
 DEFUN(cfg_mgcp_omit_rtcp, cfg_mgcp_omit_rtcp_cmd, "rtcp-omit", RTCP_OMIT_STR)
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, 0);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	trunk->omit_rtcp = 1;
 	return CMD_SUCCESS;
 }
@@ -730,7 +730,7 @@ DEFUN(cfg_mgcp_omit_rtcp, cfg_mgcp_omit_rtcp_cmd, "rtcp-omit", RTCP_OMIT_STR)
 DEFUN(cfg_mgcp_no_omit_rtcp,
       cfg_mgcp_no_omit_rtcp_cmd, "no rtcp-omit", NO_STR RTCP_OMIT_STR)
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->omit_rtcp = 0;
 	return CMD_SUCCESS;
@@ -740,7 +740,7 @@ DEFUN(cfg_mgcp_patch_rtp_ssrc,
       cfg_mgcp_patch_rtp_ssrc_cmd,
       "rtp-patch ssrc", RTP_PATCH_STR "Force a fixed SSRC\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->force_constant_ssrc = 1;
 	return CMD_SUCCESS;
@@ -750,7 +750,7 @@ DEFUN(cfg_mgcp_no_patch_rtp_ssrc,
       cfg_mgcp_no_patch_rtp_ssrc_cmd,
       "no rtp-patch ssrc", NO_STR RTP_PATCH_STR "Force a fixed SSRC\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->force_constant_ssrc = 0;
 	return CMD_SUCCESS;
@@ -760,7 +760,7 @@ DEFUN(cfg_mgcp_patch_rtp_ts,
       cfg_mgcp_patch_rtp_ts_cmd,
       "rtp-patch timestamp", RTP_PATCH_STR "Adjust RTP timestamp\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->force_aligned_timing = 1;
 	return CMD_SUCCESS;
@@ -770,7 +770,7 @@ DEFUN(cfg_mgcp_no_patch_rtp_ts,
       cfg_mgcp_no_patch_rtp_ts_cmd,
       "no rtp-patch timestamp", NO_STR RTP_PATCH_STR "Adjust RTP timestamp\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->force_aligned_timing = 0;
 	return CMD_SUCCESS;
@@ -780,7 +780,7 @@ DEFUN(cfg_mgcp_patch_rtp_rfc5993hr,
       cfg_mgcp_patch_rtp_rfc5993hr_cmd,
       "rtp-patch rfc5993hr", RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->rfc5993_hr_convert = true;
 	return CMD_SUCCESS;
@@ -790,7 +790,7 @@ DEFUN(cfg_mgcp_no_patch_rtp_rfc5993hr,
       cfg_mgcp_no_patch_rtp_rfc5993hr_cmd,
       "no rtp-patch rfc5993hr", NO_STR RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->rfc5993_hr_convert = false;
 	return CMD_SUCCESS;
@@ -799,7 +799,7 @@ DEFUN(cfg_mgcp_no_patch_rtp_rfc5993hr,
 DEFUN(cfg_mgcp_no_patch_rtp,
       cfg_mgcp_no_patch_rtp_cmd, "no rtp-patch", NO_STR RTP_PATCH_STR)
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	trunk->force_constant_ssrc = 0;
 	trunk->force_aligned_timing = 0;
@@ -812,7 +812,7 @@ DEFUN(cfg_mgcp_rtp_keepalive,
       "rtp keep-alive <1-120>",
       RTP_STR RTP_KEEPALIVE_STR "Keep alive interval in secs\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	mgcp_trunk_set_keepalive(trunk, atoi(argv[0]));
 	return CMD_SUCCESS;
@@ -823,7 +823,7 @@ DEFUN(cfg_mgcp_rtp_keepalive_once,
       "rtp keep-alive once",
       RTP_STR RTP_KEEPALIVE_STR "Send dummy packet only once after CRCX/MDCX\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	mgcp_trunk_set_keepalive(trunk, MGCP_KEEPALIVE_ONCE);
 	return CMD_SUCCESS;
@@ -833,7 +833,7 @@ DEFUN(cfg_mgcp_no_rtp_keepalive,
       cfg_mgcp_no_rtp_keepalive_cmd,
       "no rtp keep-alive", NO_STR RTP_STR RTP_KEEPALIVE_STR)
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 	mgcp_trunk_set_keepalive(trunk, MGCP_KEEPALIVE_NEVER);
 	return CMD_SUCCESS;
@@ -865,7 +865,7 @@ DEFUN(cfg_mgcp_trunk, cfg_mgcp_trunk_cmd,
 	 * parameters, so we restrict the access to trunks with id numbers
 	 * greater than 0. */
 
-	trunk = mgcp_trunk_by_num(g_cfg, index);
+	trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_E1, index);
 	if (!trunk) {
 		trunk = mgcp_trunk_alloc(g_cfg, MGCP_TRUNK_E1, index);
 		if (!trunk) {
@@ -1171,7 +1171,7 @@ DEFUN(loop_conn,
 	struct mgcp_endpoint *endp;
 	struct mgcp_conn *conn;
 
-	trunk = mgcp_trunk_by_num(g_cfg, atoi(argv[0]));
+	trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_E1, atoi(argv[0]));
 	if (!trunk) {
 		vty_out(vty, "%%Trunk %d not found in the config.%s",
 			atoi(argv[0]), VTY_NEWLINE);
@@ -1230,7 +1230,7 @@ DEFUN(tap_rtp,
 	struct mgcp_conn_rtp *conn;
         const char *conn_id = NULL;
 
-	trunk = mgcp_trunk_by_num(g_cfg, atoi(argv[0]));
+	trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_E1, atoi(argv[0]));
 	if (!trunk) {
 		vty_out(vty, "%%Trunk %d not found in the config.%s",
 			atoi(argv[0]), VTY_NEWLINE);
@@ -1283,7 +1283,7 @@ DEFUN(free_endp, free_endp_cmd,
 	struct mgcp_trunk *trunk;
 	struct mgcp_endpoint *endp;
 
-	trunk = mgcp_trunk_by_num(g_cfg, atoi(argv[0]));
+	trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_E1, atoi(argv[0]));
 	if (!trunk) {
 		vty_out(vty, "%%Trunk %d not found in the config.%s",
 			atoi(argv[0]), VTY_NEWLINE);
@@ -1316,7 +1316,7 @@ DEFUN(reset_endp, reset_endp_cmd,
 	struct mgcp_endpoint *endp;
 	int endp_no, rc;
 
-	trunk = mgcp_trunk_by_num(g_cfg, atoi(argv[0]));
+	trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_E1, atoi(argv[0]));
 	if (!trunk) {
 		vty_out(vty, "%%Trunk %d not found in the config.%s",
 			atoi(argv[0]), VTY_NEWLINE);
@@ -1365,7 +1365,7 @@ DEFUN(cfg_mgcp_osmux,
       "osmux (on|off|only)",
       OSMUX_STR "Enable OSMUX\n" "Disable OSMUX\n" "Only use OSMUX\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
 
 	if (strcmp(argv[0], "off") == 0) {

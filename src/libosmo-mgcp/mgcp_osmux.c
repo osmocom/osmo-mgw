@@ -198,7 +198,7 @@ static struct mgcp_conn_rtp*
 osmux_conn_lookup(struct mgcp_config *cfg, uint8_t cid,
 		struct in_addr *from_addr)
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
+	struct mgcp_trunk *trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	struct mgcp_endpoint *endp;
 	struct mgcp_conn *conn = NULL;
 	struct mgcp_conn_rtp * conn_rtp;

@@ -48,7 +48,7 @@ struct mgcp_trunk {
 
 struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr);
 int mgcp_trunk_alloc_endpts(struct mgcp_trunk *tcfg);
-struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, int index);
+struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr);
 struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char *epname);
 int e1_trunk_nr_from_epname(const char *epname);
 

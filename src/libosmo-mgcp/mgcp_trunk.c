@@ -105,15 +105,17 @@ int mgcp_trunk_alloc_endpts(struct mgcp_trunk *trunk)
 
 /*! get trunk configuration by trunk number (index).
  *  \param[in] cfg mgcp configuration.
- *  \param[in] index trunk number.
+ *  \param[in] ttype trunk type.
+ *  \param[in] nr trunk number.
  *  \returns pointer to trunk configuration, NULL on error. */
-struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, int index)
+struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr)
 {
 	struct mgcp_trunk *trunk;
 
-	llist_for_each_entry(trunk, &cfg->trunks, entry)
-	    if (trunk->trunk_nr == index)
-		return trunk;
+	llist_for_each_entry(trunk, &cfg->trunks, entry) {
+		if (trunk->trunk_nr == nr && trunk->trunk_type == ttype)
+			return trunk;
+	}
 
 	return NULL;
 }
@@ -154,7 +156,7 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 
 	prefix_len = sizeof(MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK) - 1;
 	if (strncmp(epname, MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK, prefix_len) == 0) {
-		return mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
+		return mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	}
 
 	prefix_len = sizeof(MGCP_ENDPOINT_PREFIX_E1_TRUNK) - 1;
@@ -162,7 +164,7 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 		trunk_nr = e1_trunk_nr_from_epname(epname);
 		if (trunk_nr < 0)
 			return NULL;
-		return mgcp_trunk_by_num(cfg, trunk_nr);
+		return mgcp_trunk_by_num(cfg, MGCP_TRUNK_E1, trunk_nr);
 	}
 
 	/* Earlier versions of osmo-mgw were accepting endpoint names
@@ -176,7 +178,7 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 	if ((epname[0] >= '0' && epname[0] <= '9') || (epname[0] >= 'a' && epname[0] <= 'f')) {
 		LOGP(DLMGCP, LOGL_ERROR, "missing trunk prefix in endpoint name \"%s\", assuming trunk \"%s\"!\n", epname,
 		     MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK);
-		return  mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
+		return  mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	}
 
 	LOGP(DLMGCP, LOGL_ERROR, "unable to find trunk for endpoint name \"%s\"!\n", epname);

@@ -768,7 +768,7 @@ static void test_messages(void)
 	int rc;
 
 	cfg = mgcp_config_alloc();
-	trunk = mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
+	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 
 	trunk->vty_number_endpoints = 64;
         mgcp_trunk_alloc_endpts(trunk);
@@ -910,7 +910,7 @@ static void test_retransmission(void)
 	int rc;
 
 	cfg = mgcp_config_alloc();
-	trunk = mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
+	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 
 	trunk->vty_number_endpoints = 64;
         mgcp_trunk_alloc_endpts(trunk);
@@ -979,7 +979,7 @@ static void test_rqnt_cb(void)
 	char conn_id[256];
 
 	cfg = mgcp_config_alloc();
-	trunk = mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
+	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	cfg->rqnt_cb = rqnt_cb;
 
 	trunk->vty_number_endpoints = 64;
@@ -1393,7 +1393,7 @@ static void test_multilple_codec(void)
 	printf("Testing multiple payload types\n");
 
 	cfg = mgcp_config_alloc();
-	trunk = mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
+	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	trunk->vty_number_endpoints = 64;
         mgcp_trunk_alloc_endpts(trunk);
 	cfg->policy_cb = mgcp_test_policy_cb;
@@ -1539,7 +1539,7 @@ static void test_no_cycle(void)
 	printf("Testing no sequence flow on initial packet\n");
 
 	cfg = mgcp_config_alloc();
-	trunk = mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
+	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	trunk->vty_number_endpoints = 64;
         mgcp_trunk_alloc_endpts(trunk);
 
@@ -1588,7 +1588,7 @@ static void test_no_name(void)
 
 	printf("Testing no rtpmap name\n");
 	cfg = mgcp_config_alloc();
-	trunk = mgcp_trunk_by_num(cfg, MGCP_VIRT_TRUNK_ID);
+	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 
 	trunk->vty_number_endpoints = 64;
 	trunk->audio_send_name = 0;
