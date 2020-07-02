@@ -11,7 +11,7 @@ struct mgcp_trunk {
 	struct mgcp_config *cfg;
 
 	int trunk_nr;
-	int trunk_type;
+	enum mgcp_trunk_type trunk_type;
 
 	char *audio_fmtp_extra;
 	int audio_send_ptime;
