@@ -159,13 +159,9 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 		return mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	}
 
-	prefix_len = sizeof(MGCP_ENDPOINT_PREFIX_E1_TRUNK) - 1;
-	if (strncmp(epname, MGCP_ENDPOINT_PREFIX_E1_TRUNK, prefix_len) == 0) {
-		trunk_nr = e1_trunk_nr_from_epname(epname);
-		if (trunk_nr < 0)
-			return NULL;
+	trunk_nr = e1_trunk_nr_from_epname(epname);
+	if (trunk_nr > 0)
 		return mgcp_trunk_by_num(cfg, MGCP_TRUNK_E1, trunk_nr);
-	}
 
 	/* Earlier versions of osmo-mgw were accepting endpoint names
 	 * without trunk prefix. This is normally not allowed, each MGCP
