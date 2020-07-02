@@ -119,7 +119,7 @@ struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk,
 		endp->type = &ep_typeset.rtp;
 		endp->name = gen_e1_epname(endp, trunk->cfg->domain,
 					   trunk->trunk_nr,
-					   index / 15, index % 15);
+					   index / MGCP_ENDP_E1_SUBSLOTS, index % MGCP_ENDP_E1_SUBSLOTS);
 		break;
 	default:
 		osmo_panic("Cannot allocate unimplemented trunk type %d! %s:%d\n",
@@ -524,7 +524,7 @@ static bool endp_avail_e1(struct mgcp_endpoint *endp)
 	 * endpoint we need to verify, only the overlaps need to be checked. This is
 	 * also the reason why the related subslot number is missing from each each
 	 * line. */
-	const int8_t interlock_tab[15][16] =
+	const int8_t interlock_tab[MGCP_ENDP_E1_SUBSLOTS][15] =
 		{ { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, -1 },
 		{ 0, 3, 4, 7, 8, 9, 10, -1, -1, -1, -1, -1, -1, -1, -1 },
 		{ 0, 5, 6, 11, 12, 13, 14, -1, -1, -1, -1, -1, -1, -1, -1 },

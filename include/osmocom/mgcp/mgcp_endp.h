@@ -27,6 +27,9 @@ struct sockaddr_in;
 struct mgcp_conn;
 struct mgcp_endpoint;
 
+/* Number of E1 subslots (different variants, not all useable at the same time) */
+#define MGCP_ENDP_E1_SUBSLOTS 15
+
 #define LOGPENDP(endp, cat, level, fmt, args...) \
 LOGP(cat, level, "endpoint:%s " fmt, \
      endp ? endp->name : "none", \
