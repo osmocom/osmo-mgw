@@ -605,7 +605,7 @@ static int mgcp_test_policy_cb(struct mgcp_endpoint *endp,
 
 	trunk = endp->trunk;
 	last_endpoint[0] = '\0';
-	for (i = 0; i < trunk->vty_number_endpoints; i++) {
+	for (i = 0; i < trunk->number_endpoints; i++) {
 		if (strcmp(endp->name, trunk->endpoints[i]->name) == 0)
 			osmo_strlcpy(last_endpoint, trunk->endpoints[i]->name,
 				     sizeof(last_endpoint));
@@ -656,7 +656,7 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp)
 static void mgcp_endpoints_release(struct mgcp_trunk *trunk)
 {
 	int i;
-	for (i = 1; i < trunk->number_endpoints; i++)
+	for (i = 0; i < trunk->number_endpoints; i++)
 		mgcp_endp_release(trunk->endpoints[i]);
 }
 

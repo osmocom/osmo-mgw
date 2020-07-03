@@ -47,7 +47,7 @@ struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_typ
 
 	trunk->audio_send_ptime = 1;
 	trunk->audio_send_name = 1;
-	trunk->vty_number_endpoints = 33;
+	trunk->vty_number_endpoints = 32;
 	trunk->omit_rtcp = 0;
 
 	mgcp_trunk_set_keepalive(trunk, MGCP_KEEPALIVE_ONCE);
@@ -67,13 +67,8 @@ int mgcp_trunk_alloc_endpts(struct mgcp_trunk *trunk)
 {
 	int i;
 	struct mgcp_endpoint *endp;
-
-	/* Make sure the amount of requested endpoints does not execeed
-	 * sane limits. The VTY already limits the possible amount,
-	 * however miss-initalation of the struct or memory corruption
-	 * could still lead to an excessive allocation of endpoints, so
-	 * better stop early if that is the case. */
-	OSMO_ASSERT(trunk->vty_number_endpoints < 65534);
+	unsigned int number_endpoints;
+	unsigned int first_endpoint_nr;
 
 	/* This function is called once on startup by the VTY to allocate the
 	 * endpoints. The number of endpoints must not change througout the
@@ -81,15 +76,39 @@ int mgcp_trunk_alloc_endpts(struct mgcp_trunk *trunk)
 	OSMO_ASSERT(trunk->number_endpoints == 0);
 	OSMO_ASSERT(trunk->endpoints == NULL);
 
+	switch (trunk->trunk_type) {
+	case MGCP_TRUNK_VIRTUAL:
+		/* Due to historical reasons the endpoints on the virtual
+		 * trunk start counting at 1. */
+		first_endpoint_nr = 1;
+		number_endpoints = trunk->vty_number_endpoints;
+		break;
+	case MGCP_TRUNK_E1:
+		/* The first timeslot on an E1 line is reserved for framing
+		 * and alignment and can not be used for audio transport */
+	        first_endpoint_nr = 1 * MGCP_ENDP_E1_SUBSLOTS;
+		number_endpoints = 31 * MGCP_ENDP_E1_SUBSLOTS;
+		break;
+	default:
+		OSMO_ASSERT(false);
+	}
+
+	/* Make sure the amount of requested endpoints does not execeed
+	 * sane limits. The VTY already limits the possible amount,
+	 * however miss-initialization of the struct or memory corruption
+	 * could still lead to an excessive allocation of endpoints, so
+	 * better stop early if that is the case. */
+	OSMO_ASSERT(number_endpoints < 65534);
+
 	/* allocate pointer array for the endpoints */
 	trunk->endpoints = _talloc_zero_array(trunk->cfg,
-					     sizeof(struct mgcp_endpoint *), trunk->vty_number_endpoints, "endpoints");
+					      sizeof(struct mgcp_endpoint *), number_endpoints, "endpoints");
 	if (!trunk->endpoints)
 		return -1;
 
 	/* create endpoints */
-	for (i = 0; i < trunk->vty_number_endpoints; ++i) {
-		endp = mgcp_endp_alloc(trunk, i);
+	for (i = 0; i < number_endpoints; i++) {
+		endp = mgcp_endp_alloc(trunk, i + first_endpoint_nr);
 		if (!endp) {
 			talloc_free(trunk->endpoints);
 			return -1;
@@ -98,7 +117,7 @@ int mgcp_trunk_alloc_endpts(struct mgcp_trunk *trunk)
 	}
 
 	/* make the endpoints we just created available to the MGW code */
-	trunk->number_endpoints = trunk->vty_number_endpoints;
+	trunk->number_endpoints = number_endpoints;
 
 	return 0;
 }

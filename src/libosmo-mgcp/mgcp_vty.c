@@ -112,7 +112,7 @@ static int config_write_mgcp(struct vty *vty)
 		trunk->audio_send_name ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " loop %u%s", ! !trunk->audio_loop, VTY_NEWLINE);
 	vty_out(vty, " number endpoints %u%s",
-		trunk->vty_number_endpoints - 1, VTY_NEWLINE);
+		trunk->vty_number_endpoints, VTY_NEWLINE);
 	vty_out(vty, " %sallow-transcoding%s",
 		trunk->no_audio_transcoding ? "no " : "", VTY_NEWLINE);
 	if (g_cfg->call_agent_addr)
@@ -289,7 +289,7 @@ static void dump_trunk(struct vty *vty, struct mgcp_trunk *trunk, int show_stats
 
 	vty_out(vty, "%s trunk %d with %d endpoints:%s",
 		trunk->trunk_type == MGCP_TRUNK_VIRTUAL ? "Virtual" : "E1",
-		trunk->trunk_nr, trunk->number_endpoints - 1, VTY_NEWLINE);
+		trunk->trunk_nr, trunk->number_endpoints, VTY_NEWLINE);
 
 	if (!trunk->endpoints) {
 		vty_out(vty, "No endpoints allocated yet.%s", VTY_NEWLINE);
@@ -710,13 +710,12 @@ DEFUN(cfg_mgcp_rtp_accept_all,
 
 DEFUN(cfg_mgcp_number_endp,
       cfg_mgcp_number_endp_cmd,
-      "number endpoints <0-65534>",
+      "number endpoints <1-65534>",
       "Number options\n" "Endpoints available\n" "Number endpoints\n")
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
-	/* + 1 as we start counting at one */
-	trunk->vty_number_endpoints = atoi(argv[0]) + 1;
+	trunk->vty_number_endpoints = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
 
