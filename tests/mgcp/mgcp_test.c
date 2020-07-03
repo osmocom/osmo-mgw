@@ -592,7 +592,7 @@ static struct msgb *create_msg(const char *str, const char *conn_id)
 	return msg;
 }
 
-static int last_endpoint = -1;
+static char last_endpoint[MGCP_ENDPOINT_MAXLEN];
 
 static int mgcp_test_policy_cb(struct mgcp_endpoint *endp,
 			       int state, const char *transaction_id)
@@ -604,10 +604,11 @@ static int mgcp_test_policy_cb(struct mgcp_endpoint *endp,
 		state, endp->name);
 
 	trunk = endp->trunk;
-	last_endpoint = -1;
+	last_endpoint[0] = '\0';
 	for (i = 0; i < trunk->vty_number_endpoints; i++) {
 		if (strcmp(endp->name, trunk->endpoints[i]->name) == 0)
-			last_endpoint = i;
+			osmo_strlcpy(last_endpoint, trunk->endpoints[i]->name,
+				     sizeof(last_endpoint));
 	}
 
 	return MGCP_POLICY_CONT;
@@ -787,7 +788,7 @@ static void test_messages(void)
 		printf("\n================================================\n");
 		printf("Testing %s\n", t->name);
 
-		last_endpoint = -1;
+		last_endpoint[0] = '\0';
 		dummy_packets = 0;
 
 		osmo_talloc_replace_string(cfg, &trunk->audio_fmtp_extra,
@@ -822,8 +823,9 @@ static void test_messages(void)
 		if (dummy_packets)
 			printf("Dummy packets: %d\n", dummy_packets);
 
-		if (last_endpoint != -1) {
-			endp = trunk->endpoints[last_endpoint];
+		if (last_endpoint[0] != '\0') {
+			endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
+			OSMO_ASSERT(endp);
 
 			conn = mgcp_conn_get_rtp(endp, "1");
 			if (conn) {
@@ -878,10 +880,9 @@ static void test_messages(void)
 
 		/* Check detected payload type */
 		if (conn && t->ptype != PTYPE_IGNORE) {
-			OSMO_ASSERT(last_endpoint != -1);
-			endp = trunk->endpoints[last_endpoint];
+			OSMO_ASSERT(last_endpoint[0] != '\0');
 
-			fprintf(stderr, "endpoint 0x%x: "
+			fprintf(stderr, "endpoint:%s: "
 				"payload type %d (expected %d)\n",
 				last_endpoint,
 				conn->end.codec->payload_type, t->ptype);
@@ -1402,7 +1403,7 @@ static void test_multilple_codec(void)
         mgcp_trunk_alloc_endpts(trunk2);
 
 	/* Allocate endpoint 1@mgw with two codecs */
-	last_endpoint = -1;
+	last_endpoint[0] = '\0';
 	inp = create_msg(CRCX_MULT_1, NULL);
 	resp = mgcp_handle_message(cfg, inp);
 	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
@@ -1410,14 +1411,15 @@ static void test_multilple_codec(void)
 	msgb_free(inp);
 	msgb_free(resp);
 
-	OSMO_ASSERT(last_endpoint == 1);
-	endp = trunk->endpoints[last_endpoint];
+	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/1@mgw") == 0);
+	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
+	OSMO_ASSERT(endp);
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 18);
 
 	/* Allocate 2@mgw with three codecs, last one ignored */
-	last_endpoint = -1;
+	last_endpoint[0] = '\0';
 	inp = create_msg(CRCX_MULT_2, NULL);
 	resp = mgcp_handle_message(cfg, inp);
 	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
@@ -1425,8 +1427,9 @@ static void test_multilple_codec(void)
 	msgb_free(inp);
 	msgb_free(resp);
 
-	OSMO_ASSERT(last_endpoint == 2);
-	endp = trunk->endpoints[last_endpoint];
+	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/2@mgw") == 0);
+	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
+	OSMO_ASSERT(endp);
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 18);
@@ -1437,7 +1440,7 @@ static void test_multilple_codec(void)
 	 * it makes and since we already decided in OS#2658 that a missing
 	 * LCO should pick a sane default codec, it makes sense to expect
 	 * the same behaviour if SDP lacks proper payload type information */
-	last_endpoint = -1;
+	last_endpoint[0] = '\0';
 	inp = create_msg(CRCX_MULT_3, NULL);
 	resp = mgcp_handle_message(cfg, inp);
 	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
@@ -1445,14 +1448,15 @@ static void test_multilple_codec(void)
 	msgb_free(inp);
 	msgb_free(resp);
 
-	OSMO_ASSERT(last_endpoint == 3);
-	endp = trunk->endpoints[last_endpoint];
+	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/3@mgw") == 0);
+	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
+	OSMO_ASSERT(endp);
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
 
 	/* Allocate 4@mgw with a single codec */
-	last_endpoint = -1;
+	last_endpoint[0] = '\0';
 	inp = create_msg(CRCX_MULT_4, NULL);
 	resp = mgcp_handle_message(cfg, inp);
 	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
@@ -1460,14 +1464,15 @@ static void test_multilple_codec(void)
 	msgb_free(inp);
 	msgb_free(resp);
 
-	OSMO_ASSERT(last_endpoint == 4);
-	endp = trunk->endpoints[last_endpoint];
+	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/4@mgw") == 0);
+	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
+	OSMO_ASSERT(endp);
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 18);
 
 	/* Allocate 5@mgw and let osmo-mgw pick a codec from the list */
-	last_endpoint = -1;
+	last_endpoint[0] = '\0';
 	inp = create_msg(CRCX_MULT_GSM_EXACT, NULL);
 	trunk->no_audio_transcoding = 1;
 	resp = mgcp_handle_message(cfg, inp);
@@ -1476,19 +1481,21 @@ static void test_multilple_codec(void)
 	msgb_free(inp);
 	msgb_free(resp);
 
-	OSMO_ASSERT(last_endpoint == 5);
-	endp = trunk->endpoints[last_endpoint];
+	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/5@mgw") == 0);
+	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
+	OSMO_ASSERT(endp);
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
 
 	inp = create_msg(MDCX_NAT_DUMMY, conn_id);
-	last_endpoint = -1;
+	last_endpoint[0] = '\0';
 	resp = mgcp_handle_message(cfg, inp);
 	msgb_free(inp);
 	msgb_free(resp);
-	OSMO_ASSERT(last_endpoint == 5);
-	endp = trunk->endpoints[last_endpoint];
+	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/5@mgw") == 0);
+	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
+	OSMO_ASSERT(endp);
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 3);
@@ -1508,7 +1515,7 @@ static void test_multilple_codec(void)
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(!conn);
 
-	last_endpoint = -1;
+	last_endpoint[0] = '\0';
 	inp = create_msg(CRCX_MULT_GSM_EXACT, NULL);
 	trunk->no_audio_transcoding = 0;
 	resp = mgcp_handle_message(cfg, inp);
@@ -1517,8 +1524,9 @@ static void test_multilple_codec(void)
 	msgb_free(inp);
 	msgb_free(resp);
 
-	OSMO_ASSERT(last_endpoint == 5);
-	endp = trunk->endpoints[last_endpoint];
+	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/5@mgw") == 0);
+	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
+	OSMO_ASSERT(endp);
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
@@ -1543,7 +1551,8 @@ static void test_no_cycle(void)
 	trunk->vty_number_endpoints = 64;
         mgcp_trunk_alloc_endpts(trunk);
 
-	endp = trunk->endpoints[1];
+	endp = mgcp_endp_by_name(NULL, "rtpbridge/1@mgw", cfg);
+	OSMO_ASSERT(endp);
 
 	_conn = mgcp_conn_alloc(NULL, endp, MGCP_CONN_TYPE_RTP,
 				"test-connection");
