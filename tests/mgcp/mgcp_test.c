@@ -762,7 +762,6 @@ static void test_messages(void)
 	struct mgcp_config *cfg;
 	struct mgcp_endpoint *endp;
 	struct mgcp_trunk *trunk;
-	struct mgcp_trunk *trunk2;
 	int i;
 	struct mgcp_conn_rtp *conn = NULL;
 	char last_conn_id[256];
@@ -776,9 +775,6 @@ static void test_messages(void)
 	cfg->policy_cb = mgcp_test_policy_cb;
 
 	memset(last_conn_id, 0, sizeof(last_conn_id));
-
-	trunk2 = mgcp_trunk_alloc(cfg, MGCP_TRUNK_E1, 1);
-        mgcp_trunk_alloc_endpts(trunk2);
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
 		const struct mgcp_test *t = &tests[i];
@@ -896,7 +892,6 @@ static void test_messages(void)
 		}
 	}
 
-	mgcp_endpoints_release(trunk2);
 	mgcp_endpoints_release(trunk);
 	talloc_free(cfg);
 }
@@ -905,7 +900,6 @@ static void test_retransmission(void)
 {
 	struct mgcp_config *cfg;
 	struct mgcp_trunk *trunk;
-	struct mgcp_trunk *trunk2;
 	int i;
 	char last_conn_id[256];
 	int rc;
@@ -917,9 +911,6 @@ static void test_retransmission(void)
         mgcp_trunk_alloc_endpts(trunk);
 
 	memset(last_conn_id, 0, sizeof(last_conn_id));
-
-	trunk2 = mgcp_trunk_alloc(cfg, MGCP_TRUNK_E1, 1);
-        mgcp_trunk_alloc_endpts(trunk2);
 
 	for (i = 0; i < ARRAY_SIZE(retransmit); i++) {
 		const struct mgcp_test *t = &retransmit[i];
@@ -959,7 +950,6 @@ static void test_retransmission(void)
 		msgb_free(msg);
 	}
 
-	mgcp_endpoints_release(trunk2);
 	mgcp_endpoints_release(trunk);
 	talloc_free(cfg);
 }
@@ -975,7 +965,6 @@ static void test_rqnt_cb(void)
 {
 	struct mgcp_config *cfg;
 	struct mgcp_trunk *trunk;
-	struct mgcp_trunk *trunk2;
 	struct msgb *inp, *msg;
 	char conn_id[256];
 
@@ -985,9 +974,6 @@ static void test_rqnt_cb(void)
 
 	trunk->vty_number_endpoints = 64;
         mgcp_trunk_alloc_endpts(trunk);
-
-	trunk2 = mgcp_trunk_alloc(cfg, MGCP_TRUNK_E1, 1);
-        mgcp_trunk_alloc_endpts(trunk2);
 
 	inp = create_msg(CRCX, NULL);
 	msg = mgcp_handle_message(cfg, inp);
@@ -1016,7 +1002,6 @@ static void test_rqnt_cb(void)
 	inp = create_msg(DLCX, conn_id);
 	msgb_free(mgcp_handle_message(cfg, inp));
 	msgb_free(inp);
-	mgcp_endpoints_release(trunk2);
 	mgcp_endpoints_release(trunk);
 	talloc_free(cfg);
 }
@@ -1384,7 +1369,6 @@ static void test_multilple_codec(void)
 {
 	struct mgcp_config *cfg;
 	struct mgcp_trunk *trunk;
-	struct mgcp_trunk *trunk2;
 	struct mgcp_endpoint *endp;
 	struct msgb *inp, *resp;
 	struct in_addr addr;
@@ -1398,9 +1382,6 @@ static void test_multilple_codec(void)
 	trunk->vty_number_endpoints = 64;
         mgcp_trunk_alloc_endpts(trunk);
 	cfg->policy_cb = mgcp_test_policy_cb;
-
-	trunk2 = mgcp_trunk_alloc(cfg, MGCP_TRUNK_E1, 1);
-        mgcp_trunk_alloc_endpts(trunk2);
 
 	/* Allocate endpoint 1@mgw with two codecs */
 	last_endpoint[0] = '\0';
@@ -1531,7 +1512,6 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
 
-	mgcp_endpoints_release(trunk2);
 	mgcp_endpoints_release(trunk);
 	talloc_free(cfg);
 }
@@ -1591,7 +1571,6 @@ static void test_no_cycle(void)
 static void test_no_name(void)
 {
 	struct mgcp_trunk *trunk;
-	struct mgcp_trunk *trunk2;
 	struct mgcp_config *cfg;
 	struct msgb *inp, *msg;
 
@@ -1605,9 +1584,6 @@ static void test_no_name(void)
 
 	cfg->policy_cb = mgcp_test_policy_cb;
 
-	trunk2 = mgcp_trunk_alloc(cfg, MGCP_TRUNK_E1, 1);
-        mgcp_trunk_alloc_endpts(trunk2);
-
 	inp = create_msg(CRCX, NULL);
 	msg = mgcp_handle_message(cfg, inp);
 
@@ -1619,7 +1595,6 @@ static void test_no_name(void)
 	msgb_free(inp);
 	msgb_free(msg);
 
-	mgcp_endpoints_release(trunk2);
 	mgcp_endpoints_release(trunk);
 	talloc_free(cfg);
 }
