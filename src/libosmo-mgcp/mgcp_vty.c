@@ -112,7 +112,7 @@ static int config_write_mgcp(struct vty *vty)
 		trunk->audio_send_name ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " loop %u%s", ! !trunk->audio_loop, VTY_NEWLINE);
 	vty_out(vty, " number endpoints %u%s",
-		trunk->vty_number_endpoints, VTY_NEWLINE);
+		trunk->v.vty_number_endpoints, VTY_NEWLINE);
 	vty_out(vty, " %sallow-transcoding%s",
 		trunk->no_audio_transcoding ? "no " : "", VTY_NEWLINE);
 	if (g_cfg->call_agent_addr)
@@ -243,8 +243,10 @@ static void dump_ratectr_global(struct vty *vty, struct mgcp_ratectr_global *rat
 	}
 }
 
-static void dump_ratectr_trunk(struct vty *vty, struct mgcp_ratectr_trunk *ratectr)
+static void dump_ratectr_trunk(struct vty *vty, struct mgcp_trunk *trunk)
 {
+	struct mgcp_ratectr_trunk *ratectr = &trunk->ratectr;
+
 	vty_out(vty, "%s", VTY_NEWLINE);
 	vty_out(vty, "Rate counters (trunk):%s", VTY_NEWLINE);
 
@@ -280,6 +282,15 @@ static void dump_ratectr_trunk(struct vty *vty, struct mgcp_ratectr_trunk *ratec
 					   "   %25n: %10c (%S/s %M/m %H/h %D/d) %d",
 					   ratectr->all_rtp_conn_stats);
 	}
+
+	if (ratectr->e1_stats && trunk->trunk_type == MGCP_TRUNK_E1) {
+		vty_out(vty, "   %s:%s",
+			ratectr->e1_stats->desc->group_description,
+			VTY_NEWLINE);
+		vty_out_rate_ctr_group_fmt(vty,
+					   "   %25n: %10c (%S/s %M/m %H/h %D/d) %d",
+					   ratectr->e1_stats);
+	}
 }
 
 
@@ -305,7 +316,7 @@ static void dump_trunk(struct vty *vty, struct mgcp_trunk *trunk, int show_stats
 	}
 
 	if (show_stats)
-		dump_ratectr_trunk(vty, &trunk->ratectr);
+		dump_ratectr_trunk(vty, trunk);
 }
 
 #define SHOW_MGCP_STR "Display information about the MGCP Media Gateway\n"
@@ -715,7 +726,7 @@ DEFUN(cfg_mgcp_number_endp,
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
-	trunk->vty_number_endpoints = atoi(argv[0]);
+	trunk->v.vty_number_endpoints = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
 
@@ -894,6 +905,7 @@ static int config_write_trunk(struct vty *vty)
 			continue;
 
 		vty_out(vty, " trunk %d%s", trunk->trunk_nr, VTY_NEWLINE);
+		vty_out(vty, "  line %u%s", trunk->e1.vty_line_nr, VTY_NEWLINE);
 		vty_out(vty, "  %ssdp audio-payload send-ptime%s",
 			trunk->audio_send_ptime ? "" : "no ", VTY_NEWLINE);
 		vty_out(vty, "  %ssdp audio-payload send-name%s",
@@ -1156,6 +1168,19 @@ DEFUN(cfg_trunk_no_allow_transcoding,
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->no_audio_transcoding = 1;
+	return CMD_SUCCESS;
+}
+
+#define LINE_STR "Configure trunk for given Line\nE1/T1 Line Number\n"
+
+DEFUN(cfg_trunk_line,
+      cfg_trunk_line_cmd,
+      "line <0-255>",
+      LINE_STR)
+{
+	struct mgcp_trunk *trunk = vty->index;
+	int line_nr = atoi(argv[0]);
+	trunk->e1.vty_line_nr = line_nr;
 	return CMD_SUCCESS;
 }
 
@@ -1549,6 +1574,7 @@ int mgcp_vty_init(void)
 	install_element(TRUNK_NODE, &cfg_trunk_no_sdp_payload_send_name_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_allow_transcoding_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_no_allow_transcoding_cmd);
+	install_element(TRUNK_NODE, &cfg_trunk_line_cmd);
 
 	return 0;
 }
@@ -1577,7 +1603,7 @@ int mgcp_parse_config(const char *config_file, struct mgcp_config *cfg,
 	}
 
 	llist_for_each_entry(trunk, &g_cfg->trunks, entry) {
-		if (mgcp_trunk_alloc_endpts(trunk) != 0) {
+		if (mgcp_trunk_equip(trunk) != 0) {
 			LOGP(DLMGCP, LOGL_ERROR,
 			     "Failed to initialize trunk %d (%d endpoints)\n",
 			     trunk->trunk_nr, trunk->number_endpoints);

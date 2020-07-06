@@ -24,6 +24,8 @@
 #include <osmocom/mgcp/mgcp_internal.h>
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
+#include <osmocom/mgcp/mgcp_e1.h>
+#include <osmocom/abis/e1_input.h>
 
 /*! allocate trunk and add it (if required) to the trunk list.
  *  (called once at startup by VTY).
@@ -47,7 +49,7 @@ struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_typ
 
 	trunk->audio_send_ptime = 1;
 	trunk->audio_send_name = 1;
-	trunk->vty_number_endpoints = 32;
+	trunk->v.vty_number_endpoints = 32;
 	trunk->omit_rtcp = 0;
 
 	mgcp_trunk_set_keepalive(trunk, MGCP_KEEPALIVE_ONCE);
@@ -81,13 +83,13 @@ int mgcp_trunk_alloc_endpts(struct mgcp_trunk *trunk)
 		/* Due to historical reasons the endpoints on the virtual
 		 * trunk start counting at 1. */
 		first_endpoint_nr = 1;
-		number_endpoints = trunk->vty_number_endpoints;
+		number_endpoints = trunk->v.vty_number_endpoints;
 		break;
 	case MGCP_TRUNK_E1:
 		/* The first timeslot on an E1 line is reserved for framing
 		 * and alignment and can not be used for audio transport */
 	        first_endpoint_nr = 1 * MGCP_ENDP_E1_SUBSLOTS;
-		number_endpoints = 31 * MGCP_ENDP_E1_SUBSLOTS;
+		number_endpoints = (NUM_E1_TS-1) * MGCP_ENDP_E1_SUBSLOTS;
 		break;
 	default:
 		OSMO_ASSERT(false);
@@ -118,6 +120,41 @@ int mgcp_trunk_alloc_endpts(struct mgcp_trunk *trunk)
 
 	/* make the endpoints we just created available to the MGW code */
 	trunk->number_endpoints = number_endpoints;
+
+	return 0;
+}
+
+/*! Equip trunk with endpoints and resources
+ *  (called once at startup by VTY).
+ *  \param[in] trunk trunk configuration.
+ *  \returns 0 on success, -1 on failure. */
+int mgcp_trunk_equip(struct mgcp_trunk *trunk)
+{
+	unsigned int i;
+
+	/* Allocate endpoints */
+	if(mgcp_trunk_alloc_endpts(trunk) != 0)
+		return -1;
+
+	/* Allocate resources */
+	switch (trunk->trunk_type) {
+	case MGCP_TRUNK_VIRTUAL:
+		/* No additional initaliziation required here, virtual
+		 * endpoints will open/close network sockets themselves
+		 * on demand. */
+		break;
+	case MGCP_TRUNK_E1:
+		/* The TS initalization happens once on startup for all
+		 * timeslots. This only affects the i460 multiplexer. Until
+		 * now no E1 resources are claimed yet. This happens on demand
+		 * when the related endpoint is actually used */
+		memset(trunk->e1.i460_ts, 0, sizeof(trunk->e1.i460_ts));
+		for (i = 0; i < (NUM_E1_TS-1); i++)
+			osmo_i460_ts_init(&trunk->e1.i460_ts[i]);
+		break;
+	default:
+		OSMO_ASSERT(false);
+	}
 
 	return 0;
 }
@@ -197,5 +234,21 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 	}
 
 	LOGP(DLMGCP, LOGL_ERROR, "unable to find trunk for endpoint name \"%s\"!\n", epname);
+	return NULL;
+}
+
+/*! Find a trunk (E1) by its associated E1 line number.
+ *  \param[in] num e1 line number.
+ *  \returns trunk or NULL if trunk was not found. */
+struct mgcp_trunk *mgcp_trunk_by_line_num(const struct mgcp_config *cfg, unsigned int num)
+{
+	/*! When used on trunks other than E1, the result will always be NULL. */
+	struct mgcp_trunk *trunk;
+
+	llist_for_each_entry(trunk, &cfg->trunks, entry) {
+		if (trunk->trunk_type == MGCP_TRUNK_E1 && trunk->e1.vty_line_nr == num)
+			return trunk;
+	}
+
 	return NULL;
 }

@@ -24,6 +24,7 @@
 #pragma once
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/gsm/i460_mux.h>
 
 struct sockaddr_in;
 struct mgcp_conn;
@@ -116,10 +117,23 @@ struct mgcp_endpoint {
 
 	/*! MGCP_X_OSMO_IGN_* flags from 'X-Osmo-IGN:' header */
 	uint32_t x_osmo_ign;
+
+	/* E1 specific */
+	struct {
+		struct osmo_i460_schan_desc scd;
+		struct osmo_i460_subchan *schan;
+		struct osmo_fsm_inst *trau_sync_fi;
+		struct osmo_trau2rtp_state *trau_rtp_st;
+		uint8_t last_amr_ft;
+		struct mgcp_rtp_codec *last_codec;
+	} e1;
+
 };
 
 struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk, unsigned int index);
 void mgcp_endp_release(struct mgcp_endpoint *endp);
+int mgcp_endp_claim(struct mgcp_endpoint *endp, const char *callid);
+void mgcp_endp_update(struct mgcp_endpoint *endp);
 struct mgcp_endpoint *mgcp_endp_by_name_trunk(int *cause, const char *epname,
 					      const struct mgcp_trunk *trunk);
 struct mgcp_endpoint *mgcp_endp_by_name(int *cause, const char *epname,

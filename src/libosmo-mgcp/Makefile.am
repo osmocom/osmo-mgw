@@ -10,6 +10,8 @@ AM_CFLAGS = \
 	$(LIBOSMOGSM_CFLAGS) \
 	$(LIBOSMOVTY_CFLAGS) \
 	$(LIBOSMONETIF_CFLAGS) \
+	$(LIBOSMOABIS_CFLAGS) \
+	$(LIBOSMOTRAU_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
 	$(NULL)
 
@@ -18,6 +20,8 @@ AM_LDFLAGS = \
 	$(LIBOSMOGSM_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
 	$(LIBOSMONETIF_LIBS) \
+	$(LIBOSMOABIS_LIBS) \
+	$(LIBOSMOTRAU_LIBS) \
 	$(COVERAGE_LDFLAGS) \
 	$(NULL)
 
@@ -43,4 +47,5 @@ libosmo_mgcp_a_SOURCES = \
 	mgcp_trunk.c \
 	mgcp_ctrl.c \
 	mgcp_ratectr.c \
+	mgcp_e1.c \
 	$(NULL)

@@ -64,6 +64,7 @@ static const struct rate_ctr_desc mgcp_crcx_ctr_desc[] = {
 	[MGCP_CRCX_FAIL_CODEC_NEGOTIATION] = { "crcx:codec_nego", "codec negotiation failure." },
 	[MGCP_CRCX_FAIL_BIND_PORT] = { "crcx:bind_port", "port bind failure." },
 	[MGCP_CRCX_FAIL_AVAIL] = { "crcx:unavailable", "endpoint unavailable." },
+	[MGCP_CRCX_FAIL_CLAIM] = { "crcx:claim", "endpoint can not be claimed." },
 };
 
 const static struct rate_ctr_group_desc mgcp_crcx_ctr_group_desc = {
@@ -122,6 +123,20 @@ const static struct rate_ctr_group_desc mgcp_dlcx_ctr_group_desc = {
 	.class_id = OSMO_STATS_CLASS_GLOBAL,
 	.num_ctr = ARRAY_SIZE(mgcp_dlcx_ctr_desc),
 	.ctr_desc = mgcp_dlcx_ctr_desc
+};
+
+static const struct rate_ctr_desc e1_rate_ctr_desc[] = {
+	[E1_I460_TRAU_RX_FAIL_CTR] = {"e1:rx_fail", "Inbound I.460 TRAU failures."},
+	[E1_I460_TRAU_TX_FAIL_CTR] = {"e1:tx_fail", "Outbound I.460 TRAU failures."},
+	[E1_I460_TRAU_MUX_EMPTY_CTR] = {"e1:i460", "Outbound I.460 MUX queue empty."}
+};
+
+const static struct rate_ctr_group_desc e1_rate_ctr_group_desc = {
+	.group_name_prefix = "e1",
+	.group_description = "e1 statistics",
+	.class_id = OSMO_STATS_CLASS_GLOBAL,
+	.num_ctr = ARRAY_SIZE(e1_rate_ctr_desc),
+	.ctr_desc = e1_rate_ctr_desc
 };
 
 const static struct rate_ctr_group_desc all_rtp_conn_rate_ctr_group_desc = {
@@ -202,6 +217,13 @@ int mgcp_ratectr_trunk_alloc(void *ctx, struct mgcp_ratectr_trunk *ratectr)
 			return -EINVAL;
 		talloc_set_destructor(ratectr->all_rtp_conn_stats, free_rate_counter_group);
 		all_rtp_conn_rate_ctr_index++;
+	}
+	if (ratectr->e1_stats == NULL) {
+		ratectr->e1_stats = rate_ctr_group_alloc(ctx, &e1_rate_ctr_group_desc, mdcx_rate_ctr_index);
+		if (!ratectr->e1_stats)
+			return -EINVAL;
+		talloc_set_destructor(ratectr->e1_stats, free_rate_counter_group);
+		mdcx_rate_ctr_index++;
 	}
 	return 0;
 }

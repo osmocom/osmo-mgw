@@ -30,6 +30,8 @@
 #include <limits.h>
 #include <unistd.h>
 #include <errno.h>
+#include <osmocom/core/msgb.h>
+#include <osmocom/abis/e1_input.h>
 
 #include <sys/socket.h>
 
@@ -58,6 +60,7 @@
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/stats.h>
 #include <osmocom/vty/misc.h>
+#include <osmocom/abis/abis.h>
 
 #include "../../bscconfig.h"
 
@@ -268,7 +271,13 @@ static const struct log_info_cat log_categories[] = {
 		  .description = "RTP stream handling",
 		  .color = "\033[1;30m",
 		  .enabled = 1,.loglevel = LOGL_NOTICE,
-		  },
+	},
+	[DE1] = {
+		  .name = "DE1",
+		  .description = "E1 line handling",
+		  .color = "\033[1;31m",
+		  .enabled = 1,.loglevel = LOGL_NOTICE,
+	},
 };
 
 const struct log_info log_info = {
@@ -288,6 +297,7 @@ int main(int argc, char **argv)
 
 	osmo_init_ignore_signals();
 	osmo_init_logging2(tall_bsc_ctx, &log_info);
+	libosmo_abis_init(tall_bsc_ctx);
 
 	cfg = mgcp_config_alloc();
 	if (!cfg)
@@ -300,6 +310,7 @@ int main(int argc, char **argv)
 	osmo_stats_vty_add_cmds();
 	mgcp_vty_init();
 	ctrl_vty_init(cfg);
+	e1inp_vty_init();
 
 	handle_options(argc, argv);
 

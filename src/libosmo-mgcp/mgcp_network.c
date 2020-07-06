@@ -46,12 +46,11 @@
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/mgcp/debug.h>
 #include <osmocom/codec/codec.h>
-
+#include <osmocom/mgcp/mgcp_e1.h>
 
 #define RTP_SEQ_MOD		(1 << 16)
 #define RTP_MAX_DROPOUT		3000
 #define RTP_MAX_MISORDER	100
-#define RTP_BUF_SIZE		4096
 
 enum rtp_proto {
 	MGCP_PROTO_RTP,
@@ -798,6 +797,23 @@ static void forward_data(int fd, struct mgcp_rtp_tap *tap, struct msgb *msg)
 		     "Forwarding tapped (debug) voice data failed.\n");
 }
 
+/* Generate an RTP header if it is missing */
+static void gen_rtp_header(struct msgb *msg, struct mgcp_rtp_end *rtp_end,
+			   struct mgcp_rtp_state *state)
+{
+	struct rtp_hdr *hdr = (struct rtp_hdr *)msgb_data(msg);
+
+	if (hdr->version > 0)
+		return;
+
+	hdr->version = 2;
+	hdr->payload_type = rtp_end->codec->payload_type;
+	hdr->timestamp = osmo_htonl(get_current_ts(rtp_end->codec->rate));
+	hdr->sequence = osmo_htons(state->alt_rtp_tx_sequence);
+	hdr->ssrc = state->alt_rtp_tx_ssrc;
+}
+
+
 /*! Send RTP/RTCP data to a specified destination connection.
  *  \param[in] endp associated endpoint (for configuration, logging).
  *  \param[in] is_rtp flag to specify if the packet is of type RTP or RTCP.
@@ -857,6 +873,11 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	rtp_state = &conn_src->state;
 	dest_name = conn_dst->conn->name;
 
+	/* Ensure we have an alternative SSRC in case we need it, see also
+	 * gen_rtp_header() */
+	if (rtp_state->alt_rtp_tx_ssrc == 0)
+		rtp_state->alt_rtp_tx_ssrc = rand();
+
 	if (!rtp_end->output_enabled) {
 		rtpconn_rate_ctr_inc(conn_dst, endp, RTP_DROPPED_PACKETS_CTR);
 		LOGPENDP(endp, DRTP, LOGL_DEBUG,
@@ -870,6 +891,11 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 		int cont;
 		int nbytes = 0;
 		int buflen = msgb_length(msg);
+
+		/* Make sure we have a valid RTP header, in cases where no RTP
+		 * header is present, we will generate one. */
+		gen_rtp_header(msg, rtp_end, rtp_state);
+
 		do {
 			/* Run transcoder */
 			cont = endp->cfg->rtp_processing_cb(endp, rtp_end,
@@ -938,6 +964,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 
 			rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
 			rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
+			rtp_state->alt_rtp_tx_sequence++;
 
 			nbytes += len;
 			buflen = cont;
@@ -956,6 +983,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 
 		rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
 		rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
+		rtp_state->alt_rtp_tx_sequence++;
 
 		return len;
 	}
@@ -1236,12 +1264,24 @@ int mgcp_dispatch_e1_bridge_cb(struct msgb *msg)
 	struct osmo_rtp_msg_ctx *mc = OSMO_RTP_MSG_CTX(msg);
 	struct mgcp_conn_rtp *conn_src = mc->conn_src;
 	struct mgcp_conn *conn = conn_src->conn;
+	struct sockaddr_in *from_addr = mc->from_addr;
 
-	/* FIXME: integrate E1 support from libsomoabis, also implement
-	 * handling for RTCP packets, which can not converted to E1. */
-	LOGPCONN(conn, DRTP, LOGL_FATAL,
-		 "cannot dispatch! E1 support is not implemented yet!\n");
-	return -1;
+	/* Check if the connection is in loopback mode, if yes, just send the
+	 * incoming data back to the origin */
+	if (conn->mode == MGCP_CONN_LOOPBACK) {
+		/* When we are in loopback mode, we loop back all incoming
+		 * packets back to their origin. We will use the originating
+		 * address data from the UDP packet header to patch the
+		 * outgoing address in connection on the fly */
+		if (conn->u.rtp.end.rtp_port == 0) {
+			conn->u.rtp.end.addr = from_addr->sin_addr;
+			conn->u.rtp.end.rtp_port = from_addr->sin_port;
+		}
+		return mgcp_send_rtp(conn_src, msg);
+	}
+
+	/* Forward to E1 */
+	return mgcp_e1_send_rtp(conn->endp, conn->u.rtp.end.codec, msg);
 }
 
 /*! cleanup an endpoint when a connection on an RTP bridge endpoint is removed.
@@ -1267,8 +1307,9 @@ void mgcp_cleanup_rtp_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *co
  *  \param[in] conn Connection that is about to be removed (ignored). */
 void mgcp_cleanup_e1_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *conn)
 {
-	LOGPCONN(conn, DRTP, LOGL_FATAL,
-		 "cannot dispatch! E1 support is not implemented yet!\n");
+	/* Cleanup tasks for E1 are the same as for regular endpoint. The
+	 * shut down of the E1 part is handled separately. */
+	mgcp_cleanup_rtp_bridge_cb(endp, conn);
 }
 
 static bool is_dummy_msg(enum rtp_proto proto, struct msgb *msg)

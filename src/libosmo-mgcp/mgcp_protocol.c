@@ -849,10 +849,16 @@ mgcp_header_done:
 		}
 	}
 
-	/* Set the callid, creation of another connection will only be possible
-	 * when the callid matches up. (Connections are distinguished by their
-	 * connection ids) */
-	endp->callid = talloc_strdup(trunk->endpoints, callid);
+	if (!endp->callid) {
+		/* Claim endpoint resources. This will also set the callid,
+		 * creating additional connections will only be possible if
+		 * the callid matches up (see above). */
+		rc = mgcp_endp_claim(endp, callid);
+		if (rc != 0) {
+			rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_CLAIM]);
+			return create_err_response(endp, 502, "CRCX", p->trans);
+		}
+	}
 
 	snprintf(conn_name, sizeof(conn_name), "%s", callid);
 	_conn = mgcp_conn_alloc(trunk->endpoints, endp, MGCP_CONN_TYPE_RTP, conn_name);
@@ -863,6 +869,7 @@ mgcp_header_done:
 		goto error2;
 
 	}
+
 	conn = mgcp_conn_get_rtp(endp, _conn->id);
 	OSMO_ASSERT(conn);
 
@@ -979,6 +986,7 @@ mgcp_header_done:
 	LOGPCONN(_conn, DLMGCP, LOGL_NOTICE,
 		 "CRCX: connection successfully created\n");
 	rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_SUCCESS]);
+	mgcp_endp_update(endp);
 	return create_response_with_sdp(endp, conn, "CRCX", p->trans, true);
 error2:
 	mgcp_endp_release(endp);
@@ -1206,6 +1214,7 @@ mgcp_header_done:
 
 	LOGPCONN(conn->conn, DLMGCP, LOGL_NOTICE,
 		 "MDCX: connection successfully modified\n");
+	mgcp_endp_update(endp);
 	return create_response_with_sdp(endp, conn, "MDCX", p->trans, false);
 error3:
 	return create_err_response(endp, error_code, "MDCX", p->trans);

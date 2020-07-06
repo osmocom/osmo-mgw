@@ -29,6 +29,7 @@ enum {
 	MGCP_CRCX_FAIL_CODEC_NEGOTIATION,
 	MGCP_CRCX_FAIL_BIND_PORT,
 	MGCP_CRCX_FAIL_AVAIL,
+	MGCP_CRCX_FAIL_CLAIM,
 };
 
 /* Global MCGP MDCX related rate counters */
@@ -63,6 +64,13 @@ enum {
 	MGCP_DLCX_FAIL_AVAIL,
 };
 
+/* Trunk-global E1 related counters */
+enum {
+        E1_I460_TRAU_RX_FAIL_CTR,
+        E1_I460_TRAU_TX_FAIL_CTR,
+        E1_I460_TRAU_MUX_EMPTY_CTR,
+};
+
 /* NOTE: When adding counters, also the dump_ratectr_* routines in vty.c must be updated. */
 
 struct mgcp_ratectr_global {
@@ -79,6 +87,8 @@ struct mgcp_ratectr_trunk {
 	struct rate_ctr_group *mgcp_dlcx_ctr_group;
 	/* Rate counter group which aggregates stats of individual RTP connections. */
 	struct rate_ctr_group *all_rtp_conn_stats;
+	/* Rate counter group which contains stats for E1 events (only valid for E1 trunks) */
+	struct rate_ctr_group *e1_stats;
 };
 
 int mgcp_ratectr_global_alloc(void *ctx, struct mgcp_ratectr_global *ratectr);

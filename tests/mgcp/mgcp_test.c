@@ -771,8 +771,8 @@ static void test_messages(void)
 	cfg = mgcp_config_alloc();
 	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 
-	trunk->vty_number_endpoints = 64;
-        mgcp_trunk_alloc_endpts(trunk);
+	trunk->v.vty_number_endpoints = 64;
+        mgcp_trunk_equip(trunk);
 	cfg->policy_cb = mgcp_test_policy_cb;
 
 	memset(last_conn_id, 0, sizeof(last_conn_id));
@@ -908,8 +908,8 @@ static void test_retransmission(void)
 	cfg = mgcp_config_alloc();
 	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 
-	trunk->vty_number_endpoints = 64;
-        mgcp_trunk_alloc_endpts(trunk);
+	trunk->v.vty_number_endpoints = 64;
+        mgcp_trunk_equip(trunk);
 
 	memset(last_conn_id, 0, sizeof(last_conn_id));
 
@@ -973,8 +973,8 @@ static void test_rqnt_cb(void)
 	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	cfg->rqnt_cb = rqnt_cb;
 
-	trunk->vty_number_endpoints = 64;
-        mgcp_trunk_alloc_endpts(trunk);
+	trunk->v.vty_number_endpoints = 64;
+        mgcp_trunk_equip(trunk);
 
 	inp = create_msg(CRCX, NULL);
 	msg = mgcp_handle_message(cfg, inp);
@@ -1050,7 +1050,7 @@ static void test_packet_loss_calc(void)
 
 	endp.cfg = &cfg;
 	endp.type = &ep_typeset.rtp;
-	trunk.vty_number_endpoints = 1;
+	trunk.v.vty_number_endpoints = 1;
 	trunk.endpoints = endpoints;
 	trunk.endpoints[0] = &endp;
 	endp.trunk = &trunk;
@@ -1301,7 +1301,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	endp.cfg = &cfg;
 	endp.type = &ep_typeset.rtp;
 
-	trunk.vty_number_endpoints = 1;
+	trunk.v.vty_number_endpoints = 1;
 	trunk.endpoints = endpoints;
 	trunk.endpoints[0] = &endp;
 	trunk.force_constant_ssrc = patch_ssrc;
@@ -1382,8 +1382,8 @@ static void test_multilple_codec(void)
 
 	cfg = mgcp_config_alloc();
 	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
-	trunk->vty_number_endpoints = 64;
-        mgcp_trunk_alloc_endpts(trunk);
+	trunk->v.vty_number_endpoints = 64;
+        mgcp_trunk_equip(trunk);
 	cfg->policy_cb = mgcp_test_policy_cb;
 
 	/* Allocate endpoint 1@mgw with two codecs */
@@ -1531,8 +1531,8 @@ static void test_no_cycle(void)
 
 	cfg = mgcp_config_alloc();
 	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
-	trunk->vty_number_endpoints = 64;
-        mgcp_trunk_alloc_endpts(trunk);
+	trunk->v.vty_number_endpoints = 64;
+        mgcp_trunk_equip(trunk);
 
 	endp = mgcp_endp_by_name(NULL, "rtpbridge/1@mgw", cfg);
 	OSMO_ASSERT(endp);
@@ -1581,9 +1581,9 @@ static void test_no_name(void)
 	cfg = mgcp_config_alloc();
 	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 
-	trunk->vty_number_endpoints = 64;
+	trunk->v.vty_number_endpoints = 64;
 	trunk->audio_send_name = 0;
-        mgcp_trunk_alloc_endpts(trunk);
+        mgcp_trunk_equip(trunk);
 
 	cfg->policy_cb = mgcp_test_policy_cb;
 

@@ -10,4 +10,5 @@ noinst_HEADERS = \
 	mgcp_trunk.h \
 	debug.h \
 	mgcp_ratectr.h \
+	mgcp_e1.h \
 	$(NULL)

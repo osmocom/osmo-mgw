@@ -71,6 +71,10 @@ struct mgcp_rtp_state {
 	/* duration of a packet (FIXME: in which unit?) */
 	uint32_t packet_duration;
 
+	/* Note: These states are not continuously updated, they serve as an
+	 * information source to patch certain values in the RTP header. Do
+	 * not use this state if constantly updated data about the RTP stream
+	 * is needed. (see also mgcp_patch_and_count() */
 	struct mgcp_rtp_stream_state in_stream;
 	struct mgcp_rtp_stream_state out_stream;
 
@@ -84,6 +88,13 @@ struct mgcp_rtp_state {
 		int32_t transit;
 		int cycles;
 	} stats;
+
+	/* Alternative values for RTP tx, in case no sufficient header
+	 * information is available so the header needs to be generated
+	 * locally (when just forwarding packets, the header of incoming
+	 * data is just re-used) */
+	uint16_t alt_rtp_tx_sequence;
+	uint32_t alt_rtp_tx_ssrc;
 
 	bool patched_first_rtp_payload; /* FIXME: drop this, see OS#2459 */
 };
@@ -296,3 +307,5 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_state *state,
 			  struct mgcp_rtp_end *rtp_end,
 			  struct sockaddr_in *addr, struct msgb *msg);
+
+#define RTP_BUF_SIZE		4096

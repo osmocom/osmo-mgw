@@ -25,32 +25,11 @@
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
 
+#include <osmocom/mgcp/mgcp_e1.h>
+
 #define E1_TIMESLOTS 32
 #define E1_RATE_MAX 64
 #define E1_OFFS_MAX 8
-
-/* A 64k timeslot on an E1 line can be subdevied into the following
- * subslot combinations:
- *
- * subslot:                                          offset:
- * [          ][          ][   16k    ][8k_subslot]  0
- * [          ][   32k    ][_subslot__][8k_subslot]  1
- * [          ][ subslot  ][   16k    ][8k_subslot]  2
- * [   64k    ][__________][_subslot__][8k_subslot]  3
- * [ timeslot ][          ][   16k    ][8k_subslot]  4
- * [          ][   32K    ][_subslot__][8k_subslot]  5
- * [          ][ subslot  ][   16k    ][8k_subslot]  6
- * [          ][          ][ subslot  ][8k_subslot]  7
- *
- * Since overlapping assignment of subslots is not possible there is a limited
- * set of subslot assignments possible. The e1_rates array lists the possible
- * assignments as depicted above. Also each subslot assignment comes along with
- * a bit offset in the E1 bitstream. The e1_offsets arrays lists the bit
- * offsets. */
-static const uint8_t e1_rates[] =
-		{ 64, 32, 32, 16, 16, 16, 16, 8, 8, 8, 8, 8, 8, 8, 8 };
-static const uint8_t e1_offsets[] =
-		{ 0, 0, 4, 0, 2, 4, 6, 0, 1, 2, 3, 4, 5, 6, 7 };
 
 /* Endpoint typeset definition */
 const struct mgcp_endpoint_typeset ep_typeset = {
@@ -116,7 +95,7 @@ struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk,
 		endp->name = gen_virtual_epname(endp, trunk->cfg->domain, index);
 		break;
 	case MGCP_TRUNK_E1:
-		endp->type = &ep_typeset.rtp;
+		endp->type = &ep_typeset.e1;
 		endp->name = gen_e1_epname(endp, trunk->cfg->domain,
 					   trunk->trunk_nr,
 					   index / MGCP_ENDP_E1_SUBSLOTS, index % MGCP_ENDP_E1_SUBSLOTS);
@@ -149,6 +128,9 @@ void mgcp_endp_release(struct mgcp_endpoint *endp)
 	talloc_free(endp->local_options.codec);
 	endp->local_options.codec = NULL;
 	endp->wildcarded_req = false;
+
+	if (endp->trunk->trunk_type == MGCP_TRUNK_E1)
+		mgcp_e1_endp_release(endp);
 }
 
 /* Check if the endpoint name contains the prefix (e.g. "rtpbridge/" or
@@ -613,4 +595,72 @@ bool mgcp_endp_avail(struct mgcp_endpoint *endp)
 	}
 
 	return false;
+}
+
+/*! claim endpoint, sets callid and activates endpoint, should be called at the
+ *  beginning of the CRCX procedure when it is clear that a new call should be
+ *  created.
+ *  \param[in] endp endpoint to claim.
+ *  \param[in] callid that is assingned to this endpoint. */
+int mgcp_endp_claim(struct mgcp_endpoint *endp, const char *callid)
+{
+	int rc = 0;
+	uint8_t ts;
+	uint8_t ss;
+	uint8_t offs;
+
+	/* TODO: Make this function more intelligent, it should run the
+	 * call id checks we currently have in protocol.c directly here. */
+
+	/* Set the callid, creation of another connection will only be possible
+	 * when the callid matches up. (Connections are distinguished by their
+	 * connection ids) */
+	endp->callid = talloc_strdup(endp, callid);
+	OSMO_ASSERT(endp->callid);
+
+	/* Allocate resources */
+	switch (endp->trunk->trunk_type) {
+	case MGCP_TRUNK_VIRTUAL:
+		/* No additional initaliziation required here, virtual
+		 * endpoints will open/close network sockets themselves
+		 * on demand. */
+		break;
+	case MGCP_TRUNK_E1:
+		ts = e1_ts_nr_from_epname(endp->name);
+		ss = e1_ss_nr_from_epname(endp->name);
+		offs = e1_offs_from_epname(endp->name);
+		OSMO_ASSERT(ts != 0xFF);
+		OSMO_ASSERT(ts != 0);
+		OSMO_ASSERT(ss != 0xFF);
+		OSMO_ASSERT(offs != 0xFF);
+		rc = mgcp_e1_endp_equip(endp, ts, ss, offs);
+		break;
+	default:
+		OSMO_ASSERT(false);
+	}
+
+	/* Make sure the endpoint is released when claiming the endpoint
+	 * failes. */
+	if (rc < 0)
+		mgcp_endp_release(endp);
+
+	return rc;
+}
+
+/*! update endpoint, updates internal endpoint specific data, should be
+ *  after when MDCX or CRCX has been executed successuflly.
+ *  \param[in] endp endpoint to update. */
+void mgcp_endp_update(struct mgcp_endpoint *endp)
+{
+	/* Allocate resources */
+	switch (endp->trunk->trunk_type) {
+	case MGCP_TRUNK_VIRTUAL:
+		/* No updating initaliziation required for virtual endpoints. */
+		break;
+	case MGCP_TRUNK_E1:
+		mgcp_e1_endp_update(endp);
+		break;
+	default:
+		OSMO_ASSERT(false);
+	}
 }

@@ -124,3 +124,4 @@ void mgcp_conn_free_oldest(struct mgcp_endpoint *endp);
 void mgcp_conn_free_all(struct mgcp_endpoint *endp);
 char *mgcp_conn_dump(struct mgcp_conn *conn);
 struct mgcp_conn *mgcp_find_dst_conn(struct mgcp_conn *conn);
+struct mgcp_conn *mgcp_conn_get_oldest(struct mgcp_endpoint *endp);

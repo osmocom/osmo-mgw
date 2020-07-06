@@ -1,5 +1,13 @@
 #pragma once
 
+#include <osmocom/gsm/i460_mux.h>
+
+#define LOGPTRUNK(trunk, cat, level, fmt, args...) \
+LOGP(cat, level, "trunk:%u " fmt, \
+     trunk ? trunk->trunk_nr : 0, \
+     ## args)
+
+
 enum mgcp_trunk_type {
 	MGCP_TRUNK_VIRTUAL,
 	MGCP_TRUNK_E1,
@@ -39,18 +47,32 @@ struct mgcp_trunk {
 	int rtp_accept_all;
 
 	unsigned int number_endpoints;
-	unsigned int vty_number_endpoints;
 	struct mgcp_endpoint **endpoints;
 
 	/* global rate counters to measure the trunks overall performance and health */
 	struct mgcp_ratectr_trunk ratectr;
+
+	union {
+		/* Virtual trunk specific */
+		struct {
+			unsigned int vty_number_endpoints;
+		} v;
+		/* E1 specific */
+		struct {
+			unsigned int vty_line_nr;
+			struct e1inp_line *line;
+			bool ts_in_use[31];
+			struct osmo_i460_timeslot i460_ts[31];
+		} e1;
+	};
 };
 
 struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr);
-int mgcp_trunk_alloc_endpts(struct mgcp_trunk *tcfg);
+int mgcp_trunk_equip(struct mgcp_trunk *trunk);
 struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr);
 struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char *epname);
 int e1_trunk_nr_from_epname(const char *epname);
+struct mgcp_trunk *mgcp_trunk_by_line_num(const struct mgcp_config *cfg, unsigned int num);
 
 /* The virtual trunk is always created on trunk id 0 for historical reasons,
  * use this define constant as ID when allocating a virtual trunk. Other

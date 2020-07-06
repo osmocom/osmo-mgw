@@ -397,3 +397,13 @@ struct mgcp_conn *mgcp_find_dst_conn(struct mgcp_conn *conn)
 
 	return NULL;
 }
+
+/*! get oldest connection in the list.
+ *  \param[in] endp associated endpoint */
+struct mgcp_conn *mgcp_conn_get_oldest(struct mgcp_endpoint *endp)
+{
+	if (llist_empty(&endp->conns))
+		return NULL;
+
+	return llist_last_entry(&endp->conns, struct mgcp_conn, entry);
+}
