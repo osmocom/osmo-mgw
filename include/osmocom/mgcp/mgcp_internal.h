@@ -197,12 +197,6 @@ struct mgcp_conn_rtp {
 
 #include <osmocom/mgcp/mgcp_conn.h>
 
-struct mgcp_endpoint_type;
-
-
-
-
-
 /**
  * Internal structure while parsing a request
  */
