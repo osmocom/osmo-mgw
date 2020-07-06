@@ -33,6 +33,47 @@ LOGPENDP((conn)->endp, cat, level, "CI:%s " fmt, \
          (conn)->id, \
          ## args)
 
+/*! Connection type, specifies which member of the union "u" in mgcp_conn
+ *  contains a useful connection description (currently only RTP) */
+enum mgcp_conn_type {
+	MGCP_CONN_TYPE_RTP,
+};
+
+/*! MGCP connection (untyped) */
+struct mgcp_conn {
+	/*! list head */
+	struct llist_head entry;
+
+	/*! Backpointer to the endpoint where the conn belongs to */
+	struct mgcp_endpoint *endp;
+
+	/*! type of the connection (union) */
+	enum mgcp_conn_type type;
+
+	/*! mode of the connection */
+	enum mgcp_connection_mode mode;
+
+	/*! copy of the mode to restore the original setting (VTY) */
+	enum mgcp_connection_mode mode_orig;
+
+	/*! connection id to identify the connection */
+	char id[MGCP_CONN_ID_MAXLEN];
+
+	/*! human readable name (vty, logging) */
+	char name[256];
+
+	/*! activity tracker (for cleaning up inactive connections) */
+	struct osmo_timer_list watchdog;
+
+	/*! union with connection description */
+	union {
+		struct mgcp_conn_rtp rtp;
+	} u;
+
+	/*! pointer to optional private data */
+	void *priv;
+};
+
 /* RTP connection related counters */
 enum {
 	IN_STREAM_ERR_TSTMP_CTR,
