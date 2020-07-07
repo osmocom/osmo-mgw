@@ -478,6 +478,8 @@ static int add_fmtp(struct msgb *sdp, struct sdp_fmtp_param *fmtp_params, unsign
 
 	for (i = 0; i < fmtp_params_len; i++) {
 		rc = msgb_printf(sdp, "a=fmtp:%u", fmtp_params[i].payload_type);
+		if (rc < 0)
+			return -EINVAL;
 
 		/* Add amr octet align parameter */
 		if (fmtp_params[i].param.amr_octet_aligned_present) {
