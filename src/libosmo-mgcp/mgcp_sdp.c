@@ -496,7 +496,7 @@ static int add_fmtp(struct msgb *sdp, struct sdp_fmtp_param *fmtp_params, unsign
 				return -EINVAL;
 		}
 
-		rc = msgb_printf(sdp, "\r\n", fmtp_params[i].payload_type);
+		rc = msgb_printf(sdp, "\r\n");
 		if (rc < 0)
 			return -EINVAL;
 	}
