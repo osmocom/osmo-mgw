@@ -147,7 +147,7 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 {
 	size_t prefix_len;
 	char epname_lc[MGCP_ENDPOINT_MAXLEN];
-	unsigned long int trunk_nr;
+	int trunk_nr;
 
 	osmo_str_tolower_buf(epname_lc, sizeof(epname_lc), epname);
 	epname = epname_lc;
