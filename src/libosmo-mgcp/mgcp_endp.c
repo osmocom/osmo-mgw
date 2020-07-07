@@ -524,8 +524,8 @@ static bool endp_avail_e1(struct mgcp_endpoint *endp)
 	 * endpoint we need to verify, only the overlaps need to be checked. This is
 	 * also the reason why the related subslot number is missing from each each
 	 * line. */
-	const int8_t interlock_tab[MGCP_ENDP_E1_SUBSLOTS][15] =
-		{ { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, -1 },
+	const int8_t interlock_tab[MGCP_ENDP_E1_SUBSLOTS][15] = {
+		{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, -1 },
 		{ 0, 3, 4, 7, 8, 9, 10, -1, -1, -1, -1, -1, -1, -1, -1 },
 		{ 0, 5, 6, 11, 12, 13, 14, -1, -1, -1, -1, -1, -1, -1, -1 },
 		{ 0, 1, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
