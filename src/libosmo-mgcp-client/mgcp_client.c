@@ -911,6 +911,9 @@ struct mgcp_response_pending * mgcp_client_pending_add(
 	struct mgcp_response_pending *pending;
 
 	pending = talloc_zero(mgcp, struct mgcp_response_pending);
+	if (!pending)
+		return NULL;
+
 	pending->trans_id = trans_id;
 	pending->response_cb = response_cb;
 	pending->priv = priv;
@@ -943,6 +946,10 @@ int mgcp_client_tx(struct mgcp_client *mgcp, struct msgb *msg,
 	}
 
 	pending = mgcp_client_pending_add(mgcp, trans_id, response_cb, priv);
+	if (!pending) {
+		talloc_free(msg);
+		return -ENOMEM;
+	}
 
 	if (msgb_l2len(msg) > 4096) {
 		LOGP(DLMGCP, LOGL_ERROR,
