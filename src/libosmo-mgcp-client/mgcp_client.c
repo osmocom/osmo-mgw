@@ -735,6 +735,8 @@ struct mgcp_client *mgcp_client_init(void *ctx,
 	struct mgcp_client *mgcp;
 
 	mgcp = talloc_zero(ctx, struct mgcp_client);
+	if (!mgcp)
+		return NULL;
 
 	INIT_LLIST_HEAD(&mgcp->responses_pending);
 	INIT_LLIST_HEAD(&mgcp->inuse_endpoints);
