@@ -1027,12 +1027,12 @@ int mgcp_client_tx(struct mgcp_client *mgcp, struct msgb *msg,
 
 mgcp_tx_error:
 	if (!pending)
-		return -1;
+		return rc;
 	/* Dequeue pending response, it's going to be free()d */
 	llist_del(&pending->entry);
 	/* Pass NULL to response cb to indicate an error */
 	mgcp_client_handle_response(mgcp, pending, NULL);
-	return -1;
+	return rc;
 }
 
 /*! Cancel a pending transaction.
