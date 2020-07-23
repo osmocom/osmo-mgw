@@ -370,13 +370,10 @@ static struct msgb *handle_audit_endpoint(struct mgcp_parse_data *p)
 static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 {
 	int i;
-	struct mgcp_rtp_end *end;
 	struct mgcp_port_range *range;
 	unsigned int tries;
 
 	OSMO_ASSERT(conn);
-	end = &conn->end;
-	OSMO_ASSERT(end);
 
 	range = &endp->cfg->net_ports;
 
