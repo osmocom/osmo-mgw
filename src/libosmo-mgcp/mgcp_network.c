@@ -37,7 +37,8 @@
 #include <osmocom/netif/amr.h>
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_common.h>
-#include <osmocom/mgcp/mgcp_internal.h>
+#include <osmocom/mgcp/mgcp_network.h>
+#include <osmocom/mgcp/mgcp_protocol.h>
 #include <osmocom/mgcp/mgcp_stat.h>
 #include <osmocom/mgcp/osmux.h>
 #include <osmocom/mgcp/mgcp_conn.h>
@@ -47,6 +48,7 @@
 #include <osmocom/mgcp/debug.h>
 #include <osmocom/codec/codec.h>
 #include <osmocom/mgcp/mgcp_e1.h>
+
 
 #define RTP_SEQ_MOD		(1 << 16)
 #define RTP_MAX_DROPOUT		3000

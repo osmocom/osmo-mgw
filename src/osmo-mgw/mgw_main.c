@@ -36,7 +36,7 @@
 #include <sys/socket.h>
 
 #include <osmocom/mgcp/mgcp.h>
-#include <osmocom/mgcp/mgcp_internal.h>
+#include <osmocom/mgcp/mgcp_protocol.h>
 #include <osmocom/mgcp/vty.h>
 #include <osmocom/mgcp/debug.h>
 #include <osmocom/mgcp/mgcp_endp.h>

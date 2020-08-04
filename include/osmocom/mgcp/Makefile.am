@@ -11,4 +11,6 @@ noinst_HEADERS = \
 	debug.h \
 	mgcp_ratectr.h \
 	mgcp_e1.h \
+	mgcp_network.h \
+	mgcp_protocol.h \
 	$(NULL)

@@ -17,9 +17,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <osmocom/mgcp/mgcp_internal.h>
+#include <osmocom/mgcp/mgcp.h>
+#include <osmocom/mgcp/osmux.h>
+#include <osmocom/mgcp/mgcp_conn.h>
+#include <osmocom/mgcp/mgcp_protocol.h>
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
+#include <osmocom/mgcp/mgcp_codec.h>
 #include <errno.h>
 
 /* Helper function to dump codec information of a specified codec to a printable

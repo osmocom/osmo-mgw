@@ -21,7 +21,9 @@
  *
  */
 
-#include <osmocom/mgcp/mgcp_internal.h>
+#include <osmocom/mgcp/mgcp.h>
+#include <osmocom/mgcp/mgcp_protocol.h>
+#include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
 

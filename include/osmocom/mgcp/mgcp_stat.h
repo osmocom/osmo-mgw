@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <osmocom/mgcp/mgcp_internal.h>
 #include <inttypes.h>
 
 void mgcp_format_stats(char *str, size_t str_len,  struct mgcp_conn *conn);

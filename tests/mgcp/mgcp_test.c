@@ -22,14 +22,14 @@
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/vty.h>
 #include <osmocom/mgcp/mgcp_common.h>
-#include <osmocom/mgcp/mgcp_internal.h>
+#include <osmocom/mgcp/mgcp_conn.h>
+#include <osmocom/mgcp/mgcp_protocol.h>
 #include <osmocom/mgcp/mgcp_stat.h>
 #include <osmocom/mgcp/mgcp_msg.h>
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
 #include <osmocom/mgcp/mgcp_sdp.h>
 #include <osmocom/mgcp/mgcp_codec.h>
-#include <osmocom/mgcp/mgcp_internal.h>
 
 #include <osmocom/core/application.h>
 #include <osmocom/core/talloc.h>

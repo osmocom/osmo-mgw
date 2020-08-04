@@ -22,10 +22,12 @@
  *
  */
 
-#include <osmocom/mgcp/mgcp_stat.h>
-#include <osmocom/mgcp/mgcp_endp.h>
 #include <limits.h>
 #include <inttypes.h>
+#include <osmocom/mgcp/mgcp_protocol.h>
+#include <osmocom/mgcp/mgcp_conn.h>
+#include <osmocom/mgcp/mgcp_stat.h>
+#include <osmocom/mgcp/mgcp_endp.h>
 
 /* Helper function for mgcp_format_stats_rtp() to calculate packet loss */
 void calc_loss(struct mgcp_conn_rtp *conn, uint32_t *expected, int *loss)

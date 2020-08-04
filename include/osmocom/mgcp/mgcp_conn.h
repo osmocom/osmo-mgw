@@ -23,7 +23,9 @@
 
 #pragma once
 
-#include <osmocom/mgcp/mgcp_internal.h>
+#include <osmocom/mgcp/mgcp.h>
+#include <osmocom/mgcp/mgcp_network.h>
+#include <osmocom/mgcp/osmux.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/rate_ctr.h>
 #include <inttypes.h>
@@ -33,10 +35,65 @@ LOGPENDP((conn)->endp, cat, level, "CI:%s " fmt, \
          (conn)->id, \
          ## args)
 
+#define LOG_CONN(conn, level, fmt, args...) \
+	LOGP(DRTP, level, "(%s I:%s) " fmt, \
+	     (conn)->endp ? (conn)->endp->name : "none", (conn)->id, ## args)
+
+#define LOG_CONN_RTP(conn_rtp, level, fmt, args...) \
+	LOG_CONN((conn_rtp)->conn, level, fmt, ## args)
+
+/* Specific rtp connection type (see struct mgcp_conn_rtp) */
+enum mgcp_conn_rtp_type {
+	MGCP_RTP_DEFAULT	= 0,
+	MGCP_OSMUX_BSC,
+	MGCP_OSMUX_BSC_NAT,
+};
+
 /*! Connection type, specifies which member of the union "u" in mgcp_conn
  *  contains a useful connection description (currently only RTP) */
 enum mgcp_conn_type {
 	MGCP_CONN_TYPE_RTP,
+};
+
+/* MGCP connection (RTP) */
+struct mgcp_conn_rtp {
+
+	/* Backpointer to conn struct */
+	struct mgcp_conn *conn;
+
+	/* Specific connection type */
+	enum mgcp_conn_rtp_type type;
+
+	/* Port status */
+	struct mgcp_rtp_end end;
+
+	/* Sequence bits */
+	struct mgcp_rtp_state state;
+
+	/* taps for the rtp connection; one per direction */
+	struct mgcp_rtp_tap tap_in;
+	struct mgcp_rtp_tap tap_out;
+
+	/* Osmux states (optional) */
+	struct {
+		/* Osmux state: disabled, activating, active */
+		enum osmux_state state;
+		/* Is cid holding valid data? is it allocated from pool? */
+		bool cid_allocated;
+		/* Allocated Osmux circuit ID for this conn */
+		uint8_t cid;
+		/* handle to batch messages */
+		struct osmux_in_handle *in;
+		/* handle to unbatch messages */
+		struct osmux_out_handle out;
+		/* statistics */
+		struct {
+			uint32_t chunks;
+			uint32_t octets;
+		} stats;
+	} osmux;
+
+	struct rate_ctr_group *rate_ctr_group;
 };
 
 /*! MGCP connection (untyped) */
@@ -114,6 +171,11 @@ static const struct rate_ctr_desc all_rtp_conn_rate_ctr_desc[] = {
 	[RTP_NUM_CONNECTIONS] = {"all_rtp:num_closed_conns", "Total number of rtp connections closed."}
 };
 
+/* Was conn configured to handle Osmux? */
+static inline bool mgcp_conn_rtp_is_osmux(const struct mgcp_conn_rtp *conn) {
+	return conn->type == MGCP_OSMUX_BSC || conn->type == MGCP_OSMUX_BSC_NAT;
+}
+
 struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 				  enum mgcp_conn_type type, char *name);
 struct mgcp_conn *mgcp_conn_get(struct mgcp_endpoint *endp, const char *id);
@@ -125,3 +187,4 @@ void mgcp_conn_free_all(struct mgcp_endpoint *endp);
 char *mgcp_conn_dump(struct mgcp_conn *conn);
 struct mgcp_conn *mgcp_find_dst_conn(struct mgcp_conn *conn);
 struct mgcp_conn *mgcp_conn_get_oldest(struct mgcp_endpoint *endp);
+void mgcp_conn_watchdog_kick(struct mgcp_conn *conn);

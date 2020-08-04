@@ -24,7 +24,9 @@
 
 #include <limits.h>
 
-#include <osmocom/mgcp/mgcp_internal.h>
+#include <osmocom/mgcp/mgcp.h>
+#include <osmocom/mgcp/osmux.h>
+#include <osmocom/mgcp/mgcp_protocol.h>
 #include <osmocom/mgcp/mgcp_common.h>
 #include <osmocom/mgcp/mgcp_msg.h>
 #include <osmocom/mgcp/mgcp_conn.h>

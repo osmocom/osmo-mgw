@@ -1,48 +1,11 @@
-/* MGCP Private Data */
-
-/*
- * (C) 2009-2012 by Holger Hans Peter Freyther <zecke@selfish.org>
- * (C) 2009-2012 by On-Waves
- * All Rights Reserved
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- */
-
 #pragma once
 
-#include <string.h>
 #include <inttypes.h>
-#include <osmocom/core/select.h>
+#include <stdbool.h>
 #include <osmocom/mgcp/mgcp.h>
-#include <osmocom/core/linuxlist.h>
-#include <osmocom/core/counter.h>
-#include <osmocom/core/rate_ctr.h>
 
-#define CI_UNUSED 0
-
-/* FIXME: This this is only needed to compile the currently
- * broken OSMUX support. Remove when fixed */
-#define CONN_ID_BTS "0"
-#define CONN_ID_NET "1"
-
-#define LOG_CONN(conn, level, fmt, args...) \
-	LOGP(DRTP, level, "(%s I:%s) " fmt, \
-	     (conn)->endp ? (conn)->endp->name : "none", (conn)->id, ## args)
-
-#define LOG_CONN_RTP(conn_rtp, level, fmt, args...) \
-	LOG_CONN((conn_rtp)->conn, level, fmt, ## args)
+#define MGCP_DUMMY_LOAD 0x23
+#define RTP_BUF_SIZE	4096
 
 struct mgcp_rtp_stream_state {
 	uint32_t ssrc;
@@ -161,74 +124,7 @@ struct mgcp_rtp_tap {
 	struct sockaddr_in forward;
 };
 
-struct mgcp_lco {
-	char *string;
-	char *codec;
-	int pkt_period_min; /* time in ms */
-	int pkt_period_max; /* time in ms */
-};
-
-/* Specific rtp connection type (see struct mgcp_conn_rtp) */
-enum mgcp_conn_rtp_type {
-	MGCP_RTP_DEFAULT	= 0,
-	MGCP_OSMUX_BSC,
-	MGCP_OSMUX_BSC_NAT,
-};
-
-#include <osmocom/mgcp/osmux.h>
-
-/* MGCP connection (RTP) */
-struct mgcp_conn_rtp {
-
-	/* Backpointer to conn struct */
-	struct mgcp_conn *conn;
-
-	/* Specific connection type */
-	enum mgcp_conn_rtp_type type;
-
-	/* Port status */
-	struct mgcp_rtp_end end;
-
-	/* Sequence bits */
-	struct mgcp_rtp_state state;
-
-	/* taps for the rtp connection; one per direction */
-	struct mgcp_rtp_tap tap_in;
-	struct mgcp_rtp_tap tap_out;
-
-	/* Osmux states (optional) */
-	struct {
-		/* Osmux state: disabled, activating, active */
-		enum osmux_state state;
-		/* Is cid holding valid data? is it allocated from pool? */
-		bool cid_allocated;
-		/* Allocated Osmux circuit ID for this conn */
-		uint8_t cid;
-		/* handle to batch messages */
-		struct osmux_in_handle *in;
-		/* handle to unbatch messages */
-		struct osmux_out_handle out;
-		/* statistics */
-		struct {
-			uint32_t chunks;
-			uint32_t octets;
-		} stats;
-	} osmux;
-
-	struct rate_ctr_group *rate_ctr_group;
-};
-
-#include <osmocom/mgcp/mgcp_conn.h>
-
-/**
- * Internal structure while parsing a request
- */
-struct mgcp_parse_data {
-	struct mgcp_config *cfg;
-	struct mgcp_endpoint *endp;
-	char *trans;
-	char *save;
-};
+struct mgcp_conn;
 
 int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
 	      struct msgb *msg, struct mgcp_conn_rtp *conn_src,
@@ -241,19 +137,12 @@ void mgcp_cleanup_e1_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *con
 int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 			   struct mgcp_conn_rtp *conn);
 void mgcp_free_rtp_port(struct mgcp_rtp_end *end);
-
-/* For transcoding we need to manage an in and an output that are connected */
-static inline int endp_back_channel(int endpoint)
-{
-	return endpoint + 60;
-}
-
-char *get_lco_identifier(const char *options);
-int check_local_cx_options(void *ctx, const char *options);
-void mgcp_rtp_end_config(struct mgcp_endpoint *endp, int expect_ssrc_change,
-			 struct mgcp_rtp_end *rtp);
-uint32_t mgcp_rtp_packet_duration(struct mgcp_endpoint *endp,
-				  struct mgcp_rtp_end *rtp);
+void mgcp_patch_and_count(struct mgcp_endpoint *endp,
+			  struct mgcp_rtp_state *state,
+			  struct mgcp_rtp_end *rtp_end,
+			  struct sockaddr_in *addr, struct msgb *msg);
+void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn);
+int mgcp_set_ip_tos(int fd, int tos);
 
 /* payload processing default functions */
 int mgcp_rtp_processing_default(struct mgcp_endpoint *endp, struct mgcp_rtp_end *dst_end,
@@ -272,40 +161,3 @@ void mgcp_get_net_downlink_format_default(struct mgcp_endpoint *endp,
 void mgcp_rtp_annex_count(struct mgcp_endpoint *endp, struct mgcp_rtp_state *state,
 			const uint16_t seq, const int32_t transit,
 			const uint32_t ssrc);
-
-int mgcp_set_ip_tos(int fd, int tos);
-
-/* Was conn configured to handle Osmux? */
-static inline bool mgcp_conn_rtp_is_osmux(const struct mgcp_conn_rtp *conn) {
-	return conn->type == MGCP_OSMUX_BSC || conn->type == MGCP_OSMUX_BSC_NAT;
-}
-
-enum {
-	MGCP_DEST_NET = 0,
-	MGCP_DEST_BTS,
-};
-
-
-#define MGCP_DUMMY_LOAD 0x23
-
-
-/**
- * SDP related information
- */
-/* Assume audio frame length of 20ms */
-#define DEFAULT_RTP_AUDIO_FRAME_DUR_NUM 20
-#define DEFAULT_RTP_AUDIO_FRAME_DUR_DEN 1000
-#define DEFAULT_RTP_AUDIO_PACKET_DURATION_MS 20
-#define DEFAULT_RTP_AUDIO_DEFAULT_RATE  8000
-#define DEFAULT_RTP_AUDIO_DEFAULT_CHANNELS 1
-
-#define PTYPE_UNDEFINED (-1)
-
-void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn);
-void mgcp_conn_watchdog_kick(struct mgcp_conn *conn);
-void mgcp_patch_and_count(struct mgcp_endpoint *endp,
-			  struct mgcp_rtp_state *state,
-			  struct mgcp_rtp_end *rtp_end,
-			  struct sockaddr_in *addr, struct msgb *msg);
-
-#define RTP_BUF_SIZE		4096

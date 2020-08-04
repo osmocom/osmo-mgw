@@ -24,7 +24,7 @@
 
 #include <errno.h>
 #include <osmocom/core/stats.h>
-#include <osmocom/mgcp/mgcp_internal.h>
+#include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_ratectr.h>
 
 static const struct rate_ctr_desc mgcp_general_ctr_desc[] = {
