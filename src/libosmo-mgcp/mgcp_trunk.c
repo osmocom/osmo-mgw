@@ -190,7 +190,7 @@ int e1_trunk_nr_from_epname(const char *epname)
 
 	errno = 0;
 	trunk_nr = strtoul(epname + prefix_len, &str_trunk_nr_end, 10);
-	if (errno == ERANGE || trunk_nr > 64 || trunk_nr == 0
+	if (errno == ERANGE || trunk_nr > 64
 	    || epname + prefix_len == str_trunk_nr_end
 	    || str_trunk_nr_end[0] != '/')
 		return -EINVAL;
@@ -217,7 +217,7 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 	}
 
 	trunk_nr = e1_trunk_nr_from_epname(epname);
-	if (trunk_nr > 0)
+	if (trunk_nr >= 0)
 		return mgcp_trunk_by_num(cfg, MGCP_TRUNK_E1, trunk_nr);
 
 	/* Earlier versions of osmo-mgw were accepting endpoint names
