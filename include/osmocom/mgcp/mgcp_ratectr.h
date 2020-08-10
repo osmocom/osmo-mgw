@@ -11,7 +11,7 @@ enum {
 	MGCP_GENERAL_RX_FAIL_NO_ENDPOINT,
 };
 
-/* Global MCGP CRCX related rate counters */
+/* Trunk-global MCGP CRCX related rate counters */
 enum {
 	MGCP_CRCX_SUCCESS,
 	MGCP_CRCX_FAIL_BAD_ACTION,
@@ -32,7 +32,7 @@ enum {
 	MGCP_CRCX_FAIL_CLAIM,
 };
 
-/* Global MCGP MDCX related rate counters */
+/* Trunk-global MCGP MDCX related rate counters */
 enum {
 	MGCP_MDCX_SUCCESS,
 	MGCP_MDCX_FAIL_WILDCARD,
@@ -51,7 +51,7 @@ enum {
 	MGCP_MDCX_FAIL_AVAIL,
 };
 
-/* Global MCGP DLCX related rate counters */
+/* Trunk-global MCGP DLCX related rate counters */
 enum {
 	MGCP_DLCX_SUCCESS,
 	MGCP_DLCX_FAIL_WILDCARD,
