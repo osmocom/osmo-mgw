@@ -866,15 +866,10 @@ ALIAS_DEPRECATED(cfg_mgcp_agent_addr, cfg_mgcp_agent_addr_cmd_old,
 		 "IPv4 Address of the callagent\n")
 
 DEFUN(cfg_mgcp_trunk, cfg_mgcp_trunk_cmd,
-      "trunk <1-64>", "Configure a SS7 trunk\n" "Trunk Nr\n")
+      "trunk <0-64>", "Configure a SS7 trunk\n" "Trunk Nr\n")
 {
 	struct mgcp_trunk *trunk;
 	int index = atoi(argv[0]);
-
-	/* Due to historical reasons, the trunk id number 0 is reserved for the
-	 * virtual trunk. This trunk is configured with separate VTY
-	 * parameters, so we restrict the access to trunks with id numbers
-	 * greater than 0. */
 
 	trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_E1, index);
 	if (!trunk) {

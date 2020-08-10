@@ -2124,6 +2124,8 @@ void test_e1_trunk_nr_from_epname()
 	/* Note: e1_trunk_nr_from_epname does not check the text
 	 * after the E1 trunk number, after the delimiter
 	 * character "/" arbitrary text may follow. */
+	trunk_nr = e1_trunk_nr_from_epname("ds/e1-0/s-1/su16-0");
+	OSMO_ASSERT(trunk_nr == 0);
 	trunk_nr = e1_trunk_nr_from_epname("ds/e1-1/s-1/su16-0");
 	OSMO_ASSERT(trunk_nr == 1);
 	trunk_nr = e1_trunk_nr_from_epname("ds/e1-2/s-2/su16-0");
@@ -2141,8 +2143,6 @@ void test_e1_trunk_nr_from_epname()
 	 * trunk number exceeds the valid range or the trunk prefix
 	 * is wrong. Also when the delimiter character "/" at the
 	 * end of the trunk is wrong the parsing should fail. */
-	trunk_nr = e1_trunk_nr_from_epname("ds/e1-0/s-1/su16-0");
-	OSMO_ASSERT(trunk_nr == -EINVAL);
 	trunk_nr = e1_trunk_nr_from_epname("ds/e1-65/s-1/su16-0");
 	OSMO_ASSERT(trunk_nr == -EINVAL);
 	trunk_nr = e1_trunk_nr_from_epname("ds/e1--1/s-1/su16-0");
