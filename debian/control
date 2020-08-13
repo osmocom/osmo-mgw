@@ -8,6 +8,7 @@ Build-Depends: debhelper (>=9),
                autotools-dev,
                libosmocore-dev,
                libosmo-netif-dev,
+               libosmo-abis-dev,
                osmo-gsm-manuals-dev
 Standards-Version: 3.9.8
 Vcs-Git: git://git.osmocom.org/osmo-mgw.git
