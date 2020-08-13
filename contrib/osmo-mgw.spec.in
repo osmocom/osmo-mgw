@@ -35,7 +35,7 @@ BuildRequires:  pkgconfig(libosmoctrl) >= 1.1.0
 BuildRequires:  pkgconfig(libosmogsm) >= 1.0.0
 BuildRequires:  pkgconfig(libosmovty) >= 1.0.0
 BuildRequires:  pkgconfig(libosmocoding) >= 1.0.0
-BuildRequires:  pkgconfig(libosmo-abis)
+BuildRequires:  pkgconfig(libosmoabis)
 %{?systemd_requires}
 
 %description
