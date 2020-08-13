@@ -402,7 +402,7 @@ int mgcp_e1_init(struct mgcp_trunk *trunk, uint8_t ts_nr)
 	rc = e1inp_ts_config_raw(&e1_line->ts[ts_nr - 1], e1_line, e1_recv_cb);
 	if (rc < 0)
 		return -EINVAL;
-	e1inp_line_update(e1_line);
+	rc = e1inp_line_update(e1_line);
 	if (rc < 0)
 		return -EINVAL;
 
