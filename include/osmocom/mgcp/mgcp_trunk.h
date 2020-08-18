@@ -60,7 +60,6 @@ struct mgcp_trunk {
 		/* E1 specific */
 		struct {
 			unsigned int vty_line_nr;
-			struct e1inp_line *line;
 			bool ts_in_use[31];
 			struct osmo_i460_timeslot i460_ts[31];
 		} e1;

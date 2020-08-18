@@ -385,18 +385,13 @@ int mgcp_e1_init(struct mgcp_trunk *trunk, uint8_t ts_nr)
 	}
 
 	/* Get E1 line */
-	if (!trunk->e1.line) {
-		e1_line = e1inp_line_find(trunk->e1.vty_line_nr);
-		if (!e1_line) {
-			LOGPTRUNK(trunk, DE1, LOGL_DEBUG, "no such E1 line %u - check VTY config!\n",
-				  trunk->e1.vty_line_nr);
-			return -EINVAL;
-		}
-		e1inp_line_bind_ops(e1_line, &dummy_e1_line_ops);
-	} else
-		e1_line = trunk->e1.line;
-	if (!e1_line)
+	e1_line = e1inp_line_find(trunk->e1.vty_line_nr);
+	if (!e1_line) {
+		LOGPTRUNK(trunk, DE1, LOGL_DEBUG, "no such E1 line %u - check VTY config!\n",
+			  trunk->e1.vty_line_nr);
 		return -EINVAL;
+	}
+	e1inp_line_bind_ops(e1_line, &dummy_e1_line_ops);
 
 	/* Configure E1 timeslot */
 	rc = e1inp_ts_config_raw(&e1_line->ts[ts_nr - 1], e1_line, e1_recv_cb);
