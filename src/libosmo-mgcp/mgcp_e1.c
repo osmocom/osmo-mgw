@@ -400,11 +400,15 @@ int mgcp_e1_init(struct mgcp_trunk *trunk, uint8_t ts_nr)
 
 	/* Configure E1 timeslot */
 	rc = e1inp_ts_config_raw(&e1_line->ts[ts_nr - 1], e1_line, e1_recv_cb);
-	if (rc < 0)
+	if (rc < 0) {
+		LOGPTRUNK(trunk, DE1, LOGL_ERROR, "failed to put E1 timeslot %u in raw mode.\n", ts_nr);
 		return -EINVAL;
+	}
 	rc = e1inp_line_update(e1_line);
-	if (rc < 0)
+	if (rc < 0) {
+		LOGPTRUNK(trunk, DE1, LOGL_ERROR, "failed to update E1 timeslot %u.\n", ts_nr);
 		return -EINVAL;
+	}
 
 	LOGPTRUNK(trunk, DE1, LOGL_DEBUG, "E1 timeslot %u set up successfully.\n", ts_nr);
 	trunk->e1.ts_in_use[ts_nr - 1] = true;
