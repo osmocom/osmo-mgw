@@ -60,6 +60,8 @@
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/stats.h>
 #include <osmocom/vty/misc.h>
+#include <osmocom/vty/cpu_sched_vty.h>
+
 #include <osmocom/abis/abis.h>
 
 #include "../../bscconfig.h"
@@ -311,6 +313,7 @@ int main(int argc, char **argv)
 	mgcp_vty_init();
 	ctrl_vty_init(cfg);
 	e1inp_vty_init();
+	osmo_cpu_sched_vty_init(tall_bsc_ctx);
 
 	handle_options(argc, argv);
 

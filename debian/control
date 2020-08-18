@@ -6,7 +6,7 @@ Build-Depends: debhelper (>=9),
                dh-autoreconf,
                pkg-config,
                autotools-dev,
-               libosmocore-dev,
+               libosmocore-dev (>= 1.4.0),
                libosmo-netif-dev,
                libosmo-abis-dev,
                osmo-gsm-manuals-dev
