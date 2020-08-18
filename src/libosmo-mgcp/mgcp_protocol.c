@@ -746,6 +746,7 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 	int rc;
 
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "CRCX: creating new connection ...\n");
+
 	if (!mgcp_endp_avail(endp)) {
 		rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_AVAIL]);
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
