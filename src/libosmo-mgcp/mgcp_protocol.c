@@ -748,6 +748,8 @@ static struct msgb *handle_create_con(struct mgcp_parse_data *p)
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "CRCX: creating new connection ...\n");
 	if (!mgcp_endp_avail(endp)) {
 		rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_AVAIL]);
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+			 "CRCX: selected endpoint not available!\n");
 		return create_err_response(NULL, 501, "CRCX", p->trans);
 	}
 
@@ -1017,6 +1019,8 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 
 	if (!mgcp_endp_avail(endp)) {
 		rate_ctr_inc(&rate_ctrs->ctr[MGCP_MDCX_FAIL_AVAIL]);
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+			 "MDCX: selected endpoint not available!\n");
 		return create_err_response(NULL, 501, "MDCX", p->trans);
 	}
 
@@ -1243,6 +1247,8 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *p)
 
 	if (!mgcp_endp_avail(endp)) {
 		rate_ctr_inc(&rate_ctrs->ctr[MGCP_DLCX_FAIL_AVAIL]);
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+			 "DLCX: selected endpoint not available!\n");
 		return create_err_response(NULL, 501, "DLCX", p->trans);
 	}
 
