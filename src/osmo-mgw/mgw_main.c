@@ -93,7 +93,7 @@ const char *osmomgw_copyright =
 static char *config_file = "osmo-mgw.cfg";
 
 /* used by msgb and mgcp */
-void *tall_bsc_ctx = NULL;
+void *tall_mgw_ctx = NULL;
 
 static void print_help()
 {
@@ -141,7 +141,7 @@ static void handle_options(int argc, char **argv)
 				exit(2);
 			}
 		case 'c':
-			config_file = talloc_strdup(tall_bsc_ctx, optarg);
+			config_file = talloc_strdup(tall_mgw_ctx, optarg);
 			break;
 		case 's':
 			log_set_use_color(osmo_stderr_target, 0);
@@ -292,14 +292,14 @@ int main(int argc, char **argv)
 	unsigned int flags;
 	int rc;
 
-	tall_bsc_ctx = talloc_named_const(NULL, 1, "mgcp-callagent");
-	vty_info.tall_ctx = tall_bsc_ctx;
+	tall_mgw_ctx = talloc_named_const(NULL, 1, "mgcp-callagent");
+	vty_info.tall_ctx = tall_mgw_ctx;
 
-	msgb_talloc_ctx_init(tall_bsc_ctx, 0);
+	msgb_talloc_ctx_init(tall_mgw_ctx, 0);
 
 	osmo_init_ignore_signals();
-	osmo_init_logging2(tall_bsc_ctx, &log_info);
-	libosmo_abis_init(tall_bsc_ctx);
+	osmo_init_logging2(tall_mgw_ctx, &log_info);
+	libosmo_abis_init(tall_mgw_ctx);
 
 	cfg = mgcp_config_alloc();
 	if (!cfg)
@@ -313,19 +313,19 @@ int main(int argc, char **argv)
 	mgcp_vty_init();
 	ctrl_vty_init(cfg);
 	e1inp_vty_init();
-	osmo_cpu_sched_vty_init(tall_bsc_ctx);
+	osmo_cpu_sched_vty_init(tall_mgw_ctx);
 
 	handle_options(argc, argv);
 
-	rate_ctr_init(tall_bsc_ctx);
-	osmo_stats_init(tall_bsc_ctx);
+	rate_ctr_init(tall_mgw_ctx);
+	osmo_stats_init(tall_mgw_ctx);
 
 	rc = mgcp_parse_config(config_file, cfg, MGCP_BSC);
 	if (rc < 0)
 		return rc;
 
 	/* start telnet after reading config for vty_get_bind_addr() */
-	rc = telnet_init_dynif(tall_bsc_ctx, NULL,
+	rc = telnet_init_dynif(tall_mgw_ctx, NULL,
 			       vty_get_bind_addr(), OSMO_VTY_PORT_MGW);
 	if (rc < 0)
 		return rc;
