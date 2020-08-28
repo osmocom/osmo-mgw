@@ -8,7 +8,7 @@
  *  (either remote or local). It is used to pass parameters (local) to the FSM
  *  and get responses (remote) from the FSM as pointer attached to the FSM
  *  event.
- * 
+ *
  *  When modifiying a connection, the endpoint and call_id members may be left
  *  unpopulated. The call_id field is ignored in this case. If an endpoint
  *  identifier is supplied it is checked against the internal state to make
