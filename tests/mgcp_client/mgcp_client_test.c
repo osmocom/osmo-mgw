@@ -294,10 +294,22 @@ void test_mgcp_msg(void)
 	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE |
 	     MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT);
 	memset(audio_ip_overflow, 'X', sizeof(audio_ip_overflow));
+	audio_ip_overflow[1] = '.';
 	audio_ip_overflow[sizeof(audio_ip_overflow) - 1] = '\0';
 	mgcp_msg.audio_ip = audio_ip_overflow;
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
 	OSMO_ASSERT(msg == NULL);
+
+	printf("IPv6 test:\n");
+	mgcp_msg.verb = MGCP_VERB_MDCX;
+	mgcp_msg.presence =
+	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
+	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE |
+	     MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT);
+	mgcp_msg.audio_ip = "2001:db8:1::ab9:c0a8:102";
+	mgcp->actual.remote_addr = "::1";
+	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
+	printf("%s\n", (char *)msg->data);
 
 	printf("\n");
 	msgb_free(msg);
@@ -413,6 +425,66 @@ static struct sdp_section_start_test sdp_section_start_tests[] = {
 			"m=audio 23\r\n",
 		.expect_rc = 0,
 	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\r\n\r\n"
+			"c=IN IP4 1.2.3.4\r\n",
+		.expect_params = {
+			.audio_ip = "1.2.3.4",
+		},
+		.expect_rc = 0,
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\r\n\r\n"
+			"c=IN IP6 2001:db8:1::ab9:c0a8:102\r\n",
+		.expect_params = {
+			.audio_ip = "2001:db8:1::ab9:c0a8:102",
+		},
+		.expect_rc = 0,
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\r\n\r\n"
+			"c=IN IP6 1.2.3.4\r\n",
+		.expect_rc = -22,
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\r\n\r\n"
+			"c=IN IP4 ::1\r\n",
+		.expect_rc = -22,
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\r\n\r\n"
+			"c=IN IP4 notanip\r\n",
+		.expect_rc = -22,
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\r\n\r\n"
+			"c=IN IP4 1.2.3.4.5.6\r\n",
+		.expect_rc = -22,
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\r\n\r\n"
+			"c=IN IP4 1.2 .3\r\n",
+		.expect_rc = -22,
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\r\n\r\n"
+			"c=IN IP4 1.2 .3\r\n",
+		.expect_rc = -22,
+	},
+	{
+		.body = "some mgcp header data\r\nand header params"
+			"\r\n\r\n"
+			"c=IN IP4 \r\n",
+		.expect_rc = -22,
+	},
 };
 
 void test_sdp_section_start()
@@ -443,7 +515,12 @@ void test_sdp_section_start()
 			continue;
 		}
 
-		fprintf(stderr, "got audio_port=%u\n", t->expect_params.audio_port);
+		fprintf(stderr, "got audio_ip=\"%s\"\n", r->audio_ip);
+		if (strcmp(r->audio_ip, t->expect_params.audio_ip)) {
+			fprintf(stderr, "FAIL: Expected audio_ip=\"%s\"\n", t->expect_params.audio_ip);
+			failures++;
+		}
+		fprintf(stderr, "got audio_port=%u\n", r->audio_port);
 		if (r->audio_port != t->expect_params.audio_port) {
 			fprintf(stderr, "FAIL: Expected audio_port=%u\n", t->expect_params.audio_port);
 			failures++;

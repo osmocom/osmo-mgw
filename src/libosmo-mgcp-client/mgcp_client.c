@@ -25,6 +25,7 @@
 #include <osmocom/core/logging.h>
 #include <osmocom/core/byteswap.h>
 #include <osmocom/core/socket.h>
+#include <osmocom/core/sockaddr_str.h>
 
 #include <osmocom/mgcp_client/mgcp_client.h>
 #include <osmocom/mgcp_client/mgcp_client_internal.h>
@@ -370,22 +371,37 @@ static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *li
 /* Parse a line like "c=IN IP4 10.11.12.13" */
 static int mgcp_parse_audio_ip(struct mgcp_response *r, const char *line)
 {
-	struct in_addr ip_test;
+	struct in6_addr ip_test;
+	bool is_ipv6;
 
-	if (strlen(line) < 16)
+	if (strncmp("c=IN IP", line, 7) != 0)
 		goto response_parse_failure;
-
-	/* The current implementation strictly supports IPV4 only ! */
-	if (memcmp("c=IN IP4 ", line, 9) != 0)
+	line += 7;
+	if (*line == '6')
+		is_ipv6 = true;
+	else if (*line == '4')
+		is_ipv6 = false;
+	else
 		goto response_parse_failure;
-
-	/* Extract IP-Address */
-	osmo_strlcpy(r->audio_ip, line + 9, sizeof(r->audio_ip));
-
-	/* Check IP-Address */
-	if (inet_aton(r->audio_ip, &ip_test) == 0)
+	line++;
+	if (*line != ' ')
 		goto response_parse_failure;
+	line++;
 
+	/* Extract and check IP-Address */
+	if (is_ipv6) {
+		/* 45 = INET6_ADDRSTRLEN -1 */
+		if (sscanf(line, "%45s", r->audio_ip) != 1)
+			goto response_parse_failure;
+		if (inet_pton(AF_INET6, r->audio_ip, &ip_test) != 1)
+			goto response_parse_failure;
+	} else {
+		/* 15 = INET_ADDRSTRLEN -1 */
+		if (sscanf(line, "%15s", r->audio_ip) != 1)
+			goto response_parse_failure;
+		if (inet_pton(AF_INET, r->audio_ip, &ip_test) != 1)
+			goto response_parse_failure;
+	}
 	return 0;
 
 response_parse_failure:
@@ -1122,6 +1138,7 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 	unsigned int i;
 	int rc = 0;
 	char local_ip[INET6_ADDRSTRLEN];
+	int local_ip_family, audio_ip_family;
 	const char *codec;
 	unsigned int pt;
 
@@ -1138,10 +1155,21 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 		msgb_free(msg);
 		return -2;
 	}
+	local_ip_family = osmo_ip_str_type(local_ip);
+	if (local_ip_family == AF_UNSPEC) {
+		msgb_free(msg);
+		return -2;
+	}
+	audio_ip_family = osmo_ip_str_type(mgcp_msg->audio_ip);
+	if (audio_ip_family == AF_UNSPEC) {
+		msgb_free(msg);
+		return -2;
+	}
 
 	/* Add owner/creator (SDP) */
-	rc += msgb_printf(msg, "o=- %x 23 IN IP4 %s\r\n",
-			  mgcp_msg->call_id, local_ip);
+	rc += msgb_printf(msg, "o=- %x 23 IN IP%c %s\r\n", mgcp_msg->call_id,
+			  local_ip_family == AF_INET6 ? '6' : '4',
+			  local_ip);
 
 	/* Add session name (none) */
 	rc += msgb_printf(msg, "s=-\r\n");
@@ -1159,7 +1187,9 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 		msgb_free(msg);
 		return -2;
 	}
-	rc += msgb_printf(msg, "c=IN IP4 %s\r\n", mgcp_msg->audio_ip);
+	rc += msgb_printf(msg, "c=IN IP%c %s\r\n",
+			  audio_ip_family == AF_INET6 ? '6' : '4',
+			  mgcp_msg->audio_ip);
 
 	/* Add time description, active time (SDP) */
 	rc += msgb_printf(msg, "t=0 0\r\n");

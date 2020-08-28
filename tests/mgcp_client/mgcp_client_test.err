@@ -19,55 +19,112 @@ test_sdp_section_start() test [0]:
 body: ""
 DLMGCP MGCP response contains no SDP parameters
 got rc=0
+got audio_ip=""
 got audio_port=0
 
 test_sdp_section_start() test [1]:
 body: "\n\n"
 got rc=0
+got audio_ip=""
 got audio_port=0
 
 test_sdp_section_start() test [2]:
 body: "\r\n\r\n"
 got rc=0
+got audio_ip=""
 got audio_port=0
 
 test_sdp_section_start() test [3]:
 body: "\n\r\n\r"
 got rc=0
+got audio_ip=""
 got audio_port=0
 
 test_sdp_section_start() test [4]:
 body: "some mgcp header data\r\nand header params\n\nm=audio 23\r\n"
 got rc=0
+got audio_ip=""
 got audio_port=23
 
 test_sdp_section_start() test [5]:
 body: "some mgcp header data\r\nand header params\r\n\r\nm=audio 23\r\n"
 got rc=0
+got audio_ip=""
 got audio_port=23
 
 test_sdp_section_start() test [6]:
 body: "some mgcp header data\r\nand header params\n\r\n\rm=audio 23\r\n"
 got rc=0
+got audio_ip=""
 got audio_port=23
 
 test_sdp_section_start() test [7]:
 body: "some mgcp header data\r\nand header params\n\r\nm=audio 23\r\n"
 DLMGCP MGCP response contains no SDP parameters
 got rc=0
+got audio_ip=""
 got audio_port=0
 
 test_sdp_section_start() test [8]:
 body: "some mgcp header data\r\nand header params\r\n\rm=audio 23\r\n"
 DLMGCP MGCP response contains no SDP parameters
 got rc=0
+got audio_ip=""
 got audio_port=0
 
 test_sdp_section_start() test [9]:
 body: "some mgcp header data\r\nand header params\n\r\rm=audio 23\r\n"
 DLMGCP MGCP response contains no SDP parameters
 got rc=0
+got audio_ip=""
 got audio_port=0
+
+test_sdp_section_start() test [10]:
+body: "some mgcp header data\r\nand header params\r\n\r\nc=IN IP4 1.2.3.4\r\n"
+got rc=0
+got audio_ip="1.2.3.4"
+got audio_port=0
+
+test_sdp_section_start() test [11]:
+body: "some mgcp header data\r\nand header params\r\n\r\nc=IN IP6 2001:db8:1::ab9:c0a8:102\r\n"
+got rc=0
+got audio_ip="2001:db8:1::ab9:c0a8:102"
+got audio_port=0
+
+test_sdp_section_start() test [12]:
+body: "some mgcp header data\r\nand header params\r\n\r\nc=IN IP6 1.2.3.4\r\n"
+DLMGCP Failed to parse MGCP response header (audio ip)
+got rc=-22
+
+test_sdp_section_start() test [13]:
+body: "some mgcp header data\r\nand header params\r\n\r\nc=IN IP4 ::1\r\n"
+DLMGCP Failed to parse MGCP response header (audio ip)
+got rc=-22
+
+test_sdp_section_start() test [14]:
+body: "some mgcp header data\r\nand header params\r\n\r\nc=IN IP4 notanip\r\n"
+DLMGCP Failed to parse MGCP response header (audio ip)
+got rc=-22
+
+test_sdp_section_start() test [15]:
+body: "some mgcp header data\r\nand header params\r\n\r\nc=IN IP4 1.2.3.4.5.6\r\n"
+DLMGCP Failed to parse MGCP response header (audio ip)
+got rc=-22
+
+test_sdp_section_start() test [16]:
+body: "some mgcp header data\r\nand header params\r\n\r\nc=IN IP4 1.2 .3\r\n"
+DLMGCP Failed to parse MGCP response header (audio ip)
+got rc=-22
+
+test_sdp_section_start() test [17]:
+body: "some mgcp header data\r\nand header params\r\n\r\nc=IN IP4 1.2 .3\r\n"
+DLMGCP Failed to parse MGCP response header (audio ip)
+got rc=-22
+
+test_sdp_section_start() test [18]:
+body: "some mgcp header data\r\nand header params\r\n\r\nc=IN IP4 \r\n"
+DLMGCP Failed to parse MGCP response header (audio ip)
+got rc=-22
 DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2
 DLMGCP ptmap contains illegal mapping: codec=0 maps to pt=100
 DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2
