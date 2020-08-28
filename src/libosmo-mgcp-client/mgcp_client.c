@@ -1121,7 +1121,7 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 {
 	unsigned int i;
 	int rc = 0;
-	char local_ip[INET_ADDRSTRLEN];
+	char local_ip[INET6_ADDRSTRLEN];
 	const char *codec;
 	unsigned int pt;
 

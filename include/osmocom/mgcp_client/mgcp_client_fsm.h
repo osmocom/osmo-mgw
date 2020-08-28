@@ -15,7 +15,7 @@
  *  sure it is correct. */
 struct mgcp_conn_peer {
 	/*! RTP connection IP-Address (optional, string e.g. "127.0.0.1") */
-	char addr[INET_ADDRSTRLEN];
+	char addr[INET6_ADDRSTRLEN];
 
 	/*! RTP connection IP-Port (optional)  */
 	uint16_t port;

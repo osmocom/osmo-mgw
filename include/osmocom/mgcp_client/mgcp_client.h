@@ -75,7 +75,7 @@ struct mgcp_response {
 	char *body;
 	struct mgcp_response_head head;
 	uint16_t audio_port;
-	char audio_ip[INET_ADDRSTRLEN];
+	char audio_ip[INET6_ADDRSTRLEN];
 	unsigned int ptime;
 	enum mgcp_codecs codecs[MGCP_MAX_CODECS];
 	unsigned int codecs_len;
