@@ -27,6 +27,7 @@
 #include <osmocom/core/fsm.h>
 #include <osmocom/core/byteswap.h>
 #include <osmocom/core/tdef.h>
+#include <osmocom/core/sockaddr_str.h>
 
 #include <osmocom/mgcp_client/mgcp_client_endpoint_fsm.h>
 
@@ -517,17 +518,33 @@ const struct mgcp_conn_peer *osmo_mgcpc_ep_ci_get_rtp_info(const struct osmo_mgc
 bool osmo_mgcpc_ep_ci_get_crcx_info_to_sockaddr(const struct osmo_mgcpc_ep_ci *ci, struct sockaddr_storage *dest)
 {
 	const struct mgcp_conn_peer *rtp_info;
+	int family;
 	struct sockaddr_in *sin;
+	struct sockaddr_in6 *sin6;
 
 	rtp_info = osmo_mgcpc_ep_ci_get_rtp_info(ci);
 	if (!rtp_info)
 		return false;
 
-        sin = (struct sockaddr_in *)dest;
-
-        sin->sin_family = AF_INET;
-        sin->sin_addr.s_addr = inet_addr(rtp_info->addr);
-        sin->sin_port = osmo_ntohs(rtp_info->port);
+	family = osmo_ip_str_type(rtp_info->addr);
+	switch (family) {
+	case AF_INET:
+		sin = (struct sockaddr_in *)dest;
+		sin->sin_family = AF_INET;
+		sin->sin_port = osmo_ntohs(rtp_info->port);
+		if (inet_pton(AF_INET, rtp_info->addr, &sin->sin_addr) != 1)
+			return false;
+		break;
+	case AF_INET6:
+		sin6 = (struct sockaddr_in6 *)dest;
+		sin6->sin6_family = AF_INET6;
+		sin6->sin6_port = osmo_ntohs(rtp_info->port);
+		if (inet_pton(AF_INET6, rtp_info->addr, &sin6->sin6_addr) != 1)
+			return false;
+		break;
+	default:
+		return false;
+	}
 	return true;
 }
 
