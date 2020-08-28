@@ -113,6 +113,7 @@ make %{?_smp_mflags} check || (find . -name testsuite.log -exec cat {} +)
 %dir %{_docdir}/%{name}/examples
 %dir %{_docdir}/%{name}/examples/osmo-mgw
 %{_docdir}/%{name}/examples/osmo-mgw/osmo-mgw.cfg
+%{_docdir}/%{name}/examples/osmo-mgw/osmo-mgw-abis_e1.cfg
 %{_bindir}/osmo-mgw
 %{_unitdir}/osmo-mgw.service
 %dir %{_sysconfdir}/osmocom
