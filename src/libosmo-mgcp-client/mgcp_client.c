@@ -794,7 +794,7 @@ static int init_socket(struct mgcp_client *mgcp)
 
 		/* Initalize socket with the currently configured port
 		 * number */
-		rc = osmo_sock_init2_ofd(&wq->bfd, AF_INET, SOCK_DGRAM, IPPROTO_UDP, mgcp->actual.local_addr,
+		rc = osmo_sock_init2_ofd(&wq->bfd, AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP, mgcp->actual.local_addr,
 					 mgcp->actual.local_port, mgcp->actual.remote_addr, mgcp->actual.remote_port,
 					 OSMO_SOCK_F_BIND | OSMO_SOCK_F_CONNECT);
 		if (rc > 0)

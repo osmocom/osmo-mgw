@@ -36,9 +36,10 @@ void *global_mgcp_client_ctx = NULL;
 struct mgcp_client_conf *global_mgcp_client_conf = NULL;
 
 DEFUN(cfg_mgw_local_ip, cfg_mgw_local_ip_cmd,
-      "mgw local-ip A.B.C.D",
+      "mgw local-ip " VTY_IPV46_CMD,
       MGW_STR "local bind to connect to MGW from\n"
-      "local bind IP address\n")
+      "local bind IPv4 address\n"
+      "local bind IPv6 address\n")
 {
 	if (!global_mgcp_client_conf)
 		return CMD_ERR_NOTHING_TODO;
@@ -69,9 +70,10 @@ ALIAS_DEPRECATED(cfg_mgw_local_port, cfg_mgcpgw_local_port_cmd,
 		 "local bind port\n")
 
 DEFUN(cfg_mgw_remote_ip, cfg_mgw_remote_ip_cmd,
-      "mgw remote-ip A.B.C.D",
+      "mgw remote-ip " VTY_IPV46_CMD,
       MGW_STR "remote IP address to reach the MGW at\n"
-      "remote IP address\n")
+      "remote IPv4 address\n"
+      "remote IPv6 address\n")
 {
 	if (!global_mgcp_client_conf)
 		return CMD_ERR_NOTHING_TODO;
