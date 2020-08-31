@@ -6,7 +6,7 @@
 #include <osmocom/mgcp_client/mgcp_common.h>
 
 /* See also: RFC 3435, chapter 3.5 Transmission over UDP */
-#define MGCP_CLIENT_LOCAL_ADDR_DEFAULT "0.0.0.0"
+#define MGCP_CLIENT_LOCAL_ADDR_DEFAULT NULL /* INADDR(6)_ANY */
 #define MGCP_CLIENT_LOCAL_PORT_DEFAULT 2727
 #define MGCP_CLIENT_REMOTE_ADDR_DEFAULT "127.0.0.1"
 #define MGCP_CLIENT_REMOTE_PORT_DEFAULT 2427
