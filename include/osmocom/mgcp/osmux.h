@@ -1,5 +1,6 @@
 #pragma once
 
+#include <osmocom/core/socket.h>
 
 #include <osmocom/netif/osmux.h>
 struct mgcp_conn_rtp;
@@ -13,7 +14,7 @@ enum {
 
 int osmux_init(int role, struct mgcp_config *cfg);
 int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
-		      struct in_addr *addr, uint16_t port);
+		      struct osmo_sockaddr *addr, uint16_t port);
 void conn_osmux_disable(struct mgcp_conn_rtp *conn);
 int conn_osmux_allocate_cid(struct mgcp_conn_rtp *conn, int osmux_cid);
 void conn_osmux_release_cid(struct mgcp_conn_rtp *conn);

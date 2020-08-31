@@ -21,6 +21,9 @@
  */
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/socket.h>
+#include <osmocom/core/sockaddr_str.h>
+
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/osmux.h>
 #include <osmocom/mgcp/mgcp_conn.h>
@@ -259,6 +262,42 @@ error:
 	return -EINVAL;
 }
 
+
+static int audio_ip_from_sdp(struct osmo_sockaddr *dst_addr, char *sdp)
+{
+	bool is_ipv6;
+	char ipbuf[INET6_ADDRSTRLEN];
+	if (strncmp("c=IN IP", sdp, 7) != 0)
+		return -1;
+	sdp += 7;
+	if (*sdp == '6')
+	       is_ipv6 = true;
+	else if (*sdp == '4')
+	       is_ipv6 = false;
+	else
+	       return -1;
+	sdp++;
+	if (*sdp != ' ')
+		return -1;
+	sdp++;
+	if (is_ipv6) {
+		/* 45 = INET6_ADDRSTRLEN -1 */
+		if (sscanf(sdp, "%45s", ipbuf) != 1)
+			return -1;
+		if (inet_pton(AF_INET6, ipbuf, &dst_addr->u.sin6.sin6_addr) != 1)
+			return -1;
+		dst_addr->u.sa.sa_family = AF_INET6;
+	} else {
+		/* 15 = INET_ADDRSTRLEN -1 */
+		if (sscanf(sdp, "%15s", ipbuf) != 1)
+			return -1;
+		if (inet_pton(AF_INET, ipbuf, &dst_addr->u.sin.sin_addr) != 1)
+			return -1;
+		dst_addr->u.sa.sa_family = AF_INET;
+	}
+	return 0;
+}
+
 /* Pick optional fmtp parameters by payload type, if there are no fmtp
  * parameters, a nullpointer is returned */
 static struct mgcp_codec_param *param_by_pt(int pt, struct sdp_fmtp_param *fmtp_params, unsigned int fmtp_params_len)
@@ -289,6 +328,7 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	struct sdp_fmtp_param fmtp_params[MGCP_MAX_CODECS];
 	unsigned int fmtp_used = 0;
 	struct mgcp_codec_param *codec_param;
+	char ipbuf[INET6_ADDRSTRLEN];
 	char *line;
 	unsigned int i;
 	void *tmp_ctx = talloc_new(NULL);
@@ -298,7 +338,6 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	int ptime, ptime2 = 0;
 	char audio_name[64];
 	int port, rc;
-	char ipv4[16];
 
 	OSMO_ASSERT(endp);
 	OSMO_ASSERT(conn);
@@ -355,10 +394,8 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 				codecs_used = rc;
 			break;
 		case 'c':
-
-			if (sscanf(line, "c=IN IP4 %15s", ipv4) == 1) {
-				inet_aton(ipv4, &rtp->addr);
-			}
+			if (audio_ip_from_sdp(&rtp->addr, line) < 0)
+				return -1;
 			break;
 		default:
 			if (p->endp)
@@ -393,7 +430,7 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 
 	LOGPCONN(conn->conn, DLMGCP, LOGL_NOTICE,
 	     "Got media info via SDP: port:%d, addr:%s, duration:%d, payload-types:",
-	     ntohs(rtp->rtp_port), inet_ntoa(rtp->addr),
+	     ntohs(rtp->rtp_port), osmo_sockaddr_ntop(&rtp->addr.u.sa, ipbuf),
 	     rtp->packet_duration_ms);
 	if (codecs_used == 0)
 		LOGPC(DLMGCP, LOGL_NOTICE, "none");
@@ -529,6 +566,7 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 	int local_port;
 	struct sdp_fmtp_param fmtp_params[1];
         unsigned int fmtp_params_len = 0;
+	bool addr_is_v6;
 
 	OSMO_ASSERT(endp);
 	OSMO_ASSERT(conn);
@@ -543,12 +581,16 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 	audio_name = codec->audio_name;
 	payload_type = codec->payload_type;
 
+	addr_is_v6 = osmo_ip_str_type(addr) == AF_INET6;
+
 	rc = msgb_printf(sdp,
 			 "v=0\r\n"
-			 "o=- %s 23 IN IP4 %s\r\n"
+			 "o=- %s 23 IN IP%c %s\r\n"
 			 "s=-\r\n"
-			 "c=IN IP4 %s\r\n"
-			 "t=0 0\r\n", conn->conn->id, addr, addr);
+			 "c=IN IP%c %s\r\n"
+			 "t=0 0\r\n", conn->conn->id,
+			 addr_is_v6 ? '6' : '4', addr,
+			 addr_is_v6 ? '6' : '4', addr);
 
 	if (rc < 0)
 		goto buffer_too_small;

@@ -349,6 +349,7 @@ void mgcp_conn_free_all(struct mgcp_endpoint *endp)
 char *mgcp_conn_dump(struct mgcp_conn *conn)
 {
 	static char str[sizeof(conn->name)+sizeof(conn->id)+256];
+	char ipbuf[INET6_ADDRSTRLEN];
 
 	if (!conn) {
 		snprintf(str, sizeof(str), "(null connection)");
@@ -362,7 +363,7 @@ char *mgcp_conn_dump(struct mgcp_conn *conn)
 			 "rtp:%u rtcp:%u)",
 			 conn->name,
 			 conn->id,
-			 inet_ntoa(conn->u.rtp.end.addr),
+			 osmo_sockaddr_ntop(&conn->u.rtp.end.addr.u.sa, ipbuf),
 			 ntohs(conn->u.rtp.end.rtp_port),
 			 ntohs(conn->u.rtp.end.rtcp_port));
 		break;

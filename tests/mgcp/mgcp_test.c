@@ -34,6 +34,7 @@
 #include <osmocom/core/application.h>
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/utils.h>
+#include <osmocom/core/socket.h>
 #include <string.h>
 #include <limits.h>
 #include <dlfcn.h>
@@ -1262,7 +1263,7 @@ struct rtp_packet_info test_rtp_packets1[] = {
 void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_state *state,
 			  struct mgcp_rtp_end *rtp_end,
-			  struct sockaddr_in *addr, struct msgb *msg);
+			  struct osmo_sockaddr *addr, struct msgb *msg);
 
 static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 {
@@ -1274,7 +1275,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	struct mgcp_config cfg = {0};
 	struct mgcp_rtp_state state;
 	struct mgcp_rtp_end *rtp;
-	struct sockaddr_in addr = { 0 };
+	struct osmo_sockaddr addr = { 0 };
 	uint32_t last_ssrc = 0;
 	uint32_t last_timestamp = 0;
 	uint32_t last_seqno = 0;
@@ -1486,7 +1487,8 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(conn->end.rtp_port == htons(16434));
 	memset(&addr, 0, sizeof(addr));
 	inet_aton("8.8.8.8", &addr);
-	OSMO_ASSERT(conn->end.addr.s_addr == addr.s_addr);
+	OSMO_ASSERT(conn->end.addr.u.sa.sa_family == AF_INET);
+	OSMO_ASSERT(conn->end.addr.u.sin.sin_addr.s_addr == addr.s_addr);
 
 	/* Check what happens without that flag */
 

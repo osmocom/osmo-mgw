@@ -2,6 +2,9 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
+
+#include <osmocom/core/socket.h>
+
 #include <osmocom/mgcp/mgcp.h>
 
 #define MGCP_DUMMY_LOAD 0x23
@@ -79,7 +82,7 @@ struct mgcp_rtp_codec {
 /* 'mgcp_rtp_end': basically a wrapper around the RTP+RTCP ports */
 struct mgcp_rtp_end {
 	/* remote IP address of the RTP socket */
-	struct in_addr addr;
+	struct osmo_sockaddr addr;
 
 	/* in network byte order */
 	int rtp_port, rtcp_port;
@@ -121,12 +124,12 @@ struct mgcp_rtp_tap {
 	/* is this tap active (1) or not (0) */
 	int enabled;
 	/* IP/port to which we're forwarding the tapped data */
-	struct sockaddr_in forward;
+	struct osmo_sockaddr forward;
 };
 
 struct mgcp_conn;
 
-int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct sockaddr_in *addr,
+int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr,
 	      struct msgb *msg, struct mgcp_conn_rtp *conn_src,
 	      struct mgcp_conn_rtp *conn_dst);
 int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn);
@@ -140,7 +143,7 @@ void mgcp_free_rtp_port(struct mgcp_rtp_end *end);
 void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_state *state,
 			  struct mgcp_rtp_end *rtp_end,
-			  struct sockaddr_in *addr, struct msgb *msg);
+			  struct osmo_sockaddr *addr, struct msgb *msg);
 void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn);
 int mgcp_set_ip_tos(int fd, int tos);
 

@@ -179,7 +179,7 @@ static int mgcp_rsip_cb(struct mgcp_trunk *trunk)
 
 static int read_call_agent(struct osmo_fd *fd, unsigned int what)
 {
-	struct sockaddr_in addr;
+	struct osmo_sockaddr addr;
 	socklen_t slen = sizeof(addr);
 	struct msgb *msg;
 	struct msgb *resp;
@@ -205,7 +205,7 @@ static int read_call_agent(struct osmo_fd *fd, unsigned int what)
 	msgb_reset(msg);
 
 	if (resp) {
-		sendto(cfg->gw_fd.bfd.fd, resp->l2h, msgb_l2len(resp), 0, (struct sockaddr *) &addr, sizeof(addr));
+		sendto(cfg->gw_fd.bfd.fd, resp->l2h, msgb_l2len(resp), 0, &addr.u.sa, sizeof(addr));
 		msgb_free(resp);
 	}
 
@@ -345,7 +345,7 @@ int main(int argc, char **argv)
 	if (cfg->call_agent_addr)
 		flags |= OSMO_SOCK_F_CONNECT;
 
-	rc = osmo_sock_init2_ofd(&cfg->gw_fd.bfd, AF_INET, SOCK_DGRAM, IPPROTO_UDP,
+	rc = osmo_sock_init2_ofd(&cfg->gw_fd.bfd, AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP,
 				cfg->source_addr, cfg->source_port,
 				cfg->call_agent_addr, cfg->call_agent_addr ? 2727 : 0, flags);
 	if (rc < 0) {

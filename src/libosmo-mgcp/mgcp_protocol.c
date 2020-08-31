@@ -230,7 +230,7 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 	struct msgb *sdp;
 	int rc;
 	struct msgb *result;
-	char local_ip_addr[INET_ADDRSTRLEN];
+	char local_ip_addr[INET6_ADDRSTRLEN];
 
 	sdp = msgb_alloc_headroom(4096, 128, "sdp record");
 	if (!sdp)

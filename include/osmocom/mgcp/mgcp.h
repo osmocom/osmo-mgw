@@ -23,6 +23,7 @@
 #pragma once
 
 #include <osmocom/core/msgb.h>
+#include <osmocom/core/socket.h>
 #include <osmocom/core/write_queue.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/logging.h>
@@ -207,4 +208,4 @@ int mgcp_send_reset_all(struct mgcp_config *cfg);
 
 
 int mgcp_create_bind(const char *source_addr, struct osmo_fd *fd, int port);
-int mgcp_udp_send(int fd, struct in_addr *addr, int port, char *buf, int len);
+int mgcp_udp_send(int fd, struct osmo_sockaddr *addr, int port, char *buf, int len);

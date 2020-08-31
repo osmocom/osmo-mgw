@@ -22,6 +22,7 @@
  */
 
 #include <osmocom/core/talloc.h>
+#include <osmocom/core/sockaddr_str.h>
 #include <osmocom/vty/misc.h>
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_common.h>
@@ -407,9 +408,11 @@ DEFUN(cfg_mgcp, cfg_mgcp_cmd, "mgcp", "Configure the MGCP")
 
 DEFUN(cfg_mgcp_local_ip,
       cfg_mgcp_local_ip_cmd,
-      "local ip A.B.C.D",
+      "local ip " VTY_IPV46_CMD,
       "Local options for the SDP record\n"
-      IP_STR "IPv4 Address to use in SDP record\n")
+      IP_STR
+      "IPv4 Address to use in SDP record\n"
+      "IPv6 Address to use in SDP record\n")
 {
 	osmo_talloc_replace_string(g_cfg, &g_cfg->local_ip, argv[0]);
 	return CMD_SUCCESS;
@@ -418,7 +421,10 @@ DEFUN(cfg_mgcp_local_ip,
 #define BIND_STR "Listen/Bind related socket option\n"
 DEFUN(cfg_mgcp_bind_ip,
       cfg_mgcp_bind_ip_cmd,
-      "bind ip A.B.C.D", BIND_STR IP_STR "IPv4 Address to bind to\n")
+      "bind ip " VTY_IPV46_CMD,
+      BIND_STR IP_STR
+      "IPv4 Address to bind to\n"
+      "IPv6 Address to bind to\n")
 {
 	osmo_talloc_replace_string(g_cfg, &g_cfg->source_addr, argv[0]);
 	return CMD_SUCCESS;
@@ -494,8 +500,10 @@ ALIAS_DEPRECATED(cfg_mgcp_rtp_port_range,
 
 DEFUN(cfg_mgcp_rtp_bind_ip,
       cfg_mgcp_rtp_bind_ip_cmd,
-      "rtp bind-ip A.B.C.D",
-      RTP_STR "Bind endpoints facing the Network\n" "Address to bind to\n")
+      "rtp bind-ip " VTY_IPV46_CMD,
+      RTP_STR "Bind endpoints facing the Network\n"
+      "IPv4 Address to bind to\n"
+      "IPv6 Address to bind to\n")
 {
 	osmo_talloc_replace_string(g_cfg, &g_cfg->net_ports.bind_addr, argv[0]);
 	return CMD_SUCCESS;
@@ -850,11 +858,13 @@ DEFUN(cfg_mgcp_no_rtp_keepalive,
 	return CMD_SUCCESS;
 }
 
-#define CALL_AGENT_STR "Callagent information\n"
+#define CALL_AGENT_STR "Call agent information\n"
 DEFUN(cfg_mgcp_agent_addr,
       cfg_mgcp_agent_addr_cmd,
-      "call-agent ip A.B.C.D",
-      CALL_AGENT_STR IP_STR "IPv4 Address of the callagent\n")
+      "call-agent ip " VTY_IPV46_CMD,
+      CALL_AGENT_STR IP_STR
+      "IPv4 Address of the call agent\n"
+      "IPv6 Address of the call agent\n")
 {
 	osmo_talloc_replace_string(g_cfg, &g_cfg->call_agent_addr, argv[0]);
 	return CMD_SUCCESS;
@@ -1236,13 +1246,15 @@ DEFUN(loop_conn,
 
 DEFUN(tap_rtp,
       tap_rtp_cmd,
-      "tap-rtp <0-64> ENDPOINT CONN (in|out) A.B.C.D <0-65534>",
+      "tap-rtp <0-64> ENDPOINT CONN (in|out) " VTY_IPV46_CMD " <0-65534>",
       "Forward data on endpoint to a different system\n" "Trunk number\n"
       "The endpoint in hex\n"
       "The connection id in hex\n"
       "Forward incoming data\n"
       "Forward leaving data\n"
-      "destination IP of the data\n" "destination port\n")
+      "Destination IPv4 of the data\n"
+      "Destination IPv6 of the data\n"
+      "Destination port\n")
 {
 	struct mgcp_rtp_tap *tap;
 	struct mgcp_trunk *trunk;
@@ -1290,8 +1302,22 @@ DEFUN(tap_rtp,
 	}
 
 	memset(&tap->forward, 0, sizeof(tap->forward));
-	inet_aton(argv[4], &tap->forward.sin_addr);
-	tap->forward.sin_port = htons(atoi(argv[5]));
+
+	tap->forward.u.sa.sa_family = osmo_ip_str_type(argv[4]);
+	switch (tap->forward.u.sa.sa_family) {
+	case AF_INET:
+		if (inet_pton(AF_INET, argv[4], &tap->forward.u.sin.sin_addr) != 1)
+			return CMD_WARNING;
+		tap->forward.u.sin.sin_port = htons(atoi(argv[5]));
+		break;
+	case AF_INET6:
+		if (inet_pton(AF_INET6, argv[4], &tap->forward.u.sin6.sin6_addr) != 1)
+			return CMD_WARNING;
+		tap->forward.u.sin6.sin6_port = htons(atoi(argv[5]));
+		break;
+	default:
+		return CMD_WARNING;
+	}
 	tap->enabled = 1;
 	return CMD_SUCCESS;
 }
@@ -1407,7 +1433,10 @@ DEFUN(cfg_mgcp_osmux,
 
 DEFUN(cfg_mgcp_osmux_ip,
       cfg_mgcp_osmux_ip_cmd,
-      "osmux bind-ip A.B.C.D", OSMUX_STR IP_STR "IPv4 Address to bind to\n")
+      "osmux bind-ip " VTY_IPV46_CMD,
+      OSMUX_STR IP_STR
+      "IPv4 Address to bind to\n"
+      "IPv6 Address to bind to\n")
 {
 	osmo_talloc_replace_string(g_cfg, &g_cfg->osmux_addr, argv[0]);
 	return CMD_SUCCESS;

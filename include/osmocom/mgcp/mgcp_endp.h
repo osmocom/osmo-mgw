@@ -26,7 +26,7 @@
 #include <osmocom/core/msgb.h>
 #include <osmocom/gsm/i460_mux.h>
 
-struct sockaddr_in;
+struct sockaddr;
 struct mgcp_conn;
 struct mgcp_conn_rtp;
 struct mgcp_endpoint;
@@ -42,7 +42,7 @@ LOGP(cat, level, "endpoint:%s " fmt, \
 struct osmo_rtp_msg_ctx {
 	int proto;
 	struct mgcp_conn_rtp *conn_src;
-	struct sockaddr_in *from_addr;
+	struct osmo_sockaddr *from_addr;
 };
 
 #define OSMO_RTP_MSG_CTX(MSGB) ((struct osmo_rtp_msg_ctx*)(MSGB)->cb)

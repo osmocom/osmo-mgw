@@ -148,15 +148,20 @@ osmux_handle_alloc(struct mgcp_config *cfg, struct in_addr *addr, int rem_port)
 /* Lookup existing handle for a specified address, if the handle can not be
  * found, the function will automatically allocate one */
 static struct osmux_in_handle *
-osmux_handle_lookup(struct mgcp_config *cfg, struct in_addr *addr, int rem_port)
+osmux_handle_lookup(struct mgcp_config *cfg, struct osmo_sockaddr *addr, int rem_port)
 {
 	struct osmux_handle *h;
 
-	h = osmux_handle_find_get(addr, rem_port);
+	if (addr->u.sa.sa_family != AF_INET) {
+		LOGP(DLMGCP, LOGL_DEBUG, "IPv6 not supported in osmux yet!\n");
+		return NULL;
+	}
+
+	h = osmux_handle_find_get(&addr->u.sin.sin_addr, rem_port);
 	if (h != NULL)
 		return h->in;
 
-	h = osmux_handle_alloc(cfg, addr, rem_port);
+	h = osmux_handle_alloc(cfg, &addr->u.sin.sin_addr, rem_port);
 	if (h == NULL)
 		return NULL;
 
@@ -236,7 +241,7 @@ static void scheduled_from_osmux_tx_rtp_cb(struct msgb *msg, void *data)
 {
 	struct mgcp_conn_rtp *conn = data;
 	struct mgcp_endpoint *endp = conn->conn->endp;
-	struct sockaddr_in addr = { /* FIXME: do we know the source address?? */ };
+	struct osmo_sockaddr addr = { /* FIXME: do we know the source address?? */ };
 	struct osmo_rtp_msg_ctx *mc = OSMO_RTP_MSG_CTX(msg);
 	*mc = (struct osmo_rtp_msg_ctx){
 		.proto = MGCP_PROTO_RTP,
@@ -275,6 +280,8 @@ static struct msgb *osmux_recv(struct osmo_fd *ofd, struct sockaddr_in *addr)
 static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 				  bool sending)
 {
+	char ipbuf[INET6_ADDRSTRLEN];
+
 	switch(conn->osmux.state) {
 	case OSMUX_STATE_ACTIVATING:
 	if (osmux_enable_conn(endp, conn, &conn->end.addr, conn->end.rtp_port) < 0) {
@@ -287,7 +294,8 @@ static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_r
 		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
 			 "Osmux %s CID %u towards %s:%u is now enabled\n",
 			 sending ? "sent" : "received",
-			 conn->osmux.cid, inet_ntoa(conn->end.addr),
+			 conn->osmux.cid,
+			 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf),
 			 ntohs(conn->end.rtp_port));
 		return 0;
 	case OSMUX_STATE_ENABLED:
@@ -433,7 +441,7 @@ int osmux_init(int role, struct mgcp_config *cfg)
  *  \param[in] port portnumber of the remote OSMUX endpoint (in network byte order)
  *  \returns 0 on success, -1 on ERROR */
 int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
-		      struct in_addr *addr, uint16_t port)
+		      struct osmo_sockaddr *addr, uint16_t port)
 {
 	/*! If osmux is enabled, initialize the output handler. This handler is
 	 *  used to reconstruct the RTP flow from osmux. The RTP SSRC is
@@ -444,7 +452,7 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 	 *  overlapping RTP SSRC traveling to the BTSes behind the BSC,
 	 *  similarly, for flows traveling to the MSC.
 	 */
-	struct in_addr addr_unset = {};
+	struct in6_addr addr_unset = {};
 	static const uint32_t rtp_ssrc_winlen = UINT32_MAX / (OSMUX_CID_MAX + 1);
 	uint16_t osmux_dummy = endp->cfg->osmux_dummy;
 
@@ -457,7 +465,10 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 	}
 
 	/* Wait until we have the connection information from MDCX */
-	if (memcmp(&conn->end.addr, &addr_unset, sizeof(addr_unset)) == 0) {
+	if (memcmp(&conn->end.addr, &addr_unset,
+		   conn->end.addr.u.sa.sa_family == AF_INET6 ?
+			sizeof(struct in6_addr) :
+			sizeof(struct in_addr)) == 0) {
 		LOGPCONN(conn->conn, DLMGCP, LOGL_INFO,
 			"Osmux remote address/port still unknown\n");
 		return -1;
@@ -559,6 +570,7 @@ int conn_osmux_allocate_cid(struct mgcp_conn_rtp *conn, int osmux_cid)
  *  \returns bytes sent, -1 on error */
 int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 {
+	char ipbuf[INET6_ADDRSTRLEN];
 	struct osmux_hdr *osmuxh;
 	int buf_len;
 	struct in_addr addr_unset = {};
@@ -588,7 +600,8 @@ int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 
 	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
 		 "sending OSMUX dummy load to %s:%u CID %u\n",
-		 inet_ntoa(conn->end.addr), ntohs(conn->end.rtp_port), conn->osmux.cid);
+		 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf),
+		 ntohs(conn->end.rtp_port), conn->osmux.cid);
 
 	return mgcp_udp_send(osmux_fd.fd, &conn->end.addr,
 			     conn->end.rtp_port, (char*)osmuxh, buf_len);
