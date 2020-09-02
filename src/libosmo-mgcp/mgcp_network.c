@@ -102,9 +102,11 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 	char ipbuf[INET6_ADDRSTRLEN];
 	int rc;
 	endp = conn->conn->endp;
+	bool rem_addr_set = !addr_is_any(&conn->end.addr);
+	char *bind_addr;
 
 	/* Try probing the local IP-Address */
-	if (endp->cfg->net_ports.bind_addr_probe && !addr_is_any(&conn->end.addr)) {
+	if (endp->cfg->net_ports.bind_addr_probe && rem_addr_set) {
 		rc = osmo_sock_local_ip(addr, osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf));
 		if (rc < 0)
 			LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
@@ -118,21 +120,31 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 	}
 
 	/* Select from preconfigured IP-Addresses. We don't have bind_addr for Osmux (yet?). */
-	if (endp->cfg->net_ports.bind_addr) {
+	if (rem_addr_set) {
 		/* Check there is a bind IP for the RTP traffic configured,
 		 * if so, use that IP-Address */
-		osmo_strlcpy(addr, endp->cfg->net_ports.bind_addr, INET6_ADDRSTRLEN);
+		bind_addr = conn->end.addr.u.sa.sa_family == AF_INET6 ?
+				endp->cfg->net_ports.bind_addr_v6 :
+				endp->cfg->net_ports.bind_addr_v4;
+	} else {
+		/* Choose any of the bind addresses, preferring v6 over v4 */
+		bind_addr = endp->cfg->net_ports.bind_addr_v6;
+		if (!bind_addr)
+			bind_addr = endp->cfg->net_ports.bind_addr_v4;
+	}
+	if (bind_addr) {
 		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
 			 "using configured rtp bind ip as local bind ip %s\n",
-			 addr);
+			 bind_addr);
 	} else {
 		/* No specific bind IP is configured for the RTP traffic, so
 		 * assume the IP where we listen for incoming MGCP messages
 		 * as bind IP */
-		osmo_strlcpy(addr, endp->cfg->source_addr, INET6_ADDRSTRLEN);
+		bind_addr = endp->cfg->source_addr;
 		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
-			"using mgcp bind ip as local rtp bind ip: %s\n", addr);
+			"using mgcp bind ip as local rtp bind ip: %s\n", bind_addr);
 	}
+	osmo_strlcpy(addr, bind_addr, INET6_ADDRSTRLEN);
 }
 
 /* This does not need to be a precision timestamp and

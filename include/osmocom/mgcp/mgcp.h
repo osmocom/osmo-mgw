@@ -95,7 +95,8 @@ typedef void (*mgcp_get_format)(struct mgcp_endpoint *endp,
  */
 struct mgcp_port_range {
 	/* addr or NULL to fall-back to default */
-	char *bind_addr;
+	char *bind_addr_v4;
+	char *bind_addr_v6;
 
 	/* dynamically allocated */
 	int range_start;
