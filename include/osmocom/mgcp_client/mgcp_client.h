@@ -133,7 +133,7 @@ int mgcp_client_connect(struct mgcp_client *mgcp);
 
 const char *mgcp_client_remote_addr_str(struct mgcp_client *mgcp);
 uint16_t mgcp_client_remote_port(struct mgcp_client *mgcp);
-uint32_t mgcp_client_remote_addr_n(struct mgcp_client *mgcp);
+uint32_t mgcp_client_remote_addr_n(struct mgcp_client *mgcp) OSMO_DEPRECATED("deprecated, returns 0");
 
 const char *mgcp_client_endpoint_domain(const struct mgcp_client *mgcp);
 const char *mgcp_client_rtpbridge_wildcard(const struct mgcp_client *mgcp);

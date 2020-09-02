@@ -6,7 +6,6 @@
 
 struct mgcp_client {
 	struct mgcp_client_conf actual;
-	uint32_t remote_addr;
 	struct osmo_wqueue wq;
 	mgcp_trans_id_t next_trans_id;
 	struct llist_head responses_pending;

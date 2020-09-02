@@ -823,7 +823,6 @@ static int init_socket(struct mgcp_client *mgcp)
  *  \returns 0 on success, -EINVAL on error. */
 int mgcp_client_connect(struct mgcp_client *mgcp)
 {
-	struct sockaddr_in addr;
 	struct osmo_wqueue *wq;
 	int rc;
 
@@ -842,9 +841,6 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 		     mgcp->actual.remote_addr, mgcp->actual.remote_port, strerror(errno));
 		goto error_close_fd;
 	}
-
-	inet_aton(mgcp->actual.remote_addr, &addr.sin_addr);
-	mgcp->remote_addr = htonl(addr.sin_addr.s_addr);
 
 	osmo_wqueue_init(wq, 1024);
 	wq->bfd.when = OSMO_FD_READ;
@@ -877,12 +873,13 @@ uint16_t mgcp_client_remote_port(struct mgcp_client *mgcp)
 	return mgcp->actual.remote_port;
 }
 
-/*! Get the IP-Aaddress of the associated MGW as its numeric representation.
+/*! Get the IP-Address of the associated MGW as its numeric representation.
+ *  DEPRECATED, DON'T USE.
  *  \param[in] mgcp MGCP client descriptor.
  *  \returns IP-Address as 32 bit integer (network byte order) */
 uint32_t mgcp_client_remote_addr_n(struct mgcp_client *mgcp)
 {
-	return mgcp->remote_addr;
+	return 0;
 }
 
 /* To compose endpoint names, usually for CRCX, use this as domain name.
