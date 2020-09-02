@@ -25,6 +25,7 @@
 #include <osmocom/core/byteswap.h>
 #include <arpa/inet.h>
 #include <osmocom/core/logging.h>
+#include <osmocom/core/sockaddr_str.h>
 
 /* Context information, this is attached to the priv pointer of the FSM and
  * is also handed back when dispatcheing events to the parent FSM. This is
@@ -607,14 +608,16 @@ struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm
 {
 	struct mgcp_ctx *mgcp_ctx;
 	struct osmo_fsm_inst *fi;
-	struct in_addr ip_test;
+	struct in6_addr ip_test;
+
 
 	OSMO_ASSERT(parent_fi);
 	OSMO_ASSERT(mgcp);
 	OSMO_ASSERT(conn_peer);
 
 	/* Check if IP/Port information in conn info makes sense */
-	if (conn_peer->port && inet_aton(conn_peer->addr, &ip_test) == 0)
+	if (conn_peer->port && inet_pton(osmo_ip_str_type(conn_peer->addr),
+					 conn_peer->addr, &ip_test) != 1)
 		return NULL;
 
 	/* Allocate and configure a new fsm instance */
@@ -644,7 +647,7 @@ int mgcp_conn_modify(struct osmo_fsm_inst *fi, uint32_t parent_evt, struct mgcp_
 {
 	OSMO_ASSERT(fi);
 	struct mgcp_ctx *mgcp_ctx = fi->priv;
-	struct in_addr ip_test;
+	struct in6_addr ip_test;
 
 	OSMO_ASSERT(mgcp_ctx);
 	OSMO_ASSERT(conn_peer);
@@ -668,8 +671,8 @@ int mgcp_conn_modify(struct osmo_fsm_inst *fi, uint32_t parent_evt, struct mgcp_
 		LOGPFSML(fi, LOGL_ERROR, "Cannot MDCX, port == 0\n");
 		return -EINVAL;
 	}
-	if (inet_aton(conn_peer->addr, &ip_test) == 0) {
-		LOGPFSML(fi, LOGL_ERROR, "Cannot MDCX, IP address == 0.0.0.0\n");
+	if (inet_pton(osmo_ip_str_type(conn_peer->addr), conn_peer->addr, &ip_test) != 1) {
+		LOGPFSML(fi, LOGL_ERROR, "Cannot MDCX, IP address %s\n", conn_peer->addr);
 		return -EINVAL;
 	}
 
