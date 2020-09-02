@@ -469,14 +469,12 @@ static void on_success(struct osmo_mgcpc_ep_ci *ci, void *data)
 
 	ci->pending = false;
 
+	rtp_info = data;
+
 	switch (ci->verb) {
 	case MGCP_VERB_CRCX:
 		/* If we sent a wildcarded endpoint name on CRCX, we need to store the resulting endpoint
 		 * name here. Also, we receive the MGW's RTP port information. */
-		rtp_info = data;
-		OSMO_ASSERT(rtp_info);
-		ci->got_port_info = true;
-		ci->rtp_info = *rtp_info;
 		osmo_strlcpy(ci->mgcp_ci_str, mgcp_conn_get_ci(ci->mgcp_client_fi),
 			sizeof(ci->mgcp_ci_str));
 		if (rtp_info->endpoint[0]) {
@@ -486,6 +484,15 @@ static void on_success(struct osmo_mgcpc_ep_ci *ci, void *data)
 				return;
 		}
 		ci->ep->first_crcx_complete = true;
+		OSMO_ASSERT(rtp_info);
+		/* fall through */
+	case MGCP_VERB_MDCX:
+		/* Always update the received RTP ip/port information, since MGW
+		 * may provide new one after remote end params changed */
+		if (rtp_info) {
+			ci->got_port_info = true;
+			ci->rtp_info = *rtp_info;
+		}
 		break;
 
 	default:
