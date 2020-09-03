@@ -1006,6 +1006,7 @@ static struct msgb *handle_modify_con(struct mgcp_parse_data *p)
 {
 	struct mgcp_endpoint *endp = p->endp;
 	struct rate_ctr_group *rate_ctrs = endp->trunk->ratectr.mgcp_mdcx_ctr_group;
+	char new_local_addr[INET6_ADDRSTRLEN];
 	int error_code = 500;
 	int silent = 0;
 	int have_sdp = 0;
@@ -1168,6 +1169,20 @@ mgcp_header_done:
 		/* TODO: In the future (when we have recvCID!=sendCID), we need to
 		   tell Osmux code that osmux_cid is to be used as sendCID for
 		   that conn. */
+	}
+
+	/* MDCX may have provided a new remote address, which means we may need
+	   to update our announced IP addr and re-bind our local end. This can
+	   happen for instance if MGW initially provided an IPv4 during CRCX
+	   ACK, and now MDCX tells us the remote has an IPv6 address. */
+	mgcp_get_local_addr(new_local_addr, conn);
+	if (strcmp(new_local_addr, conn->end.local_addr)) {
+		osmo_strlcpy(conn->end.local_addr, new_local_addr, sizeof(conn->end.local_addr));
+		mgcp_free_rtp_port(&conn->end);
+		if (allocate_port(endp, conn) != 0) {
+			rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_BIND_PORT]);
+			goto error3;
+		}
 	}
 
 	if (setup_rtp_processing(endp, conn) != 0) {
