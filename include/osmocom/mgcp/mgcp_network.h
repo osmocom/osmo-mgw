@@ -78,7 +78,7 @@ struct mgcp_rtp_codec {
 
 /* 'mgcp_rtp_end': basically a wrapper around the RTP+RTCP ports */
 struct mgcp_rtp_end {
-	/* local IP address of the RTP socket */
+	/* remote IP address of the RTP socket */
 	struct in_addr addr;
 
 	/* in network byte order */
