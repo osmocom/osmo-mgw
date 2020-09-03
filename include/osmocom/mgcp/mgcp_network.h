@@ -118,6 +118,9 @@ struct mgcp_rtp_end {
 
 	/* local UDP port number of the RTP socket; RTCP is +1 */
 	int local_port;
+	/* where the endpoint RTP connection binds to, set during CRCX and
+	 * possibly updated during MDCX */
+	char local_addr[INET6_ADDRSTRLEN];
 };
 
 struct mgcp_rtp_tap {

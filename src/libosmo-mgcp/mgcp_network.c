@@ -1620,7 +1620,6 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 {
 	char name[512];
 	struct mgcp_rtp_end *end;
-	char local_ip_addr[INET6_ADDRSTRLEN];
 
 	snprintf(name, sizeof(name), "%s-%s", conn->conn->name, conn->conn->id);
 	end = &conn->end;
@@ -1643,9 +1642,7 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 	end->rtcp.data = conn;
 	end->rtcp.cb = rtp_data_net;
 
-	mgcp_get_local_addr(local_ip_addr, conn);
-
-	return bind_rtp(endp->cfg, local_ip_addr, end, endp);
+	return bind_rtp(endp->cfg, conn->end.local_addr, end, endp);
 }
 
 /*! free allocated RTP and RTCP ports.

@@ -223,23 +223,21 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 					     const char *trans_id,
 					     bool add_conn_params)
 {
-	/* TODO: we may want to define another local_ip_osmux var to us for
-	   OSMUX connections. Perhaps adding a new internal API to get it based
-	   on conn type */
-	const char *addr = endp->cfg->local_ip;
+	/* cfg->local_ip allows overwritting the announced IP address with
+	 * regards to the one we actually bind to. Useful in behind-NAT
+	 * scenarios.
+	 * TODO: we may want to define another local_ip_osmux var to
+	 * us for OSMUX connections. Perhaps adding a new internal API to get it
+	 * based on conn type.
+	 */
+	const char *addr = endp->cfg->local_ip ? : conn->end.local_addr;
 	struct msgb *sdp;
 	int rc;
 	struct msgb *result;
-	char local_ip_addr[INET6_ADDRSTRLEN];
 
 	sdp = msgb_alloc_headroom(4096, 128, "sdp record");
 	if (!sdp)
 		return NULL;
-
-	if (!addr) {
-		mgcp_get_local_addr(local_ip_addr, conn);
-		addr = local_ip_addr;
-	}
 
 	/* Attach optional connection parameters */
 	if (add_conn_params) {
@@ -943,6 +941,9 @@ mgcp_header_done:
 		goto error2;
 	}
 
+	/* Find a local address for conn based on policy and initial SDP remote
+	   information, then find a free port for it */
+	mgcp_get_local_addr(conn->end.local_addr, conn);
 	if (allocate_port(endp, conn) != 0) {
 		rate_ctr_inc(&rate_ctrs->ctr[MGCP_CRCX_FAIL_BIND_PORT]);
 		goto error2;
