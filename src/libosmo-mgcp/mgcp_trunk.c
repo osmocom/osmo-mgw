@@ -50,7 +50,7 @@ struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_typ
 
 	trunk->audio_send_ptime = 1;
 	trunk->audio_send_name = 1;
-	trunk->v.vty_number_endpoints = 32;
+	trunk->v.vty_number_endpoints = 512;
 	trunk->omit_rtcp = 0;
 
 	mgcp_trunk_set_keepalive(trunk, MGCP_KEEPALIVE_ONCE);
