@@ -27,9 +27,9 @@
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
 
+#include <osmocom/abis/e1_input.h>
 #include <osmocom/mgcp/mgcp_e1.h>
 
-#define E1_TIMESLOTS 32
 #define E1_RATE_MAX 64
 #define E1_OFFS_MAX 8
 
@@ -375,7 +375,7 @@ static uint8_t e1_ts_nr_from_epname(const char *epname)
 		if (strncmp(token, "s-", 2) == 0) {
 			errno = 0;
 			res = strtoul(token + 2, NULL, 10);
-			if (errno == ERANGE || res > E1_TIMESLOTS)
+			if (errno == ERANGE || res > NUM_E1_TS)
 				return 0xff;
 			return (uint8_t) res;
 		}
