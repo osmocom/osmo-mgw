@@ -139,3 +139,5 @@ struct mgcp_endpoint *mgcp_endp_by_name_trunk(int *cause, const char *epname,
 struct mgcp_endpoint *mgcp_endp_by_name(int *cause, const char *epname,
 					struct mgcp_config *cfg);
 bool mgcp_endp_avail(struct mgcp_endpoint *endp);
+void mgcp_endp_add_conn(struct mgcp_endpoint *endp, struct mgcp_conn *conn);
+void mgcp_endp_remove_conn(struct mgcp_endpoint *endp, struct mgcp_conn *conn);

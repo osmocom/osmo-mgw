@@ -1379,7 +1379,8 @@ void mgcp_cleanup_rtp_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *co
 	 * connections present when one connection is removed from the
 	 * endpoint. */
 	llist_for_each_entry(conn_cleanup, &endp->conns, entry) {
-		conn_cleanup->priv = NULL;
+		if (conn_cleanup->priv == conn)
+			conn_cleanup->priv = NULL;
 	}
 }
 

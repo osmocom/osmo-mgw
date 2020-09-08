@@ -199,7 +199,7 @@ struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 	/* Initialize watchdog */
 	osmo_timer_setup(&conn->watchdog, mgcp_conn_watchdog_cb, conn);
 	mgcp_conn_watchdog_kick(conn);
-	llist_add(&conn->entry, &endp->conns);
+	mgcp_endp_add_conn(endp, conn);
 
 	return conn;
 }
@@ -289,12 +289,6 @@ void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id)
 	if (!conn)
 		return;
 
-	/* Run endpoint cleanup action. By this we inform the endpoint about
-	 * the removal of the connection and allow it to clean up its inner
-	 * state accordingly */
-	if (endp->type->cleanup_cb)
-		endp->type->cleanup_cb(endp, conn);
-
 	switch (conn->type) {
 	case MGCP_CONN_TYPE_RTP:
 		aggregate_rtp_conn_stats(endp, &conn->u.rtp);
@@ -308,7 +302,8 @@ void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id)
 	}
 
 	osmo_timer_del(&conn->watchdog);
-	llist_del(&conn->entry);
+	mgcp_endp_remove_conn(endp, conn);
+	/* WARN: endp may have be freed after call to mgcp_endp_remove_conn */
 	talloc_free(conn);
 }
 

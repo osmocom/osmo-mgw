@@ -666,3 +666,20 @@ void mgcp_endp_update(struct mgcp_endpoint *endp)
 		OSMO_ASSERT(false);
 	}
 }
+
+void mgcp_endp_add_conn(struct mgcp_endpoint *endp, struct mgcp_conn *conn)
+{
+	llist_add(&conn->entry, &endp->conns);
+}
+
+void mgcp_endp_remove_conn(struct mgcp_endpoint *endp, struct mgcp_conn *conn)
+{
+	/* Run endpoint cleanup action. By this we inform the endpoint about
+	 * the removal of the connection and allow it to clean up its inner
+	 * state accordingly */
+	if (endp->type->cleanup_cb)
+		endp->type->cleanup_cb(endp, conn);
+	llist_del(&conn->entry);
+	if (llist_empty(&endp->conns))
+		mgcp_endp_release(endp);
+}
