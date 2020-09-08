@@ -35,6 +35,7 @@ static LLIST_HEAD(osmux_handle_list);
 
 struct osmux_handle {
 	struct llist_head head;
+	struct mgcp_conn_rtp *conn;
 	struct osmux_in_handle *in;
 	struct in_addr rem_addr;
 	int rem_port; /* network byte order */
@@ -47,14 +48,17 @@ static void *osmux;
 static void osmux_deliver_cb(struct msgb *batch_msg, void *data)
 {
 	struct osmux_handle *handle = data;
-	struct sockaddr_in out = {
-		.sin_family = AF_INET,
-		.sin_port = handle->rem_port,
-	};
+	struct mgcp_conn_rtp *conn = handle->conn;
 
-	memcpy(&out.sin_addr, &handle->rem_addr, sizeof(handle->rem_addr));
-	sendto(osmux_fd.fd, batch_msg->data, batch_msg->len, 0,
-		(struct sockaddr *)&out, sizeof(out));
+	if (conn->end.output_enabled) {
+		struct sockaddr_in out = {
+			.sin_family = AF_INET,
+			.sin_port = handle->rem_port,
+		};
+		memcpy(&out.sin_addr, &handle->rem_addr, sizeof(handle->rem_addr));
+		sendto(osmux_fd.fd, batch_msg->data, batch_msg->len, 0,
+			(struct sockaddr *)&out, sizeof(out));
+	}
 	msgb_free(batch_msg);
 }
 
@@ -109,13 +113,15 @@ static void osmux_handle_put(struct osmux_in_handle *in)
 
 /* Allocate free OSMUX handle */
 static struct osmux_handle *
-osmux_handle_alloc(struct mgcp_config *cfg, struct in_addr *addr, int rem_port)
+osmux_handle_alloc(struct mgcp_conn_rtp *conn, struct in_addr *addr, int rem_port)
 {
 	struct osmux_handle *h;
+	struct mgcp_config *cfg = conn->conn->endp->cfg;
 
 	h = talloc_zero(osmux, struct osmux_handle);
 	if (!h)
 		return NULL;
+	h->conn = conn;
 	h->rem_addr = *addr;
 	h->rem_port = rem_port;
 	h->refcnt++;
@@ -148,7 +154,7 @@ osmux_handle_alloc(struct mgcp_config *cfg, struct in_addr *addr, int rem_port)
 /* Lookup existing handle for a specified address, if the handle can not be
  * found, the function will automatically allocate one */
 static struct osmux_in_handle *
-osmux_handle_lookup(struct mgcp_config *cfg, struct osmo_sockaddr *addr, int rem_port)
+osmux_handle_lookup(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *addr, int rem_port)
 {
 	struct osmux_handle *h;
 
@@ -161,7 +167,7 @@ osmux_handle_lookup(struct mgcp_config *cfg, struct osmo_sockaddr *addr, int rem
 	if (h != NULL)
 		return h->in;
 
-	h = osmux_handle_alloc(cfg, &addr->u.sin.sin_addr, rem_port);
+	h = osmux_handle_alloc(conn, &addr->u.sin.sin_addr, rem_port);
 	if (h == NULL)
 		return NULL;
 
@@ -474,7 +480,7 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		return -1;
 	}
 
-	conn->osmux.in = osmux_handle_lookup(endp->cfg, addr, port);
+	conn->osmux.in = osmux_handle_lookup(conn, addr, port);
 	if (!conn->osmux.in) {
 		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
 			"Cannot allocate input osmux handle for conn:%s\n",
