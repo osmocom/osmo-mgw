@@ -390,6 +390,8 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 			goto out;
 		}
 
+		mgcp_conn_watchdog_kick(conn_src->conn);
+
 		/*conn_dst = mgcp_find_dst_conn(conn_src->conn);
 		if (!conn_dst) {
 			LOGP(DLMGCP, LOGL_ERROR,
