@@ -1436,17 +1436,15 @@ int iuup_rx_payload(struct msgb *msg, void *node_priv)
  */
 int iuup_tx_msg(struct msgb *msg, void *node_priv)
 {
-	const struct in_addr zero_addr = {};
 	struct osmo_rtp_msg_ctx *mc = OSMO_RTP_MSG_CTX(msg);
 	struct mgcp_conn_rtp *conn_src = mc->conn_src;
 	struct mgcp_conn_rtp *conn_dst = node_priv;
-	struct sockaddr_in *from_addr = mc->from_addr;
 	struct mgcp_rtp_end *rtp_end = &conn_dst->end;
-	struct in_addr to_addr = rtp_end->addr;
-	uint16_t to_port = rtp_end->rtp_port;
+	struct osmo_sockaddr *to_addr = &rtp_end->addr;
+	uint16_t to_port = osmo_sockaddr_port(&to_addr->u.sa);
+	char ipbuf[INET6_ADDRSTRLEN];
 
-	if (conn_src == conn_dst
-	    && !memcmp(&zero_addr, &to_addr, sizeof(zero_addr)) && !to_port) {
+	if (conn_src == conn_dst && to_addr->u.sa.sa_family == AF_UNSPEC && !to_port) {
 		LOG_CONN_RTP(conn_dst, LOGL_DEBUG, "iuup_tx_msg(): direct IuUP reply\n");
 		/* IuUP wants to send a message back to the same peer that sent an RTP package, but there
 		 * is no address configured for that peer yet. It is probably an IuUP Initialization ACK
@@ -1458,14 +1456,13 @@ int iuup_tx_msg(struct msgb *msg, void *node_priv)
 		 * use and can tell this MGW about it, so this "loopback" is, for some 3G cells, the only
 		 * chance we have to get a successful RAB Assignment done (particularly the nano3G does
 		 * this). */
-		to_addr = from_addr->sin_addr;
-		to_port = from_addr->sin_port;
+		to_addr = mc->from_addr;
+		to_port = osmo_sockaddr_port(&to_addr->u.sa);
 	}
-
 	LOG_CONN_RTP(conn_dst, LOGL_DEBUG, "iuup_tx_msg(%u bytes) to %s:%u\n", msgb_length(msg),
-		     inet_ntoa(to_addr), ntohs(to_port));
+		     osmo_sockaddr_ntop(&to_addr->u.sa, ipbuf), to_port);
 
-	return mgcp_udp_send(rtp_end->rtp.fd, &to_addr, to_port, (char*)msgb_data(msg), msgb_length(msg));
+	return mgcp_udp_send(rtp_end->rtp.fd, to_addr, to_port, (char*)msgb_data(msg), msgb_length(msg));
 }
 
 static void iuup_init(struct mgcp_conn_rtp *conn_src)
