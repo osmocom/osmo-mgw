@@ -236,8 +236,6 @@ static void fill_event_names()
 	}
 }
 
-/* T_defs is used to obtain an (Osmocom specific) T2427001: timeout for an MGCP response (note, 2427 corresponds to the
- * default MGCP port in osmo-mgw). */
 static __attribute__((constructor)) void osmo_mgcpc_ep_fsm_init()
 {
 	OSMO_ASSERT(osmo_fsm_register(&osmo_mgcpc_ep_fsm) == 0);
@@ -571,7 +569,7 @@ bool osmo_mgcpc_ep_ci_get_crcx_info_to_osmux_cid(const struct osmo_mgcpc_ep_ci *
 }
 
 static const struct osmo_tdef_state_timeout osmo_mgcpc_ep_fsm_timeouts[32] = {
-	[OSMO_MGCPC_EP_ST_WAIT_MGW_RESPONSE] = { .T=2427001 },
+	[OSMO_MGCPC_EP_ST_WAIT_MGW_RESPONSE] = { .T=-2427 },
 };
 
 /* Transition to a state, using the T timer defined in assignment_fsm_timeouts.
