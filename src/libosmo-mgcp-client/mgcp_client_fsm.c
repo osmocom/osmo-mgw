@@ -523,8 +523,8 @@ static void fsm_cleanup_cb(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause ca
 	 * connection. This is not the normal case. The user should always use
 	 * mgcp_conn_delete() to instruct the FSM to perform a graceful exit */
 	if (strlen(mgcp_ctx->conn_id)) {
-		LOGPFSML(fi, LOGL_ERROR,
-			 "MGW/DLCX: abrupt FSM termination with connections still present, sending unconditional DLCX...\n");
+		LOGPFSML(fi, LOGL_NOTICE,
+			 "MGW/DLCX: FSM termination with connections still present, sending unconditional DLCX...\n");
 		msg = make_dlcx_msg(mgcp_ctx);
 		if (!msg)
 			LOGPFSML(fi, LOGL_ERROR, "MGW/DLCX: Error composing DLCX message\n");
