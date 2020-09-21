@@ -245,7 +245,7 @@ int mgcp_check_param(const struct mgcp_endpoint *endp, const char *line)
 /*! Check if the specified callid seems plausible.
   * \param[in] endp pointer to endpoint
   * \param{in] callid to verify
-  * \returns 1 when callid seems plausible, 0 on error */
+  * \returns 0 when callid seems plausible, -1 on error */
 int mgcp_verify_call_id(struct mgcp_endpoint *endp, const char *callid)
 {
 	/*! This function compares the supplied callid with the called that is
