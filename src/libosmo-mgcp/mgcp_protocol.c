@@ -524,6 +524,7 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 {
 	char *lco_id;
 	char codec[17];
+	char nt[17];
 	int len;
 
 	if (!options)
@@ -562,6 +563,10 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 				osmo_str_toupper_buf(lco->codec, len + 1, codec);
 			}
 			break;
+		case 'n':
+			if (lco_id[1] == 't' && sscanf(lco_id + 2, ":%16[^,]", nt) == 1)
+				break;
+			/* else: fall throught to print notice log */
 		default:
 			LOGP(DLMGCP, LOGL_NOTICE,
 			     "LCO: unhandled option: '%c'/%d in \"%s\"\n",
