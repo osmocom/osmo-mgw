@@ -107,7 +107,7 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 		ret = -1;
 	}
 
-	/* Special handling für RTP connections */
+	/* Special handling for RTP connections */
 	if (conn->type == MGCP_CONN_TYPE_RTP) {
 		conn->u.rtp.end.output_enabled =
 		    conn->mode & MGCP_CONN_SEND_ONLY ? 1 : 0;

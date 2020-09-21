@@ -641,8 +641,7 @@ int mgcp_endp_claim(struct mgcp_endpoint *endp, const char *callid)
 		OSMO_ASSERT(false);
 	}
 
-	/* Make sure the endpoint is released when claiming the endpoint
-	 * failes. */
+	/* Make sure the endpoint is released when claiming the endpoint fails. */
 	if (rc < 0)
 		mgcp_endp_release(endp);
 
