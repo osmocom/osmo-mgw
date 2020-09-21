@@ -707,7 +707,7 @@ static bool parse_x_osmo_ign(struct mgcp_endpoint *endp, char *line)
 {
 	char *saveptr = NULL;
 
-	if (strncmp(line, MGCP_X_OSMO_IGN_HEADER, strlen(MGCP_X_OSMO_IGN_HEADER)))
+	if (strncasecmp(line, MGCP_X_OSMO_IGN_HEADER, strlen(MGCP_X_OSMO_IGN_HEADER)))
 		return false;
 	line += strlen(MGCP_X_OSMO_IGN_HEADER);
 
