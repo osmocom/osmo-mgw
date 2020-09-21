@@ -550,7 +550,7 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 				lco->pkt_period_max = lco->pkt_period_min;
 			break;
 		case 'a':
-			/* FIXME: LCO also supports the negotiation of more then one codec.
+			/* FIXME: LCO also supports the negotiation of more than one codec.
 			 * (e.g. a:PCMU;G726-32) But this implementation only supports a single
 			 * codec only. */
 			if (sscanf(lco_id + 1, ":%16[^,]", codec) == 1) {
