@@ -24,7 +24,6 @@ struct mgcp_trunk {
 	char *audio_fmtp_extra;
 	int audio_send_ptime;
 	int audio_send_name;
-	int audio_loop;
 
 	int no_audio_transcoding;
 

@@ -115,7 +115,6 @@ static int config_write_mgcp(struct vty *vty)
 		trunk->audio_send_ptime ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " %ssdp audio-payload send-name%s",
 		trunk->audio_send_name ? "" : "no ", VTY_NEWLINE);
-	vty_out(vty, " loop %u%s", ! !trunk->audio_loop, VTY_NEWLINE);
 	vty_out(vty, " number endpoints %u%s",
 		trunk->v.vty_number_endpoints, VTY_NEWLINE);
 	vty_out(vty, " %sallow-transcoding%s",
@@ -712,18 +711,11 @@ DEFUN(cfg_mgcp_no_sdp_payload_send_name,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_loop,
-      cfg_mgcp_loop_cmd,
-      "loop (0|1)",
-      "Loop audio for all endpoints on main trunk\n" "Don't Loop\n" "Loop\n")
+DEFUN_DEPRECATED(cfg_mgcp_loop,
+		 cfg_mgcp_loop_cmd,
+		 "loop (0|1)",
+		 "Loop audio for all endpoints on main trunk\n" "Don't Loop\n" "Loop\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
-	OSMO_ASSERT(trunk);
-	if (g_cfg->osmux) {
-		vty_out(vty, "Cannot use `loop' with `osmux'.%s", VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-	trunk->audio_loop = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
 
@@ -947,7 +939,6 @@ static int config_write_trunk(struct vty *vty)
 				trunk->keepalive_interval, VTY_NEWLINE);
 		else
 			vty_out(vty, "  no rtp keep-alive%s", VTY_NEWLINE);
-		vty_out(vty, "  loop %d%s", trunk->audio_loop, VTY_NEWLINE);
 		vty_out(vty, "  force-realloc %d%s",
 			trunk->force_realloc, VTY_NEWLINE);
 		vty_out(vty, "  rtp-accept-all %d%s",
@@ -1019,18 +1010,11 @@ ALIAS_DEPRECATED(cfg_trunk_payload_name, cfg_trunk_payload_name_cmd_old,
 		 "sdp audio payload name NAME",
 		 SDP_STR AUDIO_STR AUDIO_STR "Payload\n" "Payload Name\n")
 
-DEFUN(cfg_trunk_loop,
-      cfg_trunk_loop_cmd,
-      "loop (0|1)",
-      "Loop audio for all endpoints on this trunk\n" "Don't Loop\n" "Loop\n")
+DEFUN_DEPRECATED(cfg_trunk_loop,
+		 cfg_trunk_loop_cmd,
+		 "loop (0|1)",
+		 "Loop audio for all endpoints on this trunk\n" "Don't Loop\n" "Loop\n")
 {
-	struct mgcp_trunk *trunk = vty->index;
-
-	if (g_cfg->osmux) {
-		vty_out(vty, "Cannot use `loop' with `osmux'.%s", VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-	trunk->audio_loop = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
 
@@ -1444,11 +1428,6 @@ DEFUN(cfg_mgcp_osmux,
 		g_cfg->osmux = OSMUX_USAGE_ON;
 	else if (strcmp(argv[0], "only") == 0)
 		g_cfg->osmux = OSMUX_USAGE_ONLY;
-
-	if (trunk->audio_loop) {
-		vty_out(vty, "Cannot use `loop' with `osmux'.%s", VTY_NEWLINE);
-		return CMD_WARNING;
-	}
 
 	return CMD_SUCCESS;
 

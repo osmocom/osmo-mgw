@@ -893,10 +893,6 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 		LOGPENDP(endp, DRTP, LOGL_DEBUG, "delivering RTCP packet...\n");
 	}
 
-	LOGPENDP(endp, DRTP, LOGL_DEBUG, "loop:%d, mode:%d%s\n",
-		 trunk->audio_loop, conn_src->conn->mode,
-		 conn_src->conn->mode == MGCP_CONN_LOOPBACK ? " (loopback)" : "");
-
 	/* FIXME: It is legal that the payload type on the egress connection is
 	 * different from the payload type that has been negotiated on the
 	 * ingress connection. Essentially the codecs are the same so we can
