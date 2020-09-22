@@ -42,6 +42,7 @@
 #define RTP_KEEPALIVE_STR "Send dummy UDP packet to net RTP destination\n"
 #define RTP_TS101318_RFC5993_CONV_STR "Convert GSM-HR from TS101318 to RFC5993 and vice versa\n"
 
+#define X(x) (1 << x)
 
 static struct mgcp_config *g_cfg = NULL;
 
@@ -408,13 +409,14 @@ DEFUN(cfg_mgcp, cfg_mgcp_cmd, "mgcp", "Configure the MGCP")
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_local_ip,
-      cfg_mgcp_local_ip_cmd,
-      "local ip " VTY_IPV46_CMD,
-      "Local options for the SDP record\n"
-      IP_STR
-      "IPv4 Address to use in SDP record\n"
-      "IPv6 Address to use in SDP record\n")
+DEFUN_USRATTR(cfg_mgcp_local_ip,
+	      cfg_mgcp_local_ip_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "local ip " VTY_IPV46_CMD,
+	      "Local options for the SDP record\n"
+	      IP_STR
+	      "IPv4 Address to use in SDP record\n"
+	      "IPv6 Address to use in SDP record\n")
 {
 	osmo_talloc_replace_string(g_cfg, &g_cfg->local_ip, argv[0]);
 	return CMD_SUCCESS;
@@ -499,11 +501,12 @@ ALIAS_DEPRECATED(cfg_mgcp_rtp_port_range,
 		 RTP_STR "Range of ports to use for the NET side\n"
 		 RANGE_START_STR RANGE_END_STR)
 
-DEFUN(cfg_mgcp_rtp_bind_ip,
-      cfg_mgcp_rtp_bind_ip_cmd,
-      "rtp bind-ip A.B.C.D",
-      RTP_STR "Bind endpoints facing the Network\n"
-      "IPv4 Address to bind to\n")
+DEFUN_USRATTR(cfg_mgcp_rtp_bind_ip,
+	      cfg_mgcp_rtp_bind_ip_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "rtp bind-ip A.B.C.D",
+	      RTP_STR "Bind endpoints facing the Network\n"
+	      "IPv4 Address to bind to\n")
 {
 	osmo_talloc_replace_string(g_cfg, &g_cfg->net_ports.bind_addr_v4, argv[0]);
 	return CMD_SUCCESS;
@@ -513,11 +516,12 @@ ALIAS_DEPRECATED(cfg_mgcp_rtp_bind_ip,
 		 "rtp net-bind-ip A.B.C.D",
 		 RTP_STR "Bind endpoints facing the Network\n" "Address to bind to\n")
 
-DEFUN(cfg_mgcp_rtp_no_bind_ip,
-      cfg_mgcp_rtp_no_bind_ip_cmd,
-      "no rtp bind-ip",
-      NO_STR RTP_STR "Bind endpoints facing the Network\n"
-      "Address to bind to\n")
+DEFUN_USRATTR(cfg_mgcp_rtp_no_bind_ip,
+	      cfg_mgcp_rtp_no_bind_ip_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no rtp bind-ip",
+	      NO_STR RTP_STR "Bind endpoints facing the Network\n"
+	      "Address to bind to\n")
 {
 	talloc_free(g_cfg->net_ports.bind_addr_v4);
 	g_cfg->net_ports.bind_addr_v4 = NULL;
@@ -529,50 +533,55 @@ ALIAS_DEPRECATED(cfg_mgcp_rtp_no_bind_ip,
 		 NO_STR RTP_STR "Bind endpoints facing the Network\n"
 		 "Address to bind to\n")
 
-DEFUN(cfg_mgcp_rtp_bind_ip_v6,
-      cfg_mgcp_rtp_bind_ip_v6_cmd,
-      "rtp bind-ip-v6 " VTY_IPV6_CMD,
-      RTP_STR "Bind endpoints facing the Network\n"
-      "IPv6 Address to bind to\n")
+DEFUN_USRATTR(cfg_mgcp_rtp_bind_ip_v6,
+	      cfg_mgcp_rtp_bind_ip_v6_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "rtp bind-ip-v6 " VTY_IPV6_CMD,
+	      RTP_STR "Bind endpoints facing the Network\n"
+	      "IPv6 Address to bind to\n")
 {
 	osmo_talloc_replace_string(g_cfg, &g_cfg->net_ports.bind_addr_v6, argv[0]);
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_rtp_no_bind_ip_v6,
-cfg_mgcp_rtp_no_bind_ip_v6_cmd,
-"no rtp bind-ip-v6",
-NO_STR RTP_STR "Bind endpoints facing the Network\n"
-"Address to bind to\n")
+DEFUN_USRATTR(cfg_mgcp_rtp_no_bind_ip_v6,
+	      cfg_mgcp_rtp_no_bind_ip_v6_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no rtp bind-ip-v6",
+	      NO_STR RTP_STR "Bind endpoints facing the Network\n"
+	      "Address to bind to\n")
 {
 	talloc_free(g_cfg->net_ports.bind_addr_v6);
 	g_cfg->net_ports.bind_addr_v6 = NULL;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_rtp_net_bind_ip_probing,
-      cfg_mgcp_rtp_net_bind_ip_probing_cmd,
-      "rtp ip-probing",
-      RTP_STR "automatic rtp bind ip selection\n")
+DEFUN_USRATTR(cfg_mgcp_rtp_net_bind_ip_probing,
+	      cfg_mgcp_rtp_net_bind_ip_probing_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "rtp ip-probing",
+	      RTP_STR "automatic rtp bind ip selection\n")
 {
 	g_cfg->net_ports.bind_addr_probe = true;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_rtp_no_net_bind_ip_probing,
-      cfg_mgcp_rtp_no_net_bind_ip_probing_cmd,
-      "no rtp ip-probing",
-      NO_STR RTP_STR "no automatic rtp bind ip selection\n")
+DEFUN_USRATTR(cfg_mgcp_rtp_no_net_bind_ip_probing,
+	      cfg_mgcp_rtp_no_net_bind_ip_probing_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no rtp ip-probing",
+	      NO_STR RTP_STR "no automatic rtp bind ip selection\n")
 {
 	g_cfg->net_ports.bind_addr_probe = false;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_rtp_ip_dscp,
-      cfg_mgcp_rtp_ip_dscp_cmd,
-      "rtp ip-dscp <0-255>",
-      RTP_STR
-      "Apply IP_TOS to the audio stream (including Osmux)\n" "The DSCP value\n")
+DEFUN_USRATTR(cfg_mgcp_rtp_ip_dscp,
+	      cfg_mgcp_rtp_ip_dscp_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "rtp ip-dscp <0-255>",
+	      RTP_STR
+	      "Apply IP_TOS to the audio stream (including Osmux)\n" "The DSCP value\n")
 {
 	int dscp = atoi(argv[0]);
 	g_cfg->endp_dscp = dscp;
@@ -584,29 +593,32 @@ ALIAS_DEPRECATED(cfg_mgcp_rtp_ip_dscp, cfg_mgcp_rtp_ip_tos_cmd,
 		 RTP_STR
 		 "Apply IP_TOS to the audio stream\n" "The DSCP value\n")
 #define FORCE_PTIME_STR "Force a fixed ptime for packets sent"
-DEFUN(cfg_mgcp_rtp_force_ptime,
-      cfg_mgcp_rtp_force_ptime_cmd,
-      "rtp force-ptime (10|20|40)",
-      RTP_STR FORCE_PTIME_STR
-      "The required ptime (packet duration) in ms\n" "10 ms\n20 ms\n40 ms\n")
+DEFUN_USRATTR(cfg_mgcp_rtp_force_ptime,
+	      cfg_mgcp_rtp_force_ptime_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "rtp force-ptime (10|20|40)",
+	      RTP_STR FORCE_PTIME_STR
+	      "The required ptime (packet duration) in ms\n" "10 ms\n20 ms\n40 ms\n")
 {
 	g_cfg->force_ptime = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_no_rtp_force_ptime,
-      cfg_mgcp_no_rtp_force_ptime_cmd,
-      "no rtp force-ptime", NO_STR RTP_STR FORCE_PTIME_STR)
+DEFUN_USRATTR(cfg_mgcp_no_rtp_force_ptime,
+	      cfg_mgcp_no_rtp_force_ptime_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no rtp force-ptime", NO_STR RTP_STR FORCE_PTIME_STR)
 {
 	g_cfg->force_ptime = 0;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_sdp_fmtp_extra,
-      cfg_mgcp_sdp_fmtp_extra_cmd,
-      "sdp audio fmtp-extra .NAME",
-      "Add extra fmtp for the SDP file\n" "Audio\n" "Fmtp-extra\n"
-      "Extra Information\n")
+DEFUN_USRATTR(cfg_mgcp_sdp_fmtp_extra,
+	      cfg_mgcp_sdp_fmtp_extra_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "sdp audio fmtp-extra .NAME",
+	      "Add extra fmtp for the SDP file\n" "Audio\n" "Fmtp-extra\n"
+	      "Extra Information\n")
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -619,9 +631,10 @@ DEFUN(cfg_mgcp_sdp_fmtp_extra,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_allow_transcoding,
-      cfg_mgcp_allow_transcoding_cmd,
-      "allow-transcoding", "Allow transcoding\n")
+DEFUN_USRATTR(cfg_mgcp_allow_transcoding,
+	      cfg_mgcp_allow_transcoding_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "allow-transcoding", "Allow transcoding\n")
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -629,9 +642,10 @@ DEFUN(cfg_mgcp_allow_transcoding,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_no_allow_transcoding,
-      cfg_mgcp_no_allow_transcoding_cmd,
-      "no allow-transcoding", NO_STR "Allow transcoding\n")
+DEFUN_USRATTR(cfg_mgcp_no_allow_transcoding,
+	      cfg_mgcp_no_allow_transcoding_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no allow-transcoding", NO_STR "Allow transcoding\n")
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -666,10 +680,11 @@ ALIAS_DEPRECATED(cfg_mgcp_sdp_payload_name, cfg_mgcp_sdp_payload_name_cmd_old,
 		 "sdp audio payload name NAME",
 		 SDP_STR AUDIO_STR AUDIO_STR "Name\n" "Payload name\n")
 
-DEFUN(cfg_mgcp_sdp_payload_send_ptime,
-      cfg_mgcp_sdp_payload_send_ptime_cmd,
-      "sdp audio-payload send-ptime",
-      SDP_STR AUDIO_STR "Send SDP ptime (packet duration) attribute\n")
+DEFUN_USRATTR(cfg_mgcp_sdp_payload_send_ptime,
+	      cfg_mgcp_sdp_payload_send_ptime_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "sdp audio-payload send-ptime",
+	      SDP_STR AUDIO_STR "Send SDP ptime (packet duration) attribute\n")
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -677,10 +692,11 @@ DEFUN(cfg_mgcp_sdp_payload_send_ptime,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_no_sdp_payload_send_ptime,
-      cfg_mgcp_no_sdp_payload_send_ptime_cmd,
-      "no sdp audio-payload send-ptime",
-      NO_STR SDP_STR AUDIO_STR "Send SDP ptime (packet duration) attribute\n")
+DEFUN_USRATTR(cfg_mgcp_no_sdp_payload_send_ptime,
+	      cfg_mgcp_no_sdp_payload_send_ptime_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no sdp audio-payload send-ptime",
+	      NO_STR SDP_STR AUDIO_STR "Send SDP ptime (packet duration) attribute\n")
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -688,10 +704,11 @@ DEFUN(cfg_mgcp_no_sdp_payload_send_ptime,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_sdp_payload_send_name,
-      cfg_mgcp_sdp_payload_send_name_cmd,
-      "sdp audio-payload send-name",
-      SDP_STR AUDIO_STR "Send SDP rtpmap with the audio name\n")
+DEFUN_USRATTR(cfg_mgcp_sdp_payload_send_name,
+	      cfg_mgcp_sdp_payload_send_name_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "sdp audio-payload send-name",
+	      SDP_STR AUDIO_STR "Send SDP rtpmap with the audio name\n")
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -699,10 +716,11 @@ DEFUN(cfg_mgcp_sdp_payload_send_name,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_no_sdp_payload_send_name,
-      cfg_mgcp_no_sdp_payload_send_name_cmd,
-      "no sdp audio-payload send-name",
-      NO_STR SDP_STR AUDIO_STR "Send SDP rtpmap with the audio name\n")
+DEFUN_USRATTR(cfg_mgcp_no_sdp_payload_send_name,
+	      cfg_mgcp_no_sdp_payload_send_name_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no sdp audio-payload send-name",
+	      NO_STR SDP_STR AUDIO_STR "Send SDP rtpmap with the audio name\n")
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -718,11 +736,12 @@ DEFUN_DEPRECATED(cfg_mgcp_loop,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_force_realloc,
-      cfg_mgcp_force_realloc_cmd,
-      "force-realloc (0|1)",
-      "Force endpoint reallocation when the endpoint is still seized\n"
-      "Don't force reallocation\n" "force reallocation\n")
+DEFUN_USRATTR(cfg_mgcp_force_realloc,
+	      cfg_mgcp_force_realloc_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "force-realloc (0|1)",
+	      "Force endpoint reallocation when the endpoint is still seized\n"
+	      "Don't force reallocation\n" "force reallocation\n")
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -730,11 +749,12 @@ DEFUN(cfg_mgcp_force_realloc,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_rtp_accept_all,
-      cfg_mgcp_rtp_accept_all_cmd,
-      "rtp-accept-all (0|1)",
-      "Accept all RTP packets, even when the originating IP/Port does not match\n"
-      "enable filter\n" "disable filter\n")
+DEFUN_ATTR(cfg_mgcp_rtp_accept_all,
+	   cfg_mgcp_rtp_accept_all_cmd,
+	   "rtp-accept-all (0|1)",
+	   "Accept all RTP packets, even when the originating IP/Port does not match\n"
+	   "enable filter\n" "disable filter\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -753,15 +773,21 @@ DEFUN(cfg_mgcp_number_endp,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_omit_rtcp, cfg_mgcp_omit_rtcp_cmd, "rtcp-omit", RTCP_OMIT_STR)
+DEFUN_ATTR(cfg_mgcp_omit_rtcp,
+	   cfg_mgcp_omit_rtcp_cmd,
+	   "rtcp-omit", RTCP_OMIT_STR,
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	trunk->omit_rtcp = 1;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_no_omit_rtcp,
-      cfg_mgcp_no_omit_rtcp_cmd, "no rtcp-omit", NO_STR RTCP_OMIT_STR)
+DEFUN_ATTR(cfg_mgcp_no_omit_rtcp,
+	   cfg_mgcp_no_omit_rtcp_cmd,
+	   "no rtcp-omit",
+	   NO_STR RTCP_OMIT_STR,
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -769,9 +795,10 @@ DEFUN(cfg_mgcp_no_omit_rtcp,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_patch_rtp_ssrc,
-      cfg_mgcp_patch_rtp_ssrc_cmd,
-      "rtp-patch ssrc", RTP_PATCH_STR "Force a fixed SSRC\n")
+DEFUN_USRATTR(cfg_mgcp_patch_rtp_ssrc,
+	      cfg_mgcp_patch_rtp_ssrc_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "rtp-patch ssrc", RTP_PATCH_STR "Force a fixed SSRC\n")
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -779,9 +806,10 @@ DEFUN(cfg_mgcp_patch_rtp_ssrc,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_no_patch_rtp_ssrc,
-      cfg_mgcp_no_patch_rtp_ssrc_cmd,
-      "no rtp-patch ssrc", NO_STR RTP_PATCH_STR "Force a fixed SSRC\n")
+DEFUN_USRATTR(cfg_mgcp_no_patch_rtp_ssrc,
+	      cfg_mgcp_no_patch_rtp_ssrc_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no rtp-patch ssrc", NO_STR RTP_PATCH_STR "Force a fixed SSRC\n")
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -789,9 +817,10 @@ DEFUN(cfg_mgcp_no_patch_rtp_ssrc,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_patch_rtp_ts,
-      cfg_mgcp_patch_rtp_ts_cmd,
-      "rtp-patch timestamp", RTP_PATCH_STR "Adjust RTP timestamp\n")
+DEFUN_USRATTR(cfg_mgcp_patch_rtp_ts,
+	      cfg_mgcp_patch_rtp_ts_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "rtp-patch timestamp", RTP_PATCH_STR "Adjust RTP timestamp\n")
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -799,9 +828,10 @@ DEFUN(cfg_mgcp_patch_rtp_ts,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_no_patch_rtp_ts,
-      cfg_mgcp_no_patch_rtp_ts_cmd,
-      "no rtp-patch timestamp", NO_STR RTP_PATCH_STR "Adjust RTP timestamp\n")
+DEFUN_USRATTR(cfg_mgcp_no_patch_rtp_ts,
+	      cfg_mgcp_no_patch_rtp_ts_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no rtp-patch timestamp", NO_STR RTP_PATCH_STR "Adjust RTP timestamp\n")
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -809,9 +839,10 @@ DEFUN(cfg_mgcp_no_patch_rtp_ts,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_patch_rtp_rfc5993hr,
-      cfg_mgcp_patch_rtp_rfc5993hr_cmd,
-      "rtp-patch rfc5993hr", RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
+DEFUN_USRATTR(cfg_mgcp_patch_rtp_rfc5993hr,
+	      cfg_mgcp_patch_rtp_rfc5993hr_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "rtp-patch rfc5993hr", RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -819,9 +850,10 @@ DEFUN(cfg_mgcp_patch_rtp_rfc5993hr,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_no_patch_rtp_rfc5993hr,
-      cfg_mgcp_no_patch_rtp_rfc5993hr_cmd,
-      "no rtp-patch rfc5993hr", NO_STR RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
+DEFUN_USRATTR(cfg_mgcp_no_patch_rtp_rfc5993hr,
+	      cfg_mgcp_no_patch_rtp_rfc5993hr_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no rtp-patch rfc5993hr", NO_STR RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -829,8 +861,10 @@ DEFUN(cfg_mgcp_no_patch_rtp_rfc5993hr,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_no_patch_rtp,
-      cfg_mgcp_no_patch_rtp_cmd, "no rtp-patch", NO_STR RTP_PATCH_STR)
+DEFUN_USRATTR(cfg_mgcp_no_patch_rtp,
+	      cfg_mgcp_no_patch_rtp_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no rtp-patch", NO_STR RTP_PATCH_STR)
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -840,10 +874,11 @@ DEFUN(cfg_mgcp_no_patch_rtp,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_rtp_keepalive,
-      cfg_mgcp_rtp_keepalive_cmd,
-      "rtp keep-alive <1-120>",
-      RTP_STR RTP_KEEPALIVE_STR "Keep alive interval in secs\n")
+DEFUN_ATTR(cfg_mgcp_rtp_keepalive,
+	   cfg_mgcp_rtp_keepalive_cmd,
+	   "rtp keep-alive <1-120>",
+	   RTP_STR RTP_KEEPALIVE_STR "Keep alive interval in secs\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -851,10 +886,11 @@ DEFUN(cfg_mgcp_rtp_keepalive,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_rtp_keepalive_once,
-      cfg_mgcp_rtp_keepalive_once_cmd,
-      "rtp keep-alive once",
-      RTP_STR RTP_KEEPALIVE_STR "Send dummy packet only once after CRCX/MDCX\n")
+DEFUN_ATTR(cfg_mgcp_rtp_keepalive_once,
+	   cfg_mgcp_rtp_keepalive_once_cmd,
+	   "rtp keep-alive once",
+	   RTP_STR RTP_KEEPALIVE_STR "Send dummy packet only once after CRCX/MDCX\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -862,9 +898,10 @@ DEFUN(cfg_mgcp_rtp_keepalive_once,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_no_rtp_keepalive,
-      cfg_mgcp_no_rtp_keepalive_cmd,
-      "no rtp keep-alive", NO_STR RTP_STR RTP_KEEPALIVE_STR)
+DEFUN_ATTR(cfg_mgcp_no_rtp_keepalive,
+	   cfg_mgcp_no_rtp_keepalive_cmd,
+	   "no rtp keep-alive", NO_STR RTP_STR RTP_KEEPALIVE_STR,
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
@@ -969,11 +1006,12 @@ static int config_write_trunk(struct vty *vty)
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_sdp_fmtp_extra,
-      cfg_trunk_sdp_fmtp_extra_cmd,
-      "sdp audio fmtp-extra .NAME",
-      "Add extra fmtp for the SDP file\n" "Audio\n" "Fmtp-extra\n"
-      "Extra Information\n")
+DEFUN_USRATTR(cfg_trunk_sdp_fmtp_extra,
+	      cfg_trunk_sdp_fmtp_extra_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "sdp audio fmtp-extra .NAME",
+	      "Add extra fmtp for the SDP file\n" "Audio\n" "Fmtp-extra\n"
+	      "Extra Information\n")
 {
 	struct mgcp_trunk *trunk = vty->index;
 	char *txt = argv_concat(argv, argc, 0);
@@ -1017,117 +1055,134 @@ DEFUN_DEPRECATED(cfg_trunk_loop,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_sdp_payload_send_ptime,
-      cfg_trunk_sdp_payload_send_ptime_cmd,
-      "sdp audio-payload send-ptime",
-      SDP_STR AUDIO_STR "Send SDP ptime (packet duration) attribute\n")
+DEFUN_USRATTR(cfg_trunk_sdp_payload_send_ptime,
+	      cfg_trunk_sdp_payload_send_ptime_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "sdp audio-payload send-ptime",
+	      SDP_STR AUDIO_STR "Send SDP ptime (packet duration) attribute\n")
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->audio_send_ptime = 1;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_no_sdp_payload_send_ptime,
-      cfg_trunk_no_sdp_payload_send_ptime_cmd,
-      "no sdp audio-payload send-ptime",
-      NO_STR SDP_STR AUDIO_STR "Send SDP ptime (packet duration) attribute\n")
+DEFUN_USRATTR(cfg_trunk_no_sdp_payload_send_ptime,
+	      cfg_trunk_no_sdp_payload_send_ptime_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no sdp audio-payload send-ptime",
+	      NO_STR SDP_STR AUDIO_STR "Send SDP ptime (packet duration) attribute\n")
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->audio_send_ptime = 0;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_sdp_payload_send_name,
-      cfg_trunk_sdp_payload_send_name_cmd,
-      "sdp audio-payload send-name",
-      SDP_STR AUDIO_STR "Send SDP rtpmap with the audio name\n")
+DEFUN_USRATTR(cfg_trunk_sdp_payload_send_name,
+	      cfg_trunk_sdp_payload_send_name_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "sdp audio-payload send-name",
+	      SDP_STR AUDIO_STR "Send SDP rtpmap with the audio name\n")
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->audio_send_name = 1;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_no_sdp_payload_send_name,
-      cfg_trunk_no_sdp_payload_send_name_cmd,
-      "no sdp audio-payload send-name",
-      NO_STR SDP_STR AUDIO_STR "Send SDP rtpmap with the audio name\n")
+DEFUN_USRATTR(cfg_trunk_no_sdp_payload_send_name,
+	      cfg_trunk_no_sdp_payload_send_name_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no sdp audio-payload send-name",
+	      NO_STR SDP_STR AUDIO_STR "Send SDP rtpmap with the audio name\n")
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->audio_send_name = 0;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_omit_rtcp, cfg_trunk_omit_rtcp_cmd, "rtcp-omit", RTCP_OMIT_STR)
+DEFUN_ATTR(cfg_trunk_omit_rtcp,
+	   cfg_trunk_omit_rtcp_cmd,
+	   "rtcp-omit", RTCP_OMIT_STR,
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->omit_rtcp = 1;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_no_omit_rtcp,
-      cfg_trunk_no_omit_rtcp_cmd, "no rtcp-omit", NO_STR RTCP_OMIT_STR)
+DEFUN_ATTR(cfg_trunk_no_omit_rtcp,
+	   cfg_trunk_no_omit_rtcp_cmd,
+	   "no rtcp-omit", NO_STR RTCP_OMIT_STR,
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->omit_rtcp = 0;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_patch_rtp_ssrc,
-      cfg_trunk_patch_rtp_ssrc_cmd,
-      "rtp-patch ssrc", RTP_PATCH_STR "Force a fixed SSRC\n")
+DEFUN_USRATTR(cfg_trunk_patch_rtp_ssrc,
+	      cfg_trunk_patch_rtp_ssrc_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "rtp-patch ssrc", RTP_PATCH_STR "Force a fixed SSRC\n")
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->force_constant_ssrc = 1;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_no_patch_rtp_ssrc,
-      cfg_trunk_no_patch_rtp_ssrc_cmd,
-      "no rtp-patch ssrc", NO_STR RTP_PATCH_STR "Force a fixed SSRC\n")
+DEFUN_USRATTR(cfg_trunk_no_patch_rtp_ssrc,
+	      cfg_trunk_no_patch_rtp_ssrc_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no rtp-patch ssrc", NO_STR RTP_PATCH_STR "Force a fixed SSRC\n")
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->force_constant_ssrc = 0;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_patch_rtp_ts,
-      cfg_trunk_patch_rtp_ts_cmd,
-      "rtp-patch timestamp", RTP_PATCH_STR "Adjust RTP timestamp\n")
+DEFUN_USRATTR(cfg_trunk_patch_rtp_ts,
+	      cfg_trunk_patch_rtp_ts_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "rtp-patch timestamp", RTP_PATCH_STR "Adjust RTP timestamp\n")
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->force_aligned_timing = 1;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_no_patch_rtp_ts,
-      cfg_trunk_no_patch_rtp_ts_cmd,
-      "no rtp-patch timestamp", NO_STR RTP_PATCH_STR "Adjust RTP timestamp\n")
+DEFUN_USRATTR(cfg_trunk_no_patch_rtp_ts,
+	      cfg_trunk_no_patch_rtp_ts_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no rtp-patch timestamp", NO_STR RTP_PATCH_STR "Adjust RTP timestamp\n")
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->force_aligned_timing = 0;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_patch_rtp_rfc5993hr,
-      cfg_trunk_patch_rtp_rfc5993hr_cmd,
-      "rtp-patch rfc5993hr", RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
+DEFUN_USRATTR(cfg_trunk_patch_rtp_rfc5993hr,
+	      cfg_trunk_patch_rtp_rfc5993hr_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "rtp-patch rfc5993hr", RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->rfc5993_hr_convert = true;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_no_patch_rtp_rfc5993hr,
-      cfg_trunk_no_patch_rtp_rfc5993hr_cmd,
-      "no rtp-patch rfc5993hr", NO_STR RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
+DEFUN_USRATTR(cfg_trunk_no_patch_rtp_rfc5993hr,
+	      cfg_trunk_no_patch_rtp_rfc5993hr_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no rtp-patch rfc5993hr", NO_STR RTP_PATCH_STR RTP_TS101318_RFC5993_CONV_STR)
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->rfc5993_hr_convert = false;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_no_patch_rtp,
-      cfg_trunk_no_patch_rtp_cmd, "no rtp-patch", NO_STR RTP_PATCH_STR)
+DEFUN_USRATTR(cfg_trunk_no_patch_rtp,
+	      cfg_trunk_no_patch_rtp_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no rtp-patch", NO_STR RTP_PATCH_STR)
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->force_constant_ssrc = 0;
@@ -1136,47 +1191,52 @@ DEFUN(cfg_trunk_no_patch_rtp,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_rtp_keepalive,
-      cfg_trunk_rtp_keepalive_cmd,
-      "rtp keep-alive <1-120>",
-      RTP_STR RTP_KEEPALIVE_STR "Keep-alive interval in secs\n")
+DEFUN_ATTR(cfg_trunk_rtp_keepalive,
+	   cfg_trunk_rtp_keepalive_cmd,
+	   "rtp keep-alive <1-120>",
+	   RTP_STR RTP_KEEPALIVE_STR "Keep-alive interval in secs\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct mgcp_trunk *trunk = vty->index;
 	mgcp_trunk_set_keepalive(trunk, atoi(argv[0]));
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_rtp_keepalive_once,
-      cfg_trunk_rtp_keepalive_once_cmd,
-      "rtp keep-alive once",
-      RTP_STR RTP_KEEPALIVE_STR "Send dummy packet only once after CRCX/MDCX\n")
+DEFUN_ATTR(cfg_trunk_rtp_keepalive_once,
+	   cfg_trunk_rtp_keepalive_once_cmd,
+	   "rtp keep-alive once",
+	   RTP_STR RTP_KEEPALIVE_STR "Send dummy packet only once after CRCX/MDCX\n",
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct mgcp_trunk *trunk = vty->index;
 	mgcp_trunk_set_keepalive(trunk, MGCP_KEEPALIVE_ONCE);
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_no_rtp_keepalive,
-      cfg_trunk_no_rtp_keepalive_cmd,
-      "no rtp keep-alive", NO_STR RTP_STR RTP_KEEPALIVE_STR)
+DEFUN_ATTR(cfg_trunk_no_rtp_keepalive,
+	   cfg_trunk_no_rtp_keepalive_cmd,
+	   "no rtp keep-alive", NO_STR RTP_STR RTP_KEEPALIVE_STR,
+	   CMD_ATTR_IMMEDIATE)
 {
 	struct mgcp_trunk *trunk = vty->index;
 	mgcp_trunk_set_keepalive(trunk, 0);
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_allow_transcoding,
-      cfg_trunk_allow_transcoding_cmd,
-      "allow-transcoding", "Allow transcoding\n")
+DEFUN_USRATTR(cfg_trunk_allow_transcoding,
+	      cfg_trunk_allow_transcoding_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "allow-transcoding", "Allow transcoding\n")
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->no_audio_transcoding = 0;
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_trunk_no_allow_transcoding,
-      cfg_trunk_no_allow_transcoding_cmd,
-      "no allow-transcoding", NO_STR "Allow transcoding\n")
+DEFUN_USRATTR(cfg_trunk_no_allow_transcoding,
+	      cfg_trunk_no_allow_transcoding_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "no allow-transcoding", NO_STR "Allow transcoding\n")
 {
 	struct mgcp_trunk *trunk = vty->index;
 	trunk->no_audio_transcoding = 1;

@@ -306,6 +306,10 @@ int main(int argc, char **argv)
 		return -1;
 
 	vty_info.copyright = osmomgw_copyright;
+	vty_info.usr_attr_desc[MGW_CMD_ATTR_NEWCONN] = \
+		"This command applies when a new connection is created";
+	vty_info.usr_attr_letters[MGW_CMD_ATTR_NEWCONN] = 'n';
+
 	vty_init(&vty_info);
 	logging_vty_add_cmds();
 	osmo_talloc_vty_add_cmds();
