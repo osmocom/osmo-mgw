@@ -361,11 +361,7 @@ static void e1_recv_cb(struct e1inp_ts *ts, struct msgb *msg)
 	e1_send(ts, trunk);
 }
 
-/*! Find an endpoint by its name on a specified trunk.
- *  \param[in] trunk trunk configuration.
- *  \param[in] ts_nr E1 timeslot number.
- *  \returns -EINVAL on failure, 0 on success. */
-int mgcp_e1_init(struct mgcp_trunk *trunk, uint8_t ts_nr)
+static int e1_init(struct mgcp_trunk *trunk, uint8_t ts_nr)
 {
 	/*! Each timeslot needs only to be configured once. The Timeslot then
 	 *  stays open and permanently receives data. It is then up to the
@@ -517,7 +513,7 @@ int mgcp_e1_endp_equip(struct mgcp_endpoint *endp, uint8_t ts, uint8_t ss, uint8
 	endp->e1.last_amr_ft = AMR_4_75;
 
 	/* Set up E1 line / timeslot */
-	rc = mgcp_e1_init(endp->trunk, ts);
+	rc = e1_init(endp->trunk, ts);
 	if (rc != 0)
 		return -EINVAL;
 
