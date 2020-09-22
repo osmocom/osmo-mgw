@@ -442,14 +442,13 @@ DEFUN(cfg_mgcp_bind_port,
 	return CMD_SUCCESS;
 }
 
-DEFUN(cfg_mgcp_bind_early,
-      cfg_mgcp_bind_early_cmd,
-      "bind early (0|1)",
-      BIND_STR
-      "Bind local ports on start up\n" "Bind on demand\n" "Bind on startup\n")
+DEFUN_DEPRECATED(cfg_mgcp_bind_early,
+		 cfg_mgcp_bind_early_cmd,
+		 "bind early (0|1)",
+		 BIND_STR
+		 "Bind local ports on start up\n" "Bind on demand\n" "Bind on startup\n")
 {
-	vty_out(vty, "bind early is deprecated, remove it from the config.\n");
-	return CMD_WARNING;
+	return CMD_SUCCESS;
 }
 
 #define RTP_STR "RTP configuration\n"
