@@ -190,21 +190,21 @@ void mgcp_client_vty_init(void *talloc_ctx, int node, struct mgcp_client_conf *c
 	global_mgcp_client_ctx = talloc_ctx;
 	global_mgcp_client_conf = conf;
 
-	install_element(node, &cfg_mgw_local_ip_cmd);
-	install_element(node, &cfg_mgw_local_port_cmd);
-	install_element(node, &cfg_mgw_remote_ip_cmd);
-	install_element(node, &cfg_mgw_remote_port_cmd);
-	install_element(node, &cfg_mgw_endpoint_range_cmd);
-	install_element(node, &cfg_mgw_rtp_bts_base_port_cmd);
-	install_element(node, &cfg_mgw_endpoint_domain_name_cmd);
+	install_lib_element(node, &cfg_mgw_local_ip_cmd);
+	install_lib_element(node, &cfg_mgw_local_port_cmd);
+	install_lib_element(node, &cfg_mgw_remote_ip_cmd);
+	install_lib_element(node, &cfg_mgw_remote_port_cmd);
+	install_lib_element(node, &cfg_mgw_endpoint_range_cmd);
+	install_lib_element(node, &cfg_mgw_rtp_bts_base_port_cmd);
+	install_lib_element(node, &cfg_mgw_endpoint_domain_name_cmd);
 
 	/* deprecated 'mgcpgw' commands */
-	install_element(node, &cfg_mgcpgw_local_ip_cmd);
-	install_element(node, &cfg_mgcpgw_local_port_cmd);
-	install_element(node, &cfg_mgcpgw_remote_ip_cmd);
-	install_element(node, &cfg_mgcpgw_remote_port_cmd);
-	install_element(node, &cfg_mgcpgw_endpoint_range_cmd);
-	install_element(node, &cfg_mgcpgw_rtp_bts_base_port_cmd);
+	install_lib_element(node, &cfg_mgcpgw_local_ip_cmd);
+	install_lib_element(node, &cfg_mgcpgw_local_port_cmd);
+	install_lib_element(node, &cfg_mgcpgw_remote_ip_cmd);
+	install_lib_element(node, &cfg_mgcpgw_remote_port_cmd);
+	install_lib_element(node, &cfg_mgcpgw_endpoint_range_cmd);
+	install_lib_element(node, &cfg_mgcpgw_rtp_bts_base_port_cmd);
 
 	osmo_fsm_vty_add_cmds();
 }
