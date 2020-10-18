@@ -6,6 +6,8 @@
 #include <osmocom/core/sockaddr_str.h>
 #include <osmocom/core/rate_ctr.h>
 
+struct rtp_provider_instance;
+
 /* configuration of one RTP connection/socket */
 struct rtpsim_connection_cfg {
 	struct osmo_sockaddr_str local;
@@ -20,6 +22,8 @@ struct rtpsim_connection_tx {
 	bool enabled;
 	uint32_t timestamp;
 	uint16_t seq;
+
+	struct rtp_provider_instance *rtp_prov_inst;
 
 	/* transmit buffer for outgoing messages */
 	uint8_t *buf;
