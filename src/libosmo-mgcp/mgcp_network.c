@@ -1577,7 +1577,6 @@ static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
 	mgcp_set_ip_tos(rtp_end->rtp.fd, cfg->endp_dscp);
 	mgcp_set_ip_tos(rtp_end->rtcp.fd, cfg->endp_dscp);
 
-	rtp_end->rtp.when = OSMO_FD_READ;
 	if (osmo_fd_register(&rtp_end->rtp) != 0) {
 		LOGPENDP(endp, DRTP, LOGL_ERROR,
 			 "failed to register RTP port %d\n",
@@ -1585,7 +1584,6 @@ static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
 		goto cleanup2;
 	}
 
-	rtp_end->rtcp.when = OSMO_FD_READ;
 	if (osmo_fd_register(&rtp_end->rtcp) != 0) {
 		LOGPENDP(endp, DRTP, LOGL_ERROR,
 			 "failed to register RTCP port %d\n",
@@ -1634,10 +1632,8 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 	}
 
 	end->local_port = rtp_port;
-	end->rtp.cb = rtp_data_net;
-	end->rtp.data = conn;
-	end->rtcp.data = conn;
-	end->rtcp.cb = rtp_data_net;
+	osmo_fd_setup(&end->rtp, -1, OSMO_FD_READ, rtp_data_net, conn, 0);
+	osmo_fd_setup(&end->rtcp, -1, OSMO_FD_READ, rtp_data_net, conn, 0);
 
 	return bind_rtp(endp->cfg, conn->end.local_addr, end, endp);
 }
