@@ -1,10 +1,13 @@
 #pragma once
 #include <stdint.h>
+#include <pthread.h>
 #include <liburing.h>
 
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/sockaddr_str.h>
 #include <osmocom/core/rate_ctr.h>
+#include <osmocom/core/select.h>
+#include <osmocom/ctrl/control_if.h>
 
 struct rtp_provider_instance;
 
@@ -61,7 +64,6 @@ struct rtpsim_connection {
 
 struct rtpsim_instance_cfg {
 	int num;
-	void *ctx;
 	uint16_t base_port;
 	unsigned int num_flows;
 };
@@ -83,7 +85,28 @@ struct rtpsim_instance {
 	unsigned int connections_size;
 };
 
+struct rtpsim_global {
+	/* global list of instances */
+	struct llist_head instances;
+	pthread_rwlock_t rwlock;
+
+	struct ctrl_handle *ctrl;
+};
+
 
 enum {
 	DMAIN,
 };
+
+enum codec_type;
+
+extern struct rtpsim_global *g_rtpsim;
+
+struct rtpsim_connection *rtpsim_conn_find(struct rtpsim_instance *ri, const char *cname);
+struct rtpsim_connection *rtpsim_conn_reserve(struct rtpsim_instance *ri, const char *cname, enum codec_type codec);
+int rtpsim_conn_start(struct rtpsim_connection *rtpc);
+void rtpsim_conn_stop(struct rtpsim_connection *rtpc);
+void rtpsim_conn_unreserve(struct rtpsim_connection *rtpc);
+int rtpsim_conn_connect(struct rtpsim_connection *rtpc);
+
+int rtpsource_ctrl_cmds_install(void);

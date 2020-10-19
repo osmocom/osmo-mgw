@@ -11,6 +11,7 @@
 #include <osmocom/core/socket.h>
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/application.h>
+#include <osmocom/core/stats.h>
 #include <osmocom/netif/rtp.h>
 
 #include "internal.h"
@@ -39,6 +40,8 @@
 
 #define TX_BUF_IDX	0
 #define RX_BUF_IDX	1
+
+struct rtpsim_global *g_rtpsim;
 
 enum rtpsim_conn_ctr {
 	RTP_CONN_CTR_TX_PKTS,
@@ -79,9 +82,9 @@ static const struct rate_ctr_group_desc rtpsim_ctrg_desc = {
 	.ctr_desc = rtpsim_ctrs,
 };
 
-struct rtpsim_instance *rtpsim_instance_init(const struct rtpsim_instance_cfg *rmp)
+struct rtpsim_instance *rtpsim_instance_init(void *ctx, const struct rtpsim_instance_cfg *rmp)
 {
-	struct rtpsim_instance *ri = talloc_zero(rmp->ctx, struct rtpsim_instance);
+	struct rtpsim_instance *ri = talloc_zero(ctx, struct rtpsim_instance);
 	int rc;
 
 	if (!ri)
@@ -173,9 +176,14 @@ struct rtpsim_connection *rtpsim_conn_find(struct rtpsim_instance *ri, const cha
 }
 
 /* reserve a connection; associates cname with it */
-struct rtpsim_connection *rtpsim_conn_reserve(struct rtpsim_instance *ri, const char *cname)
+struct rtpsim_connection *rtpsim_conn_reserve(struct rtpsim_instance *ri, const char *cname,
+					      enum codec_type codec)
 {
 	struct rtpsim_connection *rtpc;
+	const struct rtp_provider *rtp_prov;
+
+	rtp_prov = rtp_provider_find("static"); // TODO: configurable */
+	OSMO_ASSERT(rtp_prov);
 
 	rtpc = rtpsim_conn_find(ri, NULL);
 	if (!rtpc)
@@ -183,37 +191,34 @@ struct rtpsim_connection *rtpsim_conn_reserve(struct rtpsim_instance *ri, const 
 
 	/* this is called from main thread, we cannot use per-thread talloc contexts
 	 * such as ri or rtpc */
-	rtpc->cname = talloc_strdup(NULL, cname);
+	rtpc->cname = talloc_strdup(g_rtpsim, cname);
+	rtpc->tx.rtp_prov_inst = rtp_provider_instance_alloc(g_rtpsim, rtp_prov, codec);
+	OSMO_ASSERT(rtpc->tx.rtp_prov_inst);
+
+	/* re-start from zero transmit sequence number */
+	rtpc->tx.seq = 0;
 
 	return rtpc;
 }
 
-int rtpsim_conn_start(struct rtpsim_connection *rtpc, enum codec_type codec)
+int rtpsim_conn_start(struct rtpsim_connection *rtpc)
 {
-	const struct rtp_provider *rtp_prov;
-	rtp_prov = rtp_provider_find("static"); // TODO: configurable */
-	OSMO_ASSERT(rtp_prov);
-
-	/* this is called from main thread, we cannot use per-thread talloc contexts
-	 * such as ri or rtpc */
-	rtpc->tx.rtp_prov_inst = rtp_provider_instance_alloc(NULL, rtp_prov, codec);
-	OSMO_ASSERT(rtpc->tx.rtp_prov_inst);
-
 	rtpc->tx.enabled = true;
 	rtpc->rx.enabled = true;
 
 	return 0;
 }
 
-/* unreserve a connection; stops all rx/tx and removes cname */
-void rtpsim_conn_unreserve(struct rtpsim_connection *rtpc)
+void rtpsim_conn_stop(struct rtpsim_connection *rtpc)
 {
 	/* disable Rx and Tx */
 	rtpc->tx.enabled = false;
 	rtpc->rx.enabled = false;
-	/* re-start from zero transmit sequence number */
-	rtpc->tx.seq = 0;
+}
 
+/* unreserve a connection; stops all rx/tx and removes cname */
+void rtpsim_conn_unreserve(struct rtpsim_connection *rtpc)
+{
 	rtp_provider_instance_free(rtpc->tx.rtp_prov_inst);
 	rtpc->tx.rtp_prov_inst = NULL;
 
@@ -335,14 +340,24 @@ static void *reap_completion(void *_ri)
 }
 #endif
 
+extern int osmo_ctx_init(const char *id);
+
 static void rtpsim_main(const struct rtpsim_instance_cfg *rmp)
 {
 	struct rtpsim_instance *ri;
 	struct rtpsim_connection *rtpc;
 	int i, rc;
 
-	ri = rtpsim_instance_init(rmp);
+	char namebuf[32];
+	snprintf(namebuf, sizeof(namebuf), "rtpsim_worker%d", rmp->num);
+	osmo_ctx_init(namebuf);
+
+	ri = rtpsim_instance_init(OTC_GLOBAL, rmp);
 	OSMO_ASSERT(ri);
+
+	pthread_rwlock_wrlock(&g_rtpsim->rwlock);
+	llist_add_tail(&ri->list, &g_rtpsim->instances);
+	pthread_rwlock_unlock(&g_rtpsim->rwlock);
 
 	/* create desired number of sockets */
 	printf("binding sockets\n");
@@ -367,16 +382,18 @@ static void rtpsim_main(const struct rtpsim_instance_cfg *rmp)
 		OSMO_ASSERT(rtpc);
 	}
 
+#if 1
 	/* HACK */
 	printf("connecting sockets\n");
 	for (i = 0; i < rmp->num_flows; i++) {
 		char namebuf[32];
 		snprintf(namebuf, sizeof(namebuf), "conn%d", i);
-		struct rtpsim_connection *rtpc = rtpsim_conn_reserve(ri, namebuf);
+		struct rtpsim_connection *rtpc = rtpsim_conn_reserve(ri, namebuf, CODEC_GSM_FR);
 		OSMO_ASSERT(rtpc);
 		OSMO_ASSERT(rtpsim_conn_connect(rtpc) == 0);
-		OSMO_ASSERT(rtpsim_conn_start(rtpc, CODEC_GSM_FR) == 0);
+		OSMO_ASSERT(rtpsim_conn_start(rtpc) == 0);
 	}
+#endif
 
 #ifdef USE_REGISTERED_FILES
 	/* register all our file descriptors; seems to fail on 5.8.x ? */
@@ -506,18 +523,35 @@ int main(int argc, char **argv)
 {
 	pthread_t worker[NR_WORKERS];
 	struct rtpsim_instance_cfg rmp[NR_WORKERS];
-	int i;
+	int i, rc;
 
-	osmo_init_logging2(NULL, NULL);
+	g_rtpsim = talloc_zero(NULL, struct rtpsim_global);
+	OSMO_ASSERT(g_rtpsim);
+	INIT_LLIST_HEAD(&g_rtpsim->instances);
+	pthread_rwlock_init(&g_rtpsim->rwlock, NULL);
 
+	osmo_init_logging2(g_rtpsim, NULL);
+//	osmo_stats_init(g_rtpsim);
+
+	/* Create worker threads */
 	for (i = 0; i < NR_WORKERS; i++) {
 		int rc;
-		rmp[i].ctx = talloc_named(NULL, 0, "rtpsim%d", i);
 		rmp[i].num = i;
 		rmp[i].num_flows = NUM_FLOWS_PER_WORKER;
 		rmp[i].base_port = 10000 + i * (2 * rmp[i].num_flows);
 		rc = pthread_create(&worker[i], NULL, rtpsim_worker_thread, &rmp[i]);
 		OSMO_ASSERT(rc >= 0);
+	}
+
+	/* CTRL interface */
+	//g_rtpsim->ctrl = ctrl_interface_setup_dynip(g_rss, ctrl_vty_get_bind_addr(), 11111, NULL);
+	g_rtpsim->ctrl = ctrl_interface_setup_dynip(g_rtpsim, "127.0.0.1", 11111, NULL);
+	OSMO_ASSERT(g_rtpsim->ctrl);
+	rc = rtpsource_ctrl_cmds_install();
+	OSMO_ASSERT(rc == 0);
+
+	while (1) {
+		osmo_select_main(0);
 	}
 
 	for (i = 0; i < NR_WORKERS; i++) {
