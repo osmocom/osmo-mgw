@@ -832,6 +832,11 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 	}
 
 	wq = &mgcp->wq;
+	osmo_wqueue_init(wq, 1024);
+	wq->read_cb = mgcp_do_read;
+	wq->write_cb = mgcp_do_write;
+
+	osmo_fd_setup(&wq->bfd, -1, OSMO_FD_READ, osmo_wqueue_bfd_cb, mgcp, 0);
 
 	rc = init_socket(mgcp);
 	if (rc < 0) {
@@ -842,11 +847,6 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 		goto error_close_fd;
 	}
 
-	osmo_wqueue_init(wq, 1024);
-	wq->bfd.when = OSMO_FD_READ;
-	wq->bfd.data = mgcp;
-	wq->read_cb = mgcp_do_read;
-	wq->write_cb = mgcp_do_write;
 
 	LOGP(DLMGCP, LOGL_INFO, "MGCP GW connection: %s\n", osmo_sock_get_name2(wq->bfd.fd));
 

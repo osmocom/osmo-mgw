@@ -416,8 +416,7 @@ int osmux_init(int role, struct mgcp_config *cfg)
 {
 	int ret;
 
-	osmux_fd.cb = osmux_read_fd_cb;
-	osmux_fd.data = cfg;
+	osmo_fd_setup(&osmux_fd, -1, OSMO_FD_READ, osmux_read_fd_cb, cfg, 0);
 
 	ret = mgcp_create_bind(cfg->osmux_addr, &osmux_fd, cfg->osmux_port);
 	if (ret < 0) {
@@ -426,7 +425,6 @@ int osmux_init(int role, struct mgcp_config *cfg)
 		return ret;
 	}
 	mgcp_set_ip_tos(osmux_fd.fd, cfg->endp_dscp);
-	osmux_fd.when |= OSMO_FD_READ;
 
 	ret = osmo_fd_register(&osmux_fd);
 	if (ret < 0) {
