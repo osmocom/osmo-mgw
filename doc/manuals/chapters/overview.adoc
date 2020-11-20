@@ -77,14 +77,14 @@ Transcoding is currently not supported in OsmoMGW.
 
 === Limitations
 
-Osmux is not yet supported in OsmoMGW.
-
-At the moment (July 2018), OsmoMGW only implements RTP proxy / RTP bridge
-type endpoints, to each of which two RTP connections can be established.
-We are planning to add endpoint types for:
+At the moment (November 2020), OsmoMGW implements RTP proxy / RTP bridge
+type endpoints and E1/T1 16k/8k sub-slots with TRAU frames for classic BTS
+support. To the RTP proxy / RTP bridge endpoints two RTP connections can
+be established, which then work as a tandem. E1/T1 endpoints support one
+RTP connection at a time that is associated with a sub-slot on an E1 line.
+We are planning to add further endpoint types for:
 
 - classic E1/T1 timeslots (64kBps alaw/ulaw)
-- classic E1/T1 16k sub-slots with TRAU frames for classic BTS support
 - announcement/playout end-points
 - conference endpoints
 
