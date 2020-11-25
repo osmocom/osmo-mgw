@@ -21,10 +21,10 @@ Protocol.
 digraph G {
     rankdir = LR;
     OsmoBTS -> OsmoBSC [label="Abis/IP"];
-    OsmoBSC -> OsmoMSC [label="3GPP AoIP"];
+    OsmoBSC -> "core-network" [label="3GPP AoIP"];
     OsmoBSC -> OsmoMGW [label="MGCP"];
     OsmoBTS -> OsmoMGW [label="RTP",dir=both];
-    OsmoMGW -> OsmoMSC [label="RTP",dir=both];
+    OsmoMGW -> "core-network" [label="RTP",dir=both];
     {rank=same OsmoBSC OsmoMGW}
     OsmoMGW [color=red];
 }
