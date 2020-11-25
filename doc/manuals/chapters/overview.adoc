@@ -52,6 +52,22 @@ digraph G {
 }
 ----
 
+[[fig-bsc]]
+.Integration of legacy E1 BTS in AoIP network
+[graphviz]
+----
+digraph G {
+    rankdir = LR;
+    BTS -> OsmoBSC [label="Abis/E1"];
+    OsmoBSC -> "core-network" [label="3GPP AoIP"];
+    OsmoBSC -> OsmoMGW [label="MGCP"];
+    BTS -> OsmoMGW [label="TRAU/E1",dir=both];
+    OsmoMGW -> "core-network" [label="RTP",dir=both];
+    {rank=same OsmoBSC OsmoMGW}
+    OsmoMGW [color=red];
+}
+----
+
 === Software Components
 
 OsmoMGW contains a variety of different software components, which we’ll
