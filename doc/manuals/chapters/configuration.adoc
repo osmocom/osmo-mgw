@@ -57,3 +57,68 @@ NOTE: Changes to trunks that affect resource allocation, such as newly created
 trunks or a change of the number of available endpoints, require a full restart
 of osmo-mgw!
 
+=== E1 trunk considerations
+
+While the RTP bridge trunks are natively based on IP no special considerations
+are required during setup. E1 trunks are mapped on a physical E1 line, which has
+to be configured as shown below.
+
+.Example: E1 line setup
+----
+OsmoMGW(config-e1_input)# e1_line 0 driver dahdi <1>
+OsmoMGW(config-e1_input)# e1_line 0 port 2 <2>
+----
+<1> Name of the libosmo-abis driver implementation ("dahdi")
+<2> Port number of the physical E1 port to use (2)
+
+In osmo-mgw the e1_input node is used to configure the physical E1 line. The
+line number will be used internally to identify the configured E1 line. The
+port number is the physical E1 connector (sometimes called 'span') at the E1
+hardware. Per trunk an individual E1 line will be needed. Beware that the E1
+driver may also need configuration settings that are not discussed here.
+
+.Example: E1 trunk setup
+----
+OsmoMGW(config-mgcp)# trunk 0 <1>
+OsmoMGW(config-mgcp-trunk)# line 0 <2>
+----
+<1> Creation of a trunk (0)
+<2> Reference to the E1 line to use (0)
+
+The E1 trunk is created along with a number, typically starting at 0, but if
+required any number from 0-64 is allowed. The E1 trunk configuration concerning
+the IP related aspects is nearly identical to the configuration of the virtual
+trunk. However, it is important that the user assigns one of the E1 line numbers
+that were configured under the e1_input node.
+
+.Example: A typical configuration with one E1 trunk
+----
+e1_input
+ e1_line 0 driver dahdi
+ e1_line 0 port 2
+mgcp
+ bind ip 127.0.0.1
+ rtp net-range 6000 6011
+ rtp net-bind-ip 192.168.100.130
+ rtp ip-probing
+ rtp ip-tos 184
+ no rtp keep-alive
+ bind port 2428
+ number endpoints 30
+ loop 0
+ force-realloc 1
+ osmux off
+ rtp-patch rfc5993hr
+ trunk 0
+  rtp keep-alive once
+  no rtp keep-alive
+  line 0
+----
+
+NOTE: One E1 trunk always covers a whole E1 line. All subslots (I.640) will be mapped
+to individual MGCP endpoints. As long as the endpoints remain unused the
+underlying E1 timeslot is not used.
+
+NOTE: The E1 trunk implementation also works with T1 lines, however since T1 has
+24 instead of 31 usable timeslots only the endpoints that fall into that 1-24 timeslot
+range will be useable.
