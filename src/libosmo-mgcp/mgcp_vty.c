@@ -958,7 +958,8 @@ static int config_write_trunk(struct vty *vty)
 		   config of trunk 0 here. The configuration for the virtual
 		   trunk is written by config_write_mgcp(). */
 
-		if (trunk->trunk_nr == MGCP_VIRT_TRUNK_ID)
+		if (trunk->trunk_type == MGCP_TRUNK_VIRTUAL
+		    && trunk->trunk_nr == MGCP_VIRT_TRUNK_ID)
 			continue;
 
 		vty_out(vty, " trunk %d%s", trunk->trunk_nr, VTY_NEWLINE);
