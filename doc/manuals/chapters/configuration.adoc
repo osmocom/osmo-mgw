@@ -23,7 +23,7 @@ OsmoMGW(config-mgcp)# local ip 127.0.0.1
 
 === Configuring the trunk
 
-The first trunk (trunk 0) is considered a virtual trunk in OsmoMGW. All
+The first trunk is considered a virtual trunk in OsmoMGW. All
 endpoints of type "rtpbridge" are routed here. The virtual trunk is configured
 in the config-mgcp context.
 
