@@ -53,4 +53,7 @@ OsmoMGW(config-mgcp)# rtp-patch timestamp <3>
 <2> Hide SSRC changes
 <3> Ensure RTP timestamp is aligned with frame duration
 
+NOTE: Changes to trunks that affect resource allocation, such as newly created
+trunks or a change of the number of available endpoints, require a full restart
+of osmo-mgw!
 
