@@ -28,9 +28,8 @@ endpoints of type "rtpbridge" are routed here. The virtual trunk is configured
 in the config-mgcp context.
 
 All other trunks are configured in the config-mgcp-trunk context, but the
-commands used are identical. Right now trunks are considered only for ds/e1
-type endpoints which are not yet implemented. Don't use trunks other than the
-"virtual" trunk 0.
+commands used are identical. Right now trunks are considered only for "ds/e1"
+type endpoints.
 
 .Example: MGCP trunk configuration
 ----
