@@ -1056,6 +1056,32 @@ DEFUN_DEPRECATED(cfg_trunk_loop,
 	return CMD_SUCCESS;
 }
 
+DEFUN_USRATTR(cfg_trunk_force_realloc,
+	      cfg_trunk_force_realloc_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "force-realloc (0|1)",
+	      "Force endpoint reallocation when the endpoint is still seized\n"
+	      "Don't force reallocation\n" "force reallocation\n")
+{
+	struct mgcp_trunk *trunk = vty->index;
+	OSMO_ASSERT(trunk);
+	trunk->force_realloc = atoi(argv[0]);
+	return CMD_SUCCESS;
+}
+
+DEFUN_ATTR(cfg_trunk_rtp_accept_all,
+	   cfg_trunk_rtp_accept_all_cmd,
+	   "rtp-accept-all (0|1)",
+	   "Accept all RTP packets, even when the originating IP/Port does not match\n"
+	   "enable filter\n" "disable filter\n",
+	   CMD_ATTR_IMMEDIATE)
+{
+	struct mgcp_trunk *trunk = vty->index;
+	OSMO_ASSERT(trunk);
+	trunk->rtp_accept_all = atoi(argv[0]);
+	return CMD_SUCCESS;
+}
+
 DEFUN_USRATTR(cfg_trunk_sdp_payload_send_ptime,
 	      cfg_trunk_sdp_payload_send_ptime_cmd,
 	      X(MGW_CMD_ATTR_NEWCONN),
@@ -1647,6 +1673,8 @@ int mgcp_vty_init(void)
 	install_element(TRUNK_NODE, &cfg_trunk_payload_number_cmd_old);
 	install_element(TRUNK_NODE, &cfg_trunk_payload_name_cmd_old);
 	install_element(TRUNK_NODE, &cfg_trunk_loop_cmd);
+	install_element(TRUNK_NODE, &cfg_trunk_force_realloc_cmd);
+	install_element(TRUNK_NODE, &cfg_trunk_rtp_accept_all_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_omit_rtcp_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_no_omit_rtcp_cmd);
 	install_element(TRUNK_NODE, &cfg_trunk_patch_rtp_ssrc_cmd);
