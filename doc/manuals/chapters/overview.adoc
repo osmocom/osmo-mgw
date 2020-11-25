@@ -36,10 +36,9 @@ digraph G {
 ----
 digraph G {
     rankdir = LR;
-    BTS -> BSC [label="Abis"];
-    BSC -> OsmoMSC [label="3GPP AoIP"];
+    "2G BSS" -> OsmoMSC [label="3GPP AoIP"];
     OsmoMSC -> OsmoMGW [label="MGCP"];
-    BSC -> OsmoMGW [label="RTP",dir=both];
+    "2G BSS" -> OsmoMGW [label="RTP",dir=both];
     OsmoMSC -> OsmoSIP [label="MNCC"];
     OsmoSIP -> PBX [label="SIP Trunk"];
     OsmoMGW -> PBX [label="RTP",dir=both];
