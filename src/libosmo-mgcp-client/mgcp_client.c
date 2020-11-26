@@ -30,6 +30,8 @@
 #include <osmocom/mgcp_client/mgcp_client.h>
 #include <osmocom/mgcp_client/mgcp_client_internal.h>
 
+#include <osmocom/abis/e1_input.h>
+
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -957,7 +959,7 @@ const char *mgcp_client_e1_epname(void *ctx, const struct mgcp_client *mgcp, uin
 
 	/* An E1 line has a maximum of 32 timeslots, while the first (ts=0) is
 	 * reserverd for framing and alignment, so we can not use it here. */
-	if (ts == 0 || ts > 31) {
+	if (ts == 0 || ts > NUM_E1_TS-1) {
 		LOGP(DLMGCP, LOGL_ERROR,
 		     "Cannot compose MGCP e1-endpoint name (%s), E1-timeslot number (%u) is invalid!\n", epname, ts);
 		talloc_free(epname);
