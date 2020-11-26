@@ -1,6 +1,7 @@
 #pragma once
 
 #include <osmocom/gsm/i460_mux.h>
+#include <osmocom/abis/e1_input.h>
 
 #define LOGPTRUNK(trunk, cat, level, fmt, args...) \
 LOGP(cat, level, "trunk:%u " fmt, \
@@ -59,8 +60,11 @@ struct mgcp_trunk {
 		/* E1 specific */
 		struct {
 			unsigned int vty_line_nr;
-			bool ts_in_use[31];
-			struct osmo_i460_timeslot i460_ts[31];
+			bool ts_in_use[NUM_E1_TS-1];
+			struct osmo_i460_timeslot i460_ts[NUM_E1_TS-1];
+			/* Note: on an E1 line TS 0 is devoted to framing and
+			 * alignment and therefore only NUM_E1_TS-1 timeslots
+			 * are available for traffic. */
 		} e1;
 	};
 };
