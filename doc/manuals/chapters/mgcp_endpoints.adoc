@@ -1,0 +1,94 @@
+== MGCP Endpoints
+
+MGCP organizes the switching resources in so called endpoints. Each endpoint is
+referenced by its unique identifier. While RFC 3435 specifies a naming scheme, the
+actual identifier naming is subject to the implementation and configuration.
+
+=== RTP proxy / RTP bridge endpoints
+
+OsmoMGW implements a freely configurable number of `rtpbridge` endpoints. Those
+endpoints are able to host two connections at a time to model the functionality
+of a tandem switch.
+
+RTP bridge endpoint identifiers are referenced by the string `rtpbridge/`, a
+hexadecimal number without leading zeros and a domain name (configurable).
+
+----
+rtpbridge/<number>@<domain>
+----
+
+.Example: List of virtual endpoints
+----
+rtpbridge/1@mgw
+rtpbridge/2@mgw
+rtpbridge/3@mgw
+rtpbridge/4@mgw
+rtpbridge/5@mgw
+rtpbridge/6@mgw
+rtpbridge/7@mgw
+rtpbridge/8@mgw
+rtpbridge/9@mgw
+rtpbridge/a@mgw
+rtpbridge/b@mgw
+rtpbridge/c@mgw
+rtpbridge/d@mgw
+rtpbridge/e@mgw
+rtpbridge/f@mgw
+rtpbridge/10@mgw
+----
+
+=== E1/T1 endpoints
+
+OsmoMGW supports E1 subslot multiplexing as specified by I.460. All possible
+subslot combinations are mapped on individual endpoints. The endpoint names
+are prefixed with `ds/e1-` followed by the trunk number and the E1 timeslot.
+The subslot is defined by a bit rate and a bit offset.
+
+----
+ds/e1-<trunk>/s-<timeslot>/su<bitrate>-<bitoffset>@<domain>
+----
+
+.Example: List of endpoints on E1 trunk 0 at E1 timeslot 2
+----
+ds/e1-0/s-2/su64-0@mgw
+ds/e1-0/s-2/su32-0@mgw
+ds/e1-0/s-2/su32-4@mgw
+ds/e1-0/s-2/su16-0@mgw
+ds/e1-0/s-2/su16-2@mgw
+ds/e1-0/s-2/su16-4@mgw
+ds/e1-0/s-2/su16-6@mgw
+ds/e1-0/s-2/su8-0@mgw
+ds/e1-0/s-2/su8-1@mgw
+ds/e1-0/s-2/su8-2@mgw
+ds/e1-0/s-2/su8-3@mgw
+ds/e1-0/s-2/su8-4@mgw
+ds/e1-0/s-2/su8-5@mgw
+ds/e1-0/s-2/su8-6@mgw
+ds/e1-0/s-2/su8-7@mgw
+----
+
+When creating connections on endpoints that reside in one E1 timeslot the call
+agent must make sure that no overlapping endpoints are used. It is for example
+not possible to use `ds/e1-0/s-2/su16-2@mgw` and `ds/e1-0/s-2/su8-3@mgw` at the
+same time because they overlap.
+
+.Subslot overlapping
+[options="header"]
+|===
+| Bit offset  4+| Subslots
+| 0 | 8k .2+| 16k .4+| 32k .8+| 64k
+| 1 | 8k
+| 2 | 8k .2+| 16k
+| 3 | 8k
+| 4 | 8k .2+| 16k .4+| 32k
+| 5 | 8k
+| 6 | 8k .2+| 16k
+| 7 | 8k
+|===
+
+NOTE: The current implementation (December 2020) only implements TRAU frame
+encoding/decoding for 16K and 8K subslots. Endpoints with other bitrates are
+not yet useable.
+
+NOTE: the VTY command "show mgcp" can be used to get a list of all available
+endpoints (including identifiers)

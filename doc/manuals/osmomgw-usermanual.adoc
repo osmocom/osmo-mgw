@@ -18,6 +18,8 @@ include::./common/chapters/logging.adoc[]
 
 include::{srcdir}/chapters/configuration.adoc[]
 
+include::{srcdir}/chapters/mgcp_endpoints.adoc[]
+
 include::{srcdir}/chapters/mgcp_extensions.adoc[]
 
 include::./common/chapters/osmux/osmux.adoc[]
