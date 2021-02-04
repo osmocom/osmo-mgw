@@ -16,6 +16,7 @@ src/osmo-mgw/osmo-mgw
 *.gcda
 *.gcno
 *.pc
+*~
 
 #configure
 aclocal.m4
