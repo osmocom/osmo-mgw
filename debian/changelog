@@ -1,3 +1,163 @@
+osmo-mgw (1.8.0) unstable; urgency=medium
+
+  [ Harald Welte ]
+  * Fix number of endpoints of default trunk
+  * Add CTRL interface to osmo-mgw
+  * Update per-trunk global packet/byte counters in real-time
+  * remove accidential TODO-RELEASE entry
+  * mgcp_protocol: Avoid code duplication between virtual + other trunks
+  * osmo-mgw.spec.in: Use %config(noreplace) to retain current config file
+  * mgcp_client_init(): consider "talloc returns NULL" case
+  * mgcp_client_pending_add(): Consider "talloc returns NULL" case
+  * libosmo-mgcp-client: fix memleak in case if no response is received
+  * debian/control + SPEC: Add missing build dependency to libosmo-abis
+  * osmo-mgw.spec.in: Fix dependency to libosmoabis
+  * osmo-mgw.spec.in: Add missing dependency to libosmotrau
+  * Add example osmo-mgw configuration file for Abis/E1
+  * use osmo_fd_setup() whenever applicable
+
+  [ Neels Hofmeyr ]
+  * fix vty dump_trunk: start from zero, do not omit first CONN
+  * allow larger MGCP client wqueue: 10 -> 1024
+  * add osmo-mgw --vty-ref-xml: dump VTY ref XML to stdout
+  * manuals: generate vty reference xml at build time
+  * refactor: use msgb to receive, pass and send RTP packets
+  * change timer T2427001 to X2427
+
+  [ Philipp Maier ]
+  * doc: do not bind osmo-mgw to random ip-address
+  * cosmetic: remove excess newlines
+  * mgcp: remove unused callback pointer
+  * mgcp: find better locations for LOGPCONN and LOGPENDP
+  * vty: fix unreachable code (error msg on trunk alloc fail)
+  * mgcp_vty: fix indentation
+  * osmo-mgw: rename struct mgcp_trunk_config and symbol tcfg
+  * mgcp_vty: fix indentation in VTY config write
+  * osmo-mgw: refactor endpoint and trunk handling
+  * mgcp_trunk: remove audio_name and audio_payload
+  * ratectr: move rate counter definitions into mgcp_ratectr.h
+  * cosmetic: fix doxygen
+  * cosmetic: fix doxygen
+  * cosmetic: fix doxygen for mgcp_cleanup_rtp_bridge_cb()
+  * trunk: get rid of virt_trunk pointer
+  * cosmetic: remove excess space
+  * endp: move endpoint name generation into mgcp_endp.c
+  * endp: add name generator function for E1 endpoints
+  * mgcp_client: add docstring for mgcp_client_rtpbridge_wildcard()
+  * mgcp_trunk: fix docstring for mgcp_trunk_alloc()
+  * mgcp_osmux: remove unused define constants
+  * mgcp_trunk: move enum mgcp_trunk_type to mgcp_trunk.h
+  * mgcp_trunk: use enum type for trunk type variable
+  * trunk: parse E1 trunk number
+  * endp: add typeset for e1-endpoints
+  * mgcp_conn: move struct mgcp_conn mgcp_conn.h
+  * mgcp_internal: remove forward declaration struct mgcp_endpoint_type
+  * endp: add E1 endpoint interlocking
+  * endp: require domain name also for E1 endpoints
+  * mgcp_trunk: pick trunk by number and type
+  * mgcp_client: add function to generate e1-endpoint names
+  * mgcp_endp: use define constant to define max number of E1 subslots
+  * mgcp_endp.c: cosmetic: fix sourcecode formatting
+  * mgcp_trunk: remove double check
+  * mgcp_test: do not access endpoint array elements directly
+  * mgcp_vty: fix endpoint number configuration
+  * mgcp_test: remove trunk2 from unit-test
+  * mgcp_trunk: use talloc_zero_array instead of _talloc_zero_array
+  * mgcp_protocol: remove unused variable
+  * mgcp_e1: finish E1 support, add E1 support from libosmoabis
+  * get rid of mgcp_internal.h
+  * mgcp_ratectr: fix comments in header file
+  * mgcp_e1: use return value of e1inp_line_update()
+  * mgcp_protocol: log when endpoint is unavailable
+  * cosmetic: add missing new-line
+  * mgcp_trunk: drop "trunk 0" limitation
+  * mgcp_e1: make E1 ts initalization more debugable
+  * mgcp_e1: remove unused struct member trunk->e1.line
+  * mgcp_endp: use NUM_E1_TS from e1_input.h
+  * mgcp_trunk: increase default number of virtual endpoints
+  * cosmetic: mgcp_client_fsm: change error message.
+  * mgcp_vty: remove remains of loopback functionality
+  * mgcp_vty: deprecate bind early command
+  * mgcp_e1: do not expose function  mgcp_e1_init()
+  * mgcp_vty: add user attributes to configuration commands
+  * overview: update section limitations.
+  * overview: fix graph "OsmoMGW used with OsmoBSC"
+  * overview: fix graph "OsmoMGW used with OsmoMSC"
+  * overview: add graph to show E1 integration
+  * configuration: remove hint towards trunk 0 limit
+  * configuration: drop note about lackin E1 support
+  * configuration: add note that changes to trunks need a restart
+  * mgcp_vty: fix config write for trunk 0
+  * mgcp_vty: add missing VTY commands for E1 trunks
+  * mgcp_trunk: get rid of magic numbers for E1 slots
+  * configuration: add section about E1 trunks
+  * usermanual: add chapter about mgcp endpoints
+  * mgcp_client: get rid of magic numbers for E1 slots
+
+  [ Eric ]
+  * tests: dlopen does not imply availability of dlsym..
+  * configure.ac: fix libtool issue with clang and sanitizer
+
+  [ Alexander Chemeris ]
+  * vty: Prepend VTY output of counters for better visual separation.
+  * counters: Implement more useful counters.
+  * mgcp_network: Fix a typo in the comment bahviour -> behaviour
+  * rtp_bridge: Demote a chatty ERROR log message to DEBUG level.
+
+  [ Pau Espin Pedrol ]
+  * Use OSMO_FD_* instead of deprecated BSC_FD_*
+  * Support setting rt-prio and cpu-affinity mask through VTY
+  * cosmetic: Rename main talloc ctx
+  * mgcp-client: Support IPv6 in osmo_mgcpc_ep_ci_get_crcx_info_to_sockaddr() implementation
+  * mgcp-client: Fix trailing whitespace in mgcp_client_fsm.h
+  * mgcp_client: Use INET6_ADDRSTRLEN to store addresses in str format
+  * mgcp_client: Allow submitting and parsing IPv6 addr in SDP
+  * mgcp_client: Allow setting IPv6 addresses
+  * mgcp_client: Make MGCP_CLIENT_LOCAL_ADDR_DEFAULT IPv6 compatible
+  * mgcp_client: Support validating IPv6 addresses in CRCX and MDCX commands
+  * mgcp_client: Deprecate unused IPv4-only API
+  * mgcp_client: copy back Connection Information from MDCX ACK
+  * mgw: Fix mgcp_rtp_end field description comment
+  * mgw: Initial IPv6 support
+  * mgw: Introduce VTY cmd 'rtp bind-ip-v6' command
+  * mgw: Find and store RTP conn local_addr once during CRCX handling
+  * mgw: Announce and rebind new local address if change required during MDCX
+  * mgw: osmux: Avoid sending packets on recvonly connection
+  * mgw: Release endpoint after last conn times out
+  * mgw: osmux: Fix conn watchdog timeout not updated
+  * mgw: Don't be case-sensitive when parsing X-Osmo-IGN param
+  * cosmetic: Fix typo in comment
+  * mgw: Avoid logging notice message each time we receive nt param in LCO
+  * mgw: Fix return value documentation for API mgcp_verify_call_id
+  * cosmetic: Fix typo in comment
+  * contrib/jenkins: Enable parallel make in make distcheck
+  * .gitignore: Ignore new autofoo tmp files
+  * tests: Replace deprecated API log_set_print_filename
+
+  [ Oliver Smith ]
+  * contrib: import RPM spec
+  * contrib: integrate RPM spec
+  * Makefile.am: EXTRA_DIST: debian, contrib/*.spec.in
+  * contrib/jenkins: don't build osmo-gsm-manuals
+  * configure.ac: set -std=gnu11
+
+  [ Vadim Yanitskiy ]
+  * libosmo-mgcp-client: fix use-after-free in mgcp_client_tx()
+  * libosmo-mgcp-client: fix use-after-free in mgcp_msg_gen()
+  * libosmo-mgcp: fix unsigned compared against 0 in mgcp_trunk_by_name()
+  * libosmo-mgcp: fix unused extra argument to printf() in add_fmtp()
+  * libosmo-mgcp: always check result of msgb_printf() in add_fmtp()
+  * libosmo-mgcp-client: mgcp_client_tx(): return rc on error
+  * debian/control: change maintainer to the Osmocom team / mailing list
+  * vty: use install_lib_element() and install_lib_element_ve()
+  * main: add --vty-ref-mode, use vty_dump_xml_ref_mode()
+  * fixup mgcp_trunk: increase default number of virtual endpoints
+
+  [ Alexander Couzens ]
+  * configure.ac: require libosmoabis + libosmotrau >= 1.0.0
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Tue, 23 Feb 2021 18:28:45 +0100
+
 osmo-mgw (1.7.0) unstable; urgency=medium
 
   [ Neels Hofmeyr ]

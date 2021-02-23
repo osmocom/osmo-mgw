@@ -29,30 +29,30 @@ BuildRequires:  pkgconfig >= 0.20
 %if 0%{?suse_version}
 BuildRequires:  systemd-rpm-macros
 %endif
-BuildRequires:  pkgconfig(libosmo-netif) >= 0.6.0
-BuildRequires:  pkgconfig(libosmocore) >= 1.0.0
-BuildRequires:  pkgconfig(libosmoctrl) >= 1.1.0
-BuildRequires:  pkgconfig(libosmogsm) >= 1.0.0
-BuildRequires:  pkgconfig(libosmovty) >= 1.0.0
-BuildRequires:  pkgconfig(libosmocoding) >= 1.0.0
-BuildRequires:  pkgconfig(libosmoabis) >= 1.0.0
-BuildRequires:  pkgconfig(libosmotrau) >= 1.0.0
+BuildRequires:  pkgconfig(libosmo-netif) >= 1.1.0
+BuildRequires:  pkgconfig(libosmocore) >= 1.5.0
+BuildRequires:  pkgconfig(libosmoctrl) >= 1.5.0
+BuildRequires:  pkgconfig(libosmogsm) >= 1.5.0
+BuildRequires:  pkgconfig(libosmovty) >= 1.5.0
+BuildRequires:  pkgconfig(libosmocoding) >= 1.5.0
+BuildRequires:  pkgconfig(libosmoabis) >= 1.1.0
+BuildRequires:  pkgconfig(libosmotrau) >= 1.1.0
 %{?systemd_requires}
 
 %description
 OsmoMGW is Osmocom's Media Gateway for 2G and 3G circuit-switched mobile networks.
 
-%package -n libosmo-mgcp-client6
+%package -n libosmo-mgcp-client8
 Summary:        Osmocom's Media Gateway Control Protocol client library
 Group:          System/Libraries
 
-%description -n libosmo-mgcp-client6
+%description -n libosmo-mgcp-client8
 Osmocom's Media Gateway Control Protocol client library.
 
 %package -n libosmo-mgcp-client-devel
 Summary:        Development files for Osmocom's Media Gateway Control Protocol client library
 Group:          Development/Libraries/C and C++
-Requires:       libosmo-mgcp-client6 = %{version}
+Requires:       libosmo-mgcp-client8 = %{version}
 
 %description -n libosmo-mgcp-client-devel
 Osmocom's Media Gateway Control Protocol client librarary.
@@ -90,8 +90,8 @@ find %{buildroot} -type f -name "*.la" -delete -print
 %check
 make %{?_smp_mflags} check || (find . -name testsuite.log -exec cat {} +)
 
-%post   -n libosmo-mgcp-client6 -p /sbin/ldconfig
-%postun -n libosmo-mgcp-client6 -p /sbin/ldconfig
+%post   -n libosmo-mgcp-client8 -p /sbin/ldconfig
+%postun -n libosmo-mgcp-client8 -p /sbin/ldconfig
 
 %if 0%{?suse_version}
 %preun
@@ -119,7 +119,7 @@ make %{?_smp_mflags} check || (find . -name testsuite.log -exec cat {} +)
 %dir %{_sysconfdir}/osmocom
 %config(noreplace) %{_sysconfdir}/osmocom/osmo-mgw.cfg
 
-%files -n libosmo-mgcp-client6
+%files -n libosmo-mgcp-client8
 %{_libdir}/libosmo-mgcp-client.so.6*
 
 %files -n libosmo-mgcp-client-devel

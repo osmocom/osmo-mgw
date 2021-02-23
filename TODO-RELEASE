@@ -24,5 +24,3 @@
 # If any interfaces have been removed or changed since the last public release, a=0.
 #
 #library		what		description / commit summary line
-osmo-mgw        update osmo-gsm-manuals dependency to > 0.3.0 for vty_cpu_sched.adoc include
-libosmo-mgcp-client     mgcp_response, mgcp_conn_peer   struct size change, breaks ABI
