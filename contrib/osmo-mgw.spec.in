@@ -120,7 +120,7 @@ make %{?_smp_mflags} check || (find . -name testsuite.log -exec cat {} +)
 %config(noreplace) %{_sysconfdir}/osmocom/osmo-mgw.cfg
 
 %files -n libosmo-mgcp-client8
-%{_libdir}/libosmo-mgcp-client.so.6*
+%{_libdir}/libosmo-mgcp-client.so.8*
 
 %files -n libosmo-mgcp-client-devel
 %{_libdir}/libosmo-mgcp-client.so
