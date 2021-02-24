@@ -1,3 +1,9 @@
+osmo-mgw (1.8.1) unstable; urgency=medium
+
+  * attempt to fix RPM spec file after recent soversion bump
+
+ -- Harald Welte <laforge@osmocom.org>  Wed, 24 Feb 2021 10:56:17 +0100
+
 osmo-mgw (1.8.0) unstable; urgency=medium
 
   [ Harald Welte ]
