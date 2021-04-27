@@ -1514,20 +1514,6 @@ static int rx_rtp(struct msgb *msg)
 	return conn->endp->type->dispatch_rtp_cb(msg);
 }
 
-/*! set IP Type of Service parameter.
- *  \param[in] fd associated file descriptor.
- *  \param[in] tos dscp value.
- *  \returns 0 on success, -1 on ERROR. */
-int mgcp_set_ip_tos(int fd, int tos)
-{
-	int ret;
-	ret = setsockopt(fd, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
-
-	if (ret < 0)
-		return -1;
-	return 0;
-}
-
 /*! bind RTP port to osmo_fd.
  *  \param[in] source_addr source (local) address to bind on.
  *  \param[in] fd associated file descriptor.
@@ -1574,8 +1560,8 @@ static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
 	}
 
 	/* Set Type of Service (DSCP-Value) as configured via VTY */
-	mgcp_set_ip_tos(rtp_end->rtp.fd, cfg->endp_dscp);
-	mgcp_set_ip_tos(rtp_end->rtcp.fd, cfg->endp_dscp);
+	osmo_sock_set_dscp(rtp_end->rtp.fd, cfg->endp_dscp);
+	osmo_sock_set_dscp(rtp_end->rtcp.fd, cfg->endp_dscp);
 
 	if (osmo_fd_register(&rtp_end->rtp) != 0) {
 		LOGPENDP(endp, DRTP, LOGL_ERROR,

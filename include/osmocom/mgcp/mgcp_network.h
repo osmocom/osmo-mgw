@@ -148,7 +148,6 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_end *rtp_end,
 			  struct osmo_sockaddr *addr, struct msgb *msg);
 void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn);
-int mgcp_set_ip_tos(int fd, int tos);
 
 /* payload processing default functions */
 int mgcp_rtp_processing_default(struct mgcp_endpoint *endp, struct mgcp_rtp_end *dst_end,

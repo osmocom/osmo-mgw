@@ -579,19 +579,15 @@ DEFUN_USRATTR(cfg_mgcp_rtp_no_net_bind_ip_probing,
 DEFUN_USRATTR(cfg_mgcp_rtp_ip_dscp,
 	      cfg_mgcp_rtp_ip_dscp_cmd,
 	      X(MGW_CMD_ATTR_NEWCONN),
-	      "rtp ip-dscp <0-255>",
+	      "rtp ip-dscp <0-63>",
 	      RTP_STR
-	      "Apply IP_TOS to the audio stream (including Osmux)\n" "The DSCP value\n")
+	      "Use specified DSCP for the audio stream (including Osmux)\n" "The DSCP value\n")
 {
 	int dscp = atoi(argv[0]);
 	g_cfg->endp_dscp = dscp;
 	return CMD_SUCCESS;
 }
 
-ALIAS_DEPRECATED(cfg_mgcp_rtp_ip_dscp, cfg_mgcp_rtp_ip_tos_cmd,
-		 "rtp ip-tos <0-255>",
-		 RTP_STR
-		 "Apply IP_TOS to the audio stream\n" "The DSCP value\n")
 #define FORCE_PTIME_STR "Force a fixed ptime for packets sent"
 DEFUN_USRATTR(cfg_mgcp_rtp_force_ptime,
 	      cfg_mgcp_rtp_force_ptime_cmd,
@@ -1622,7 +1618,6 @@ int mgcp_vty_init(void)
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_net_bind_ip_probing_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_no_net_bind_ip_probing_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_ip_dscp_cmd);
-	install_element(MGCP_NODE, &cfg_mgcp_rtp_ip_tos_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_force_ptime_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_no_rtp_force_ptime_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_keepalive_cmd);

@@ -101,7 +101,7 @@ mgcp
  rtp net-range 6000 6011
  rtp net-bind-ip 192.168.100.130
  rtp ip-probing
- rtp ip-tos 184
+ rtp ip-dscp 46
  no rtp keep-alive
  bind port 2428
  number endpoints 30
