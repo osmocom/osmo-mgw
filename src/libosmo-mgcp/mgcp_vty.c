@@ -83,6 +83,8 @@ static int config_write_mgcp(struct vty *vty)
 	else
 		vty_out(vty, " no rtp ip-probing%s", VTY_NEWLINE);
 	vty_out(vty, " rtp ip-dscp %d%s", g_cfg->endp_dscp, VTY_NEWLINE);
+	if (g_cfg->endp_priority)
+		vty_out(vty, " rtp socket-priority %d%s", g_cfg->endp_priority, VTY_NEWLINE);
 	if (trunk->keepalive_interval == MGCP_KEEPALIVE_ONCE)
 		vty_out(vty, " rtp keep-alive once%s", VTY_NEWLINE);
 	else if (trunk->keepalive_interval)
@@ -585,6 +587,18 @@ DEFUN_USRATTR(cfg_mgcp_rtp_ip_dscp,
 {
 	int dscp = atoi(argv[0]);
 	g_cfg->endp_dscp = dscp;
+	return CMD_SUCCESS;
+}
+
+DEFUN_USRATTR(cfg_mgcp_rtp_priority,
+	      cfg_mgcp_rtp_priority_cmd,
+	      X(MGW_CMD_ATTR_NEWCONN),
+	      "rtp socket-priority <0-255>",
+	      RTP_STR
+	      "socket priority (values > 6 require CAP_NET_ADMIN)\n" "socket priority value\n")
+{
+	int prio = atoi(argv[0]);
+	g_cfg->endp_priority = prio;
 	return CMD_SUCCESS;
 }
 
@@ -1618,6 +1632,7 @@ int mgcp_vty_init(void)
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_net_bind_ip_probing_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_no_net_bind_ip_probing_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_ip_dscp_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_rtp_priority_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_force_ptime_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_no_rtp_force_ptime_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_rtp_keepalive_cmd);

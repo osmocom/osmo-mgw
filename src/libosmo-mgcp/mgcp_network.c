@@ -1518,13 +1518,17 @@ static int rx_rtp(struct msgb *msg)
  *  \param[in] source_addr source (local) address to bind on.
  *  \param[in] fd associated file descriptor.
  *  \param[in] port to bind on.
+ *  \param[in] dscp IP DSCP value to use.
+ *  \param[in] prio socket priority to use.
  *  \returns 0 on success, -1 on ERROR. */
-int mgcp_create_bind(const char *source_addr, struct osmo_fd *fd, int port, uint8_t dscp)
+int mgcp_create_bind(const char *source_addr, struct osmo_fd *fd, int port, uint8_t dscp,
+		     uint8_t prio)
 {
 	int rc;
 
 	rc = osmo_sock_init2(AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP, source_addr, port,
-			     NULL, 0, OSMO_SOCK_F_BIND | OSMO_SOCK_F_DSCP(dscp));
+			     NULL, 0, OSMO_SOCK_F_BIND | OSMO_SOCK_F_DSCP(dscp) |
+			     OSMO_SOCK_F_PRIO(prio));
 	if (rc < 0) {
 		LOGP(DRTP, LOGL_ERROR, "failed to bind UDP port (%s:%i).\n",
 		     source_addr, port);
@@ -1543,14 +1547,16 @@ static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
 	/* NOTE: The port that is used for RTCP is the RTP port incremented by one
 	 * (e.g. RTP-Port = 16000 ==> RTCP-Port = 16001) */
 
-	if (mgcp_create_bind(source_addr, &rtp_end->rtp, rtp_end->local_port, cfg->endp_dscp) != 0) {
+	if (mgcp_create_bind(source_addr, &rtp_end->rtp, rtp_end->local_port,
+			     cfg->endp_dscp, cfg->endp_priority) != 0) {
 		LOGPENDP(endp, DRTP, LOGL_ERROR,
 			 "failed to create RTP port: %s:%d\n",
 			 source_addr, rtp_end->local_port);
 		goto cleanup0;
 	}
 
-	if (mgcp_create_bind(source_addr, &rtp_end->rtcp, rtp_end->local_port + 1, cfg->endp_dscp) != 0) {
+	if (mgcp_create_bind(source_addr, &rtp_end->rtcp, rtp_end->local_port + 1,
+			     cfg->endp_dscp, cfg->endp_priority) != 0) {
 		LOGPENDP(endp, DRTP, LOGL_ERROR,
 			 "failed to create RTCP port: %s:%d\n",
 			 source_addr, rtp_end->local_port + 1);

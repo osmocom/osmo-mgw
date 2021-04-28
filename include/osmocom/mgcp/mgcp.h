@@ -143,6 +143,7 @@ struct mgcp_config {
 
 	struct mgcp_port_range net_ports;
 	int endp_dscp;
+	int endp_priority;
 
 	int force_ptime;
 
@@ -208,5 +209,6 @@ int mgcp_send_reset_ep(struct mgcp_endpoint *endp);
 int mgcp_send_reset_all(struct mgcp_config *cfg);
 
 
-int mgcp_create_bind(const char *source_addr, struct osmo_fd *fd, int port, uint8_t dscp);
+int mgcp_create_bind(const char *source_addr, struct osmo_fd *fd, int port, uint8_t dscp,
+		     uint8_t prio);
 int mgcp_udp_send(int fd, struct osmo_sockaddr *addr, int port, char *buf, int len);
