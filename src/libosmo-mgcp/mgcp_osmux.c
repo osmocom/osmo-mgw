@@ -418,13 +418,12 @@ int osmux_init(int role, struct mgcp_config *cfg)
 
 	osmo_fd_setup(&osmux_fd, -1, OSMO_FD_READ, osmux_read_fd_cb, cfg, 0);
 
-	ret = mgcp_create_bind(cfg->osmux_addr, &osmux_fd, cfg->osmux_port);
+	ret = mgcp_create_bind(cfg->osmux_addr, &osmux_fd, cfg->osmux_port, cfg->endp_dscp);
 	if (ret < 0) {
 		LOGP(DLMGCP, LOGL_ERROR, "cannot bind OSMUX socket to %s:%u\n",
 		     cfg->osmux_addr, cfg->osmux_port);
 		return ret;
 	}
-	osmo_sock_set_dscp(osmux_fd.fd, cfg->endp_dscp);
 
 	ret = osmo_fd_register(&osmux_fd);
 	if (ret < 0) {
