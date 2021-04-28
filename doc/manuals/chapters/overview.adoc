@@ -52,7 +52,7 @@ digraph G {
 }
 ----
 
-[[fig-bsc]]
+[[fig-bsc-e1]]
 .Integration of legacy E1 BTS in AoIP network
 [graphviz]
 ----
