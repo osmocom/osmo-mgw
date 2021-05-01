@@ -23,6 +23,8 @@ const struct mgcp_conn_peer *osmo_mgcpc_ep_ci_get_rtp_info(const struct osmo_mgc
 bool osmo_mgcpc_ep_ci_get_crcx_info_to_sockaddr(const struct osmo_mgcpc_ep_ci *ci, struct sockaddr_storage *dest);
 bool osmo_mgcpc_ep_ci_get_crcx_info_to_osmux_cid(const struct osmo_mgcpc_ep_ci *ci, uint8_t* cid);
 
+const struct mgcp_conn_peer *osmo_mgcpc_ep_ci_get_remote_rtp_info(const struct osmo_mgcpc_ep_ci *ci);
+
 void osmo_mgcpc_ep_ci_request(struct osmo_mgcpc_ep_ci *ci,
 			      enum mgcp_verb verb, const struct mgcp_conn_peer *verb_info,
 			      struct osmo_fsm_inst *notify,

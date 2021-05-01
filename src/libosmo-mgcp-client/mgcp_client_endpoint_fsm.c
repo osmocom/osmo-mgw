@@ -508,7 +508,8 @@ static void on_success(struct osmo_mgcpc_ep_ci *ci, void *data)
 	osmo_mgcpc_ep_fsm_check_state_chg_after_response(ci->ep->fi);
 }
 
-/*! Return the MGW's RTP port information for this connection, as returned by the last CRCX/MDCX OK message. */
+/*! Return the MGW's local RTP port information for this connection, i.e. the local port that MGW is receiving on, as
+ * returned by the last CRCX-OK / MDCX-OK message. */
 const struct mgcp_conn_peer *osmo_mgcpc_ep_ci_get_rtp_info(const struct osmo_mgcpc_ep_ci *ci)
 {
 	ci = osmo_mgcpc_ep_check_ci((struct osmo_mgcpc_ep_ci*)ci);
@@ -517,6 +518,16 @@ const struct mgcp_conn_peer *osmo_mgcpc_ep_ci_get_rtp_info(const struct osmo_mgc
 	if (!ci->got_port_info)
 		return NULL;
 	return &ci->rtp_info;
+}
+
+/*! Return the MGW's remote RTP port information for this connection, i.e. the remote RTP port that the MGW is sending
+ * to, as sent to the MGW by the last CRCX / MDCX message. */
+const struct mgcp_conn_peer *osmo_mgcpc_ep_ci_get_remote_rtp_info(const struct osmo_mgcpc_ep_ci *ci)
+{
+	ci = osmo_mgcpc_ep_check_ci((struct osmo_mgcpc_ep_ci*)ci);
+	if (!ci)
+		return NULL;
+	return &ci->verb_info;
 }
 
 /*! Return the MGW's RTP port information for this connection, as returned by the last CRCX/MDCX OK message. */
