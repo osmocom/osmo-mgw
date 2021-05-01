@@ -525,8 +525,8 @@ static void fsm_cleanup_cb(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause ca
 	 * If in ST_DLCX_RESP, a DLCX was already sent and we did not get a
 	 * response. No point in sending another one. */
 	if (fi->state != ST_DLCX_RESP && strlen(mgcp_ctx->conn_id)) {
-		LOGPFSML(fi, LOGL_NOTICE,
-			 "MGW/DLCX: FSM termination with connections still present, sending unconditional DLCX...\n");
+		LOGPFSML(fi, LOGL_INFO, "Conn cleanup, sending DLCX for %s %s\n", mgcp_ctx->conn_peer_remote.endpoint,
+			 mgcp_ctx->conn_id);
 		msg = make_dlcx_msg(mgcp_ctx);
 		if (!msg)
 			LOGPFSML(fi, LOGL_ERROR, "MGW/DLCX: Error composing DLCX message\n");
