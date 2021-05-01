@@ -521,8 +521,10 @@ static void fsm_cleanup_cb(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause ca
 	/* Should the FSM be terminated while there are still open connections
 	 * on the MGW, we send an unconditional DLCX to terminate the
 	 * connection. This is not the normal case. The user should always use
-	 * mgcp_conn_delete() to instruct the FSM to perform a graceful exit */
-	if (strlen(mgcp_ctx->conn_id)) {
+	 * mgcp_conn_delete() to instruct the FSM to perform a graceful exit.
+	 * If in ST_DLCX_RESP, a DLCX was already sent and we did not get a
+	 * response. No point in sending another one. */
+	if (fi->state != ST_DLCX_RESP && strlen(mgcp_ctx->conn_id)) {
 		LOGPFSML(fi, LOGL_NOTICE,
 			 "MGW/DLCX: FSM termination with connections still present, sending unconditional DLCX...\n");
 		msg = make_dlcx_msg(mgcp_ctx);
