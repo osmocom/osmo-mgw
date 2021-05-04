@@ -301,9 +301,10 @@ static void dump_ratectr_trunk(struct vty *vty, struct mgcp_trunk *trunk)
 }
 
 
-static void dump_trunk(struct vty *vty, struct mgcp_trunk *trunk, int show_stats)
+static void dump_trunk(struct vty *vty, struct mgcp_trunk *trunk, int show_stats, int active_only)
 {
 	int i;
+	int active_count = 0;
 
 	vty_out(vty, "%s trunk %d with %d endpoints:%s",
 		trunk->trunk_type == MGCP_TRUNK_VIRTUAL ? "Virtual" : "E1",
@@ -316,29 +317,30 @@ static void dump_trunk(struct vty *vty, struct mgcp_trunk *trunk, int show_stats
 
 	for (i = 0; i < trunk->number_endpoints; ++i) {
 		struct mgcp_endpoint *endp = trunk->endpoints[i];
-		dump_endpoint(vty, endp, trunk->trunk_nr, trunk->trunk_type,
-			      show_stats);
-		if (i < trunk->number_endpoints - 1)
-			vty_out(vty, "%s", VTY_NEWLINE);
+		if (!active_only || !llist_empty(&endp->conns)) {
+			dump_endpoint(vty, endp, trunk->trunk_nr, trunk->trunk_type,
+				      show_stats);
+			if (i < trunk->number_endpoints - 1)
+				vty_out(vty, "%s", VTY_NEWLINE);
+		}
+		if (!llist_empty(&endp->conns))
+			active_count++;
 	}
+
+	if (active_count == 0)
+		vty_out(vty, "No endpoints in use.%s", VTY_NEWLINE);
 
 	if (show_stats)
 		dump_ratectr_trunk(vty, trunk);
 }
 
-#define SHOW_MGCP_STR "Display information about the MGCP Media Gateway\n"
-
-DEFUN(show_mcgp, show_mgcp_cmd,
-      "show mgcp [stats]",
-      SHOW_STR
-      SHOW_MGCP_STR
-      "Include Statistics\n")
+static int mgcp_show(struct vty *vty, int argc, const char **argv,
+		     int show_stats, int active_only)
 {
 	struct mgcp_trunk *trunk;
-	int show_stats = argc >= 1;
 
 	llist_for_each_entry(trunk, &g_cfg->trunks, entry)
-		dump_trunk(vty, trunk, show_stats);
+		dump_trunk(vty, trunk, show_stats, active_only);
 
 	if (g_cfg->osmux)
 		vty_out(vty, "Osmux used CID: %d%s", osmux_cid_pool_count_used(),
@@ -348,6 +350,27 @@ DEFUN(show_mcgp, show_mgcp_cmd,
 		dump_ratectr_global(vty, &g_cfg->ratectr);
 
 	return CMD_SUCCESS;
+}
+
+#define SHOW_MGCP_STR "Display information about the MGCP Media Gateway\n"
+
+DEFUN(show_mgcp, show_mgcp_cmd,
+      "show mgcp [stats]",
+      SHOW_STR
+      SHOW_MGCP_STR
+      "Include statistics\n")
+{
+	int show_stats = argc >= 1;
+	return mgcp_show(vty, argc, argv, show_stats, 0);
+}
+
+DEFUN(show_mgcp_active, show_mgcp_active_cmd,
+      "show mgcp active",
+      SHOW_STR
+      SHOW_MGCP_STR
+      "Show only endpoints with active connections\n")
+{
+	return mgcp_show(vty, argc, argv, 0, 1);
 }
 
 static void
@@ -1606,6 +1629,7 @@ DEFUN(cfg_mgcp_conn_timeout,
 int mgcp_vty_init(void)
 {
 	install_element_ve(&show_mgcp_cmd);
+	install_element_ve(&show_mgcp_active_cmd);
 	install_element_ve(&show_mgcp_endpoint_cmd);
 	install_element_ve(&show_mgcp_trunk_endpoint_cmd);
 	install_element(ENABLE_NODE, &loop_conn_cmd);
