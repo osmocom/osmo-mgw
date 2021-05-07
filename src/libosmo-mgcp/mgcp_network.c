@@ -1251,6 +1251,7 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 	struct mgcp_conn *conn = conn_src->conn;
 	struct mgcp_conn *conn_dst;
 	struct osmo_sockaddr *from_addr = mc->from_addr;
+	char ipbuf[INET6_ADDRSTRLEN];
 
 	/*! NOTE: This callback function implements the endpoint specific
 	 *  dispatch behaviour of an rtp bridge/proxy endpoint. It is assumed
@@ -1269,19 +1270,22 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 		 * address data from the UDP packet header to patch the
 		 * outgoing address in connection on the fly */
 		if (conn->u.rtp.end.rtp_port == 0) {
-			OSMO_ASSERT(conn->u.rtp.end.addr.u.sa.sa_family == from_addr->u.sa.sa_family);
+			memcpy(&conn->u.rtp.end.addr, from_addr,
+			       sizeof(conn->u.rtp.end.addr));
 			switch (from_addr->u.sa.sa_family) {
 			case AF_INET:
-				conn->u.rtp.end.addr.u.sin.sin_addr = from_addr->u.sin.sin_addr;
 				conn->u.rtp.end.rtp_port = from_addr->u.sin.sin_port;
 				break;
 			case AF_INET6:
-				conn->u.rtp.end.addr.u.sin6.sin6_addr = from_addr->u.sin6.sin6_addr;
 				conn->u.rtp.end.rtp_port = from_addr->u.sin6.sin6_port;
 				break;
 			default:
 				OSMO_ASSERT(false);
 			}
+			LOG_CONN_RTP(conn_src, LOGL_NOTICE,
+				     "loopback mode: implicitly using source address (%s:%u) as destination address\n",
+				     osmo_sockaddr_ntop(&from_addr->u.sa, ipbuf),
+				     conn->u.rtp.end.rtp_port);
 		}
 		return mgcp_send_rtp(conn_src, msg);
 	}
@@ -1331,6 +1335,7 @@ int mgcp_dispatch_e1_bridge_cb(struct msgb *msg)
 	struct mgcp_conn_rtp *conn_src = mc->conn_src;
 	struct mgcp_conn *conn = conn_src->conn;
 	struct osmo_sockaddr *from_addr = mc->from_addr;
+	char ipbuf[INET6_ADDRSTRLEN];
 
 	/* Check if the connection is in loopback mode, if yes, just send the
 	 * incoming data back to the origin */
@@ -1340,19 +1345,22 @@ int mgcp_dispatch_e1_bridge_cb(struct msgb *msg)
 		 * address data from the UDP packet header to patch the
 		 * outgoing address in connection on the fly */
 		if (conn->u.rtp.end.rtp_port == 0) {
-			OSMO_ASSERT(conn->u.rtp.end.addr.u.sa.sa_family == from_addr->u.sa.sa_family);
+			memcpy(&conn->u.rtp.end.addr, from_addr,
+			       sizeof(conn->u.rtp.end.addr));
 			switch (from_addr->u.sa.sa_family) {
 			case AF_INET:
-				conn->u.rtp.end.addr.u.sin.sin_addr = from_addr->u.sin.sin_addr;
 				conn->u.rtp.end.rtp_port = from_addr->u.sin.sin_port;
 				break;
 			case AF_INET6:
-				conn->u.rtp.end.addr.u.sin6.sin6_addr = from_addr->u.sin6.sin6_addr;
 				conn->u.rtp.end.rtp_port = from_addr->u.sin6.sin6_port;
 				break;
 			default:
 				OSMO_ASSERT(false);
 			}
+			LOG_CONN_RTP(conn_src, LOGL_NOTICE,
+				     "loopback mode: implicitly using source address (%s:%u) as destination address\n",
+				     osmo_sockaddr_ntop(&from_addr->u.sa, ipbuf),
+				     conn->u.rtp.end.rtp_port);
 		}
 		return mgcp_send_rtp(conn_src, msg);
 	}
