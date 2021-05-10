@@ -337,7 +337,7 @@ static void e1_recv_cb(struct e1inp_ts *ts, struct msgb *msg)
 	/* Find associated trunk */
 	trunk = mgcp_trunk_by_line_num(cfg, ts->line->num);
 	if (!trunk) {
-		LOGP(DE1, LOGL_DEBUG, "E1-RX: unable to find a trunk for E1-line %u!\n", ts->line->num);
+		LOGP(DE1, LOGL_ERROR, "E1-RX: unable to find a trunk for E1-line %u!\n", ts->line->num);
 		return;
 	}
 
@@ -376,14 +376,14 @@ static int e1_init(struct mgcp_trunk *trunk, uint8_t ts_nr)
 	cfg = trunk->cfg;
 
 	if (trunk->e1.ts_in_use[ts_nr - 1]) {
-		LOGPTRUNK(trunk, DE1, LOGL_DEBUG, "E1 timeslot %u already set up, skipping...\n", ts_nr);
+		LOGPTRUNK(trunk, DE1, LOGL_INFO, "E1 timeslot %u already set up, skipping...\n", ts_nr);
 		return 0;
 	}
 
 	/* Get E1 line */
 	e1_line = e1inp_line_find(trunk->e1.vty_line_nr);
 	if (!e1_line) {
-		LOGPTRUNK(trunk, DE1, LOGL_DEBUG, "no such E1 line %u - check VTY config!\n",
+		LOGPTRUNK(trunk, DE1, LOGL_ERROR, "no such E1 line %u - check VTY config!\n",
 			  trunk->e1.vty_line_nr);
 		return -EINVAL;
 	}
@@ -401,7 +401,7 @@ static int e1_init(struct mgcp_trunk *trunk, uint8_t ts_nr)
 		return -EINVAL;
 	}
 
-	LOGPTRUNK(trunk, DE1, LOGL_DEBUG, "E1 timeslot %u set up successfully.\n", ts_nr);
+	LOGPTRUNK(trunk, DE1, LOGL_INFO, "E1 timeslot %u set up successfully.\n", ts_nr);
 	trunk->e1.ts_in_use[ts_nr - 1] = true;
 
 	return 0;
@@ -545,7 +545,7 @@ int mgcp_e1_endp_equip(struct mgcp_endpoint *endp, uint8_t ts, uint8_t ss, uint8
 	endp->e1.scd.mux.in_cb_queue_empty = e1_i460_mux_empty_cb;
 	endp->e1.scd.mux.user_data = endp;
 
-	LOGPENDP(endp, DE1, LOGL_DEBUG, "adding I.460 subchannel: ts=%u, bit_offset=%u, rate=%uk, num_bits=%lu\n", ts,
+	LOGPENDP(endp, DE1, LOGL_INFO, "adding I.460 subchannel: ts=%u, bit_offset=%u, rate=%uk, num_bits=%lu\n", ts,
 		 offs, e1_rates[ss], endp->e1.scd.demux.num_bits);
 	endp->e1.schan = osmo_i460_subchan_add(endp, &endp->trunk->e1.i460_ts[ts - 1], &endp->e1.scd);
 	if (!endp->e1.schan) {
