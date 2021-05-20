@@ -177,7 +177,7 @@ static uint32_t get_current_ts(unsigned codec_rate)
  *  \param[in] buf buffer that holds the data to be send.
  *  \param[in] len length of the data to be sent.
  *  \returns bytes sent, -1 on error. */
-int mgcp_udp_send(int fd, struct osmo_sockaddr *addr, int port, char *buf, int len)
+int mgcp_udp_send(int fd, struct osmo_sockaddr *addr, int port, const char *buf, int len)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
 	size_t addr_len;
