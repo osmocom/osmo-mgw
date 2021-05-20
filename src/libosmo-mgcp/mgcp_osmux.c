@@ -375,7 +375,7 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 	}
 
 	/* not any further processing dummy messages */
-	if (msg->data[0] == MGCP_DUMMY_LOAD)
+	if (mgcp_is_rtp_dummy_payload(msg))
 		return osmux_handle_dummy(cfg, &addr, msg);
 
 	rem = msg->len;

@@ -7,7 +7,16 @@
 
 #include <osmocom/mgcp/mgcp.h>
 
-#define MGCP_DUMMY_LOAD 0x23
+/* The following constant defines an RTP dummy payload that is used for
+ * "UDP Hole Punching" (NAT) */
+static const char rtp_dummy_payload[] = { 0x23 };
+
+/* Check if the data in a given message buffer matches the rtp dummy payload
+ * defined above */
+#define mgcp_is_rtp_dummy_payload(msg) \
+	(msgb_length(msg) == sizeof(rtp_dummy_payload) && \
+	memcmp(msgb_data(msg), rtp_dummy_payload, sizeof(rtp_dummy_payload)) == 0)
+
 #define RTP_BUF_SIZE	4096
 
 struct mgcp_rtp_stream_state {

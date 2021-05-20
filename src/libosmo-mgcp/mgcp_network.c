@@ -205,7 +205,6 @@ int mgcp_udp_send(int fd, struct osmo_sockaddr *addr, int port, const char *buf,
  *  \returns bytes sent, -1 on error. */
 int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 {
-	static char buf[] = { MGCP_DUMMY_LOAD };
 	int rc;
 	int was_rtcp = 0;
 
@@ -216,7 +215,7 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 		 mgcp_conn_dump(conn->conn));
 
 	rc = mgcp_udp_send(conn->end.rtp.fd, &conn->end.addr,
-			   conn->end.rtp_port, buf, 1);
+			   conn->end.rtp_port, rtp_dummy_payload, sizeof(rtp_dummy_payload));
 
 	if (rc == -1)
 		goto failed;
@@ -226,7 +225,7 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 
 	was_rtcp = 1;
 	rc = mgcp_udp_send(conn->end.rtcp.fd, &conn->end.addr,
-			   conn->end.rtcp_port, buf, 1);
+			   conn->end.rtcp_port, rtp_dummy_payload, sizeof(rtp_dummy_payload));
 
 	if (rc >= 0)
 		return rc;
@@ -1398,11 +1397,6 @@ void mgcp_cleanup_e1_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *con
 	mgcp_cleanup_rtp_bridge_cb(endp, conn);
 }
 
-static bool is_dummy_msg(enum rtp_proto proto, struct msgb *msg)
-{
-	return msgb_length(msg) == 1 && msgb_data(msg)[0] == MGCP_DUMMY_LOAD;
-}
-
 /* Handle incoming RTP data from NET */
 static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 {
@@ -1453,7 +1447,7 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 		goto out;
 	}
 
-	if (is_dummy_msg(proto, msg)) {
+	if (mgcp_is_rtp_dummy_payload(msg)) {
 		LOG_CONN_RTP(conn_src, LOGL_DEBUG, "rx dummy packet (dropped)\n");
 		rc = 0;
 		goto out;

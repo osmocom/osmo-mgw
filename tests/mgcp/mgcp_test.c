@@ -30,6 +30,7 @@
 #include <osmocom/mgcp/mgcp_trunk.h>
 #include <osmocom/mgcp/mgcp_sdp.h>
 #include <osmocom/mgcp/mgcp_codec.h>
+#include <osmocom/mgcp/mgcp_network.h>
 
 #include <osmocom/core/application.h>
 #include <osmocom/core/talloc.h>
@@ -616,7 +617,6 @@ static int mgcp_test_policy_cb(struct mgcp_endpoint *endp,
 	return MGCP_POLICY_CONT;
 }
 
-#define MGCP_DUMMY_LOAD 0x23
 static int dummy_packets = 0;
 /* override and forward */
 ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
@@ -626,7 +626,8 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 	    htonl(((struct sockaddr_in *)dest_addr)->sin_addr.s_addr);
 	int dest_port = htons(((struct sockaddr_in *)dest_addr)->sin_port);
 
-	if (len == 1 && ((const char *)buf)[0] == MGCP_DUMMY_LOAD) {
+	if (len == sizeof(rtp_dummy_payload)
+	    && memcmp(buf, rtp_dummy_payload, sizeof(rtp_dummy_payload)) == 0) {
 		fprintf(stderr,
 			"Dummy packet to 0x%08x:%d, msg length %zu\n%s\n\n",
 			dest_host, dest_port, len, osmo_hexdump(buf, len));
@@ -2161,6 +2162,47 @@ void test_e1_trunk_nr_from_epname()
 	return;
 }
 
+void test_mgcp_is_rtp_dummy_payload()
+{
+	/* realistic rtp packet */
+	static const char rtp_payload[] =
+	    { 0x80, 0x03, 0xca, 0xd7, 0x62, 0x12, 0x75, 0xc4, 0x43, 0x4b, 0x3e,
+	      0x72, 0xd2, 0x57, 0x7a, 0x1c, 0xda, 0x50, 0x00, 0x49, 0x24, 0x92,
+	      0x49, 0x24, 0x50, 0x00, 0x49, 0x24, 0x92, 0x49, 0x24, 0x50, 0x00,
+	      0x49, 0x24, 0x92, 0x49, 0x24, 0x50, 0x00, 0x49, 0x23, 0x92, 0x49,
+	      0x24 };
+
+	struct msgb *msg_dummy = msgb_alloc(RTP_BUF_SIZE, "RTP-msg_dummy");
+	struct msgb *msg_rtp = msgb_alloc(RTP_BUF_SIZE, "RTP-msg_rtp");
+	struct msgb *msg_dummy_rtp =
+	    msgb_alloc(RTP_BUF_SIZE, "RTP-msg_dummy_rtp");
+
+	uint8_t *buf;
+
+	/* Dummy RTP packet */
+	buf = msgb_put(msg_dummy, ARRAY_SIZE(rtp_dummy_payload));
+	memcpy(buf, rtp_dummy_payload, ARRAY_SIZE(rtp_dummy_payload));
+
+	/* Normal RTP packet */
+	buf = msgb_put(msg_rtp, ARRAY_SIZE(rtp_payload));
+	memcpy(buf, rtp_payload, ARRAY_SIZE(rtp_payload));
+
+	/* Dummy RTP packet with normal RTP packet attached, this must not be
+	 * recognized as Dummy RTP packet */
+	buf = msgb_put(msg_dummy_rtp, ARRAY_SIZE(rtp_dummy_payload));
+	memcpy(buf, rtp_dummy_payload, ARRAY_SIZE(rtp_dummy_payload));
+	buf = msgb_put(msg_dummy_rtp, ARRAY_SIZE(rtp_payload));
+	memcpy(buf, rtp_payload, ARRAY_SIZE(rtp_payload));
+
+	OSMO_ASSERT(mgcp_is_rtp_dummy_payload(msg_dummy) == true);
+	OSMO_ASSERT(mgcp_is_rtp_dummy_payload(msg_rtp) == false);
+	OSMO_ASSERT(mgcp_is_rtp_dummy_payload(msg_dummy_rtp) == false);
+
+	msgb_free(msg_dummy);
+	msgb_free(msg_rtp);
+	msgb_free(msg_dummy_rtp);
+}
+
 int main(int argc, char **argv)
 {
 	void *ctx = talloc_named_const(NULL, 0, "mgcp_test");
@@ -2187,6 +2229,7 @@ int main(int argc, char **argv)
 	test_mgcp_codec_pt_translate();
 	test_conn_id_matching();
 	test_e1_trunk_nr_from_epname();
+	test_mgcp_is_rtp_dummy_payload();
 
 	OSMO_ASSERT(talloc_total_size(msgb_ctx) == 0);
 	OSMO_ASSERT(talloc_total_blocks(msgb_ctx) == 1);
