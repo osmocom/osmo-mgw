@@ -169,11 +169,11 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_conn_rtp *conn)
 	struct rate_ctr *rx_packets, *rx_bytes;
 	struct rate_ctr *dropped_packets;
 
-	tx_packets = &conn->rate_ctr_group->ctr[RTP_PACKETS_TX_CTR];
-	tx_bytes = &conn->rate_ctr_group->ctr[RTP_OCTETS_TX_CTR];
-	rx_packets = &conn->rate_ctr_group->ctr[RTP_PACKETS_RX_CTR];
-	rx_bytes = &conn->rate_ctr_group->ctr[RTP_OCTETS_RX_CTR];
-	dropped_packets = &conn->rate_ctr_group->ctr[RTP_DROPPED_PACKETS_CTR];
+	tx_packets = rate_ctr_group_get_ctr(conn->rate_ctr_group, RTP_PACKETS_TX_CTR);
+	tx_bytes = rate_ctr_group_get_ctr(conn->rate_ctr_group, RTP_OCTETS_TX_CTR);
+	rx_packets = rate_ctr_group_get_ctr(conn->rate_ctr_group, RTP_PACKETS_RX_CTR);
+	rx_bytes = rate_ctr_group_get_ctr(conn->rate_ctr_group, RTP_OCTETS_RX_CTR);
+	dropped_packets = rate_ctr_group_get_ctr(conn->rate_ctr_group, RTP_DROPPED_PACKETS_CTR);
 
 	vty_out(vty,
 		"   Packets Sent: %" PRIu64 " (%" PRIu64 " bytes total)%s"

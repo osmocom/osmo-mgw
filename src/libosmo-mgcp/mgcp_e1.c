@@ -197,7 +197,7 @@ static void e1_i460_mux_empty_cb(struct osmo_i460_subchan *schan, void *user_dat
 	const uint8_t *ptr_ft;
 	enum osmo_trau_frame_type ft;
 
-	rate_ctr_inc(&rate_ctrs->ctr[E1_I460_TRAU_MUX_EMPTY_CTR]);
+	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, E1_I460_TRAU_MUX_EMPTY_CTR));
 
 	/* Choose an appropiate idle frame type */
 	ft = endp->e1.trau_rtp_st->type;
@@ -304,7 +304,7 @@ static void sync_frame_out_cb(void *user_data, const ubit_t *bits, unsigned int 
 	msgb_free(msg);
 	return;
 skip:
-	rate_ctr_inc(&rate_ctrs->ctr[E1_I460_TRAU_RX_FAIL_CTR]);
+	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, E1_I460_TRAU_RX_FAIL_CTR));
 	msgb_free(msg);
 	return;
 }
@@ -679,7 +679,7 @@ int mgcp_e1_send_rtp(struct mgcp_endpoint *endp, struct mgcp_rtp_codec *codec, s
 
 	return 0;
 skip:
-	rate_ctr_inc(&rate_ctrs->ctr[E1_I460_TRAU_TX_FAIL_CTR]);
+	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, E1_I460_TRAU_TX_FAIL_CTR));
 	msgb_free(msg_tf);
 	return -1;
 }

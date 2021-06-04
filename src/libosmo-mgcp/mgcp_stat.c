@@ -33,7 +33,7 @@
 void calc_loss(struct mgcp_conn_rtp *conn, uint32_t *expected, int *loss)
 {
 	struct mgcp_rtp_state *state = &conn->state;
-	struct rate_ctr *packets_rx = &conn->rate_ctr_group->ctr[RTP_PACKETS_RX_CTR];
+	struct rate_ctr *packets_rx = rate_ctr_group_get_ctr(conn->rate_ctr_group, RTP_PACKETS_RX_CTR);
 
 	*expected = state->stats.cycles + state->stats.max_seq;
 	*expected = *expected - state->stats.base_seq + 1;
@@ -74,10 +74,10 @@ static void mgcp_format_stats_rtp(char *str, size_t str_len,
 	int ploss;
 	int nchars;
 
-	struct rate_ctr *packets_rx = &conn->rate_ctr_group->ctr[RTP_PACKETS_RX_CTR];
-	struct rate_ctr *octets_rx = &conn->rate_ctr_group->ctr[RTP_OCTETS_RX_CTR];
-	struct rate_ctr *packets_tx = &conn->rate_ctr_group->ctr[RTP_PACKETS_TX_CTR];
-	struct rate_ctr *octets_tx = &conn->rate_ctr_group->ctr[RTP_OCTETS_TX_CTR];
+	struct rate_ctr *packets_rx = rate_ctr_group_get_ctr(conn->rate_ctr_group, RTP_PACKETS_RX_CTR);
+	struct rate_ctr *octets_rx = rate_ctr_group_get_ctr(conn->rate_ctr_group, RTP_OCTETS_RX_CTR);
+	struct rate_ctr *packets_tx = rate_ctr_group_get_ctr(conn->rate_ctr_group, RTP_PACKETS_TX_CTR);
+	struct rate_ctr *octets_tx = rate_ctr_group_get_ctr(conn->rate_ctr_group, RTP_OCTETS_TX_CTR);
 
 	calc_loss(conn, &expected, &ploss);
 	jitter = calc_jitter(&conn->state);

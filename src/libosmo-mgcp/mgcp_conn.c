@@ -114,8 +114,8 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 	if (!conn_rtp->rate_ctr_group)
 		return -1;
 
-	conn_rtp->state.in_stream.err_ts_ctr = &conn_rtp->rate_ctr_group->ctr[IN_STREAM_ERR_TSTMP_CTR];
-	conn_rtp->state.out_stream.err_ts_ctr = &conn_rtp->rate_ctr_group->ctr[OUT_STREAM_ERR_TSTMP_CTR];
+	conn_rtp->state.in_stream.err_ts_ctr = rate_ctr_group_get_ctr(conn_rtp->rate_ctr_group, IN_STREAM_ERR_TSTMP_CTR);
+	conn_rtp->state.out_stream.err_ts_ctr = rate_ctr_group_get_ctr(conn_rtp->rate_ctr_group, OUT_STREAM_ERR_TSTMP_CTR);
 	rate_ctr_index++;
 
 	/* Make sure codec table is reset */
@@ -270,12 +270,12 @@ static void aggregate_rtp_conn_stats(struct mgcp_endpoint *endp, struct mgcp_con
 	OSMO_ASSERT(conn_stats->desc->num_ctr + 1 == all_stats->desc->num_ctr);
 
 	/* all other counters are [now] updated in real-time */
-	rate_ctr_add(&all_stats->ctr[IN_STREAM_ERR_TSTMP_CTR],
-		     conn_stats->ctr[IN_STREAM_ERR_TSTMP_CTR].current);
-	rate_ctr_add(&all_stats->ctr[OUT_STREAM_ERR_TSTMP_CTR],
-		     conn_stats->ctr[OUT_STREAM_ERR_TSTMP_CTR].current);
+	rate_ctr_add(rate_ctr_group_get_ctr(all_stats, IN_STREAM_ERR_TSTMP_CTR),
+		     rate_ctr_group_get_ctr(conn_stats, IN_STREAM_ERR_TSTMP_CTR)->current);
+	rate_ctr_add(rate_ctr_group_get_ctr(all_stats, OUT_STREAM_ERR_TSTMP_CTR),
+		     rate_ctr_group_get_ctr(conn_stats, OUT_STREAM_ERR_TSTMP_CTR)->current);
 
-	rate_ctr_inc(&all_stats->ctr[RTP_NUM_CONNECTIONS]);
+	rate_ctr_inc(rate_ctr_group_get_ctr(all_stats, RTP_NUM_CONNECTIONS));
 }
 
 /*! free a connection by its ID.
