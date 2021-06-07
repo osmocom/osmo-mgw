@@ -1378,8 +1378,7 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		rc_sdp = add_sdp(msg, mgcp_msg, mgcp);
 		if (rc_sdp == -2)
 			return NULL;
-		else
-			rc += rc_sdp;
+		rc += rc_sdp;
 	}
 
 	if (rc != 0) {
