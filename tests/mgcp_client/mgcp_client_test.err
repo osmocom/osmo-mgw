@@ -1,5 +1,5 @@
 DLMGCP MGCP client: using endpoint domain '@mgw'
-DLMGCP message buffer to small, can not generate MGCP message
+DLMGCP message buffer to small, can not generate MGCP message (SDP)
 
 test_mgcp_client_cancel():
 DLMGCP MGCP client: using endpoint domain '@mgw'
