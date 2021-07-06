@@ -1037,6 +1037,12 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	LOGPCONN(conn->conn, DRTP, LOGL_DEBUG, "sending dummy packet... %s\n",
 		 mgcp_conn_dump(conn->conn));
 
+	/* Before we try to deliver the packet, we check if the destination
+	 * port and IP-Address make sense at all. If not, we will be unable
+	 * to deliver the packet. */
+	if (check_rtp_destin(conn) != 0)
+		goto failed;
+
 	rc = mgcp_udp_send(conn->end.rtp.fd, &conn->end.addr,
 			   conn->end.rtp_port, rtp_dummy_payload, sizeof(rtp_dummy_payload));
 

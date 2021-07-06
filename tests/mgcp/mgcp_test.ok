@@ -118,7 +118,6 @@ checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
 (response contains a connection id)
-Dummy packets: 2
 
 ================================================
 Testing MDCX4_PT1
@@ -142,7 +141,6 @@ checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
 (response contains a connection id)
-Dummy packets: 2
 
 ================================================
 Testing MDCX4_PT2
@@ -166,7 +164,6 @@ checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
 (response contains a connection id)
-Dummy packets: 2
 
 ================================================
 Testing MDCX4_PT3
@@ -190,7 +187,6 @@ checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
 (response contains a connection id)
-Dummy packets: 2
 
 ================================================
 Testing MDCX4_PT4
@@ -214,7 +210,6 @@ checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
 (response contains a connection id)
-Dummy packets: 2
 
 ================================================
 Testing MDCX4_SO
@@ -253,7 +248,6 @@ checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
 (response contains a connection id)
-Dummy packets: 2
 
 ================================================
 Testing DLCX
@@ -441,7 +435,6 @@ checking response:
 using message with patched conn_id for comparison
 Response matches our expectations.
 (response contains a connection id)
-Dummy packets: 2
 
 ================================================
 Testing CRCX

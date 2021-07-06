@@ -634,6 +634,10 @@ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
 		dummy_packets += 1;
 	}
 
+	/* Make sure address+port are valid */
+	OSMO_ASSERT(dest_host);
+	OSMO_ASSERT(dest_port);
+
 	return len;
 }
 
