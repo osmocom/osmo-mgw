@@ -171,74 +171,6 @@ static uint32_t get_current_ts(unsigned codec_rate)
 	return ret;
 }
 
-/*! send udp packet.
- *  \param[in] fd associated file descriptor.
- *  \param[in] addr destination ip-address.
- *  \param[in] port destination UDP port (network byte order).
- *  \param[in] buf buffer that holds the data to be send.
- *  \param[in] len length of the data to be sent.
- *  \returns bytes sent, -1 on error. */
-int mgcp_udp_send(int fd, struct osmo_sockaddr *addr, int port, const char *buf, int len)
-{
-	char ipbuf[INET6_ADDRSTRLEN];
-	size_t addr_len;
-	bool is_ipv6 =  addr->u.sa.sa_family == AF_INET6;
-
-	LOGP(DRTP, LOGL_DEBUG,
-	     "sending %i bytes length packet to %s:%u ...\n", len,
-	     osmo_sockaddr_ntop(&addr->u.sa, ipbuf),
-	     ntohs(port));
-
-	if (is_ipv6) {
-		addr->u.sin6.sin6_port = port;
-		addr_len = sizeof(addr->u.sin6);
-	} else {
-		addr->u.sin.sin_port = port;
-		addr_len = sizeof(addr->u.sin);
-	}
-
-	return sendto(fd, buf, len, 0, &addr->u.sa, addr_len);
-}
-
-/*! send RTP dummy packet (to keep NAT connection open).
- *  \param[in] endp mcgp endpoint that holds the RTP connection.
- *  \param[in] conn associated RTP connection.
- *  \returns bytes sent, -1 on error. */
-int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
-{
-	int rc;
-	int was_rtcp = 0;
-
-	OSMO_ASSERT(endp);
-	OSMO_ASSERT(conn);
-
-	LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,"sending dummy packet... %s\n",
-		 mgcp_conn_dump(conn->conn));
-
-	rc = mgcp_udp_send(conn->end.rtp.fd, &conn->end.addr,
-			   conn->end.rtp_port, rtp_dummy_payload, sizeof(rtp_dummy_payload));
-
-	if (rc == -1)
-		goto failed;
-
-	if (endp->trunk->omit_rtcp)
-		return rc;
-
-	was_rtcp = 1;
-	rc = mgcp_udp_send(conn->end.rtcp.fd, &conn->end.addr,
-			   conn->end.rtcp_port, rtp_dummy_payload, sizeof(rtp_dummy_payload));
-
-	if (rc >= 0)
-		return rc;
-
-failed:
-	LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
-		 "Failed to send dummy %s packet.\n",
-		 was_rtcp ? "RTCP" : "RTP");
-
-	return -1;
-}
-
 /* Compute timestamp alignment error */
 static int32_t ts_alignment_error(const struct mgcp_rtp_stream_state *sstate,
 				  int ptime, uint32_t timestamp)
@@ -858,182 +790,6 @@ static void gen_rtp_header(struct msgb *msg, struct mgcp_rtp_end *rtp_end,
 	hdr->ssrc = state->alt_rtp_tx_ssrc;
 }
 
-
-/*! Send RTP/RTCP data to a specified destination connection.
- *  \param[in] endp associated endpoint (for configuration, logging).
- *  \param[in] is_rtp flag to specify if the packet is of type RTP or RTCP.
- *  \param[in] spoofed source address (set to NULL to disable).
- *  \param[in] buf buffer that contains the RTP/RTCP data.
- *  \param[in] len length of the buffer that contains the RTP/RTCP data.
- *  \param[in] conn_src associated source connection.
- *  \param[in] conn_dst associated destination connection.
- *  \returns 0 on success, -1 on ERROR. */
-int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr,
-	      struct msgb *msg, struct mgcp_conn_rtp *conn_src,
-	      struct mgcp_conn_rtp *conn_dst)
-{
-	/*! When no destination connection is available (e.g. when only one
-	 *  connection in loopback mode exists), then the source connection
-	 *  shall be specified as destination connection */
-
-	struct mgcp_trunk *trunk = endp->trunk;
-	struct mgcp_rtp_end *rtp_end;
-	struct mgcp_rtp_state *rtp_state;
-	char ipbuf[INET6_ADDRSTRLEN];
-	char *dest_name;
-	int rc;
-	int len;
-
-	OSMO_ASSERT(conn_src);
-	OSMO_ASSERT(conn_dst);
-
-	if (is_rtp) {
-		LOGPENDP(endp, DRTP, LOGL_DEBUG, "delivering RTP packet...\n");
-	} else {
-		LOGPENDP(endp, DRTP, LOGL_DEBUG, "delivering RTCP packet...\n");
-	}
-
-	/* FIXME: It is legal that the payload type on the egress connection is
-	 * different from the payload type that has been negotiated on the
-	 * ingress connection. Essentially the codecs are the same so we can
-	 * match them and patch the payload type. However, if we can not find
-	 * the codec pendant (everything ist equal except the PT), we are of
-	 * course unable to patch the payload type. A situation like this
-	 * should not occur if transcoding is consequently avoided. Until
-	 * we have transcoding support in osmo-mgw we can not resolve this. */
-	if (is_rtp) {
-		rc = mgcp_patch_pt(conn_src, conn_dst, msg);
-		if (rc < 0) {
-			LOGPENDP(endp, DRTP, LOGL_DEBUG,
-				 "can not patch PT because no suitable egress codec was found.\n");
-		}
-	}
-
-	/* Note: In case of loopback configuration, both, the source and the
-	 * destination will point to the same connection. */
-	rtp_end = &conn_dst->end;
-	rtp_state = &conn_src->state;
-	dest_name = conn_dst->conn->name;
-
-	/* Ensure we have an alternative SSRC in case we need it, see also
-	 * gen_rtp_header() */
-	if (rtp_state->alt_rtp_tx_ssrc == 0)
-		rtp_state->alt_rtp_tx_ssrc = rand();
-
-	if (!rtp_end->output_enabled) {
-		rtpconn_rate_ctr_inc(conn_dst, endp, RTP_DROPPED_PACKETS_CTR);
-		LOGPENDP(endp, DRTP, LOGL_DEBUG,
-			 "output disabled, drop to %s %s "
-			 "rtp_port:%u rtcp_port:%u\n",
-			 dest_name,
-			 osmo_sockaddr_ntop(&rtp_end->addr.u.sa, ipbuf),
-			 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
-		    );
-	} else if (is_rtp) {
-		int cont;
-		int nbytes = 0;
-		int buflen = msgb_length(msg);
-
-		/* Make sure we have a valid RTP header, in cases where no RTP
-		 * header is present, we will generate one. */
-		gen_rtp_header(msg, rtp_end, rtp_state);
-
-		do {
-			/* Run transcoder */
-			cont = endp->cfg->rtp_processing_cb(endp, rtp_end,
-							    (char*)msgb_data(msg), &buflen,
-							    RTP_BUF_SIZE);
-			if (cont < 0)
-				break;
-
-			if (addr)
-				mgcp_patch_and_count(endp, rtp_state, rtp_end,
-						     addr, msg);
-
-			if (amr_oa_bwe_convert_indicated(conn_dst->end.codec)) {
-				rc = amr_oa_bwe_convert(endp, msg,
-							conn_dst->end.codec->param.amr_octet_aligned);
-				if (rc < 0) {
-					LOGPENDP(endp, DRTP, LOGL_ERROR,
-						 "Error in AMR octet-aligned <-> bandwidth-efficient mode conversion\n");
-					break;
-				}
-			}
-			else if (rtp_end->rfc5993_hr_convert
-			    && strcmp(conn_src->end.codec->subtype_name,
-				      "GSM-HR-08") == 0) {
-				rc = rfc5993_hr_convert(endp, msg);
-				if (rc < 0) {
-					LOGPENDP(endp, DRTP, LOGL_ERROR, "Error while converting to GSM-HR-08\n");
-					break;
-				}
-			}
-
-			LOGPENDP(endp, DRTP, LOGL_DEBUG,
-				 "process/send to %s %s "
-				 "rtp_port:%u rtcp_port:%u\n",
-				 dest_name,
-				 osmo_sockaddr_ntop(&rtp_end->addr.u.sa, ipbuf),
-				 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
-				);
-
-			/* Forward a copy of the RTP data to a debug ip/port */
-			forward_data(rtp_end->rtp.fd, &conn_src->tap_out,
-				     msg);
-
-			/* FIXME: HACK HACK HACK. See OS#2459.
-			 * The ip.access nano3G needs the first RTP payload's first two bytes to read hex
-			 * 'e400', or it will reject the RAB assignment. It seems to not harm other femto
-			 * cells (as long as we patch only the first RTP payload in each stream).
-			 */
-			if (!rtp_state->patched_first_rtp_payload
-			    && conn_src->conn->mode == MGCP_CONN_LOOPBACK) {
-				uint8_t *data = msgb_data(msg) + 12;
-				if (data[0] == 0xe0) {
-					data[0] = 0xe4;
-					data[1] = 0x00;
-					rtp_state->patched_first_rtp_payload = true;
-					LOGPENDP(endp, DRTP, LOGL_DEBUG,
-						 "Patching over first two bytes"
-						 " to fake an IuUP Initialization Ack\n");
-				}
-			}
-
-			len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr, rtp_end->rtp_port,
-					    (char*)msgb_data(msg), msgb_length(msg));
-
-			if (len <= 0)
-				return len;
-
-			rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
-			rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
-			rtp_state->alt_rtp_tx_sequence++;
-
-			nbytes += len;
-			buflen = cont;
-		} while (buflen > 0);
-		return nbytes;
-	} else if (!trunk->omit_rtcp) {
-		LOGPENDP(endp, DRTP, LOGL_DEBUG,
-			 "send to %s %s rtp_port:%u rtcp_port:%u\n",
-			 dest_name, osmo_sockaddr_ntop(&rtp_end->addr.u.sa, ipbuf),
-			 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
-			);
-
-		len = mgcp_udp_send(rtp_end->rtcp.fd,
-				    &rtp_end->addr,
-				    rtp_end->rtcp_port, (char*)msgb_data(msg), msgb_length(msg));
-
-		rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
-		rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
-		rtp_state->alt_rtp_tx_sequence++;
-
-		return len;
-	}
-
-	return 0;
-}
-
 /* Check if the origin (addr) matches the address/port data of the RTP
  * connections. */
 static int check_rtp_origin(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *addr)
@@ -1235,6 +991,246 @@ static int mgcp_send_rtp(struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
 	LOGPENDP(endp, DRTP, LOGL_ERROR, "bad MGCP type -- data discarded!\n");
 
 	return -1;
+}
+
+/*! send udp packet.
+ *  \param[in] fd associated file descriptor.
+ *  \param[in] addr destination ip-address.
+ *  \param[in] port destination UDP port (network byte order).
+ *  \param[in] buf buffer that holds the data to be send.
+ *  \param[in] len length of the data to be sent.
+ *  \returns bytes sent, -1 on error. */
+int mgcp_udp_send(int fd, struct osmo_sockaddr *addr, int port, const char *buf, int len)
+{
+	char ipbuf[INET6_ADDRSTRLEN];
+	size_t addr_len;
+	bool is_ipv6 =  addr->u.sa.sa_family == AF_INET6;
+
+	LOGP(DRTP, LOGL_DEBUG,
+	     "sending %i bytes length packet to %s:%u ...\n", len,
+	     osmo_sockaddr_ntop(&addr->u.sa, ipbuf),
+	     ntohs(port));
+
+	if (is_ipv6) {
+		addr->u.sin6.sin6_port = port;
+		addr_len = sizeof(addr->u.sin6);
+	} else {
+		addr->u.sin.sin_port = port;
+		addr_len = sizeof(addr->u.sin);
+	}
+
+	return sendto(fd, buf, len, 0, &addr->u.sa, addr_len);
+}
+
+/*! send RTP dummy packet (to keep NAT connection open).
+ *  \param[in] endp mcgp endpoint that holds the RTP connection.
+ *  \param[in] conn associated RTP connection.
+ *  \returns bytes sent, -1 on error. */
+int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
+{
+	int rc;
+	int was_rtcp = 0;
+
+	OSMO_ASSERT(endp);
+	OSMO_ASSERT(conn);
+
+	LOGPCONN(conn->conn, DRTP, LOGL_DEBUG, "sending dummy packet... %s\n",
+		 mgcp_conn_dump(conn->conn));
+
+	rc = mgcp_udp_send(conn->end.rtp.fd, &conn->end.addr,
+			   conn->end.rtp_port, rtp_dummy_payload, sizeof(rtp_dummy_payload));
+
+	if (rc == -1)
+		goto failed;
+
+	if (endp->trunk->omit_rtcp)
+		return rc;
+
+	was_rtcp = 1;
+	rc = mgcp_udp_send(conn->end.rtcp.fd, &conn->end.addr,
+			   conn->end.rtcp_port, rtp_dummy_payload, sizeof(rtp_dummy_payload));
+
+	if (rc >= 0)
+		return rc;
+
+failed:
+	LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
+		 "Failed to send dummy %s packet.\n",
+		 was_rtcp ? "RTCP" : "RTP");
+
+	return -1;
+}
+
+/*! Send RTP/RTCP data to a specified destination connection.
+ *  \param[in] endp associated endpoint (for configuration, logging).
+ *  \param[in] is_rtp flag to specify if the packet is of type RTP or RTCP.
+ *  \param[in] spoofed source address (set to NULL to disable).
+ *  \param[in] buf buffer that contains the RTP/RTCP data.
+ *  \param[in] len length of the buffer that contains the RTP/RTCP data.
+ *  \param[in] conn_src associated source connection.
+ *  \param[in] conn_dst associated destination connection.
+ *  \returns 0 on success, -1 on ERROR. */
+int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr,
+	      struct msgb *msg, struct mgcp_conn_rtp *conn_src,
+	      struct mgcp_conn_rtp *conn_dst)
+{
+	/*! When no destination connection is available (e.g. when only one
+	 *  connection in loopback mode exists), then the source connection
+	 *  shall be specified as destination connection */
+
+	struct mgcp_trunk *trunk = endp->trunk;
+	struct mgcp_rtp_end *rtp_end;
+	struct mgcp_rtp_state *rtp_state;
+	char ipbuf[INET6_ADDRSTRLEN];
+	char *dest_name;
+	int rc;
+	int len;
+
+	OSMO_ASSERT(conn_src);
+	OSMO_ASSERT(conn_dst);
+
+	if (is_rtp)
+		LOGPENDP(endp, DRTP, LOGL_DEBUG, "delivering RTP packet...\n");
+	else
+		LOGPENDP(endp, DRTP, LOGL_DEBUG, "delivering RTCP packet...\n");
+
+	/* FIXME: It is legal that the payload type on the egress connection is
+	 * different from the payload type that has been negotiated on the
+	 * ingress connection. Essentially the codecs are the same so we can
+	 * match them and patch the payload type. However, if we can not find
+	 * the codec pendant (everything ist equal except the PT), we are of
+	 * course unable to patch the payload type. A situation like this
+	 * should not occur if transcoding is consequently avoided. Until
+	 * we have transcoding support in osmo-mgw we can not resolve this. */
+	if (is_rtp) {
+		rc = mgcp_patch_pt(conn_src, conn_dst, msg);
+		if (rc < 0) {
+			LOGPENDP(endp, DRTP, LOGL_DEBUG,
+				 "can not patch PT because no suitable egress codec was found.\n");
+		}
+	}
+
+	/* Note: In case of loopback configuration, both, the source and the
+	 * destination will point to the same connection. */
+	rtp_end = &conn_dst->end;
+	rtp_state = &conn_src->state;
+	dest_name = conn_dst->conn->name;
+
+	/* Ensure we have an alternative SSRC in case we need it, see also
+	 * gen_rtp_header() */
+	if (rtp_state->alt_rtp_tx_ssrc == 0)
+		rtp_state->alt_rtp_tx_ssrc = rand();
+
+	if (!rtp_end->output_enabled) {
+		rtpconn_rate_ctr_inc(conn_dst, endp, RTP_DROPPED_PACKETS_CTR);
+		LOGPENDP(endp, DRTP, LOGL_DEBUG,
+			 "output disabled, drop to %s %s "
+			 "rtp_port:%u rtcp_port:%u\n",
+			 dest_name,
+			 osmo_sockaddr_ntop(&rtp_end->addr.u.sa, ipbuf),
+			 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
+		    );
+	} else if (is_rtp) {
+		int cont;
+		int nbytes = 0;
+		int buflen = msgb_length(msg);
+
+		/* Make sure we have a valid RTP header, in cases where no RTP
+		 * header is present, we will generate one. */
+		gen_rtp_header(msg, rtp_end, rtp_state);
+
+		do {
+			/* Run transcoder */
+			cont = endp->cfg->rtp_processing_cb(endp, rtp_end,
+							    (char *)msgb_data(msg), &buflen,
+							    RTP_BUF_SIZE);
+			if (cont < 0)
+				break;
+
+			if (addr)
+				mgcp_patch_and_count(endp, rtp_state, rtp_end,
+						     addr, msg);
+
+			if (amr_oa_bwe_convert_indicated(conn_dst->end.codec)) {
+				rc = amr_oa_bwe_convert(endp, msg,
+							conn_dst->end.codec->param.amr_octet_aligned);
+				if (rc < 0) {
+					LOGPENDP(endp, DRTP, LOGL_ERROR,
+						 "Error in AMR octet-aligned <-> bandwidth-efficient mode conversion\n");
+					break;
+				}
+			} else if (rtp_end->rfc5993_hr_convert &&
+				   strcmp(conn_src->end.codec->subtype_name, "GSM-HR-08") == 0) {
+				rc = rfc5993_hr_convert(endp, msg);
+				if (rc < 0) {
+					LOGPENDP(endp, DRTP, LOGL_ERROR, "Error while converting to GSM-HR-08\n");
+					break;
+				}
+			}
+
+			LOGPENDP(endp, DRTP, LOGL_DEBUG,
+				 "process/send to %s %s "
+				 "rtp_port:%u rtcp_port:%u\n",
+				 dest_name,
+				 osmo_sockaddr_ntop(&rtp_end->addr.u.sa, ipbuf),
+				 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
+				);
+
+			/* Forward a copy of the RTP data to a debug ip/port */
+			forward_data(rtp_end->rtp.fd, &conn_src->tap_out,
+				     msg);
+
+			/* FIXME: HACK HACK HACK. See OS#2459.
+			 * The ip.access nano3G needs the first RTP payload's first two bytes to read hex
+			 * 'e400', or it will reject the RAB assignment. It seems to not harm other femto
+			 * cells (as long as we patch only the first RTP payload in each stream).
+			 */
+			if (!rtp_state->patched_first_rtp_payload
+			    && conn_src->conn->mode == MGCP_CONN_LOOPBACK) {
+				uint8_t *data = msgb_data(msg) + 12;
+				if (data[0] == 0xe0) {
+					data[0] = 0xe4;
+					data[1] = 0x00;
+					rtp_state->patched_first_rtp_payload = true;
+					LOGPENDP(endp, DRTP, LOGL_DEBUG,
+						 "Patching over first two bytes"
+						 " to fake an IuUP Initialization Ack\n");
+				}
+			}
+
+			len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr, rtp_end->rtp_port,
+					    (char *)msgb_data(msg), msgb_length(msg));
+
+			if (len <= 0)
+				return len;
+
+			rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
+			rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
+			rtp_state->alt_rtp_tx_sequence++;
+
+			nbytes += len;
+			buflen = cont;
+		} while (buflen > 0);
+		return nbytes;
+	} else if (!trunk->omit_rtcp) {
+		LOGPENDP(endp, DRTP, LOGL_DEBUG,
+			 "send to %s %s rtp_port:%u rtcp_port:%u\n",
+			 dest_name, osmo_sockaddr_ntop(&rtp_end->addr.u.sa, ipbuf),
+			 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
+			);
+
+		len = mgcp_udp_send(rtp_end->rtcp.fd,
+				    &rtp_end->addr,
+				    rtp_end->rtcp_port, (char *)msgb_data(msg), msgb_length(msg));
+
+		rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
+		rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
+		rtp_state->alt_rtp_tx_sequence++;
+
+		return len;
+	}
+
+	return 0;
 }
 
 /*! dispatch incoming RTP packet to opposite RTP connection.
