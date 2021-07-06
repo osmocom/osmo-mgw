@@ -990,8 +990,9 @@ mgcp_header_done:
 
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
 	OSMO_ASSERT(trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
-	if (conn->conn->mode & MGCP_CONN_RECV_ONLY
-	    && trunk->keepalive_interval != MGCP_KEEPALIVE_NEVER)
+	if (conn->conn->mode & MGCP_CONN_RECV_ONLY &&
+	    mgcp_rtp_end_remote_addr_available(&conn->end) &&
+	    trunk->keepalive_interval != MGCP_KEEPALIVE_NEVER)
 		send_dummy(endp, conn);
 
 	LOGPCONN(_conn, DLMGCP, LOGL_NOTICE,
@@ -1232,8 +1233,9 @@ mgcp_header_done:
 
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
 	OSMO_ASSERT(endp->trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
-	if (conn->conn->mode & MGCP_CONN_RECV_ONLY
-	    && endp->trunk->keepalive_interval != MGCP_KEEPALIVE_NEVER)
+	if (conn->conn->mode & MGCP_CONN_RECV_ONLY &&
+	    mgcp_rtp_end_remote_addr_available(&conn->end) &&
+	    endp->trunk->keepalive_interval != MGCP_KEEPALIVE_NEVER)
 		send_dummy(endp, conn);
 
 	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_SUCCESS));
@@ -1495,7 +1497,9 @@ static void mgcp_keepalive_timer_cb(void *_trunk)
 	for (i = 1; i < trunk->number_endpoints; ++i) {
 		struct mgcp_endpoint *endp = trunk->endpoints[i];
 		llist_for_each_entry(conn, &endp->conns, entry) {
-			if (conn->mode == MGCP_CONN_RECV_ONLY)
+			if (conn->type == MGCP_CONN_TYPE_RTP &&
+			    conn->mode == MGCP_CONN_RECV_ONLY &&
+			     mgcp_rtp_end_remote_addr_available(&conn->u.rtp.end))
 				send_dummy(endp, &conn->u.rtp);
 		}
 	}

@@ -88,6 +88,11 @@ static bool addr_is_any(const struct osmo_sockaddr *osa)
 	}
 }
 
+bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end)
+{
+	return rtp_end->rtp_port && !addr_is_any(&rtp_end->addr);
+}
+
 /*! Determine the local rtp bind IP-address.
  *  \param[out] addr caller provided memory to store the resulting IP-Address.
  *  \param[in] endp mgcp endpoint, that holds a copy of the VTY parameters.

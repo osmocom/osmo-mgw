@@ -132,6 +132,8 @@ struct mgcp_rtp_end {
 	char local_addr[INET6_ADDRSTRLEN];
 };
 
+bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end);
+
 struct mgcp_rtp_tap {
 	/* is this tap active (1) or not (0) */
 	int enabled;
