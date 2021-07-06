@@ -77,7 +77,8 @@ static void rtpconn_rate_ctr_inc(struct mgcp_conn_rtp *conn_rtp, struct mgcp_end
 
 static int rx_rtp(struct msgb *msg);
 
-static bool addr_is_any(struct osmo_sockaddr *osa) {
+static bool addr_is_any(const struct osmo_sockaddr *osa)
+{
 	if (osa->u.sa.sa_family == AF_INET6) {
 		struct in6_addr ip6_any = IN6ADDR_ANY_INIT;
 		return memcmp(&osa->u.sin6.sin6_addr,
