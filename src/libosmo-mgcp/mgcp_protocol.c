@@ -1149,7 +1149,7 @@ mgcp_header_done:
 	/* check connection mode setting */
 	if (conn->conn->mode != MGCP_CONN_LOOPBACK
 	    && conn->conn->mode != MGCP_CONN_RECV_ONLY
-	    && conn->end.rtp_port == 0) {
+	    && !mgcp_rtp_end_remote_addr_available(&conn->end)) {
 		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
 			 "MDCX: selected connection mode type requires an opposite end!\n");
 		error_code = 527;
