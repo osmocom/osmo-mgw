@@ -243,7 +243,7 @@ static int read_call_agent(struct osmo_fd *fd, unsigned int what)
 
 		/* Walk over all endpoints and trigger a release, this will release all
 		 * endpoints, possible open connections are forcefully dropped */
-		for (i = 1; i < reset_trunk->number_endpoints; ++i)
+		for (i = 0; i < reset_trunk->number_endpoints; ++i)
 			mgcp_endp_release(reset_trunk->endpoints[i]);
 	}
 
