@@ -240,7 +240,7 @@ failed:
 }
 
 /* Compute timestamp alignment error */
-static int32_t ts_alignment_error(struct mgcp_rtp_stream_state *sstate,
+static int32_t ts_alignment_error(const struct mgcp_rtp_stream_state *sstate,
 				  int ptime, uint32_t timestamp)
 {
 	int32_t timestamp_delta;
@@ -255,11 +255,11 @@ static int32_t ts_alignment_error(struct mgcp_rtp_stream_state *sstate,
 }
 
 /* Check timestamp and sequence number for plausibility */
-static int check_rtp_timestamp(struct mgcp_endpoint *endp,
-			       struct mgcp_rtp_state *state,
-			       struct mgcp_rtp_stream_state *sstate,
-			       struct mgcp_rtp_end *rtp_end,
-			       struct osmo_sockaddr *addr,
+static int check_rtp_timestamp(const struct mgcp_endpoint *endp,
+			       const struct mgcp_rtp_state *state,
+			       const struct mgcp_rtp_stream_state *sstate,
+			       const struct mgcp_rtp_end *rtp_end,
+			       const struct osmo_sockaddr *addr,
 			       uint16_t seq, uint32_t timestamp,
 			       const char *text, int32_t * tsdelta_out)
 {
@@ -344,10 +344,10 @@ static int check_rtp_timestamp(struct mgcp_endpoint *endp,
 }
 
 /* Set the timestamp offset according to the packet duration. */
-static int adjust_rtp_timestamp_offset(struct mgcp_endpoint *endp,
+static int adjust_rtp_timestamp_offset(const struct mgcp_endpoint *endp,
 				       struct mgcp_rtp_state *state,
-				       struct mgcp_rtp_end *rtp_end,
-				       struct osmo_sockaddr *addr,
+				       const struct mgcp_rtp_end *rtp_end,
+				       const struct osmo_sockaddr *addr,
 				       int16_t delta_seq, uint32_t in_timestamp)
 {
 	int32_t tsdelta = state->packet_duration;
@@ -394,10 +394,10 @@ static int adjust_rtp_timestamp_offset(struct mgcp_endpoint *endp,
 }
 
 /* Set the timestamp offset according to the packet duration. */
-static int align_rtp_timestamp_offset(struct mgcp_endpoint *endp,
+static int align_rtp_timestamp_offset(const struct mgcp_endpoint *endp,
 				      struct mgcp_rtp_state *state,
-				      struct mgcp_rtp_end *rtp_end,
-				      struct osmo_sockaddr *addr,
+				      const struct mgcp_rtp_end *rtp_end,
+				      const struct osmo_sockaddr *addr,
 				      uint32_t timestamp)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
@@ -475,7 +475,7 @@ void mgcp_get_net_downlink_format_default(struct mgcp_endpoint *endp,
 	*fmtp_extra = conn->end.fmtp_extra;
 }
 
-void mgcp_rtp_annex_count(struct mgcp_endpoint *endp,
+void mgcp_rtp_annex_count(const struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_state *state, const uint16_t seq,
 			  const int32_t transit, const uint32_t ssrc)
 {
@@ -556,7 +556,7 @@ static int mgcp_patch_pt(struct mgcp_conn_rtp *conn_src,
  * is only one source.
  * There is also no probation period for new sources. Every RTP header
  * we receive will be seen as a switch in streams. */
-void mgcp_patch_and_count(struct mgcp_endpoint *endp,
+void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_state *state,
 			  struct mgcp_rtp_end *rtp_end,
 			  struct osmo_sockaddr *addr, struct msgb *msg)

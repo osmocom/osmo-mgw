@@ -1261,11 +1261,6 @@ struct rtp_packet_info test_rtp_packets1[] = {
 	 "\x01\x23\x45\x67\x89\xAB\xCD\xEF"},
 };
 
-void mgcp_patch_and_count(struct mgcp_endpoint *endp,
-			  struct mgcp_rtp_state *state,
-			  struct mgcp_rtp_end *rtp_end,
-			  struct osmo_sockaddr *addr, struct msgb *msg);
-
 static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 {
 	int i;

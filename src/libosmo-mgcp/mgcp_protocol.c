@@ -611,8 +611,8 @@ void mgcp_rtp_end_config(struct mgcp_endpoint *endp, int expect_ssrc_change,
 		 rtp->force_constant_ssrc ? ", force constant ssrc" : "");
 }
 
-uint32_t mgcp_rtp_packet_duration(struct mgcp_endpoint *endp,
-				  struct mgcp_rtp_end *rtp)
+uint32_t mgcp_rtp_packet_duration(const struct mgcp_endpoint *endp,
+				  const struct mgcp_rtp_end *rtp)
 {
 	int f = 0;
 

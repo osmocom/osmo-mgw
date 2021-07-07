@@ -152,7 +152,7 @@ void mgcp_cleanup_e1_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *con
 int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 			   struct mgcp_conn_rtp *conn);
 void mgcp_free_rtp_port(struct mgcp_rtp_end *end);
-void mgcp_patch_and_count(struct mgcp_endpoint *endp,
+void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_state *state,
 			  struct mgcp_rtp_end *rtp_end,
 			  struct osmo_sockaddr *addr, struct msgb *msg);
@@ -172,6 +172,6 @@ void mgcp_get_net_downlink_format_default(struct mgcp_endpoint *endp,
 					  struct mgcp_conn_rtp *conn);
 
 /* internal RTP Annex A counting */
-void mgcp_rtp_annex_count(struct mgcp_endpoint *endp, struct mgcp_rtp_state *state,
+void mgcp_rtp_annex_count(const struct mgcp_endpoint *endp, struct mgcp_rtp_state *state,
 			const uint16_t seq, const int32_t transit,
 			const uint32_t ssrc);
