@@ -901,7 +901,7 @@ static int check_rtp_destin(struct mgcp_conn_rtp *conn)
 	 * and IP-address for outgoing data. */
 	if (ip_is_any && conn->end.rtp_port == 0) {
 		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
-			 "destination IP-address and rtp port is (not yet) known (%s:%u)\n",
+			 "destination IP-address and rtp port is not (yet) known (%s:%u)\n",
 			 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf), conn->end.rtp_port);
 		return -1;
 	}
