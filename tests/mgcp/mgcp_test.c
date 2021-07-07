@@ -1282,6 +1282,15 @@ struct rtp_packet_info test_rtp_packets1[] = {
 	/* RTP: SeqNo=1002, TS=160320 */
 	{2.040000, 20, "\x80\x62\x03\xEA\x00\x02\x72\x40\x50\x60\x70\x80"
 	 "\x01\x23\x45\x67\x89\xAB\xCD\xEF"},
+	/* RTP: SeqNo=1003, TS=180320, Marker */
+	{2.060000, 20, "\x80\xE2\x03\xEB\x00\x02\xC0\x60\x50\x60\x70\x80"
+	 "\x01\x23\x45\x67\x89\xAB\xCD\xEF"},
+	 /* RTP: SeqNo=1004, TS=180480 */
+	{2.080000, 20, "\x80\x62\x03\xEC\x00\x02\xC1\x00\x50\x60\x70\x80"
+	 "\x01\x23\x45\x67\x89\xAB\xCD\xEF"},
+	 /* RTP: SeqNo=1005, TS=180480, 10ms too late */
+	{2.110000, 20, "\x80\x62\x03\xED\x00\x02\xC1\xA0\x50\x60\x70\x80"
+	 "\x01\x23\x45\x67\x89\xAB\xCD\xEF"},
 };
 
 static void test_packet_error_detection(int patch_ssrc, int patch_ts)
@@ -1566,24 +1575,24 @@ static void test_no_cycle(void)
 
 	OSMO_ASSERT(conn->state.stats.initialized == 0);
 
-	mgcp_rtp_annex_count(endp, &conn->state, 0, 0, 2342);
+	mgcp_rtp_annex_count(endp, &conn->state, 0, 0, 2342, false);
 	OSMO_ASSERT(conn->state.stats.initialized == 1);
 	OSMO_ASSERT(conn->state.stats.cycles == 0);
 	OSMO_ASSERT(conn->state.stats.max_seq == 0);
 
-	mgcp_rtp_annex_count(endp, &conn->state, 1, 0, 2342);
+	mgcp_rtp_annex_count(endp, &conn->state, 1, 0, 2342, false);
 	OSMO_ASSERT(conn->state.stats.initialized == 1);
 	OSMO_ASSERT(conn->state.stats.cycles == 0);
 	OSMO_ASSERT(conn->state.stats.max_seq == 1);
 
 	/* now jump.. */
-	mgcp_rtp_annex_count(endp, &conn->state, UINT16_MAX, 0, 2342);
+	mgcp_rtp_annex_count(endp, &conn->state, UINT16_MAX, 0, 2342, false);
 	OSMO_ASSERT(conn->state.stats.initialized == 1);
 	OSMO_ASSERT(conn->state.stats.cycles == 0);
 	OSMO_ASSERT(conn->state.stats.max_seq == UINT16_MAX);
 
 	/* and wrap */
-	mgcp_rtp_annex_count(endp, &conn->state, 0, 0, 2342);
+	mgcp_rtp_annex_count(endp, &conn->state, 0, 0, 2342, false);
 	OSMO_ASSERT(conn->state.stats.initialized == 1);
 	OSMO_ASSERT(conn->state.stats.cycles == UINT16_MAX + 1);
 	OSMO_ASSERT(conn->state.stats.max_seq == 0);

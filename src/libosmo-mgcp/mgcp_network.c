@@ -285,12 +285,20 @@ static int adjust_rtp_timestamp_offset(const struct mgcp_endpoint *endp,
 				       struct mgcp_rtp_state *state,
 				       const struct mgcp_rtp_end *rtp_end,
 				       const struct osmo_sockaddr *addr,
-				       int16_t delta_seq, uint32_t in_timestamp)
+				       int16_t delta_seq, uint32_t in_timestamp,
+				       bool marker_bit)
 {
 	int32_t tsdelta = state->packet_duration;
 	int timestamp_offset;
 	uint32_t out_timestamp;
 	char ipbuf[INET6_ADDRSTRLEN];
+
+	if (marker_bit) {
+		/* If RTP pkt contains marker bit, the timestamps are not longer
+		 * in sync, so we can erase timestamp offset patching. */
+		state->patch.timestamp_offset = 0;
+		return 0;
+	}
 
 	if (tsdelta == 0) {
 		tsdelta = state->out_stream.last_tsdelta;
@@ -335,12 +343,18 @@ static int align_rtp_timestamp_offset(const struct mgcp_endpoint *endp,
 				      struct mgcp_rtp_state *state,
 				      const struct mgcp_rtp_end *rtp_end,
 				      const struct osmo_sockaddr *addr,
-				      uint32_t timestamp)
+				      uint32_t timestamp, bool marker_bit)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
 	int ts_error = 0;
 	int ts_check = 0;
 	int ptime = state->packet_duration;
+
+	if (marker_bit) {
+		/* If RTP pkt contains marker bit, the timestamps are not longer
+		 * in sync, so no alignment is needed. */
+		return 0;
+	}
 
 	/* Align according to: T + Toffs - Tlast = k * Tptime */
 
@@ -414,12 +428,13 @@ void mgcp_get_net_downlink_format_default(struct mgcp_endpoint *endp,
 
 void mgcp_rtp_annex_count(const struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_state *state, const uint16_t seq,
-			  const int32_t transit, const uint32_t ssrc)
+			  const int32_t transit, const uint32_t ssrc,
+			  const bool marker_bit)
 {
 	int32_t d;
 
 	/* initialize or re-initialize */
-	if (!state->stats.initialized || state->stats.ssrc != ssrc) {
+	if (!state->stats.initialized || state->stats.ssrc != ssrc || marker_bit) {
 		state->stats.initialized = 1;
 		state->stats.base_seq = seq;
 		state->stats.max_seq = seq - 1;
@@ -503,6 +518,7 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 	int32_t transit;
 	uint16_t seq;
 	uint32_t timestamp, ssrc;
+	bool marker_bit;
 	struct rtp_hdr *rtp_hdr;
 	int payload = rtp_end->codec->payload_type;
 	unsigned int len = msgb_length(msg);
@@ -515,9 +531,10 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 	timestamp = ntohl(rtp_hdr->timestamp);
 	arrival_time = get_current_ts(rtp_end->codec->rate);
 	ssrc = ntohl(rtp_hdr->ssrc);
+	marker_bit = !!rtp_hdr->marker;
 	transit = arrival_time - timestamp;
 
-	mgcp_rtp_annex_count(endp, state, seq, transit, ssrc);
+	mgcp_rtp_annex_count(endp, state, seq, transit, ssrc, marker_bit);
 
 	if (!state->initialized) {
 		state->initialized = 1;
@@ -571,7 +588,7 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 			    state->packet_duration;
 
 			adjust_rtp_timestamp_offset(endp, state, rtp_end, addr,
-						    delta_seq, timestamp);
+						    delta_seq, timestamp, marker_bit);
 
 			state->patch.patch_ssrc = true;
 			ssrc = state->patch.orig_ssrc;
@@ -589,10 +606,14 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 
 		state->in_stream.last_tsdelta = 0;
 	} else {
-		/* Compute current per-packet timestamp delta */
-		check_rtp_timestamp(endp, state, &state->in_stream, rtp_end,
-				    addr, seq, timestamp, "input",
-				    &state->in_stream.last_tsdelta);
+		if (!marker_bit) {
+			/* Compute current per-packet timestamp delta */
+			check_rtp_timestamp(endp, state, &state->in_stream, rtp_end,
+					    addr, seq, timestamp, "input",
+					    &state->in_stream.last_tsdelta);
+		} else {
+			state->in_stream.last_tsdelta = 0;
+		}
 
 		if (state->patch.patch_ssrc)
 			ssrc = state->patch.orig_ssrc;
@@ -607,7 +628,7 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 	    state->out_stream.ssrc == ssrc && state->packet_duration)
 		/* Align the timestamp offset */
 		align_rtp_timestamp_offset(endp, state, rtp_end, addr,
-					   timestamp);
+					   timestamp, marker_bit);
 
 	/* Store the updated SSRC back to the packet */
 	if (state->patch.patch_ssrc)
@@ -622,10 +643,14 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 	rtp_hdr->timestamp = htonl(timestamp);
 
 	/* Check again, whether the timestamps are still valid */
-	if (state->out_stream.ssrc == ssrc)
-		check_rtp_timestamp(endp, state, &state->out_stream, rtp_end,
-				    addr, seq, timestamp, "output",
-				    &state->out_stream.last_tsdelta);
+	if (!marker_bit) {
+		if (state->out_stream.ssrc == ssrc)
+			check_rtp_timestamp(endp, state, &state->out_stream, rtp_end,
+					    addr, seq, timestamp, "output",
+					    &state->out_stream.last_tsdelta);
+	} else {
+		state->out_stream.last_tsdelta = 0;
+	}
 
 	/* Save output values */
 	state->out_stream.last_seq = seq;

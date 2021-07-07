@@ -792,6 +792,15 @@ Stats: Jitter = 0, Transit = -144000
 In TS: 160320, dTS: 160, Seq: 1002
 Out TS change: 160, dTS: 160, Seq change: 1, TS Err change: in +0, out +0
 Stats: Jitter = 0, Transit = -144000
+In TS: 180320, dTS: 0, Seq: 1003
+Out TS change: 20000, dTS: 0, Seq change: 1, TS Err change: in +0, out +0
+Stats: Jitter = 0, Transit = -163840
+In TS: 180480, dTS: 160, Seq: 1004
+Out TS change: 160, dTS: 160, Seq change: 1, TS Err change: in +0, out +0
+Stats: Jitter = 0, Transit = -163840
+In TS: 180640, dTS: 160, Seq: 1005
+Out TS change: 160, dTS: 160, Seq change: 1, TS Err change: in +0, out +0
+Stats: Jitter = 5, Transit = -163760
 Testing packet error detection.
 Output SSRC changed to 11223344
 In TS: 0, dTS: 0, Seq: 0
@@ -886,6 +895,15 @@ Stats: Jitter = 0, Transit = -144000
 In TS: 160320, dTS: 160, Seq: 1002
 Out TS change: 160, dTS: 160, Seq change: 1, TS Err change: in +0, out +0
 Stats: Jitter = 0, Transit = -144000
+In TS: 180320, dTS: 0, Seq: 1003
+Out TS change: 20000, dTS: 0, Seq change: 1, TS Err change: in +0, out +0
+Stats: Jitter = 0, Transit = -163840
+In TS: 180480, dTS: 160, Seq: 1004
+Out TS change: 160, dTS: 160, Seq change: 1, TS Err change: in +0, out +0
+Stats: Jitter = 0, Transit = -163840
+In TS: 180640, dTS: 160, Seq: 1005
+Out TS change: 160, dTS: 160, Seq change: 1, TS Err change: in +0, out +0
+Stats: Jitter = 5, Transit = -163760
 Testing packet error detection, patch timestamps.
 Output SSRC changed to 11223344
 In TS: 0, dTS: 0, Seq: 0
@@ -980,6 +998,15 @@ Stats: Jitter = 0, Transit = -144000
 In TS: 160320, dTS: 160, Seq: 1002
 Out TS change: 160, dTS: 160, Seq change: 1, TS Err change: in +0, out +0
 Stats: Jitter = 0, Transit = -144000
+In TS: 180320, dTS: 0, Seq: 1003
+Out TS change: 20000, dTS: 0, Seq change: 1, TS Err change: in +0, out +0
+Stats: Jitter = 0, Transit = -163840
+In TS: 180480, dTS: 160, Seq: 1004
+Out TS change: 160, dTS: 160, Seq change: 1, TS Err change: in +0, out +0
+Stats: Jitter = 0, Transit = -163840
+In TS: 180640, dTS: 160, Seq: 1005
+Out TS change: 160, dTS: 160, Seq change: 1, TS Err change: in +0, out +0
+Stats: Jitter = 5, Transit = -163760
 Testing packet error detection, patch SSRC, patch timestamps.
 Output SSRC changed to 11223344
 In TS: 0, dTS: 0, Seq: 0
@@ -1072,6 +1099,15 @@ Stats: Jitter = 0, Transit = -144000
 In TS: 160320, dTS: 160, Seq: 1002
 Out TS change: 160, dTS: 160, Seq change: 1, TS Err change: in +0, out +0
 Stats: Jitter = 0, Transit = -144000
+In TS: 180320, dTS: 0, Seq: 1003
+Out TS change: 20000, dTS: 0, Seq change: 1, TS Err change: in +0, out +0
+Stats: Jitter = 0, Transit = -163840
+In TS: 180480, dTS: 160, Seq: 1004
+Out TS change: 160, dTS: 160, Seq change: 1, TS Err change: in +0, out +0
+Stats: Jitter = 0, Transit = -163840
+In TS: 180640, dTS: 160, Seq: 1005
+Out TS change: 160, dTS: 160, Seq change: 1, TS Err change: in +0, out +0
+Stats: Jitter = 5, Transit = -163760
 Testing multiple payload types
 creating message from statically defined input:
 ---------8<---------
