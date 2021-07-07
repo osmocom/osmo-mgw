@@ -34,7 +34,7 @@ struct mgcp_rtp_state {
 
 	struct {
 		/* are we patching the SSRC value? */
-		int patch_ssrc;
+		bool patch_ssrc;
 		/* original SSRC (to which we shall patch any different SSRC) */
 		uint32_t orig_ssrc;
 		/* offset to apply on the sequence number */

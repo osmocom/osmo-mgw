@@ -636,7 +636,7 @@ void mgcp_patch_and_count(struct mgcp_endpoint *endp,
 			adjust_rtp_timestamp_offset(endp, state, rtp_end, addr,
 						    delta_seq, timestamp);
 
-			state->patch.patch_ssrc = 1;
+			state->patch.patch_ssrc = true;
 			ssrc = state->patch.orig_ssrc;
 			if (rtp_end->force_constant_ssrc != -1)
 				rtp_end->force_constant_ssrc -= 1;
