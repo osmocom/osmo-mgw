@@ -1494,7 +1494,7 @@ static void mgcp_keepalive_timer_cb(void *_trunk)
 
 	/* Send walk over all endpoints and send out dummy packets through
 	 * every connection present on each endpoint */
-	for (i = 1; i < trunk->number_endpoints; ++i) {
+	for (i = 0; i < trunk->number_endpoints; ++i) {
 		struct mgcp_endpoint *endp = trunk->endpoints[i];
 		llist_for_each_entry(conn, &endp->conns, entry) {
 			if (conn->type == MGCP_CONN_TYPE_RTP &&
