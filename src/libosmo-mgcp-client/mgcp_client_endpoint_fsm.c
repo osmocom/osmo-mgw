@@ -33,7 +33,7 @@
 
 #define LOG_CI(ci, level, fmt, args...) do { \
 	if (!ci || !ci->ep) \
-		LOGP(DLGLOBAL, level, "(unknown MGW endpoint) " fmt, ## args); \
+		LOGP(DLMGCP, level, "(unknown MGW endpoint) " fmt, ## args); \
 	else \
 		LOG_MGCPC_EP(ci->ep, level, "CI[%d] %s%s%s: " fmt, \
 			(int)(ci - ci->ep->ci), \
@@ -616,7 +616,7 @@ void osmo_mgcpc_ep_ci_request(struct osmo_mgcpc_ep_ci *ci,
 	ci = osmo_mgcpc_ep_check_ci(ci);
 
 	if (!ci) {
-		LOGP(DLGLOBAL, LOGL_ERROR, "Invalid MGW endpoint request: no ci\n");
+		LOGP(DLMGCP, LOGL_ERROR, "Invalid MGW endpoint request: no ci\n");
 		goto dispatch_error;
 	}
 	if (!verb_info && verb != MGCP_VERB_DLCX) {
