@@ -8,7 +8,6 @@ LOGP(cat, level, "trunk:%u " fmt, \
      trunk ? trunk->trunk_nr : 0, \
      ## args)
 
-
 enum mgcp_trunk_type {
 	MGCP_TRUNK_VIRTUAL,
 	MGCP_TRUNK_E1,
