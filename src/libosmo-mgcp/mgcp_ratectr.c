@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <osmocom/core/stats.h>
 #include <osmocom/mgcp/mgcp_conn.h>
+#include <osmocom/mgcp/mgcp_trunk.h>
 #include <osmocom/mgcp/mgcp_ratectr.h>
 
 static const struct rate_ctr_desc mgcp_general_ctr_desc[] = {
@@ -153,75 +154,95 @@ static int free_rate_counter_group(struct rate_ctr_group *rate_ctr_group)
 	return 0;
 }
 
-/*! allocate global rate counters into a given rate counter struct
- *  (called once at startup)
- *  \param[in] ctx talloc context.
- *  \param[out] ratectr struct that holds the counters
- *  \returns 0 on success, -EINVAL on failure */
-int mgcp_ratectr_global_alloc(void *ctx, struct mgcp_ratectr_global *ratectr)
+/*! allocate global rate counters
+ *  (called once at startup).
+ *  \param[in] cfg mgw configuration for which the rate counters are allocated.
+ *  \returns 0 on success, -EINVAL on failure. */
+int mgcp_ratectr_global_alloc(struct mgcp_config *cfg)
 {
-	/* FIXME: Each new rate counter group requires a unique index. At the
-	 * moment we generate an index using a counter, but perhaps there is
-	 * a better way of assigning indices? */
+	struct mgcp_ratectr_global *ratectr = &cfg->ratectr;
 	static unsigned int general_rate_ctr_index = 0;
+	char ctr_name[512];
 
 	if (ratectr->mgcp_general_ctr_group == NULL) {
 		ratectr->mgcp_general_ctr_group =
-		    rate_ctr_group_alloc(ctx, &mgcp_general_ctr_group_desc, general_rate_ctr_index);
+		    rate_ctr_group_alloc(cfg, &mgcp_general_ctr_group_desc, general_rate_ctr_index);
 		if (!ratectr->mgcp_general_ctr_group)
 			return -EINVAL;
+		snprintf(ctr_name, sizeof(ctr_name), "%s:general", cfg->domain);
+		rate_ctr_group_set_name(ratectr->mgcp_general_ctr_group, ctr_name);
 		talloc_set_destructor(ratectr->mgcp_general_ctr_group, free_rate_counter_group);
 		general_rate_ctr_index++;
 	}
 	return 0;
 }
 
-/*! allocate trunk specific rate counters into a given rate counter struct
- *  (called once on trunk initialization)
- *  \param[in] ctx talloc context.
- *  \param[out] ratectr struct that holds the counters
+/*! allocate trunk specific rate counters
+ *  (called once on trunk initialization).
+ *  \param[in] trunk mgw trunk for which the rate counters are allocated.
  *  \returns 0 on success, -EINVAL on failure */
-int mgcp_ratectr_trunk_alloc(void *ctx, struct mgcp_ratectr_trunk *ratectr)
+int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 {
-	/* FIXME: see comment in mgcp_ratectr_global_alloc()  */
+	struct mgcp_ratectr_trunk *ratectr = &trunk->ratectr;
 	static unsigned int crcx_rate_ctr_index = 0;
 	static unsigned int mdcx_rate_ctr_index = 0;
 	static unsigned int dlcx_rate_ctr_index = 0;
 	static unsigned int all_rtp_conn_rate_ctr_index = 0;
+	char ctr_name[256];
 
 	if (ratectr->mgcp_crcx_ctr_group == NULL) {
-		ratectr->mgcp_crcx_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_crcx_ctr_group_desc, crcx_rate_ctr_index);
+		ratectr->mgcp_crcx_ctr_group =
+		    rate_ctr_group_alloc(trunk, &mgcp_crcx_ctr_group_desc, crcx_rate_ctr_index);
 		if (!ratectr->mgcp_crcx_ctr_group)
 			return -EINVAL;
+		snprintf(ctr_name, sizeof(ctr_name), "%s-%d:crcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
+			 trunk->trunk_nr);
+		rate_ctr_group_set_name(ratectr->mgcp_crcx_ctr_group, ctr_name);
 		talloc_set_destructor(ratectr->mgcp_crcx_ctr_group, free_rate_counter_group);
 		crcx_rate_ctr_index++;
 	}
 	if (ratectr->mgcp_mdcx_ctr_group == NULL) {
-		ratectr->mgcp_mdcx_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_mdcx_ctr_group_desc, mdcx_rate_ctr_index);
+		ratectr->mgcp_mdcx_ctr_group =
+		    rate_ctr_group_alloc(trunk, &mgcp_mdcx_ctr_group_desc, mdcx_rate_ctr_index);
 		if (!ratectr->mgcp_mdcx_ctr_group)
 			return -EINVAL;
+		snprintf(ctr_name, sizeof(ctr_name), "%s-%d:mdcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
+			 trunk->trunk_nr);
+		rate_ctr_group_set_name(ratectr->mgcp_mdcx_ctr_group, ctr_name);
 		talloc_set_destructor(ratectr->mgcp_mdcx_ctr_group, free_rate_counter_group);
 		mdcx_rate_ctr_index++;
 	}
 	if (ratectr->mgcp_dlcx_ctr_group == NULL) {
-		ratectr->mgcp_dlcx_ctr_group = rate_ctr_group_alloc(ctx, &mgcp_dlcx_ctr_group_desc, dlcx_rate_ctr_index);
+		ratectr->mgcp_dlcx_ctr_group =
+		    rate_ctr_group_alloc(trunk, &mgcp_dlcx_ctr_group_desc, dlcx_rate_ctr_index);
 		if (!ratectr->mgcp_dlcx_ctr_group)
 			return -EINVAL;
+		snprintf(ctr_name, sizeof(ctr_name), "%s-%d:dlcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
+			 trunk->trunk_nr);
+		rate_ctr_group_set_name(ratectr->mgcp_dlcx_ctr_group, ctr_name);
 		talloc_set_destructor(ratectr->mgcp_dlcx_ctr_group, free_rate_counter_group);
 		dlcx_rate_ctr_index++;
 	}
 	if (ratectr->all_rtp_conn_stats == NULL) {
-		ratectr->all_rtp_conn_stats = rate_ctr_group_alloc(ctx, &all_rtp_conn_rate_ctr_group_desc,
-								 all_rtp_conn_rate_ctr_index);
+		ratectr->all_rtp_conn_stats = rate_ctr_group_alloc(trunk, &all_rtp_conn_rate_ctr_group_desc,
+								   all_rtp_conn_rate_ctr_index);
 		if (!ratectr->all_rtp_conn_stats)
 			return -EINVAL;
+		snprintf(ctr_name, sizeof(ctr_name), "%s-%d:rtp_conn", mgcp_trunk_type_strs_str(trunk->trunk_type),
+			 trunk->trunk_nr);
+		rate_ctr_group_set_name(ratectr->all_rtp_conn_stats, ctr_name);
 		talloc_set_destructor(ratectr->all_rtp_conn_stats, free_rate_counter_group);
 		all_rtp_conn_rate_ctr_index++;
 	}
-	if (ratectr->e1_stats == NULL) {
-		ratectr->e1_stats = rate_ctr_group_alloc(ctx, &e1_rate_ctr_group_desc, mdcx_rate_ctr_index);
+
+	/* E1 specific */
+	if (trunk->trunk_type == MGCP_TRUNK_E1 && ratectr->e1_stats == NULL) {
+		ratectr->e1_stats = rate_ctr_group_alloc(trunk, &e1_rate_ctr_group_desc, mdcx_rate_ctr_index);
 		if (!ratectr->e1_stats)
 			return -EINVAL;
+		snprintf(ctr_name, sizeof(ctr_name), "%s-%d:e1", mgcp_trunk_type_strs_str(trunk->trunk_type),
+			 trunk->trunk_nr);
+		rate_ctr_group_set_name(ratectr->e1_stats, ctr_name);
 		talloc_set_destructor(ratectr->e1_stats, free_rate_counter_group);
 		mdcx_rate_ctr_index++;
 	}

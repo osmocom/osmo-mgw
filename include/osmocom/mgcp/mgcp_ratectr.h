@@ -90,5 +90,8 @@ struct mgcp_ratectr_trunk {
 	struct rate_ctr_group *e1_stats;
 };
 
-int mgcp_ratectr_global_alloc(void *ctx, struct mgcp_ratectr_global *ratectr);
-int mgcp_ratectr_trunk_alloc(void *ctx, struct mgcp_ratectr_trunk *ratectr);
+struct mgcp_config;
+struct mgcp_trunk;
+
+int mgcp_ratectr_global_alloc(struct mgcp_config *cfg);
+int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk);

@@ -1560,7 +1560,7 @@ struct mgcp_config *mgcp_config_alloc(void)
 		return NULL;
 	}
 
-        mgcp_ratectr_global_alloc(cfg, &cfg->ratectr);
+	mgcp_ratectr_global_alloc(cfg);
 
 	return cfg;
 }

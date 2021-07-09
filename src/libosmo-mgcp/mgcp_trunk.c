@@ -63,7 +63,7 @@ struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_typ
 
 	llist_add_tail(&trunk->entry, &cfg->trunks);
 
-        mgcp_ratectr_trunk_alloc(cfg, &trunk->ratectr);
+	mgcp_ratectr_trunk_alloc(trunk);
 
 	return trunk;
 }
