@@ -13,6 +13,10 @@ enum mgcp_trunk_type {
 	MGCP_TRUNK_E1,
 };
 
+extern const struct value_string mgcp_trunk_type_strs[];
+static inline const char *mgcp_trunk_type_strs_str(enum mgcp_trunk_type val)
+{ return get_value_string(mgcp_trunk_type_strs, val); }
+
 struct mgcp_trunk {
 	struct llist_head entry;
 

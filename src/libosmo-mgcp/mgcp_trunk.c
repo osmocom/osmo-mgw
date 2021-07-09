@@ -28,6 +28,12 @@
 #include <osmocom/mgcp/mgcp_e1.h>
 #include <osmocom/abis/e1_input.h>
 
+const struct value_string mgcp_trunk_type_strs[] = {
+	{ MGCP_TRUNK_VIRTUAL,		"virtual" },
+	{ MGCP_TRUNK_E1,		"e1" },
+	{ 0, NULL }
+};
+
 /*! allocate trunk and add it (if required) to the trunk list.
  *  (called once at startup by VTY).
  *  \param[in] cfg mgcp configuration.
