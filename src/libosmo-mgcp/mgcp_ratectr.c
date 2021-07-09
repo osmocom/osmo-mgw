@@ -126,9 +126,9 @@ const static struct rate_ctr_group_desc mgcp_dlcx_ctr_group_desc = {
 };
 
 static const struct rate_ctr_desc e1_rate_ctr_desc[] = {
-	[E1_I460_TRAU_RX_FAIL_CTR] = {"e1:rx_fail", "Inbound I.460 TRAU failures."},
-	[E1_I460_TRAU_TX_FAIL_CTR] = {"e1:tx_fail", "Outbound I.460 TRAU failures."},
-	[E1_I460_TRAU_MUX_EMPTY_CTR] = {"e1:i460", "Outbound I.460 MUX queue empty."}
+	[E1_I460_TRAU_RX_FAIL_CTR] = { "e1:rx_fail", "Inbound I.460 TRAU failures." },
+	[E1_I460_TRAU_TX_FAIL_CTR] = { "e1:tx_fail", "Outbound I.460 TRAU failures." },
+	[E1_I460_TRAU_MUX_EMPTY_CTR] = { "e1:i460", "Outbound I.460 MUX queue empty." }
 };
 
 const static struct rate_ctr_group_desc e1_rate_ctr_group_desc = {
