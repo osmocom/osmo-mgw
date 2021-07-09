@@ -1,6 +1,5 @@
 #pragma once
 
-
 /* Global MCGP general rate counters */
 enum {
 	MGCP_GENERAL_RX_MSGS_TOTAL,
