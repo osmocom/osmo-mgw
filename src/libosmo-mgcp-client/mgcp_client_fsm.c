@@ -596,6 +596,7 @@ static struct osmo_fsm fsm_mgcp_client = {
 	.timer_cb = fsm_timeout_cb,
 	.cleanup = fsm_cleanup_cb,
 	.event_names = fsm_mgcp_client_evt_names,
+	.log_subsys = DLMGCP,
 };
 
 /*! allocate FSM, and create a new connection on the MGW.
