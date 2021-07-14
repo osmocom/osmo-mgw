@@ -1065,20 +1065,20 @@ static void test_packet_loss_calc(void)
 	int i;
 	struct mgcp_endpoint endp;
 	struct mgcp_endpoint *endpoints[1];
-	struct mgcp_config cfg = {0};
-	struct mgcp_trunk trunk;
+	struct mgcp_config *cfg;
+	struct mgcp_trunk *trunk;
 
 	printf("Testing packet loss calculation.\n");
 
 	memset(&endp, 0, sizeof(endp));
-	memset(&trunk, 0, sizeof(trunk));
-
-	endp.cfg = &cfg;
+	cfg = mgcp_config_alloc();
+	trunk = mgcp_trunk_alloc(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
+	endp.cfg = cfg;
 	endp.type = &ep_typeset.rtp;
-	trunk.v.vty_number_endpoints = 1;
-	trunk.endpoints = endpoints;
-	trunk.endpoints[0] = &endp;
-	endp.trunk = &trunk;
+	trunk->v.vty_number_endpoints = 1;
+	trunk->endpoints = endpoints;
+	trunk->endpoints[0] = &endp;
+	endp.trunk = trunk;
 	INIT_LLIST_HEAD(&endp.conns);
 
 	for (i = 0; i < ARRAY_SIZE(pl_test_dat); ++i) {
@@ -1116,6 +1116,8 @@ static void test_packet_loss_calc(void)
 		mgcp_conn_free_all(&endp);
 	}
 
+	talloc_free(trunk);
+	talloc_free(cfg);
 }
 
 int mgcp_parse_stats(struct msgb *msg, uint32_t *ps, uint32_t *os,
@@ -1297,10 +1299,10 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 {
 	int i;
 
-	struct mgcp_trunk trunk;
+	struct mgcp_trunk *trunk;
 	struct mgcp_endpoint endp;
 	struct mgcp_endpoint *endpoints[1];
-	struct mgcp_config cfg = {0};
+	struct mgcp_config *cfg;
 	struct mgcp_rtp_state state;
 	struct mgcp_rtp_end *rtp;
 	struct osmo_sockaddr addr = { 0 };
@@ -1318,7 +1320,8 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	       patch_ssrc ? ", patch SSRC" : "",
 	       patch_ts ? ", patch timestamps" : "");
 
-	memset(&trunk, 0, sizeof(trunk));
+	cfg = mgcp_config_alloc();
+	trunk = mgcp_trunk_alloc(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	memset(&endp, 0, sizeof(endp));
 	memset(&state, 0, sizeof(state));
 
@@ -1327,16 +1330,16 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	state.in_stream.err_ts_ctr = &test_ctr_in;
 	state.out_stream.err_ts_ctr = &test_ctr_out;
 
-	endp.cfg = &cfg;
+	endp.cfg = cfg;
 	endp.type = &ep_typeset.rtp;
 
-	trunk.v.vty_number_endpoints = 1;
-	trunk.endpoints = endpoints;
-	trunk.endpoints[0] = &endp;
-	trunk.force_constant_ssrc = patch_ssrc;
-	trunk.force_aligned_timing = patch_ts;
+	trunk->v.vty_number_endpoints = 1;
+	trunk->endpoints = endpoints;
+	trunk->endpoints[0] = &endp;
+	trunk->force_constant_ssrc = patch_ssrc;
+	trunk->force_aligned_timing = patch_ts;
 
-	endp.trunk = &trunk;
+	endp.trunk = trunk;
 
 	INIT_LLIST_HEAD(&endp.conns);
 	_conn = mgcp_conn_alloc(NULL, &endp, MGCP_CONN_TYPE_RTP,
@@ -1395,6 +1398,8 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 
 	force_monotonic_time_us = -1;
 	mgcp_conn_free_all(&endp);
+	talloc_free(trunk);
+	talloc_free(cfg);
 }
 
 static void test_multilple_codec(void)

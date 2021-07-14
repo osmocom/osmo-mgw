@@ -29,6 +29,7 @@
 
 #include <osmocom/abis/e1_input.h>
 #include <osmocom/mgcp/mgcp_e1.h>
+#include <osmocom/core/stat_item.h>
 
 #define E1_RATE_MAX 64
 #define E1_OFFS_MAX 8
@@ -121,6 +122,12 @@ void mgcp_endp_release(struct mgcp_endpoint *endp)
 	 * that there are still connections open (e.g. when
 	 * RSIP is executed), free them all at once. */
 	mgcp_conn_free_all(endp);
+
+	/* We must only decrement the stat item when the endpoint as actually
+	 * claimed. An endpoint is claimed when a call-id is set */
+	if (endp->callid)
+		osmo_stat_item_dec(osmo_stat_item_group_get_item(endp->trunk->stats.common,
+								 TRUNK_STAT_ENDPOINTS_USED), 1);
 
 	/* Reset endpoint parameters and states */
 	talloc_free(endp->callid);
@@ -631,6 +638,8 @@ int mgcp_endp_claim(struct mgcp_endpoint *endp, const char *callid)
 	 * connection ids) */
 	endp->callid = talloc_strdup(endp, callid);
 	OSMO_ASSERT(endp->callid);
+	osmo_stat_item_inc(osmo_stat_item_group_get_item(endp->trunk->stats.common,
+							 TRUNK_STAT_ENDPOINTS_USED), 1);
 
 	/* Allocate resources */
 	switch (endp->trunk->trunk_type) {

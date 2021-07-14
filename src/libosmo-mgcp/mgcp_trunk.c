@@ -27,6 +27,7 @@
 #include <osmocom/mgcp/mgcp_trunk.h>
 #include <osmocom/mgcp/mgcp_e1.h>
 #include <osmocom/abis/e1_input.h>
+#include <osmocom/core/stat_item.h>
 
 const struct value_string mgcp_trunk_type_strs[] = {
 	{ MGCP_TRUNK_VIRTUAL,		"virtual" },
@@ -64,6 +65,7 @@ struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_typ
 	llist_add_tail(&trunk->entry, &cfg->trunks);
 
 	mgcp_ratectr_trunk_alloc(trunk);
+	mgcp_stat_trunk_alloc(trunk);
 
 	return trunk;
 }
@@ -127,7 +129,8 @@ int mgcp_trunk_alloc_endpts(struct mgcp_trunk *trunk)
 
 	/* make the endpoints we just created available to the MGW code */
 	trunk->number_endpoints = number_endpoints;
-
+	osmo_stat_item_set(osmo_stat_item_group_get_item(trunk->stats.common, TRUNK_STAT_ENDPOINTS_TOTAL),
+			   trunk->number_endpoints);
 	return 0;
 }
 

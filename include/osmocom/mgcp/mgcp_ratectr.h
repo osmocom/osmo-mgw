@@ -95,3 +95,17 @@ struct mgcp_trunk;
 
 int mgcp_ratectr_global_alloc(struct mgcp_config *cfg);
 int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk);
+
+/* Trunk-global common stat items */
+enum {
+	TRUNK_STAT_ENDPOINTS_TOTAL,
+	TRUNK_STAT_ENDPOINTS_USED,
+};
+
+struct mgcp_stat_trunk {
+	/* Stat item group which contains general status values of the trunk. */
+	struct osmo_stat_item_group *common;
+};
+
+int mgcp_stat_trunk_alloc(struct mgcp_trunk *trunk);
+

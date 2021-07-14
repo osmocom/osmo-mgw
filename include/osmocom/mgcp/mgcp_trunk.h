@@ -52,8 +52,9 @@ struct mgcp_trunk {
 	unsigned int number_endpoints;
 	struct mgcp_endpoint **endpoints;
 
-	/* global rate counters to measure the trunks overall performance and health */
+	/* rate counters and stat items to measure the trunks overall performance and health */
 	struct mgcp_ratectr_trunk ratectr;
+	struct mgcp_stat_trunk stats;
 
 	union {
 		/* Virtual trunk specific */
