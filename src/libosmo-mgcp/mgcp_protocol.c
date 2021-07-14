@@ -46,15 +46,18 @@
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/mgcp/mgcp_conn.h>
 
+/* Request handler specification, here we specify an array with function
+ * pointers to the various MGCP requests implemented below */
 struct mgcp_request {
+	/* request name (e.g. "MDCX") */
 	char *name;
+
+	/* function pointer to the request handler */
 	struct msgb *(*handle_request) (struct mgcp_parse_data * data);
+
+	/* a human readable name that describes the request */
 	char *debug_name;
 };
-
-#define MGCP_REQUEST(NAME, REQ, DEBUG_NAME) \
-	{ .name = NAME, .handle_request = REQ, .debug_name = DEBUG_NAME },
-
 
 static struct msgb *handle_audit_endpoint(struct mgcp_parse_data *data);
 static struct msgb *handle_create_con(struct mgcp_parse_data *data);
@@ -62,6 +65,28 @@ static struct msgb *handle_delete_con(struct mgcp_parse_data *data);
 static struct msgb *handle_modify_con(struct mgcp_parse_data *data);
 static struct msgb *handle_rsip(struct mgcp_parse_data *data);
 static struct msgb *handle_noti_req(struct mgcp_parse_data *data);
+static const struct mgcp_request mgcp_requests[] = {
+	{ .name = "AUEP",
+	  .handle_request = handle_audit_endpoint,
+	  .debug_name = "AuditEndpoint" },
+	{ .name = "CRCX",
+	  .handle_request = handle_create_con,
+	  .debug_name = "CreateConnection" },
+	{ .name = "DLCX",
+	  .handle_request = handle_delete_con,
+	  .debug_name = "DeleteConnection" },
+	{ .name = "MDCX",
+	  .handle_request = handle_modify_con,
+	  .debug_name = "ModifiyConnection" },
+	{ .name = "RQNT",
+	  .handle_request = handle_noti_req,
+	  .debug_name = "NotificationRequest" },
+
+	/* SPEC extension */
+	{ .name = "RSIP",
+	  .handle_request = handle_rsip,
+	  .debug_name = "ReSetInProgress" },
+};
 
 /* Initalize transcoder */
 static int setup_rtp_processing(struct mgcp_endpoint *endp,
@@ -94,20 +119,6 @@ static int setup_rtp_processing(struct mgcp_endpoint *endp,
 
 	return cfg->setup_rtp_processing_cb(endp, conn_dst, conn_src);
 }
-
-/* array of function pointers for handling various
- * messages. In the future this might be binary sorted
- * for performance reasons. */
-static const struct mgcp_request mgcp_requests[] = {
-	MGCP_REQUEST("AUEP", handle_audit_endpoint, "AuditEndpoint")
-	MGCP_REQUEST("CRCX", handle_create_con, "CreateConnection")
-	MGCP_REQUEST("DLCX", handle_delete_con, "DeleteConnection")
-	MGCP_REQUEST("MDCX", handle_modify_con, "ModifiyConnection")
-	MGCP_REQUEST("RQNT", handle_noti_req, "NotificationRequest")
-
-	/* SPEC extension */
-	MGCP_REQUEST("RSIP", handle_rsip, "ReSetInProgress")
-};
 
 /* Helper function to allocate some memory for responses and retransmissions */
 static struct msgb *mgcp_msgb_alloc(void)
