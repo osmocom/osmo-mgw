@@ -398,7 +398,7 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 				return -1;
 			break;
 		default:
-			if (p->endp)
+			if (endp)
 				/* TODO: Check spec: We used the bare endpoint number before,
 				 * now we use the endpoint name as a whole? Is this allowed? */
 				LOGP(DLMGCP, LOGL_NOTICE,

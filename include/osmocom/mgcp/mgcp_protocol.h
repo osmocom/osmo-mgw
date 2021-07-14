@@ -3,7 +3,7 @@
 /* Internal structure while parsing a request */
 struct mgcp_parse_data {
 	struct mgcp_config *cfg;
-	struct mgcp_endpoint *endp;
+	char *epname;
 	char *trans;
 	char *save;
 };

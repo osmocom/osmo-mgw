@@ -132,24 +132,19 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 }
 
 /*! Analyze and parse the the hader of an MGCP messeage string.
- *  \param[out] pdata caller provided memory to store the parsing results
- *  \param[in] data mgcp message string
- *  \returns when the status line was complete and transaction_id and
- *  endp out parameters are set, -1 on error */
+ *  \param[out] pdata caller provided memory to store the parsing results.
+ *  \param[in] data mgcp message string.
+ *  \returns 0 when the status line was complete and parseable, negative (MGCP
+ *  cause code) on error. */
 int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 {
 	int i = 0;
 	char *elem, *save = NULL;
-	int cause;
 
 	/*! This function will parse the header part of the received
-	 *  MGCP message. The parsing results are stored in pdata.
-	 *  The function will also automatically search the pool with
-	 *  available endpoints in order to find an endpoint that matches
-	 *  the endpoint string in in the header */
+	 *  MGCP message. The parsing results are stored in pdata. */
 
 	OSMO_ASSERT(data);
-	pdata->trans = "000000";
 
 	for (elem = strtok_r(data, " ", &save); elem;
 	     elem = strtok_r(NULL, " ", &save)) {
@@ -158,13 +153,7 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 			pdata->trans = elem;
 			break;
 		case 1:
-			pdata->endp = mgcp_endp_by_name(&cause, elem, pdata->cfg);
-			if (!pdata->endp) {
-				LOGP(DLMGCP, LOGL_ERROR,
-				     "Unable to find Endpoint `%s'\n", elem);
-				OSMO_ASSERT(cause < 0);
-				return cause;
-			}
+			pdata->epname = elem;
 			break;
 		case 2:
 			if (strcasecmp("MGCP", elem)) {
@@ -174,11 +163,8 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 			}
 			break;
 		case 3:
-			if (strcmp("1.0", elem)) {
-				LOGP(DLMGCP, LOGL_ERROR, "MGCP version `%s' "
-				     "not supported\n", elem);
+			if (strcmp("1.0", elem))
 				return -528;
-			}
 			break;
 		}
 		i++;
@@ -186,8 +172,6 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 
 	if (i != 4) {
 		LOGP(DLMGCP, LOGL_ERROR, "MGCP status line too short.\n");
-		pdata->trans = "000000";
-		pdata->endp = NULL;
 		return -510;
 	}
 
