@@ -237,6 +237,18 @@ static struct mgcp_endpoint *find_specific_endpoint(const char *epname,
 	return NULL;
 }
 
+/*! Check if the given epname refers to a wildcarded request or to a specific
+ *  endpoint.
+ *  \param[in] epname endpoint name to check
+ *  \returns true if epname refers to wildcarded request, else false. */
+bool mgcp_endp_is_wildcarded(const char *epname)
+{
+	if (strstr(epname, "*"))
+		return true;
+
+	return false;
+}
+
 /*! Find an endpoint by its name on a specified trunk.
  *  \param[out] cause pointer to store cause code, can be NULL.
  *  \param[in] epname endpoint name to lookup.
@@ -253,7 +265,7 @@ struct mgcp_endpoint *mgcp_endp_by_name_trunk(int *cause, const char *epname,
 	/* At the moment we only support a primitive ('*'-only) method of
 	 * wildcarded endpoint searches that picks the next free endpoint on
 	 * a trunk. */
-	if (strstr(epname, "*")) {
+	if (mgcp_endp_is_wildcarded(epname)) {
 		endp = find_free_endpoint(trunk);
 		if (endp) {
 			LOGPENDP(endp, DLMGCP, LOGL_DEBUG,
