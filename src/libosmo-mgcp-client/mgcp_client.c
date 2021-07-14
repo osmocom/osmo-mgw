@@ -677,6 +677,9 @@ int mgcp_client_rx(struct mgcp_client *mgcp, struct msgb *msg)
 		goto error;
 	}
 
+	LOGP(DLMGCP, LOGL_DEBUG, "MGCP client: Rx %d %u %s\n",
+	     r->head.response_code, r->head.trans_id, r->head.comment);
+
 	rc = parse_head_params(r);
 	if (rc) {
 		LOGP(DLMGCP, LOGL_ERROR, "Cannot parse MGCP response (head parameters)\n");
