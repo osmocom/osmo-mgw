@@ -709,8 +709,8 @@ void mgcp_conn_delete(struct osmo_fsm_inst *fi)
 	if (fi->proc.terminating)
 		return;
 
-	/* Unlink FSM from parent */
-	osmo_fsm_inst_unlink_parent(fi, NULL);
+	/* Unlink FSM from parent, set the struct mgcp_client as new talloc ctx. */
+	osmo_fsm_inst_unlink_parent(fi, mgcp_ctx->mgcp);
 
 	/* An error situation where the parent FSM must be killed immediately
 	 * may lead into a situation where the DLCX can not be executed right
