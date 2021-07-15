@@ -990,6 +990,34 @@ static int osmo_mgcpc_ep_fsm_timer_cb(struct osmo_fsm_inst *fi)
 	return 0;
 }
 
+void osmo_mgcpc_ep_fsm_pre_term(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause cause)
+{
+	int i;
+	struct osmo_mgcpc_ep *ep = osmo_mgcpc_ep_fi_mgwep(fi);
+
+	/* We want the mgcp_client_fsm to still stick around until it received the DLCX "OK" responses from the MGW. So
+	 * it should not dealloc along with this ep_fsm instance. Instead, signal DLCX for each conn on the endpoint,
+	 * and detach the mgcp_client_fsm from being a child-fsm.
+	 *
+	 * After mgcp_conn_delete(), an mgcp_client_fsm instance goes into ST_DLCX_RESP, which waits up to 4 seconds for
+	 * a DLCX OK. If none is received in that time, the instance terminates. So cleanup of the instance is
+	 * guaranteed. */
+
+	for (i = 0; i < ARRAY_SIZE(ep->ci); i++) {
+		struct osmo_mgcpc_ep_ci *ci = &ep->ci[i];
+
+		if (!ci->occupied || !ci->mgcp_client_fi)
+			continue;
+
+		/* mgcp_conn_delete() unlinks itself from this parent FSM implicitly and waits for the DLCX OK. */
+		mgcp_conn_delete(ci->mgcp_client_fi);
+		/* Forget all about this ci */
+		*ci = (struct osmo_mgcpc_ep_ci){
+			.ep = ep,
+		};
+	}
+}
+
 static struct osmo_fsm osmo_mgcpc_ep_fsm = {
 	.name = "mgw-endp",
 	.states = osmo_mgcpc_ep_fsm_states,
@@ -997,5 +1025,5 @@ static struct osmo_fsm osmo_mgcpc_ep_fsm = {
 	.log_subsys = DLMGCP,
 	.event_names = osmo_mgcpc_ep_fsm_event_names,
 	.timer_cb = osmo_mgcpc_ep_fsm_timer_cb,
-	/* The FSM termination will automatically trigger any mgcp_client_fsm instances to DLCX. */
+	.pre_term = osmo_mgcpc_ep_fsm_pre_term,
 };
