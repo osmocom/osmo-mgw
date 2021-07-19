@@ -106,7 +106,6 @@ const static struct rate_ctr_group_desc mgcp_mdcx_ctr_group_desc = {
 
 static const struct rate_ctr_desc mgcp_dlcx_ctr_desc[] = {
 	[MGCP_DLCX_SUCCESS] = { "dlcx:success", "DLCX command processed successfully." },
-	[MGCP_DLCX_FAIL_WILDCARD] = { "dlcx:wildcard", "wildcard names in DLCX commands are unsupported." },
 	[MGCP_DLCX_FAIL_NO_CONN] = { "dlcx:no_conn", "endpoint specified in DLCX command has no active connections." },
 	[MGCP_DLCX_FAIL_INVALID_CALLID] =
 	    { "dlcx:callid", "CallId specified in DLCX command mismatches endpoint's CallId ." },

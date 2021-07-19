@@ -46,6 +46,16 @@
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/mgcp/mgcp_conn.h>
 
+/* A combination of LOGPENDP and LOGPTRUNK that automatically falls back to
+ * LOGPTRUNK when the endp parameter is NULL */
+#define LOGPEPTR(endp, trunk, cat, level, fmt, args...) \
+do { \
+	if (endp) \
+		LOGPENDP(endp, cat, level, fmt, ## args); \
+	else \
+		LOGPTRUNK(trunk, cat, level, fmt, ## args); \
+} while (0)
+
 /* Request data passed to the request handler */
 struct mgcp_request_data {
 	/* request name (e.g. "MDCX") */
@@ -102,7 +112,7 @@ static const struct mgcp_request mgcp_requests[] = {
 	{ .name = "DLCX",
 	  .handle_request = handle_delete_con,
 	  .debug_name = "DeleteConnection",
-	  .require_endp = true },
+	  .require_endp = false },
 	{ .name = "MDCX",
 	  .handle_request = handle_modify_con,
 	  .debug_name = "ModifiyConnection",
@@ -1351,26 +1361,21 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	char stats[1048];
 	const char *conn_id = NULL;
 	struct mgcp_conn_rtp *conn = NULL;
+	unsigned int i;
 
-	LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
-		 "DLCX: deleting connection ...\n");
+	/* NOTE: In this handler we can not take it for granted that the endp
+	 * pointer will be populated, however a trunk is always guaranteed. */
 
-	if (!mgcp_endp_avail(endp)) {
+	LOGPEPTR(endp, trunk, DLMGCP, LOGL_NOTICE, "DLCX: deleting connection(s) ...\n");
+
+	if (endp && !mgcp_endp_avail(endp)) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_AVAIL));
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "DLCX: selected endpoint not available!\n");
 		return create_err_response(NULL, 501, "DLCX", pdata->trans);
 	}
 
-	/* Prohibit wildcarded requests */
-	if (endp->wildcarded_req) {
-		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
-			 "DLCX: wildcarded endpoint names not supported.\n");
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_WILDCARD));
-		return create_err_response(endp, 507, "DLCX", pdata->trans);
-	}
-
-	if (llist_count(&endp->conns) <= 0) {
+	if (endp && !rq->wildcarded && llist_empty(&endp->conns)) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "DLCX: endpoint is not holding a connection.\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_NO_CONN));
@@ -1383,6 +1388,15 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 
 		switch (toupper(line[0])) {
 		case 'C':
+			/* If we have no endpoint, but a call id in the request,
+			   then this request cannot be handled */
+			if (!endp) {
+				LOGPTRUNK(trunk, DLMGCP, LOGL_NOTICE,
+					  "cannot handle requests with call-id (C) without endpoint -- abort!");
+				rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
+				return create_err_response(NULL, 539, "DLCX", pdata->trans);
+			}
+
 			if (mgcp_verify_call_id(endp, line + 3) != 0) {
 				error_code = 516;
 				rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CALLID));
@@ -1390,6 +1404,15 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 			}
 			break;
 		case 'I':
+			/* If we have no endpoint, but a connection id in the request,
+			   then this request cannot be handled */
+			if (!endp) {
+				LOGPTRUNK(trunk, DLMGCP, LOGL_NOTICE,
+					  "cannot handle requests with conn-id (I) without endpoint -- abort!");
+				rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
+				return create_err_response(NULL, 539, "DLCX", pdata->trans);
+			}
+
 			conn_id = (const char *)line + 3;
 			if ((error_code = mgcp_verify_ci(endp, conn_id))) {
 				rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CONNID));
@@ -1400,8 +1423,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 			silent = strcasecmp("noanswer", line + 3) == 0;
 			break;
 		default:
-			LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
-				 "DLCX: Unhandled MGCP option: '%c'/%d\n",
+			LOGPEPTR(endp, trunk, DLMGCP, LOGL_NOTICE, "DLCX: Unhandled MGCP option: '%c'/%d\n",
 				 line[0], line[0]);
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
 			return create_err_response(NULL, 539, "DLCX", pdata->trans);
@@ -1432,9 +1454,23 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 		}
 	}
 
+	/* Handle wildcarded DLCX that refers to the whole trunk. This means
+	 * that we walk over all endpoints on the trunk in order to drop all
+	 * connections on the trunk. (see also RFC3435 Annex F.7) */
+	if (rq->wildcarded) {
+		int num_conns = 0;
+		for (i = 0; i < trunk->number_endpoints; i++) {
+			num_conns += llist_count(&trunk->endpoints[i]->conns);
+			mgcp_endp_release(trunk->endpoints[i]);
+		}
+		rate_ctr_add(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_SUCCESS), num_conns);
+		return create_ok_response(NULL, 200, "DLCX", pdata->trans);
+	}
+
 	/* When no connection id is supplied, we will interpret this as a
-	 * wildcarded DLCX and drop all connections at once. (See also
-	 * RFC3435 Section F.7) */
+	 * wildcarded DLCX that refers to the selected endpoint. This means
+	 * that we drop all connections on that specific endpoint at once.
+	 * (See also RFC3435 Section F.7) */
 	if (!conn_id) {
 		int num_conns = llist_count(&endp->conns);
 		LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
