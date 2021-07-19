@@ -195,7 +195,7 @@ int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 		    rate_ctr_group_alloc(trunk, &mgcp_crcx_ctr_group_desc, crcx_rate_ctr_index);
 		if (!ratectr->mgcp_crcx_ctr_group)
 			return -EINVAL;
-		snprintf(ctr_name, sizeof(ctr_name), "%s-%d:crcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
+		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:crcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->mgcp_crcx_ctr_group, ctr_name);
 		talloc_set_destructor(ratectr->mgcp_crcx_ctr_group, free_rate_counter_group);
@@ -206,7 +206,7 @@ int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 		    rate_ctr_group_alloc(trunk, &mgcp_mdcx_ctr_group_desc, mdcx_rate_ctr_index);
 		if (!ratectr->mgcp_mdcx_ctr_group)
 			return -EINVAL;
-		snprintf(ctr_name, sizeof(ctr_name), "%s-%d:mdcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
+		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:mdcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->mgcp_mdcx_ctr_group, ctr_name);
 		talloc_set_destructor(ratectr->mgcp_mdcx_ctr_group, free_rate_counter_group);
@@ -217,7 +217,7 @@ int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 		    rate_ctr_group_alloc(trunk, &mgcp_dlcx_ctr_group_desc, dlcx_rate_ctr_index);
 		if (!ratectr->mgcp_dlcx_ctr_group)
 			return -EINVAL;
-		snprintf(ctr_name, sizeof(ctr_name), "%s-%d:dlcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
+		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:dlcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->mgcp_dlcx_ctr_group, ctr_name);
 		talloc_set_destructor(ratectr->mgcp_dlcx_ctr_group, free_rate_counter_group);
@@ -228,7 +228,7 @@ int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 								   all_rtp_conn_rate_ctr_index);
 		if (!ratectr->all_rtp_conn_stats)
 			return -EINVAL;
-		snprintf(ctr_name, sizeof(ctr_name), "%s-%d:rtp_conn", mgcp_trunk_type_strs_str(trunk->trunk_type),
+		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:rtp_conn", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->all_rtp_conn_stats, ctr_name);
 		talloc_set_destructor(ratectr->all_rtp_conn_stats, free_rate_counter_group);
@@ -240,7 +240,7 @@ int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 		ratectr->e1_stats = rate_ctr_group_alloc(trunk, &e1_rate_ctr_group_desc, mdcx_rate_ctr_index);
 		if (!ratectr->e1_stats)
 			return -EINVAL;
-		snprintf(ctr_name, sizeof(ctr_name), "%s-%d:e1", mgcp_trunk_type_strs_str(trunk->trunk_type),
+		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:e1", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->e1_stats, ctr_name);
 		talloc_set_destructor(ratectr->e1_stats, free_rate_counter_group);

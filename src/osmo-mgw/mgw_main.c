@@ -235,7 +235,7 @@ static int read_call_agent(struct osmo_fd *fd, unsigned int what)
 	/* reset endpoints */
 	if (reset_endpoints) {
 		LOGP(DLMGCP, LOGL_NOTICE,
-		     "Asked to reset endpoints: %d/%d\n",
+		     "Asked to reset endpoints: %u/%d\n",
 		     reset_trunk->trunk_nr, reset_trunk->trunk_type);
 
 		/* reset flag */

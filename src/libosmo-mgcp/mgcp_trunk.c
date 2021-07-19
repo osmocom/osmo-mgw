@@ -40,7 +40,7 @@ const struct value_string mgcp_trunk_type_strs[] = {
  *  \param[in] ttype trunk type.
  *  \param[in] nr trunk number.
  *  \returns pointer to allocated trunk, NULL on failure. */
-struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr)
+struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_type ttype, unsigned int nr)
 {
 	struct mgcp_trunk *trunk;
 
@@ -171,7 +171,7 @@ int mgcp_trunk_equip(struct mgcp_trunk *trunk)
  *  \param[in] ttype trunk type.
  *  \param[in] nr trunk number.
  *  \returns pointer to trunk configuration, NULL on error. */
-struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr)
+struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, enum mgcp_trunk_type ttype, unsigned int nr)
 {
 	struct mgcp_trunk *trunk;
 
@@ -184,9 +184,9 @@ struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, enum mgcp_tr
 }
 
 /* Made public for unit-testing, do not use from outside this file */
-int e1_trunk_nr_from_epname(const char *epname)
+int e1_trunk_nr_from_epname(unsigned int *trunk_nr, const char *epname)
 {
-	unsigned long int trunk_nr;
+	unsigned long trunk_nr_temp;
 	size_t prefix_len;
 	char *str_trunk_nr_end;
 
@@ -195,13 +195,15 @@ int e1_trunk_nr_from_epname(const char *epname)
 		return -EINVAL;
 
 	errno = 0;
-	trunk_nr = strtoul(epname + prefix_len, &str_trunk_nr_end, 10);
-	if (errno == ERANGE || trunk_nr > 64
+	trunk_nr_temp = strtoul(epname + prefix_len, &str_trunk_nr_end, 10);
+	if (errno == ERANGE || trunk_nr_temp > 64
 	    || epname + prefix_len == str_trunk_nr_end
 	    || str_trunk_nr_end[0] != '/')
 		return -EINVAL;
-	else
-		return trunk_nr;
+	else {
+		*trunk_nr = (unsigned int)trunk_nr_temp;
+		return 0;
+	}
 }
 
 /*! Find a trunk by the trunk prefix in the endpoint name.
@@ -212,7 +214,8 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 {
 	size_t prefix_len;
 	char epname_lc[MGCP_ENDPOINT_MAXLEN];
-	int trunk_nr;
+	unsigned int trunk_nr;
+	int rc;
 
 	osmo_str_tolower_buf(epname_lc, sizeof(epname_lc), epname);
 	epname = epname_lc;
@@ -222,8 +225,8 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 		return mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	}
 
-	trunk_nr = e1_trunk_nr_from_epname(epname);
-	if (trunk_nr >= 0)
+	rc = e1_trunk_nr_from_epname(&trunk_nr, epname);
+	if (rc == 0)
 		return mgcp_trunk_by_num(cfg, MGCP_TRUNK_E1, trunk_nr);
 
 	/* Earlier versions of osmo-mgw were accepting endpoint names

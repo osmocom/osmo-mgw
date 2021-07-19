@@ -22,7 +22,7 @@ struct mgcp_trunk {
 
 	struct mgcp_config *cfg;
 
-	int trunk_nr;
+	unsigned int trunk_nr;
 	enum mgcp_trunk_type trunk_type;
 
 	char *audio_fmtp_extra;
@@ -72,11 +72,11 @@ struct mgcp_trunk {
 	};
 };
 
-struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr);
+struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_type ttype, unsigned int nr);
 int mgcp_trunk_equip(struct mgcp_trunk *trunk);
-struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, enum mgcp_trunk_type ttype, int nr);
+struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, enum mgcp_trunk_type ttype, unsigned int nr);
 struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char *epname);
-int e1_trunk_nr_from_epname(const char *epname);
+int e1_trunk_nr_from_epname(unsigned int *trunk_nr, const char *epname);
 struct mgcp_trunk *mgcp_trunk_by_line_num(const struct mgcp_config *cfg, unsigned int num);
 
 /* The virtual trunk is always created on trunk id 0 for historical reasons,

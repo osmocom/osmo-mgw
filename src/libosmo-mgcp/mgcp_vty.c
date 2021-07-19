@@ -200,11 +200,11 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_conn_rtp *conn)
 }
 
 static void dump_endpoint(struct vty *vty, struct mgcp_endpoint *endp,
-			  int trunk_nr, enum mgcp_trunk_type trunk_type, int show_stats)
+			  unsigned int trunk_nr, enum mgcp_trunk_type trunk_type, int show_stats)
 {
 	struct mgcp_conn *conn;
 
-	vty_out(vty, "%s trunk %d endpoint %s:%s",
+	vty_out(vty, "%s trunk %u endpoint %s:%s",
 		trunk_type == MGCP_TRUNK_VIRTUAL ? "Virtual" : "E1", trunk_nr, endp->name, VTY_NEWLINE);
 	vty_out(vty, "   Availability: %s%s",
 		mgcp_endp_avail(endp) ? "available" : "not in service", VTY_NEWLINE);
@@ -382,7 +382,7 @@ dump_mgcp_endpoint(struct vty *vty, struct mgcp_trunk *trunk, const char *epname
 		/* If a trunk is given, search on that specific trunk only */
 		endp = mgcp_endp_by_name_trunk(NULL, epname, trunk);
 		if (!endp) {
-			vty_out(vty, "endpoint %s not configured on trunk %d%s", epname, trunk->trunk_nr, VTY_NEWLINE);
+			vty_out(vty, "endpoint %s not configured on trunk %u%s", epname, trunk->trunk_nr, VTY_NEWLINE);
 			return;
 		}
 	} else {
@@ -963,7 +963,7 @@ DEFUN(cfg_mgcp_trunk, cfg_mgcp_trunk_cmd,
       "trunk <0-64>", "Configure a SS7 trunk\n" "Trunk Nr\n")
 {
 	struct mgcp_trunk *trunk;
-	int index = atoi(argv[0]);
+	unsigned int index = atoi(argv[0]);
 
 	trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_E1, index);
 	if (!trunk) {
@@ -995,7 +995,7 @@ static int config_write_trunk(struct vty *vty)
 		    && trunk->trunk_nr == MGCP_VIRT_TRUNK_ID)
 			continue;
 
-		vty_out(vty, " trunk %d%s", trunk->trunk_nr, VTY_NEWLINE);
+		vty_out(vty, " trunk %u%s", trunk->trunk_nr, VTY_NEWLINE);
 		vty_out(vty, "  line %u%s", trunk->e1.vty_line_nr, VTY_NEWLINE);
 		vty_out(vty, "  %ssdp audio-payload send-ptime%s",
 			trunk->audio_send_ptime ? "" : "no ", VTY_NEWLINE);
@@ -1335,7 +1335,7 @@ DEFUN(loop_conn,
 	}
 
 	if (!trunk->endpoints) {
-		vty_out(vty, "%%Trunk %d has no endpoints allocated.%s",
+		vty_out(vty, "%%Trunk %u has no endpoints allocated.%s",
 			trunk->trunk_nr, VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -1396,7 +1396,7 @@ DEFUN(tap_rtp,
 	}
 
 	if (!trunk->endpoints) {
-		vty_out(vty, "%%Trunk %d has no endpoints allocated.%s",
+		vty_out(vty, "%%Trunk %u has no endpoints allocated.%s",
 			trunk->trunk_nr, VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -1463,7 +1463,7 @@ DEFUN(free_endp, free_endp_cmd,
 	}
 
 	if (!trunk->endpoints) {
-		vty_out(vty, "%%Trunk %d has no endpoints allocated.%s",
+		vty_out(vty, "%%Trunk %u has no endpoints allocated.%s",
 			trunk->trunk_nr, VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -1496,7 +1496,7 @@ DEFUN(reset_endp, reset_endp_cmd,
 	}
 
 	if (!trunk->endpoints) {
-		vty_out(vty, "%%Trunk %d has no endpoints allocated.%s",
+		vty_out(vty, "%%Trunk %u has no endpoints allocated.%s",
 			trunk->trunk_nr, VTY_NEWLINE);
 		return CMD_WARNING;
 	}
@@ -1756,7 +1756,7 @@ int mgcp_parse_config(const char *config_file, struct mgcp_config *cfg,
 	llist_for_each_entry(trunk, &g_cfg->trunks, entry) {
 		if (mgcp_trunk_equip(trunk) != 0) {
 			LOGP(DLMGCP, LOGL_ERROR,
-			     "Failed to initialize trunk %d (%d endpoints)\n",
+			     "Failed to initialize trunk %u (%d endpoints)\n",
 			     trunk->trunk_nr, trunk->number_endpoints);
 			return -1;
 		}

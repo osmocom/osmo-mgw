@@ -58,7 +58,7 @@ static char *gen_virtual_epname(void *ctx, const char *domain,
 }
 
 /* Generate E1 endpoint name from given numeric parameters */
-static char *gen_e1_epname(void *ctx, const char *domain, uint8_t trunk_nr,
+static char *gen_e1_epname(void *ctx, const char *domain, unsigned int trunk_nr,
 			   uint8_t ts_nr, uint8_t ss_nr)
 {
 	unsigned int rate;
