@@ -31,6 +31,7 @@
 #include <osmocom/mgcp/mgcp_msg.h>
 #include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_trunk.h>
 
 /*! Display an mgcp message on the log output.
  *  \param[in] message mgcp message string
@@ -208,22 +209,24 @@ int mgcp_parse_osmux_cid(const char *line)
 }
 
 /*! Check MGCP parameter line (string) for plausibility.
- *  \param[in] endp pointer to endpoint (only used for log output)
+ *  \param[in] endp pointer to endpoint (only used for log output, may be NULL)
+ *  \param[in] trunk pointer to trunk (only used for log output, may be NULL if endp is not NULL)
  *  \param[in] line single parameter line from the MGCP message
- *  \returns 1 when line seems plausible, 0 on error */
-int mgcp_check_param(const struct mgcp_endpoint *endp, const char *line)
+ *  \returns true when line seems plausible, false on error */
+bool mgcp_check_param(const struct mgcp_endpoint *endp, struct mgcp_trunk *trunk, const char *line)
 {
 	const size_t line_len = strlen(line);
 	if (line[0] != '\0' && line_len < 2) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Wrong MGCP option format: '%s' on %s\n",
-		     line, endp->name);
-		return 0;
+		if (endp)
+			LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "wrong MGCP option format: '%s'\n", line);
+		else
+			LOGPTRUNK(trunk, DLMGCP, LOGL_NOTICE, "wrong MGCP option format: '%s'\n", line);
+		return false;
 	}
 
 	/* FIXME: A couple more checks wouldn't hurt... */
 
-	return 1;
+	return true;
 }
 
 /*! Check if the specified callid seems plausible.

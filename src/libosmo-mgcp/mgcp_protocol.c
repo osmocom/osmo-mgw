@@ -851,7 +851,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 
 	/* parse CallID C: and LocalParameters L: */
 	for_each_line(line, pdata->save) {
-		if (!mgcp_check_param(endp, line))
+		if (!mgcp_check_param(endp, trunk, line))
 			continue;
 
 		switch (toupper(line[0])) {
@@ -1143,7 +1143,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	}
 
 	for_each_line(line, pdata->save) {
-		if (!mgcp_check_param(endp, line))
+		if (!mgcp_check_param(endp, trunk, line))
 			continue;
 
 		switch (toupper(line[0])) {
@@ -1388,7 +1388,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	}
 
 	for_each_line(line, pdata->save) {
-		if (!mgcp_check_param(endp, line))
+		if (!mgcp_check_param(endp, trunk, line))
 			continue;
 
 		switch (toupper(line[0])) {

@@ -39,7 +39,7 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data);
 
 int mgcp_parse_osmux_cid(const char *line);
 
-int mgcp_check_param(const struct mgcp_endpoint *endp, const char *line);
+bool mgcp_check_param(const struct mgcp_endpoint *endp, struct mgcp_trunk *trunk, const char *line);
 
 int mgcp_verify_call_id(struct mgcp_endpoint *endp, const char *callid);
 
