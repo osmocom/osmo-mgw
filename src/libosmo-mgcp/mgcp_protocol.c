@@ -237,33 +237,13 @@ static struct msgb *create_err_response(struct mgcp_endpoint *endp,
 	return create_resp(endp, code, " FAIL", msg, trans, NULL, NULL);
 }
 
-/* Add MGCP parameters to a message buffer */
-static int add_params(struct msgb *msg, const struct mgcp_endpoint *endp,
-		      const struct mgcp_conn_rtp *conn)
-{
-	int rc;
-
-	/* NOTE: Only in the virtual trunk we allow dynamic endpoint names */
-	if (endp->wildcarded_req
-	    && endp->trunk->trunk_type == MGCP_TRUNK_VIRTUAL) {
-		rc = msgb_printf(msg, "Z: %s\r\n", endp->name);
-		if (rc < 0)
-			return -EINVAL;
-	}
-
-	rc = msgb_printf(msg, "I: %s\r\n", conn->conn->id);
-	if (rc < 0)
-		return -EINVAL;
-
-	return 0;
-}
-
 /* Format MGCP response string (with SDP attached) */
 static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 					     struct mgcp_conn_rtp *conn,
 					     const char *msg,
 					     const char *trans_id,
-					     bool add_conn_params)
+					     bool add_epname,
+					     bool add_conn_id)
 {
 	/* cfg->local_ip allows overwritting the announced IP address with
 	 * regards to the one we actually bind to. Useful in behind-NAT
@@ -281,9 +261,16 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 	if (!sdp)
 		return NULL;
 
-	/* Attach optional connection parameters */
-	if (add_conn_params) {
-		rc = add_params(sdp, endp, conn);
+	/* Attach optional endpoint name */
+	if (add_epname) {
+		rc = msgb_printf(sdp, "Z: %s\r\n", endp->name);
+		if (rc < 0)
+			goto error;
+	}
+
+	/* Attach optional connection id */
+	if (add_conn_id) {
+		rc = msgb_printf(sdp, "I: %s\r\n", conn->conn->id);
 		if (rc < 0)
 			goto error;
 	}
@@ -1091,7 +1078,10 @@ mgcp_header_done:
 		 "CRCX: connection successfully created\n");
 	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_SUCCESS));
 	mgcp_endp_update(endp);
-	return create_response_with_sdp(endp, conn, "CRCX", pdata->trans, true);
+
+	/* NOTE: Only in the virtual trunk we allow dynamic endpoint names */
+	bool add_epname = rq->wildcarded && trunk->trunk_type == MGCP_TRUNK_VIRTUAL;
+	return create_response_with_sdp(endp, conn, "CRCX", pdata->trans, add_epname, true);
 error2:
 	mgcp_endp_release(endp);
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
@@ -1339,7 +1329,7 @@ mgcp_header_done:
 	LOGPCONN(conn->conn, DLMGCP, LOGL_NOTICE,
 		 "MDCX: connection successfully modified\n");
 	mgcp_endp_update(endp);
-	return create_response_with_sdp(endp, conn, "MDCX", pdata->trans, false);
+	return create_response_with_sdp(endp, conn, "MDCX", pdata->trans, false, false);
 error3:
 	return create_err_response(endp, error_code, "MDCX", pdata->trans);
 
