@@ -129,7 +129,6 @@ void mgcp_endp_release(struct mgcp_endpoint *endp)
 	endp->local_options.string = NULL;
 	talloc_free(endp->local_options.codec);
 	endp->local_options.codec = NULL;
-	endp->wildcarded_req = false;
 
 	if (endp->trunk->trunk_type == MGCP_TRUNK_E1)
 		mgcp_e1_endp_release(endp);
@@ -271,7 +270,6 @@ struct mgcp_endpoint *mgcp_endp_by_name_trunk(int *cause, const char *epname,
 			LOGPENDP(endp, DLMGCP, LOGL_DEBUG,
 				 "(trunk:%d) found free endpoint: %s\n",
 				 trunk->trunk_nr, endp->name);
-			endp->wildcarded_req = true;
 			return endp;
 		}
 
@@ -290,7 +288,6 @@ struct mgcp_endpoint *mgcp_endp_by_name_trunk(int *cause, const char *epname,
 		LOGPENDP(endp, DLMGCP, LOGL_DEBUG,
 			 "(trunk:%d) found endpoint: %s\n",
 			 trunk->trunk_nr, endp->name);
-		endp->wildcarded_req = false;
 		return endp;
 	}
 
