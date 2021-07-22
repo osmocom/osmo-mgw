@@ -69,7 +69,6 @@ static char *extract_codec_name(const char *str)
 	if (!str)
 		return NULL;
 
-	/* FIXME osmo_strlcpy */
 	osmo_strlcpy(buf, str, sizeof(buf));
 
 	for (i = 0; i < strlen(buf); i++) {
