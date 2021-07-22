@@ -4,6 +4,12 @@
 
 #define MSGB_CB_MGCP_TRANS_ID 0
 
+/* Struct that holds one endpoint name */
+struct reset_ep {
+	struct llist_head list;
+	char name[MGCP_ENDPOINT_MAXLEN];
+};
+
 struct mgcp_client {
 	struct mgcp_client_conf actual;
 	struct osmo_wqueue wq;

@@ -29,6 +29,7 @@
 #include <osmocom/core/utils.h>
 
 #include <osmocom/mgcp_client/mgcp_client.h>
+#include <osmocom/mgcp_client/mgcp_client_internal.h>
 
 #define MGW_STR MGCP_CLIENT_MGW_STR
 
@@ -155,10 +156,72 @@ DEFUN(cfg_mgw_endpoint_domain_name,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_mgw_reset_ep_name,
+      cfg_mgw_reset_ep_name_cmd,
+      "mgw reset-endpoint NAME",
+      MGW_STR "Add an endpoint name that should be reset (DLCX) on connect to the reset-endpoint list,"
+      "e.g. 'rtpbridge/*'\n"
+      "Endpoint name, e.g. 'rtpbridge/*' or 'ds/e1-0/s-3/su16-4'.\n")
+{
+	int rc;
+	struct reset_ep *reset_ep;
+
+	/* stop when the address is already in the list */
+	llist_for_each_entry(reset_ep, &global_mgcp_client_conf->reset_epnames, list) {
+		if (strcmp(argv[0], reset_ep->name) == 0) {
+			vty_out(vty, "%% duplicate endpoint name configured ('%s')%s", argv[0], VTY_NEWLINE);
+			return CMD_WARNING;
+		}
+	}
+
+	/* the domain name is not part of the actual endpoint name */
+	if (strchr(argv[0], '@')) {
+		vty_out(vty, "%% the endpoint name must be given without domain name ('%s')%s",
+			argv[0], VTY_NEWLINE);
+		return CMD_WARNING;
+	}
+
+	reset_ep = talloc_zero(global_mgcp_client_ctx, struct reset_ep);
+	OSMO_ASSERT(reset_ep);
+
+	rc = osmo_strlcpy(reset_ep->name, argv[0], sizeof(reset_ep->name));
+	if (rc >= sizeof(reset_ep->name)) {
+		vty_out(vty, "%% Error: 'mgw reset-endpoint' name too long, max length is %zu: '%s'%s",
+			sizeof(reset_ep->name) - 1, argv[0], VTY_NEWLINE);
+		talloc_free(reset_ep);
+		return CMD_WARNING;
+	}
+
+	llist_add_tail(&reset_ep->list, &global_mgcp_client_conf->reset_epnames);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_mgw_no_reset_ep_name,
+      cfg_mgw_no_reset_ep_name_cmd,
+      "no mgw reset-endpoint NAME",
+      MGW_STR "remove an endpoint name from the reset-endpoint list, e.g. 'rtpbridge/*'\n"
+      "Endpoint name, e.g. 'rtpbridge/*' or 'ds/e1-0/s-3/su16-4'.\n")
+{
+	struct reset_ep *reset_ep;
+
+	llist_for_each_entry(reset_ep, &global_mgcp_client_conf->reset_epnames, list) {
+		if (strcmp(argv[0], reset_ep->name) == 0) {
+			llist_del(&reset_ep->list);
+			talloc_free(reset_ep);
+			return CMD_SUCCESS;
+		}
+	}
+
+	vty_out(vty, "%% no such endpoint name configured ('%s')%s", argv[0], VTY_NEWLINE);
+	return CMD_WARNING;
+}
+
 int mgcp_client_config_write(struct vty *vty, const char *indent)
 {
 	const char *addr;
 	int port;
+	struct reset_ep *reset_ep;
 
 	addr = global_mgcp_client_conf->local_addr;
 	if (addr)
@@ -182,6 +245,9 @@ int mgcp_client_config_write(struct vty *vty, const char *indent)
 		vty_out(vty, "%smgw endpoint-domain %s%s", indent,
 			global_mgcp_client_conf->endpoint_domain_name, VTY_NEWLINE);
 
+	llist_for_each_entry(reset_ep, &global_mgcp_client_conf->reset_epnames, list)
+		vty_out(vty, "%smgw reset-endpoint %s%s", indent, reset_ep->name, VTY_NEWLINE);
+
 	return CMD_SUCCESS;
 }
 
@@ -197,6 +263,8 @@ void mgcp_client_vty_init(void *talloc_ctx, int node, struct mgcp_client_conf *c
 	install_lib_element(node, &cfg_mgw_endpoint_range_cmd);
 	install_lib_element(node, &cfg_mgw_rtp_bts_base_port_cmd);
 	install_lib_element(node, &cfg_mgw_endpoint_domain_name_cmd);
+	install_lib_element(node, &cfg_mgw_reset_ep_name_cmd);
+	install_lib_element(node, &cfg_mgw_no_reset_ep_name_cmd);
 
 	/* deprecated 'mgcpgw' commands */
 	install_lib_element(node, &cfg_mgcpgw_local_ip_cmd);

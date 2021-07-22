@@ -26,6 +26,12 @@ struct mgcp_client_conf {
 	/* By default, we are always addressing the MGW with e.g. 'rtpbridge/123@mgw'.
 	 * If this is nonempty, the contained name will be used instead of 'mgw'. */
 	char endpoint_domain_name[MGCP_ENDPOINT_MAXLEN];
+
+	/* The user may configure certain endpoint names that are reset via DLCX
+	 * on startup. Usually this will be one wildcarded endpoint e.g.
+	 * 'rtpbridge/(wildcard)' or a number of specific E1 like e.g.
+	 * 'ds/e1-0/s-3/su16-4' */
+	struct llist_head reset_epnames;
 };
 
 typedef unsigned int mgcp_trans_id_t;

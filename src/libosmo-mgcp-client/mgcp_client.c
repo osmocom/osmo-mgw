@@ -200,6 +200,8 @@ void mgcp_client_conf_init(struct mgcp_client_conf *conf)
 		.remote_addr = NULL,
 		.remote_port = -1,
 	};
+
+	INIT_LLIST_HEAD(&conf->reset_epnames);
 }
 
 static void mgcp_client_handle_response(struct mgcp_client *mgcp,
@@ -753,6 +755,8 @@ struct mgcp_client *mgcp_client_init(void *ctx,
 				     struct mgcp_client_conf *conf)
 {
 	struct mgcp_client *mgcp;
+	struct reset_ep *reset_ep;
+	struct reset_ep *actual_reset_ep;
 
 	mgcp = talloc_zero(ctx, struct mgcp_client);
 	if (!mgcp)
@@ -782,6 +786,12 @@ struct mgcp_client *mgcp_client_init(void *ctx,
 		return NULL;
 	}
 	LOGP(DLMGCP, LOGL_NOTICE, "MGCP client: using endpoint domain '@%s'\n", mgcp_client_endpoint_domain(mgcp));
+
+	INIT_LLIST_HEAD(&mgcp->actual.reset_epnames);
+	llist_for_each_entry(reset_ep, &conf->reset_epnames, list) {
+		actual_reset_ep = talloc_memdup(mgcp, reset_ep, sizeof(*reset_ep));
+		llist_add_tail(&actual_reset_ep->list, &mgcp->actual.reset_epnames);
+	}
 
 	return mgcp;
 }
@@ -822,13 +832,49 @@ static int init_socket(struct mgcp_client *mgcp)
 	return -EINVAL;
 }
 
-/*! Initalize client connection (opens socket only, no request is sent yet)
+/* Safely ignore the MGCP response to the DLCX sent via _mgcp_client_send_dlcx() */
+static void _ignore_mgcp_response(struct mgcp_response *response, void *priv) { }
+
+/* Format DLCX message (fire and forget) and send it off to the MGW */
+static void _mgcp_client_send_dlcx(struct mgcp_client *mgcp, const char *epname)
+{
+	struct msgb *msgb_dlcx;
+	struct mgcp_msg mgcp_msg_dlcx = {
+		.verb = MGCP_VERB_DLCX,
+		.presence = MGCP_MSG_PRESENCE_ENDPOINT,
+	};
+	osmo_strlcpy(mgcp_msg_dlcx.endpoint, epname, sizeof(mgcp_msg_dlcx.endpoint));
+	msgb_dlcx = mgcp_msg_gen(mgcp, &mgcp_msg_dlcx);
+	mgcp_client_tx(mgcp, msgb_dlcx, &_ignore_mgcp_response, NULL);
+}
+
+static const char *_mgcp_client_name_append_domain(const struct mgcp_client *mgcp, const char *name)
+{
+	static char endpoint[MGCP_ENDPOINT_MAXLEN];
+	int rc;
+
+	rc = snprintf(endpoint, sizeof(endpoint), "%s@%s", name, mgcp_client_endpoint_domain(mgcp));
+	if (rc > sizeof(endpoint) - 1) {
+		LOGP(DLMGCP, LOGL_ERROR, "MGCP endpoint exceeds maximum length of %zu: '%s@%s'\n",
+		     sizeof(endpoint) - 1, name, mgcp_client_endpoint_domain(mgcp));
+		return NULL;
+	}
+	if (rc < 1) {
+		LOGP(DLMGCP, LOGL_ERROR, "Cannot compose MGCP endpoint name\n");
+		return NULL;
+	}
+	return endpoint;
+}
+
+/*! Initialize client connection (opens socket)
  *  \param[in,out] mgcp MGCP client descriptor.
  *  \returns 0 on success, -EINVAL on error. */
 int mgcp_client_connect(struct mgcp_client *mgcp)
 {
 	struct osmo_wqueue *wq;
 	int rc;
+	struct reset_ep *reset_ep;
+	const char *epname;
 
 	if (!mgcp) {
 		LOGP(DLMGCP, LOGL_FATAL, "MGCPGW client not initialized properly\n");
@@ -851,9 +897,15 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 		goto error_close_fd;
 	}
 
-
 	LOGP(DLMGCP, LOGL_INFO, "MGCP GW connection: %s\n", osmo_sock_get_name2(wq->bfd.fd));
 
+	/* If configured, send a DLCX message to the endpoints that are configured to
+	 * be reset on startup. Usually this is a wildcarded endpoint. */
+	llist_for_each_entry(reset_ep, &mgcp->actual.reset_epnames, list) {
+		epname = _mgcp_client_name_append_domain(mgcp, reset_ep->name);
+		LOGP(DLMGCP, LOGL_INFO, "MGCP GW sending DLCX to: %s\n", epname);
+		_mgcp_client_send_dlcx(mgcp, epname);
+	}
 	return 0;
 error_close_fd:
 	close(wq->bfd.fd);
@@ -891,24 +943,6 @@ uint32_t mgcp_client_remote_addr_n(struct mgcp_client *mgcp)
 const char *mgcp_client_endpoint_domain(const struct mgcp_client *mgcp)
 {
 	return mgcp->actual.endpoint_domain_name[0] ? mgcp->actual.endpoint_domain_name : "mgw";
-}
-
-static const char *_mgcp_client_name_append_domain(const struct mgcp_client *mgcp, char *name)
-{
-	static char endpoint[MGCP_ENDPOINT_MAXLEN];
-	int rc;
-
-	rc = snprintf(endpoint, sizeof(endpoint), "%s@%s", name, mgcp_client_endpoint_domain(mgcp));
-	if (rc > sizeof(endpoint) - 1) {
-		LOGP(DLMGCP, LOGL_ERROR, "MGCP endpoint exceeds maximum length of %zu: '%s@%s'\n",
-		     sizeof(endpoint) - 1, name, mgcp_client_endpoint_domain(mgcp));
-		return NULL;
-	}
-	if (rc < 1) {
-		LOGP(DLMGCP, LOGL_ERROR, "Cannot compose MGCP endpoint name\n");
-		return NULL;
-	}
-	return endpoint;
 }
 
 /*! Compose endpoint name for a wildcarded request to the virtual trunk
