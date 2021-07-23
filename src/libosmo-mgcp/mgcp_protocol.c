@@ -1467,6 +1467,10 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 		return create_ok_response(NULL, 200, "DLCX", pdata->trans);
 	}
 
+	/* The logic does not permit to go past this point without having the
+	 * the endp pointer populated. */
+	OSMO_ASSERT(endp);
+
 	/* When no connection id is supplied, we will interpret this as a
 	 * wildcarded DLCX that refers to the selected endpoint. This means
 	 * that we drop all connections on that specific endpoint at once.
