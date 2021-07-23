@@ -49,7 +49,7 @@ set -x
 
 cd "$base"
 autoreconf --install --force
-./configure --enable-vty-tests --enable-external-tests --enable-werror $CONFIG
+./configure --enable-sanitize --enable-vty-tests --enable-external-tests --enable-werror $CONFIG
 $MAKE $PARALLEL_MAKE
 LD_LIBRARY_PATH="$inst/lib" $MAKE check \
   || cat-testlogs.sh
