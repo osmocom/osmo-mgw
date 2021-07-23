@@ -42,9 +42,6 @@ DEFUN(cfg_mgw_local_ip, cfg_mgw_local_ip_cmd,
       "local bind IPv4 address\n"
       "local bind IPv6 address\n")
 {
-	if (!global_mgcp_client_conf)
-		return CMD_ERR_NOTHING_TODO;
-	OSMO_ASSERT(global_mgcp_client_ctx);
 	osmo_talloc_replace_string(global_mgcp_client_ctx,
 				   (char**)&global_mgcp_client_conf->local_addr,
 				   argv[0]);
@@ -60,8 +57,6 @@ DEFUN(cfg_mgw_local_port, cfg_mgw_local_port_cmd,
       MGW_STR "local port to connect to MGW from\n"
       "local bind port\n")
 {
-	if (!global_mgcp_client_conf)
-		return CMD_ERR_NOTHING_TODO;
 	global_mgcp_client_conf->local_port = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
@@ -76,9 +71,6 @@ DEFUN(cfg_mgw_remote_ip, cfg_mgw_remote_ip_cmd,
       "remote IPv4 address\n"
       "remote IPv6 address\n")
 {
-	if (!global_mgcp_client_conf)
-		return CMD_ERR_NOTHING_TODO;
-	OSMO_ASSERT(global_mgcp_client_ctx);
 	osmo_talloc_replace_string(global_mgcp_client_ctx,
 				   (char**)&global_mgcp_client_conf->remote_addr,
 				   argv[0]);
@@ -94,8 +86,6 @@ DEFUN(cfg_mgw_remote_port, cfg_mgw_remote_port_cmd,
       MGW_STR "remote port to reach the MGW at\n"
       "remote port\n")
 {
-	if (!global_mgcp_client_conf)
-		return CMD_ERR_NOTHING_TODO;
 	global_mgcp_client_conf->remote_port = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
