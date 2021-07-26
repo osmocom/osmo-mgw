@@ -24,8 +24,11 @@
 
 #include <errno.h>
 #include <osmocom/core/stats.h>
+#include <osmocom/core/stat_item.h>
 #include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
+#include <osmocom/mgcp/mgcp_protocol.h>
+#include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_ratectr.h>
 
 static const struct rate_ctr_desc mgcp_general_ctr_desc[] = {
@@ -245,5 +248,50 @@ int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 		talloc_set_destructor(ratectr->e1_stats, free_rate_counter_group);
 		mdcx_rate_ctr_index++;
 	}
+	return 0;
+}
+
+const struct osmo_stat_item_desc trunk_stat_desc[] = {
+	[TRUNK_STAT_ENDPOINTS_TOTAL] = { "endpoints:total",
+					 "Number of endpoints that exist on the trunk",
+					 "", 60, 0 },
+	[TRUNK_STAT_ENDPOINTS_USED] = { "endpoints:used",
+					"Number of endpoints in use",
+					"", 60, 0 },
+};
+
+const struct osmo_stat_item_group_desc trunk_statg_desc = {
+	.group_name_prefix = "trunk",
+	.group_description = "mgw trunk",
+	.class_id = OSMO_STATS_CLASS_GLOBAL,
+	.num_items = ARRAY_SIZE(trunk_stat_desc),
+	.item_desc = trunk_stat_desc,
+};
+
+static int free_stat_item_group(struct osmo_stat_item_group *stat_item_group)
+{
+	osmo_stat_item_group_free(stat_item_group);
+	return 0;
+}
+
+/*! allocate trunk specific stat items
+ *  (called once on trunk initialization).
+ *  \param[in] trunk for which the stat items are allocated.
+ *  \returns 0 on success, -EINVAL on failure. */
+int mgcp_stat_trunk_alloc(struct mgcp_trunk *trunk)
+{
+	struct mgcp_stat_trunk *stats = &trunk->stats;
+	static unsigned int common_stat_index = 0;
+	char stat_name[256];
+
+	stats->common = osmo_stat_item_group_alloc(trunk, &trunk_statg_desc, common_stat_index);
+	if (!stats->common)
+		return -EINVAL;
+	snprintf(stat_name, sizeof(stat_name), "%s-%u:common", mgcp_trunk_type_strs_str(trunk->trunk_type),
+		 trunk->trunk_nr);
+	osmo_stat_item_group_set_name(stats->common, stat_name);
+	talloc_set_destructor(stats->common, free_stat_item_group);
+	common_stat_index++;
+
 	return 0;
 }
