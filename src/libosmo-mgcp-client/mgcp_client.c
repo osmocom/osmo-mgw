@@ -875,8 +875,9 @@ static const char *_mgcp_client_name_append_domain(const struct mgcp_client *mgc
 
 /*! Initialize client connection (opens socket)
  *  \param[in,out] mgcp MGCP client descriptor.
+ *  \param[in] retry_n_ports number of consecutive local ports that should be used to retry on failure.
  *  \returns 0 on success, -EINVAL on error. */
-int mgcp_client_connect(struct mgcp_client *mgcp)
+int mgcp_client_connect2(struct mgcp_client *mgcp, unsigned int retry_n_ports)
 {
 	struct osmo_wqueue *wq;
 	int rc;
@@ -895,7 +896,7 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 
 	osmo_fd_setup(&wq->bfd, -1, OSMO_FD_READ, osmo_wqueue_bfd_cb, mgcp, 0);
 
-	rc = init_socket(mgcp, 99);
+	rc = init_socket(mgcp, retry_n_ports);
 	if (rc < 0) {
 		LOGP(DLMGCP, LOGL_FATAL,
 		     "Failed to initialize socket %s:%u -> %s:%u for MGCP GW: %s\n",
@@ -919,6 +920,35 @@ error_close_fd:
 	close(wq->bfd.fd);
 	wq->bfd.fd = -1;
 	return rc;
+}
+
+/*! Initialize client connection (opens socket)
+ *  \param[in,out] mgcp MGCP client descriptor.
+ *  \returns 0 on success, -EINVAL on error. */
+int mgcp_client_connect(struct mgcp_client *mgcp)
+{
+	return mgcp_client_connect2(mgcp, 99);
+}
+
+/*! Terminate client connection
+ *  \param[in,out] mgcp MGCP client descriptor.
+ *  \returns 0 on success, -EINVAL on error. */
+void mgcp_client_disconnect(struct mgcp_client *mgcp)
+{
+	struct osmo_wqueue *wq;
+
+	if (!mgcp) {
+		LOGP(DLMGCP, LOGL_FATAL, "MGCPGW client not initialized properly\n");
+		return;
+	}
+
+	wq = &mgcp->wq;
+	osmo_wqueue_clear(wq);
+	LOGP(DLMGCP, LOGL_INFO, "MGCP GW connection: %s -- closed!\n", osmo_sock_get_name2(wq->bfd.fd));
+	close(wq->bfd.fd);
+	wq->bfd.fd = -1;
+	if (osmo_fd_is_registered(&wq->bfd))
+		osmo_fd_unregister(&wq->bfd);
 }
 
 /*! Get the IP-Aaddress of the associated MGW as string.

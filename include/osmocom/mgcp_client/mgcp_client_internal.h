@@ -16,6 +16,7 @@ struct mgcp_client {
 	mgcp_trans_id_t next_trans_id;
 	struct llist_head responses_pending;
 	struct llist_head inuse_endpoints;
+	struct mgcp_client_pool *pool;
 };
 
 struct mgcp_inuse_endpoint {

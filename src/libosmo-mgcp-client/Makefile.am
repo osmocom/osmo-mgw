@@ -32,6 +32,7 @@ libosmo_mgcp_client_la_SOURCES = \
 	mgcp_client_vty.c \
 	mgcp_client_fsm.c \
 	mgcp_client_endpoint_fsm.c \
+	mgcp_client_pool.c \
 	$(NULL)
 
 libosmo_mgcp_client_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(MGCP_CLIENT_LIBVERSION)

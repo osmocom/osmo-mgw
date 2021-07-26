@@ -136,6 +136,8 @@ struct mgcp_client_conf *mgcp_client_conf_actual(struct mgcp_client *mgcp);
 struct mgcp_client *mgcp_client_init(void *ctx,
 				     struct mgcp_client_conf *conf);
 int mgcp_client_connect(struct mgcp_client *mgcp);
+int mgcp_client_connect2(struct mgcp_client *mgcp, unsigned int retry_n_ports);
+void mgcp_client_disconnect(struct mgcp_client *mgcp);
 
 const char *mgcp_client_remote_addr_str(struct mgcp_client *mgcp);
 uint16_t mgcp_client_remote_port(struct mgcp_client *mgcp);

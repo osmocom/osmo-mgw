@@ -216,6 +216,13 @@ const char *osmo_mgcpc_ep_ci_id(const struct osmo_mgcpc_ep_ci *ci)
 	return ci->mgcp_ci_str;
 }
 
+struct mgcp_client *osmo_mgcpc_ep_client(const struct osmo_mgcpc_ep *ep)
+{
+	if (!ep)
+		return NULL;
+	return ep->mgcp_client;
+}
+
 static struct value_string osmo_mgcpc_ep_fsm_event_names[33] = {};
 
 static char osmo_mgcpc_ep_fsm_event_name_bufs[32][32] = {};

@@ -252,6 +252,18 @@ const char *mgcp_conn_get_ci(struct osmo_fsm_inst *fi)
 	return mgcp_ctx->conn_id;
 }
 
+/* Get the mgcp_client that is used with this mgcp_client_fsm instance */
+struct mgcp_client *mgcp_conn_get_client(struct osmo_fsm_inst *fi)
+{
+	struct mgcp_ctx *mgcp_ctx;
+
+	if (!fi)
+		return NULL;
+
+	mgcp_ctx = fi->priv;
+	return mgcp_ctx->mgcp;
+}
+
 static void mgw_crcx_resp_cb(struct mgcp_response *r, void *priv)
 {
 	struct osmo_fsm_inst *fi = priv;

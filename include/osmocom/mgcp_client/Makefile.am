@@ -4,6 +4,7 @@ BUILT_SOURCES = \
 
 noinst_HEADERS = \
 	mgcp_client_internal.h \
+	mgcp_client_pool_internal.h \
 	$(NULL)
 
 mgcp_common.h: $(top_srcdir)/include/osmocom/mgcp/mgcp_common.h

@@ -69,5 +69,6 @@ int mgcp_conn_modify(struct osmo_fsm_inst *fi, uint32_t parent_evt, struct mgcp_
 void mgcp_conn_delete(struct osmo_fsm_inst *fi);
 
 const char *mgcp_conn_get_ci(struct osmo_fsm_inst *fi);
+struct mgcp_client *mgcp_conn_get_client(struct osmo_fsm_inst *fi);
 
 const char *osmo_mgcpc_conn_peer_name(const struct mgcp_conn_peer *info);
