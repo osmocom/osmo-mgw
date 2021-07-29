@@ -824,7 +824,8 @@ static int init_socket(struct mgcp_client *mgcp)
 		/* Choose a new port number to try next */
 		LOGP(DLMGCP, LOGL_NOTICE,
 		     "MGCPGW failed to bind to %s:%u, retrying with port %u\n",
-		     mgcp->actual.local_addr, mgcp->actual.local_port, mgcp->actual.local_port + 1);
+		     mgcp->actual.local_addr ? mgcp->actual.local_addr : "(any)", mgcp->actual.local_port,
+		     mgcp->actual.local_port + 1);
 		mgcp->actual.local_port++;
 	}
 
@@ -892,8 +893,9 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 	if (rc < 0) {
 		LOGP(DLMGCP, LOGL_FATAL,
 		     "Failed to initialize socket %s:%u -> %s:%u for MGCP GW: %s\n",
-		     mgcp->actual.local_addr, mgcp->actual.local_port,
-		     mgcp->actual.remote_addr, mgcp->actual.remote_port, strerror(errno));
+		     mgcp->actual.local_addr ? mgcp->actual.local_addr : "(any)", mgcp->actual.local_port,
+		     mgcp->actual.remote_addr ? mgcp->actual.local_addr : "(any)", mgcp->actual.remote_port,
+		     strerror(errno));
 		goto error_close_fd;
 	}
 
