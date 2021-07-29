@@ -1583,6 +1583,13 @@ void mgcp_trunk_set_keepalive(struct mgcp_trunk *trunk, int interval)
 				    trunk->keepalive_interval, 0);
 }
 
+/* Free config, this function is automatically called by talloc_free when the configuration is freed. */
+static int config_free_talloc_destructor(struct mgcp_config *cfg)
+{
+	mgcp_ratectr_global_free(cfg);
+	return 0;
+}
+
 /*! allocate configuration with default values.
  *  (called once at startup by main function) */
 struct mgcp_config *mgcp_config_alloc(void)
@@ -1621,6 +1628,7 @@ struct mgcp_config *mgcp_config_alloc(void)
 	}
 
 	mgcp_ratectr_global_alloc(cfg);
+	talloc_set_destructor(cfg, config_free_talloc_destructor);
 
 	return cfg;
 }

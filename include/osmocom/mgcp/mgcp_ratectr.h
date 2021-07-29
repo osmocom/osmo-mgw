@@ -93,7 +93,9 @@ struct mgcp_config;
 struct mgcp_trunk;
 
 int mgcp_ratectr_global_alloc(struct mgcp_config *cfg);
+void mgcp_ratectr_global_free(struct mgcp_config *cfg);
 int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk);
+void mgcp_ratectr_trunk_free(struct mgcp_trunk *trunk);
 
 /* Trunk-global common stat items */
 enum {
@@ -107,4 +109,4 @@ struct mgcp_stat_trunk {
 };
 
 int mgcp_stat_trunk_alloc(struct mgcp_trunk *trunk);
-
+void mgcp_stat_trunk_free(struct mgcp_trunk *trunk);

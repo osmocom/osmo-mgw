@@ -150,12 +150,6 @@ const static struct rate_ctr_group_desc all_rtp_conn_rate_ctr_group_desc = {
 	.ctr_desc = all_rtp_conn_rate_ctr_desc
 };
 
-static int free_rate_counter_group(struct rate_ctr_group *rate_ctr_group)
-{
-	rate_ctr_group_free(rate_ctr_group);
-	return 0;
-}
-
 /*! allocate global rate counters
  *  (called once at startup).
  *  \param[in] cfg mgw configuration for which the rate counters are allocated.
@@ -173,10 +167,22 @@ int mgcp_ratectr_global_alloc(struct mgcp_config *cfg)
 			return -EINVAL;
 		snprintf(ctr_name, sizeof(ctr_name), "%s:general", cfg->domain);
 		rate_ctr_group_set_name(ratectr->mgcp_general_ctr_group, ctr_name);
-		talloc_set_destructor(ratectr->mgcp_general_ctr_group, free_rate_counter_group);
 		general_rate_ctr_index++;
 	}
 	return 0;
+}
+
+/*! free global rate counters
+ *  (called once at process shutdown).
+ *  \param[in] cfg mgw configuration for which the rate counters are allocated. */
+void mgcp_ratectr_global_free(struct mgcp_config *cfg)
+{
+	struct mgcp_ratectr_global *ratectr = &cfg->ratectr;
+
+	if (ratectr->mgcp_general_ctr_group) {
+		rate_ctr_group_free(ratectr->mgcp_general_ctr_group);
+		ratectr->mgcp_general_ctr_group = NULL;
+	}
 }
 
 /*! allocate trunk specific rate counters
@@ -200,7 +206,6 @@ int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:crcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->mgcp_crcx_ctr_group, ctr_name);
-		talloc_set_destructor(ratectr->mgcp_crcx_ctr_group, free_rate_counter_group);
 		crcx_rate_ctr_index++;
 	}
 	if (ratectr->mgcp_mdcx_ctr_group == NULL) {
@@ -211,7 +216,6 @@ int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:mdcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->mgcp_mdcx_ctr_group, ctr_name);
-		talloc_set_destructor(ratectr->mgcp_mdcx_ctr_group, free_rate_counter_group);
 		mdcx_rate_ctr_index++;
 	}
 	if (ratectr->mgcp_dlcx_ctr_group == NULL) {
@@ -222,7 +226,6 @@ int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:dlcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->mgcp_dlcx_ctr_group, ctr_name);
-		talloc_set_destructor(ratectr->mgcp_dlcx_ctr_group, free_rate_counter_group);
 		dlcx_rate_ctr_index++;
 	}
 	if (ratectr->all_rtp_conn_stats == NULL) {
@@ -233,7 +236,6 @@ int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:rtp_conn", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->all_rtp_conn_stats, ctr_name);
-		talloc_set_destructor(ratectr->all_rtp_conn_stats, free_rate_counter_group);
 		all_rtp_conn_rate_ctr_index++;
 	}
 
@@ -245,10 +247,40 @@ int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:e1", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->e1_stats, ctr_name);
-		talloc_set_destructor(ratectr->e1_stats, free_rate_counter_group);
 		mdcx_rate_ctr_index++;
 	}
 	return 0;
+}
+
+/*! free trunk specific rate counters
+ *  (called once when trunk is freed).
+ *  \param[in] trunk mgw trunk on which the rate counters are allocated. */
+void mgcp_ratectr_trunk_free(struct mgcp_trunk *trunk)
+{
+	struct mgcp_ratectr_trunk *ratectr = &trunk->ratectr;
+
+	if (ratectr->mgcp_crcx_ctr_group) {
+		rate_ctr_group_free(ratectr->mgcp_crcx_ctr_group);
+		ratectr->mgcp_crcx_ctr_group = NULL;
+	}
+	if (ratectr->mgcp_mdcx_ctr_group) {
+		rate_ctr_group_free(ratectr->mgcp_mdcx_ctr_group);
+		ratectr->mgcp_mdcx_ctr_group = NULL;
+	}
+	if (ratectr->mgcp_dlcx_ctr_group) {
+		rate_ctr_group_free(ratectr->mgcp_dlcx_ctr_group);
+		ratectr->mgcp_dlcx_ctr_group = NULL;
+	}
+	if (ratectr->all_rtp_conn_stats) {
+		rate_ctr_group_free(ratectr->all_rtp_conn_stats);
+		ratectr->all_rtp_conn_stats = NULL;
+	}
+
+	/* E1 specific */
+	if (ratectr->e1_stats) {
+		rate_ctr_group_free(ratectr->e1_stats);
+		ratectr->e1_stats = NULL;
+	}
 }
 
 const struct osmo_stat_item_desc trunk_stat_desc[] = {
@@ -268,12 +300,6 @@ const struct osmo_stat_item_group_desc trunk_statg_desc = {
 	.item_desc = trunk_stat_desc,
 };
 
-static int free_stat_item_group(struct osmo_stat_item_group *stat_item_group)
-{
-	osmo_stat_item_group_free(stat_item_group);
-	return 0;
-}
-
 /*! allocate trunk specific stat items
  *  (called once on trunk initialization).
  *  \param[in] trunk for which the stat items are allocated.
@@ -290,8 +316,20 @@ int mgcp_stat_trunk_alloc(struct mgcp_trunk *trunk)
 	snprintf(stat_name, sizeof(stat_name), "%s-%u:common", mgcp_trunk_type_strs_str(trunk->trunk_type),
 		 trunk->trunk_nr);
 	osmo_stat_item_group_set_name(stats->common, stat_name);
-	talloc_set_destructor(stats->common, free_stat_item_group);
 	common_stat_index++;
 
 	return 0;
+}
+
+/*! free trunk specific stat items
+ *  (called once when trunk is freed).
+ *  \param[in] trunk on which the stat items are allocated. */
+void mgcp_stat_trunk_free(struct mgcp_trunk *trunk)
+{
+	struct mgcp_stat_trunk *stats = &trunk->stats;
+
+	if (stats->common) {
+		osmo_stat_item_group_free(stats->common);
+		stats->common = NULL;
+	}
 }

@@ -35,7 +35,17 @@ const struct value_string mgcp_trunk_type_strs[] = {
 	{ 0, NULL }
 };
 
-/*! allocate trunk and add it (if required) to the trunk list.
+/* Free trunk, this function is automatically called by talloc_free when the trunk is freed. It does not free the
+ * endpoints on the trunk, this must be done separately before freeing the trunk. */
+static int trunk_free_talloc_destructor(struct mgcp_trunk *trunk)
+{
+	llist_del(&trunk->entry);
+	mgcp_ratectr_trunk_free(trunk);
+	mgcp_stat_trunk_free(trunk);
+	return 0;
+}
+
+/*! allocate trunk and add it to the trunk list.
  *  (called once at startup by VTY).
  *  \param[in] cfg mgcp configuration.
  *  \param[in] ttype trunk type.
@@ -66,6 +76,7 @@ struct mgcp_trunk *mgcp_trunk_alloc(struct mgcp_config *cfg, enum mgcp_trunk_typ
 
 	mgcp_ratectr_trunk_alloc(trunk);
 	mgcp_stat_trunk_alloc(trunk);
+	talloc_set_destructor(trunk, trunk_free_talloc_destructor);
 
 	return trunk;
 }
