@@ -206,6 +206,32 @@ int e1_trunk_nr_from_epname(unsigned int *trunk_nr, const char *epname)
 	}
 }
 
+/* Check if the domain name, which is supplied with the endpoint name
+ * matches the configuration. */
+static int check_domain_name(const char *epname, const struct mgcp_config *cfg)
+{
+	char *domain_to_check;
+
+	domain_to_check = strstr(epname, "@");
+	if (!domain_to_check) {
+		LOGP(DLMGCP, LOGL_ERROR, "missing domain name in endpoint name \"%s\", expecting \"%s\"\n",
+		     epname, cfg->domain);
+		return -EINVAL;
+	}
+
+	/* Accept any domain if configured as "*" */
+	if (!strcmp(cfg->domain, "*"))
+		return 0;
+
+	if (strcmp(domain_to_check+1, cfg->domain) != 0) {
+		LOGP(DLMGCP, LOGL_ERROR, "wrong domain name in endpoint name \"%s\", expecting \"%s\"\n",
+		     epname, cfg->domain);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 /*! Find a trunk by the trunk prefix in the endpoint name.
  *  \param[in] epname endpoint name with trunk prefix to look up.
  *  \param[in] cfg that contains the trunks where the endpoint is located.
@@ -219,6 +245,10 @@ struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char 
 
 	osmo_str_tolower_buf(epname_lc, sizeof(epname_lc), epname);
 	epname = epname_lc;
+
+	/* All endpoint names require a domain as suffix */
+	if (check_domain_name(epname, cfg))
+		return NULL;
 
 	prefix_len = sizeof(MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK) - 1;
 	if (strncmp(epname, MGCP_ENDPOINT_PREFIX_VIRTUAL_TRUNK, prefix_len) == 0) {

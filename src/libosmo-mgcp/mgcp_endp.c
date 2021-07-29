@@ -300,32 +300,6 @@ struct mgcp_endpoint *mgcp_endp_by_name_trunk(int *cause, const char *epname,
 	return NULL;
 }
 
-/* Check if the domain name, which is supplied with the endpoint name
- * matches the configuration. */
-static int check_domain_name(const char *epname, struct mgcp_config *cfg)
-{
-	char *domain_to_check;
-
-	domain_to_check = strstr(epname, "@");
-	if (!domain_to_check) {
-		LOGP(DLMGCP, LOGL_ERROR, "missing domain name in endpoint name \"%s\", expecting \"%s\"\n",
-		     epname, cfg->domain);
-		return -EINVAL;
-	}
-
-	/* Accept any domain if configured as "*" */
-	if (!strcmp(cfg->domain, "*"))
-		return 0;
-
-	if (strcmp(domain_to_check+1, cfg->domain) != 0) {
-		LOGP(DLMGCP, LOGL_ERROR, "wrong domain name in endpoint name \"%s\", expecting \"%s\"\n",
-		     epname, cfg->domain);
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
 /*! Find an endpoint by its name, search at all trunks.
  *  \param[out] cause, pointer to store cause code, can be NULL.
  *  \param[in] epname, must contain trunk prefix.
@@ -347,10 +321,6 @@ struct mgcp_endpoint *mgcp_endp_by_name(int *cause, const char *epname,
 	/* Identify the trunk where the endpoint is located */
 	trunk = mgcp_trunk_by_name(cfg, epname);
 	if (!trunk)
-		return NULL;
-
-	/* All endpoint names require a domain as suffix */
-	if (check_domain_name(epname, cfg))
 		return NULL;
 
 	/* Identify the endpoint on the trunk */
