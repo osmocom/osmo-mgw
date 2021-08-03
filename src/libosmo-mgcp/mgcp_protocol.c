@@ -183,7 +183,7 @@ static struct msgb *mgcp_msgb_alloc(void)
 }
 
 /* Helper function for do_retransmission() and create_resp() */
-static struct msgb *do_retransmission(const struct mgcp_endpoint *endp)
+static struct msgb *create_retransmission_response(const struct mgcp_endpoint *endp)
 {
 	struct msgb *msg = mgcp_msgb_alloc();
 	if (!msg)
@@ -414,7 +414,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 		/* Check if we have to retransmit a response from a previous transaction */
 		if (pdata.trans && rq.endp->last_trans && strcmp(rq.endp->last_trans, pdata.trans) == 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_MSGS_RETRANSMITTED));
-			return do_retransmission(rq.endp);
+			return create_retransmission_response(rq.endp);
 		}
 	}
 
