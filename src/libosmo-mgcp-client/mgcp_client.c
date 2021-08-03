@@ -189,7 +189,7 @@ enum mgcp_codecs map_pt_to_codec(struct ptmap *ptmap, unsigned int ptmap_len,
 	return pt;
 }
 
-/*! Initalize MGCP client configuration struct with default values.
+/*! Initialize MGCP client configuration struct with default values.
  *  \param[out] conf Client configuration.*/
 void mgcp_client_conf_init(struct mgcp_client_conf *conf)
 {
