@@ -270,6 +270,10 @@ static int config_write(struct vty *vty, const char *indent, struct mgcp_client_
 	return CMD_SUCCESS;
 }
 
+/*! Write out MGCP client config to VTY.
+ *  \param[in] vty VTY to which we should print.
+ *  \param[in] string used for indentation (e.g. " ").
+ *  \returns CMD_SUCCESS on success, CMD_WARNING on error */
 int mgcp_client_config_write(struct vty *vty, const char *indent)
 {
 	return config_write(vty, indent, global_mgcp_client_conf);
@@ -292,6 +296,11 @@ static void vty_init_common(void *talloc_ctx, int node)
 	osmo_fsm_vty_add_cmds();
 }
 
+/*! Set up MGCP client VTY
+ *  (called once at startup by the application process).
+ *  \param[in] talloc_ctx talloc context to be used by the VTY for allocating memory.
+ *  \param[in] node identifier of the node on which the VTY commands should be installed.
+ *  \param[in] conf user provided memory to to store the MGCP client configuration data. */
 void mgcp_client_vty_init(void *talloc_ctx, int node, struct mgcp_client_conf *conf)
 {
 	global_mgcp_client_conf = conf;
