@@ -46,6 +46,16 @@
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/mgcp/mgcp_conn.h>
 
+/* Contains the last successfully resolved endpoint name. This variable is used
+ * for the unit-tests to verify that the endpoint was correctly resolved. */
+static char debug_last_endpoint_name[MGCP_ENDPOINT_MAXLEN];
+
+/* Called from unit-tests only */
+char *mgcp_debug_get_last_endpoint_name(void)
+{
+	return debug_last_endpoint_name;
+}
+
 /* A combination of LOGPENDP and LOGPTRUNK that automatically falls back to
  * LOGPTRUNK when the endp parameter is NULL */
 #define LOGPEPTR(endp, trunk, cat, level, fmt, args...) \
@@ -328,6 +338,8 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 	struct msgb *resp = NULL;
 	char *data;
 
+	debug_last_endpoint_name[0] = '\0';
+
 	/* Count all messages, even incorect ones */
 	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_MSGS_TOTAL));
 
@@ -395,6 +407,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 			return create_err_response(NULL, -rq.mgcp_cause, rq.name, pdata.trans);
 		}
 	} else {
+		osmo_strlcpy(debug_last_endpoint_name, rq.endp->name, sizeof(debug_last_endpoint_name));
 		rq.trunk = rq.endp->trunk;
 		rq.mgcp_cause = 0;
 
@@ -1050,32 +1063,8 @@ mgcp_header_done:
 		goto error2;
 	}
 
-	/* policy CB */
-	if (pdata->cfg->policy_cb) {
-		int rc;
-		rc = pdata->cfg->policy_cb(endp, MGCP_ENDP_CRCX, pdata->trans);
-		switch (rc) {
-		case MGCP_POLICY_REJECT:
-			LOGPCONN(_conn, DLMGCP, LOGL_NOTICE,
-				 "CRCX: CRCX rejected by policy\n");
-			mgcp_endp_release(endp);
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_REJECTED_BY_POLICY));
-			return create_err_response(endp, 400, "CRCX", pdata->trans);
-			break;
-		case MGCP_POLICY_DEFER:
-			/* stop processing */
-			return NULL;
-			break;
-		case MGCP_POLICY_CONT:
-			/* just continue */
-			break;
-		}
-	}
-
 	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
 		 "CRCX: Creating connection: port: %u\n", conn->end.local_port);
-	if (pdata->cfg->change_cb)
-		pdata->cfg->change_cb(endp, MGCP_ENDP_CRCX);
 
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
 	OSMO_ASSERT(trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
@@ -1290,40 +1279,11 @@ mgcp_header_done:
 		goto error3;
 	}
 
-
-	/* policy CB */
-	if (pdata->cfg->policy_cb) {
-		int rc;
-		rc = pdata->cfg->policy_cb(endp, MGCP_ENDP_MDCX, pdata->trans);
-		switch (rc) {
-		case MGCP_POLICY_REJECT:
-			LOGPCONN(conn->conn, DLMGCP, LOGL_NOTICE,
-				 "MDCX: rejected by policy\n");
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_REJECTED_BY_POLICY));
-			if (silent)
-				goto out_silent;
-			return create_err_response(endp, 400, "MDCX", pdata->trans);
-			break;
-		case MGCP_POLICY_DEFER:
-			/* stop processing */
-			LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
-				 "MDCX: deferred by policy\n");
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_DEFERRED_BY_POLICY));
-			return NULL;
-			break;
-		case MGCP_POLICY_CONT:
-			/* just continue */
-			break;
-		}
-	}
-
 	mgcp_rtp_end_config(endp, 1, &conn->end);
 
 	/* modify */
 	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
 		 "MDCX: modified conn:%s\n", mgcp_conn_dump(conn->conn));
-	if (pdata->cfg->change_cb)
-		pdata->cfg->change_cb(endp, MGCP_ENDP_MDCX);
 
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
 	OSMO_ASSERT(trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
@@ -1431,29 +1391,6 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 		}
 	}
 
-	/* policy CB */
-	if (pdata->cfg->policy_cb) {
-		int rc;
-		rc = pdata->cfg->policy_cb(endp, MGCP_ENDP_DLCX, pdata->trans);
-		switch (rc) {
-		case MGCP_POLICY_REJECT:
-			LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "DLCX: rejected by policy\n");
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_REJECTED_BY_POLICY));
-			if (silent)
-				goto out_silent;
-			return create_err_response(endp, 400, "DLCX", pdata->trans);
-			break;
-		case MGCP_POLICY_DEFER:
-			/* stop processing */
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_DEFERRED_BY_POLICY));
-			return NULL;
-			break;
-		case MGCP_POLICY_CONT:
-			/* just continue */
-			break;
-		}
-	}
-
 	/* Handle wildcarded DLCX that refers to the whole trunk. This means
 	 * that we walk over all endpoints on the trunk in order to drop all
 	 * connections on the trunk. (see also RFC3435 Annex F.7) */
@@ -1514,9 +1451,6 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 		mgcp_endp_release(endp);
 		LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "DLCX: endpoint released\n");
 	}
-
-	if (pdata->cfg->change_cb)
-		pdata->cfg->change_cb(endp, MGCP_ENDP_DLCX);
 
 	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_SUCCESS));
 	if (silent)

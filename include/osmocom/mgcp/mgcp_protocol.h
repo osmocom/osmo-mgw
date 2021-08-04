@@ -16,6 +16,8 @@ struct mgcp_lco {
 	int pkt_period_max; /* time in ms */
 };
 
+char *mgcp_debug_get_last_endpoint_name(void);
+
 char *get_lco_identifier(const char *options);
 int check_local_cx_options(void *ctx, const char *options);
 

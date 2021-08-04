@@ -614,28 +614,6 @@ static struct msgb *create_msg(const char *str, const char *conn_id)
 	return msg;
 }
 
-static char last_endpoint[MGCP_ENDPOINT_MAXLEN];
-
-static int mgcp_test_policy_cb(struct mgcp_endpoint *endp,
-			       int state, const char *transaction_id)
-{
-	unsigned int i;
-	struct mgcp_trunk *trunk;
-
-	fprintf(stderr, "Policy CB got state %d on endpoint %s\n",
-		state, endp->name);
-
-	trunk = endp->trunk;
-	last_endpoint[0] = '\0';
-	for (i = 0; i < trunk->number_endpoints; i++) {
-		if (strcmp(endp->name, trunk->endpoints[i]->name) == 0)
-			osmo_strlcpy(last_endpoint, trunk->endpoints[i]->name,
-				     sizeof(last_endpoint));
-	}
-
-	return MGCP_POLICY_CONT;
-}
-
 static int dummy_packets = 0;
 /* override and forward */
 ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
@@ -792,13 +770,13 @@ static void test_messages(void)
 	struct mgcp_conn_rtp *conn = NULL;
 	char last_conn_id[256];
 	int rc;
+	char *last_endpoint = mgcp_debug_get_last_endpoint_name();
 
 	cfg = mgcp_config_alloc();
 	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 
 	trunk->v.vty_number_endpoints = 64;
         mgcp_trunk_equip(trunk);
-	cfg->policy_cb = mgcp_test_policy_cb;
 
 	memset(last_conn_id, 0, sizeof(last_conn_id));
 
@@ -810,7 +788,6 @@ static void test_messages(void)
 		printf("\n================================================\n");
 		printf("Testing %s\n", t->name);
 
-		last_endpoint[0] = '\0';
 		dummy_packets = 0;
 
 		osmo_talloc_replace_string(cfg, &trunk->audio_fmtp_extra,
@@ -1411,6 +1388,7 @@ static void test_multilple_codec(void)
 	struct in_addr addr;
 	struct mgcp_conn_rtp *conn = NULL;
 	char conn_id[256];
+	char *last_endpoint = mgcp_debug_get_last_endpoint_name();
 
 	printf("Testing multiple payload types\n");
 
@@ -1418,7 +1396,6 @@ static void test_multilple_codec(void)
 	trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	trunk->v.vty_number_endpoints = 64;
         mgcp_trunk_equip(trunk);
-	cfg->policy_cb = mgcp_test_policy_cb;
 
 	/* Allocate endpoint 1@mgw with two codecs */
 	last_endpoint[0] = '\0';
@@ -1619,8 +1596,6 @@ static void test_no_name(void)
 	trunk->v.vty_number_endpoints = 64;
 	trunk->audio_send_name = 0;
         mgcp_trunk_equip(trunk);
-
-	cfg->policy_cb = mgcp_test_policy_cb;
 
 	inp = create_msg(CRCX, NULL);
 	msg = mgcp_handle_message(cfg, inp);

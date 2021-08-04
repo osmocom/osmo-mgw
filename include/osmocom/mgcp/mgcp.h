@@ -62,8 +62,6 @@ struct mgcp_rtp_end;
 #define MGCP_POLICY_REJECT	5
 #define MGCP_POLICY_DEFER	6
 
-typedef int (*mgcp_change)(struct mgcp_endpoint *endp, int state);
-typedef int (*mgcp_policy)(struct mgcp_endpoint *endp, int state, const char *transaction_id);
 typedef int (*mgcp_reset)(struct mgcp_trunk *cfg);
 typedef int (*mgcp_rqnt)(struct mgcp_endpoint *endp, char tone);
 
@@ -147,8 +145,6 @@ struct mgcp_config {
 
 	int force_ptime;
 
-	mgcp_change change_cb;
-	mgcp_policy policy_cb;
 	mgcp_reset reset_cb;
 	mgcp_rqnt rqnt_cb;
 	void *data;
