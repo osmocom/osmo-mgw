@@ -796,40 +796,46 @@ struct mgcp_client *mgcp_client_init(void *ctx,
 	return mgcp;
 }
 
-static int init_socket(struct mgcp_client *mgcp)
+static int init_socket(struct mgcp_client *mgcp, unsigned int retry_n_ports)
 {
 	int rc;
 	struct osmo_wqueue *wq;
-	int i;
+	unsigned int i;
 
 	wq = &mgcp->wq;
 
-	for (i = 0; i < 100; i++) {
+	for (i = 0; i < retry_n_ports + 1; i++) {
 
-		/* Initalize socket with the currently configured port
-		 * number */
+		/* Initialize socket with the currently configured port number */
 		rc = osmo_sock_init2_ofd(&wq->bfd, AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP, mgcp->actual.local_addr,
 					 mgcp->actual.local_port, mgcp->actual.remote_addr, mgcp->actual.remote_port,
 					 OSMO_SOCK_F_BIND | OSMO_SOCK_F_CONNECT);
 		if (rc > 0)
 			return rc;
 
-		/* If there is a different port than the default port
-		 * configured then we assume that the user has choosen
-		 * that port conciously and we will not try to resolve
-		 * this by silently choosing a different port. */
+		/* If there is a different port than the default port configured then we assume that the user has
+		 * chosen that port conciously and we will not try to resolve this by silently choosing a different
+		 * port. */
 		if (mgcp->actual.local_port != MGCP_CLIENT_LOCAL_PORT_DEFAULT && i == 0)
 			return -EINVAL;
 
-		/* Choose a new port number to try next */
-		LOGP(DLMGCP, LOGL_NOTICE,
-		     "MGCPGW failed to bind to %s:%u, retrying with port %u\n",
-		     mgcp->actual.local_addr ? mgcp->actual.local_addr : "(any)", mgcp->actual.local_port,
-		     mgcp->actual.local_port + 1);
-		mgcp->actual.local_port++;
+		if (i == retry_n_ports) {
+			/* Last try failed */
+			LOGP(DLMGCP, LOGL_NOTICE, "MGCPGW failed to bind to %s:%d -- check configuration!\n",
+			     mgcp->actual.local_addr ? mgcp->actual.local_addr : "(any)", mgcp->actual.local_port);
+			if (retry_n_ports == 0)
+				return -EINVAL;
+		} else {
+			/* Choose a new port number to try next */
+			LOGP(DLMGCP, LOGL_NOTICE,
+			     "MGCPGW failed to bind to %s:%d, retrying with port %d -- check configuration!\n",
+			     mgcp->actual.local_addr ? mgcp->actual.local_addr : "(any)", mgcp->actual.local_port,
+			     mgcp->actual.local_port + 1);
+			mgcp->actual.local_port++;
+		}
 	}
 
-	LOGP(DLMGCP, LOGL_FATAL, "MGCPGW failed to find a port to bind on %i times.\n", i);
+	LOGP(DLMGCP, LOGL_FATAL, "MGCPGW failed to find a port to bind on %u times -- check configuration!\n", i);
 	return -EINVAL;
 }
 
@@ -889,7 +895,7 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 
 	osmo_fd_setup(&wq->bfd, -1, OSMO_FD_READ, osmo_wqueue_bfd_cb, mgcp, 0);
 
-	rc = init_socket(mgcp);
+	rc = init_socket(mgcp, 99);
 	if (rc < 0) {
 		LOGP(DLMGCP, LOGL_FATAL,
 		     "Failed to initialize socket %s:%u -> %s:%u for MGCP GW: %s\n",
