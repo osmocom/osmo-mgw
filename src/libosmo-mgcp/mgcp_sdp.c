@@ -394,8 +394,10 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 				codecs_used = rc;
 			break;
 		case 'c':
-			if (audio_ip_from_sdp(&rtp->addr, line) < 0)
+			if (audio_ip_from_sdp(&rtp->addr, line) < 0) {
+				talloc_free(tmp_ctx);
 				return -1;
+			}
 			break;
 		default:
 			if (endp)
