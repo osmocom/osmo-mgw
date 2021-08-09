@@ -439,7 +439,7 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	for (i = 0; i < codecs_used; i++) {
 		LOGPC(DLMGCP, LOGL_NOTICE, "%d=%s",
 		      rtp->codecs[i].payload_type,
-		      rtp->codecs[i].subtype_name ? rtp-> codecs[i].subtype_name : "unknown");
+		      strlen(rtp->codecs[i].subtype_name) ? rtp->codecs[i].subtype_name : "unknown");
 		LOGPC(DLMGCP, LOGL_NOTICE, " ");
 	}
 	LOGPC(DLMGCP, LOGL_NOTICE, "\n");

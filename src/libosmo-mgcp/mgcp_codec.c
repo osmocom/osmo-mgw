@@ -89,15 +89,13 @@ static void codec_init(struct mgcp_rtp_codec *codec)
 		.frame_duration_den = DEFAULT_RTP_AUDIO_FRAME_DUR_DEN,
 		.rate = DEFAULT_RTP_AUDIO_DEFAULT_RATE,
 		.channels = DEFAULT_RTP_AUDIO_DEFAULT_CHANNELS,
+		.subtype_name = "",
+		.audio_name = "",
 	};
 }
 
 static void codec_free(struct mgcp_rtp_codec *codec)
 {
-	if (codec->subtype_name)
-		talloc_free(codec->subtype_name);
-	if (codec->audio_name)
-		talloc_free(codec->audio_name);
 	*codec = (struct mgcp_rtp_codec){};
 }
 
@@ -124,10 +122,8 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 {
 	int rate;
 	int channels;
-	char audio_codec[64];
 	struct mgcp_rtp_codec *codec;
 	unsigned int pt_offset = conn->end.codecs_assigned;
-	void *ctx = conn->conn;
 
 	/* The amount of codecs we can store is limited, make sure we do not
 	 * overrun this limit. */
@@ -160,16 +156,16 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 	if (!audio_name) {
 		switch (payload_type) {
 		case 0:
-			audio_name = talloc_strdup(ctx, "PCMU/8000/1");
+			strcpy(codec->audio_name, "PCMU/8000/1");
 			break;
 		case 3:
-			audio_name = talloc_strdup(ctx, "GSM/8000/1");
+			strcpy(codec->audio_name, "GSM/8000/1");
 			break;
 		case 8:
-			audio_name = talloc_strdup(ctx, "PCMA/8000/1");
+			strcpy(codec->audio_name, "PCMA/8000/1");
 			break;
 		case 18:
-			audio_name = talloc_strdup(ctx, "G729/8000/1");
+			strcpy(codec->audio_name, "G729/8000/1");
 			break;
 		default:
 			/* The given payload type is not known to us, or it
@@ -179,36 +175,36 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 			     payload_type);
 			goto error;
 		}
+	} else {
+		strncpy(codec->audio_name, audio_name, sizeof(codec->audio_name));
 	}
 
 	/* Now we extract the codec subtype name, rate and channels. The latter
 	 * two are optional. If they are not present we use the safe defaults
 	 * above. */
-	if (strlen(audio_name) >= sizeof(audio_codec)) {
-		LOGP(DLMGCP, LOGL_ERROR, "Audio codec too long: %s\n", osmo_quote_str(audio_name, -1));
+	if (strlen(codec->audio_name) >= sizeof(codec->subtype_name)) {
+		LOGP(DLMGCP, LOGL_ERROR, "Audio codec too long: %s\n", osmo_quote_str(codec->audio_name, -1));
 		goto error;
 	}
 	channels = DEFAULT_RTP_AUDIO_DEFAULT_CHANNELS;
 	rate = DEFAULT_RTP_AUDIO_DEFAULT_RATE;
-	if (sscanf(audio_name, "%63[^/]/%d/%d", audio_codec, &rate, &channels) < 1) {
-		LOGP(DLMGCP, LOGL_ERROR, "Invalid audio codec: %s\n", osmo_quote_str(audio_name, -1));
+	if (sscanf(codec->audio_name, "%63[^/]/%d/%d", codec->subtype_name, &rate, &channels) < 1) {
+		LOGP(DLMGCP, LOGL_ERROR, "Invalid audio codec: %s\n", osmo_quote_str(codec->audio_name, -1));
 		goto error;
 	}
 
 	/* Note: We only accept configurations with one audio channel! */
 	if (channels != 1) {
 		LOGP(DLMGCP, LOGL_ERROR, "Cannot handle audio codec with more than one channel: %s\n",
-		     osmo_quote_str(audio_name, -1));
+		     osmo_quote_str(codec->audio_name, -1));
 		goto error;
 	}
 
 	codec->rate = rate;
 	codec->channels = channels;
-	codec->subtype_name = talloc_strdup(ctx, audio_codec);
-	codec->audio_name = talloc_strdup(ctx, audio_name);
 	codec->payload_type = payload_type;
 
-	if (!strcmp(audio_codec, "G729")) {
+	if (!strcmp(codec->subtype_name, "G729")) {
 		codec->frame_duration_num = 10;
 		codec->frame_duration_den = 1000;
 	} else {
@@ -287,7 +283,7 @@ static bool is_codec_compatible(const struct mgcp_endpoint *endp, const struct m
 	/* A codec name must be set, if not, this might mean that the codec
 	 * (payload type) that was assigned is unknown to us so we must stop
 	 * here. */
-	if (!codec->subtype_name)
+	if (!strlen(codec->subtype_name))
 		return false;
 
 	/* FIXME: implement meaningful checks to make sure that the given codec

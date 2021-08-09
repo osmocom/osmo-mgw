@@ -81,8 +81,8 @@ struct mgcp_rtp_codec {
 	uint32_t frame_duration_den;
 
 	int payload_type;
-	char *audio_name;
-	char *subtype_name;
+	char audio_name[64];
+	char subtype_name[64];
 
 	bool param_present;
 	struct mgcp_codec_param param;
