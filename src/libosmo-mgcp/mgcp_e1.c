@@ -192,7 +192,7 @@ static void e1_i460_mux_empty_cb(struct osmo_i460_subchan *schan, void *user_dat
 {
 	struct mgcp_endpoint *endp = user_data;
 	struct rate_ctr_group *rate_ctrs = endp->trunk->ratectr.e1_stats;
-	struct msgb *msg = msgb_alloc(E1_TRAU_BITS_MSGB, "E1-I.460-IDLE-TX-TRAU-frame");
+	struct msgb *msg = msgb_alloc_c(endp->trunk, E1_TRAU_BITS_MSGB, "E1-I.460-IDLE-TX-TRAU-frame");
 	uint8_t *ptr;
 	const uint8_t *ptr_ft;
 	enum osmo_trau_frame_type ft;
@@ -238,9 +238,9 @@ static void e1_i460_demux_bits_cb(struct osmo_i460_subchan *schan, void *user_da
  * (the resulting frame will be prepended with an all-zero (12-byte) rtp header) */
 static void sync_frame_out_cb(void *user_data, const ubit_t *bits, unsigned int num_bits)
 {
-	struct msgb *msg = msgb_alloc(RTP_BUF_SIZE, "RTP-rx-from-E1");
 	unsigned int rtp_hdr_len = sizeof(struct rtp_hdr);
 	struct mgcp_endpoint *endp = user_data;
+	struct msgb *msg = msgb_alloc_c(endp->trunk, RTP_BUF_SIZE, "RTP-rx-from-E1");
 	struct rate_ctr_group *rate_ctrs = endp->trunk->ratectr.e1_stats;
 	struct mgcp_conn *conn_dst;
 	struct osmo_trau_frame fr;
@@ -312,7 +312,7 @@ skip:
 /* Function to handle outgoing E1 traffic */
 static void e1_send(struct e1inp_ts *ts, struct mgcp_trunk *trunk)
 {
-	struct msgb *msg = msgb_alloc(E1_TS_BYTES, "E1-TX-timeslot-bytes");
+	struct msgb *msg = msgb_alloc_c(trunk, E1_TS_BYTES, "E1-TX-timeslot-bytes");
 	uint8_t *ptr;
 
 	/* Get E1 frame from I.460 multiplexer */
@@ -622,7 +622,7 @@ void mgcp_e1_endp_release(struct mgcp_endpoint *endp)
  *  \returns 0 on success, -1 on ERROR. */
 int mgcp_e1_send_rtp(struct mgcp_endpoint *endp, struct mgcp_rtp_codec *codec, struct msgb *msg)
 {
-	struct msgb *msg_tf = msgb_alloc(E1_TRAU_BITS_MSGB, "E1-I.460-TX-TRAU-frame");
+	struct msgb *msg_tf = msgb_alloc_c(endp->trunk, E1_TRAU_BITS_MSGB, "E1-I.460-TX-TRAU-frame");
 	struct rate_ctr_group *rate_ctrs = endp->trunk->ratectr.e1_stats;
 	unsigned int rtp_hdr_len = sizeof(struct rtp_hdr);
 	struct osmo_trau_frame tf;

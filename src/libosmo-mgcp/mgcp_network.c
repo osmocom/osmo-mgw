@@ -1448,13 +1448,14 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	int ret;
 	enum rtp_proto proto;
 	struct osmo_rtp_msg_ctx *mc;
-	struct msgb *msg = msgb_alloc(RTP_BUF_SIZE, "RTP-rx");
+	struct msgb *msg;
 	int rc;
 
 	conn_src = (struct mgcp_conn_rtp *)fd->data;
 	OSMO_ASSERT(conn_src);
 	endp = conn_src->conn->endp;
 	OSMO_ASSERT(endp);
+	msg = msgb_alloc_c(endp->trunk, RTP_BUF_SIZE, "RTP-rx");
 
 	proto = (fd == &conn_src->end.rtp)? MGCP_PROTO_RTP : MGCP_PROTO_RTCP;
 
