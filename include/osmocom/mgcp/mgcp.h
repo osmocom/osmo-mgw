@@ -34,6 +34,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <pthread.h>
 
 #include "mgcp_ratectr.h"
 
@@ -92,6 +93,7 @@ typedef void (*mgcp_get_format)(struct mgcp_endpoint *endp,
  * This holds information on how to allocate ports
  */
 struct mgcp_port_range {
+	pthread_mutex_t lock;
 	/* addr or NULL to fall-back to default */
 	char *bind_addr_v4;
 	char *bind_addr_v6;

@@ -28,6 +28,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <errno.h>
+#include <pthread.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
@@ -478,6 +479,7 @@ static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 
 	range = &endp->cfg->net_ports;
 
+	pthread_mutex_lock(&range->lock);
 	/* attempt to find a port */
 	tries = (range->range_end - range->range_start) / 2;
 	for (i = 0; i < tries; ++i) {
@@ -490,11 +492,12 @@ static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 
 		range->last_port += 2;
 		if (rc == 0) {
+			pthread_mutex_unlock(&range->lock);
 			return 0;
 		}
 
 	}
-
+	pthread_mutex_unlock(&range->lock);
 	LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 	     "Allocating a RTP/RTCP port failed %u times.\n",
 	     tries);
@@ -1606,6 +1609,7 @@ struct mgcp_config *mgcp_config_alloc(void)
 
 	osmo_strlcpy(cfg->domain, "mgw", sizeof(cfg->domain));
 
+	cfg->net_ports.lock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 	cfg->net_ports.range_start = RTP_PORT_DEFAULT_RANGE_START;
 	cfg->net_ports.range_end = RTP_PORT_DEFAULT_RANGE_END;
 	cfg->net_ports.last_port = cfg->net_ports.range_start;

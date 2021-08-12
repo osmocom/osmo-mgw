@@ -57,6 +57,9 @@ PKG_CHECK_MODULES(LIBOSMONETIF, libosmo-netif >= 1.1.0)
 PKG_CHECK_MODULES(LIBOSMOABIS, libosmoabis >= 1.1.0)
 PKG_CHECK_MODULES(LIBOSMOTRAU, libosmotrau >= 1.1.0)
 
+CFLAGS="$CFLAGS -pthread"
+LDFLAGS="$LDFLAGS -pthread"
+
 AC_ARG_ENABLE(sanitize,
 	[AS_HELP_STRING(
 		[--enable-sanitize],
