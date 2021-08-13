@@ -123,7 +123,7 @@ int mgcp_trunk_alloc_endpts(struct mgcp_trunk *trunk)
 	OSMO_ASSERT(number_endpoints < 65534);
 
 	/* allocate pointer array for the endpoints */
-	trunk->endpoints = talloc_zero_array(trunk->cfg, struct mgcp_endpoint*,
+	trunk->endpoints = talloc_zero_array(trunk, struct mgcp_endpoint*,
 					     number_endpoints);
 	if (!trunk->endpoints)
 		return -1;
