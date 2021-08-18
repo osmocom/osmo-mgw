@@ -218,7 +218,7 @@ DEFUN(cfg_mgw_reset_ep_name,
 DEFUN(cfg_mgw_no_reset_ep_name,
       cfg_mgw_no_reset_ep_name_cmd,
       "no mgw reset-endpoint NAME",
-      MGW_STR "remove an endpoint name from the reset-endpoint list, e.g. 'rtpbridge/*'\n"
+      NO_STR MGW_STR "remove an endpoint name from the reset-endpoint list, e.g. 'rtpbridge/*'\n"
       "Endpoint name, e.g. 'rtpbridge/*' or 'ds/e1-0/s-3/su16-4'.\n")
 {
 	struct reset_ep *reset_ep;
