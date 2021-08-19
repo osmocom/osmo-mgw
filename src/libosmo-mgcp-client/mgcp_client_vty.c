@@ -517,6 +517,9 @@ DEFUN(mgw_show, mgw_snow_cmd, "show mgw-pool", SHOW_STR "Display information abo
  *  \param[in] pool user provided memory to store the configured MGCP client (MGW) pool. */
 void mgcp_client_pool_vty_init(int parent_node, int mgw_node, const char *indent, struct mgcp_client_pool *pool)
 {
+	/* A pool must be allocated before this function can be called */
+	OSMO_ASSERT(pool);
+
 	/* Never allow this function to be called twice on the same pool */
 	OSMO_ASSERT(!pool->vty_indent);
 	OSMO_ASSERT(!pool->vty_node);
