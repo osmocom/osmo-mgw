@@ -64,3 +64,8 @@ doc/manuals/common
 doc/manuals/build
 
 contrib/osmo-mgw.spec
+
+#vs code
+.cache
+.vscode
+
