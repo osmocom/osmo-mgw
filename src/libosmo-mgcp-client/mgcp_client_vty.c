@@ -404,7 +404,7 @@ DEFUN_ATTR(cfg_no_mgw,
 
 DEFUN_ATTR(mgw_reconnect, mgw_reconnect_cmd,
 	   "mgw <0-255> reconnect",
-	   MGW_STR "reconfigure and reconnect MGCP client\n", CMD_ATTR_IMMEDIATE)
+	   MGW_STR "reference number\n" "reconfigure and reconnect MGCP client\n", CMD_ATTR_IMMEDIATE)
 {
 	int nr = atoi(argv[0]);
 	struct mgcp_client_pool_member *pool_member = NULL;
@@ -454,7 +454,7 @@ DEFUN_ATTR(mgw_reconnect, mgw_reconnect_cmd,
 
 DEFUN_ATTR(mgw_block, mgw_block_cmd,
 	   "mgw <0-255> block",
-	   MGW_STR "block MGCP client so that it won't be used for new calls\n", CMD_ATTR_IMMEDIATE)
+	   MGW_STR "reference number\n" "block MGCP client so that it won't be used for new calls\n", CMD_ATTR_IMMEDIATE)
 {
 	int nr = atoi(argv[0]);
 	struct mgcp_client_pool_member *pool_member = NULL;
@@ -471,7 +471,7 @@ DEFUN_ATTR(mgw_block, mgw_block_cmd,
 
 DEFUN_ATTR(mgw_unblock, mgw_unblock_cmd,
 	   "mgw <0-255> unblock",
-	   MGW_STR "unblock MGCP client so that it will be available for new calls\n", CMD_ATTR_IMMEDIATE)
+	   MGW_STR "reference number\n" "unblock MGCP client so that it will be available for new calls\n", CMD_ATTR_IMMEDIATE)
 {
 	int nr = atoi(argv[0]);
 	struct mgcp_client_pool_member *pool_member = NULL;
