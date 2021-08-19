@@ -351,7 +351,7 @@ static struct mgcp_client_pool_member *pool_member_by_nr(unsigned int nr)
 }
 
 DEFUN_ATTR(cfg_mgw,
-	   cfg_mgw_cmd, "mgw <0-255>", "Select a MGCP client config to setup\n" "reference number", CMD_ATTR_IMMEDIATE)
+	   cfg_mgw_cmd, "mgw <0-255>", "Select a MGCP client config to setup\n" "reference number\n", CMD_ATTR_IMMEDIATE)
 {
 	int nr = atoi(argv[0]);
 	struct mgcp_client_pool_member *pool_member;
