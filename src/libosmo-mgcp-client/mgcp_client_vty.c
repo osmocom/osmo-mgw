@@ -374,7 +374,7 @@ DEFUN_ATTR(cfg_mgw,
 
 DEFUN_ATTR(cfg_no_mgw,
 	   cfg_no_mgw_cmd,
-	   "no mgw <0-255>", "Select a MGCP client config to remove\n" "reference number", CMD_ATTR_IMMEDIATE)
+	   "no mgw <0-255>", NO_STR "Select a MGCP client config to remove\n" "reference number\n", CMD_ATTR_IMMEDIATE)
 {
 	int nr = atoi(argv[0]);
 	struct mgcp_client_pool_member *pool_member;
