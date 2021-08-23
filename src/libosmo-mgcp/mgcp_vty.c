@@ -218,7 +218,7 @@ static void dump_endpoint(struct vty *vty, struct mgcp_endpoint *endp,
 		vty_out(vty, "   CONN: %s%s", mgcp_conn_dump(conn), VTY_NEWLINE);
 
 		if (show_stats) {
-			if (endp->cfg->conn_timeout) {
+			if (endp->trunk->cfg->conn_timeout) {
 				struct timeval remaining;
 				osmo_timer_remaining(&conn->watchdog, NULL, &remaining);
 				vty_out(vty, "   Currently remaining timeout (seconds): %d.%06d%s",

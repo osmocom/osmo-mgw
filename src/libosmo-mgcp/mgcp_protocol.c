@@ -144,7 +144,7 @@ static const struct mgcp_request mgcp_requests[] = {
 static int setup_rtp_processing(struct mgcp_endpoint *endp,
 				struct mgcp_conn_rtp *conn)
 {
-	struct mgcp_config *cfg = endp->cfg;
+	struct mgcp_config *cfg = endp->trunk->cfg;
 	struct mgcp_conn_rtp *conn_src = NULL;
 	struct mgcp_conn_rtp *conn_dst = conn;
 	struct mgcp_conn *_conn;
@@ -273,7 +273,7 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 	 * us for OSMUX connections. Perhaps adding a new internal API to get it
 	 * based on conn type.
 	 */
-	const char *addr = strlen(endp->cfg->local_ip) ? endp->cfg->local_ip : conn->end.local_addr;
+	const char *addr = strlen(endp->trunk->cfg->local_ip) ? endp->trunk->cfg->local_ip : conn->end.local_addr;
 	struct msgb *sdp;
 	int rc;
 	struct msgb *result;
@@ -477,7 +477,7 @@ static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 
 	OSMO_ASSERT(conn);
 
-	range = &endp->cfg->net_ports;
+	range = &endp->trunk->cfg->net_ports;
 
 	pthread_mutex_lock(&range->lock);
 	/* attempt to find a port */
@@ -741,8 +741,8 @@ uint32_t mgcp_rtp_packet_duration(const struct mgcp_endpoint *endp,
  */
 static int mgcp_osmux_setup(struct mgcp_endpoint *endp, const char *line)
 {
-	if (!endp->cfg->osmux_init) {
-		if (osmux_init(OSMUX_ROLE_BSC, endp->cfg) < 0) {
+	if (!endp->trunk->cfg->osmux_init) {
+		if (osmux_init(OSMUX_ROLE_BSC, endp->trunk->cfg) < 0) {
 			LOGPENDP(endp, DLMGCP, LOGL_ERROR, "Cannot init OSMUX\n");
 			return -3;
 		}
@@ -887,7 +887,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		case 'X':
 			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
 				/* If osmux is disabled, just skip setting it up */
-				if (!rq->endp->cfg->osmux)
+				if (!rq->endp->trunk->cfg->osmux)
 					break;
 				osmux_cid = mgcp_osmux_setup(endp, line);
 				break;
@@ -1001,7 +1001,7 @@ mgcp_header_done:
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
 			goto error2;
 		}
-	} else if (endp->cfg->osmux == OSMUX_USAGE_ONLY) {
+	} else if (endp->trunk->cfg->osmux == OSMUX_USAGE_ONLY) {
 		LOGPCONN(_conn, DLMGCP, LOGL_ERROR,
 			 "CRCX: osmux only and no osmux offered\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
@@ -1165,7 +1165,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		case 'X':
 			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
 				/* If osmux is disabled, just skip setting it up */
-				if (!endp->cfg->osmux)
+				if (!endp->trunk->cfg->osmux)
 					break;
 				osmux_cid = mgcp_osmux_setup(endp, line);
 				break;
@@ -1680,7 +1680,7 @@ int mgcp_send_reset_ep(struct mgcp_endpoint *endp)
 	if (len < 0)
 		return -1;
 
-	rc = send_agent(endp->cfg, buf, len);
+	rc = send_agent(endp->trunk->cfg, buf, len);
 	if (rc <= 0)
 		return -1;
 

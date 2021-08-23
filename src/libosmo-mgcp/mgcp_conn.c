@@ -143,7 +143,7 @@ void mgcp_conn_watchdog_cb(void *data)
 
 void mgcp_conn_watchdog_kick(struct mgcp_conn *conn)
 {
-	int timeout = conn->endp->cfg->conn_timeout;
+	int timeout = conn->endp->trunk->cfg->conn_timeout;
 	if (!timeout)
 		return;
 

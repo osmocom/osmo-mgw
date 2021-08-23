@@ -97,9 +97,6 @@ struct mgcp_endpoint {
 	/*! List of struct mgcp_conn, of the connections active on this endpoint */
 	struct llist_head conns;
 
-	/*! Backpointer to the MGW configuration */
-	struct mgcp_config *cfg;
-
 	/*! Backpointer to the trunk this endpoint belongs to */
 	struct mgcp_trunk *trunk;
 

@@ -576,7 +576,7 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 	OSMO_ASSERT(addr);
 
 	/* FIXME: constify endp and conn args in get_net_donwlink_format_cb() */
-	endp->cfg->get_net_downlink_format_cb((struct mgcp_endpoint *)endp,
+	endp->trunk->cfg->get_net_downlink_format_cb((struct mgcp_endpoint *)endp,
 					      &codec, &fmtp_extra,
 					      (struct mgcp_conn_rtp *)conn);
 
@@ -601,7 +601,7 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 
 		payload_types[0] = payload_type;
 		if (mgcp_conn_rtp_is_osmux(conn))
-			local_port = endp->cfg->osmux_port;
+			local_port = endp->trunk->cfg->osmux_port;
 		else
 			local_port = conn->end.local_port;
 		rc = add_audio(sdp, payload_types, 1, local_port);

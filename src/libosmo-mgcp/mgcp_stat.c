@@ -28,6 +28,7 @@
 #include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_stat.h>
 #include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_trunk.h>
 
 /* Helper function for mgcp_format_stats_rtp() to calculate packet loss */
 #if defined(__has_attribute)
@@ -98,7 +99,7 @@ static void mgcp_format_stats_rtp(char *str, size_t str_len,
 	str += nchars;
 	str_len -= nchars;
 
-	if (conn->conn->endp->cfg->osmux != OSMUX_USAGE_OFF) {
+	if (conn->conn->endp->trunk->cfg->osmux != OSMUX_USAGE_OFF) {
 		/* Error Counter */
 		nchars = snprintf(str, str_len,
 				  "\r\nX-Osmo-CP: EC TI=%" PRIu64 ", TO=%" PRIu64,

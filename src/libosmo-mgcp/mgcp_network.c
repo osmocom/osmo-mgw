@@ -112,7 +112,7 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 	char *bind_addr;
 
 	/* Try probing the local IP-Address */
-	if (endp->cfg->net_ports.bind_addr_probe && rem_addr_set) {
+	if (endp->trunk->cfg->net_ports.bind_addr_probe && rem_addr_set) {
 		rc = osmo_sock_local_ip(addr, osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf));
 		if (rc < 0)
 			LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
@@ -130,13 +130,13 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 		/* Check there is a bind IP for the RTP traffic configured,
 		 * if so, use that IP-Address */
 		bind_addr = conn->end.addr.u.sa.sa_family == AF_INET6 ?
-				endp->cfg->net_ports.bind_addr_v6 :
-				endp->cfg->net_ports.bind_addr_v4;
+				endp->trunk->cfg->net_ports.bind_addr_v6 :
+				endp->trunk->cfg->net_ports.bind_addr_v4;
 	} else {
 		/* Choose any of the bind addresses, preferring v6 over v4 */
-		bind_addr = endp->cfg->net_ports.bind_addr_v6;
+		bind_addr = endp->trunk->cfg->net_ports.bind_addr_v6;
 		if (!strlen(bind_addr))
-			bind_addr = endp->cfg->net_ports.bind_addr_v4;
+			bind_addr = endp->trunk->cfg->net_ports.bind_addr_v4;
 	}
 	if (strlen(bind_addr)) {
 		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
@@ -146,7 +146,7 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 		/* No specific bind IP is configured for the RTP traffic, so
 		 * assume the IP where we listen for incoming MGCP messages
 		 * as bind IP */
-		bind_addr = endp->cfg->source_addr;
+		bind_addr = endp->trunk->cfg->source_addr;
 		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
 			"using mgcp bind ip as local rtp bind ip: %s\n", bind_addr);
 	}
@@ -1177,9 +1177,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 
 		do {
 			/* Run transcoder */
-			cont = endp->cfg->rtp_processing_cb(endp, rtp_end,
-							    (char *)msgb_data(msg), &buflen,
-							    RTP_BUF_SIZE);
+			cont = endp->trunk->cfg->rtp_processing_cb(endp, rtp_end, (char *)msgb_data(msg), &buflen, RTP_BUF_SIZE);
 			if (cont < 0)
 				break;
 
@@ -1657,7 +1655,7 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 	osmo_fd_setup(&end->rtp, -1, OSMO_FD_READ, rtp_data_net, conn, 0);
 	osmo_fd_setup(&end->rtcp, -1, OSMO_FD_READ, rtp_data_net, conn, 0);
 
-	return bind_rtp(endp->cfg, conn->end.local_addr, end, endp);
+	return bind_rtp(endp->trunk->cfg, conn->end.local_addr, end, endp);
 }
 
 /*! free allocated RTP and RTCP ports.

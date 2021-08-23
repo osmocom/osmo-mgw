@@ -89,7 +89,6 @@ struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk,
 		return NULL;
 
 	INIT_LLIST_HEAD(&endp->conns);
-	endp->cfg = trunk->cfg;
 	endp->trunk = trunk;
 
 	switch (trunk->trunk_type) {

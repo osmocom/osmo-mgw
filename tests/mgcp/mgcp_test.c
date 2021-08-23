@@ -960,7 +960,7 @@ static void test_retransmission(void)
 static int rqnt_cb(struct mgcp_endpoint *endp, char _tone)
 {
 	ptrdiff_t tone = _tone;
-	endp->cfg->data = (void *)tone;
+	endp->trunk->cfg->data = (void *)tone;
 	return 0;
 }
 
@@ -1050,7 +1050,6 @@ static void test_packet_loss_calc(void)
 	memset(&endp, 0, sizeof(endp));
 	cfg = mgcp_config_alloc();
 	trunk = mgcp_trunk_alloc(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
-	endp.cfg = cfg;
 	endp.type = &ep_typeset.rtp;
 	trunk->v.vty_number_endpoints = 1;
 	trunk->endpoints = endpoints;
@@ -1307,7 +1306,6 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	state.in_stream.err_ts_ctr = &test_ctr_in;
 	state.out_stream.err_ts_ctr = &test_ctr_out;
 
-	endp.cfg = cfg;
 	endp.type = &ep_typeset.rtp;
 
 	trunk->v.vty_number_endpoints = 1;

@@ -116,7 +116,7 @@ static struct osmux_handle *
 osmux_handle_alloc(struct mgcp_conn_rtp *conn, struct in_addr *addr, int rem_port)
 {
 	struct osmux_handle *h;
-	struct mgcp_config *cfg = conn->conn->endp->cfg;
+	struct mgcp_config *cfg = conn->conn->endp->trunk->cfg;
 
 	h = talloc_zero(osmux, struct osmux_handle);
 	if (!h)
@@ -460,7 +460,7 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 	 */
 	struct in6_addr addr_unset = {};
 	static const uint32_t rtp_ssrc_winlen = UINT32_MAX / (OSMUX_CID_MAX + 1);
-	uint16_t osmux_dummy = endp->cfg->osmux_dummy;
+	uint16_t osmux_dummy = endp->trunk->cfg->osmux_dummy;
 
 	/* Check if osmux is enabled for the specified connection */
 	if (conn->osmux.state != OSMUX_STATE_ACTIVATING) {
