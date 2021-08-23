@@ -62,7 +62,6 @@ static const struct rate_ctr_desc mgcp_crcx_ctr_desc[] = {
 	[MGCP_CRCX_FAIL_NO_REMOTE_CONN_DESC] =
 	    { "crcx:no_remote_conn_desc", "no opposite end specified for connection." },
 	[MGCP_CRCX_FAIL_START_RTP] = { "crcx:start_rtp_failure", "failure to start RTP processing." },
-	[MGCP_CRCX_FAIL_REJECTED_BY_POLICY] = { "crcx:conn_rejected", "connection rejected by policy." },
 	[MGCP_CRCX_FAIL_NO_OSMUX] = { "crcx:no_osmux", "no osmux offered by peer." },
 	[MGCP_CRCX_FAIL_INVALID_CONN_OPTIONS] = { "crcx:conn_opt", "connection options invalid." },
 	[MGCP_CRCX_FAIL_CODEC_NEGOTIATION] = { "crcx:codec_nego", "codec negotiation failure." },
@@ -94,8 +93,6 @@ static const struct rate_ctr_desc mgcp_mdcx_ctr_desc[] = {
 	[MGCP_MDCX_FAIL_NO_REMOTE_CONN_DESC] =
 	    { "mdcx:no_remote_conn_desc", "no opposite end specified for connection." },
 	[MGCP_MDCX_FAIL_START_RTP] = { "mdcx:start_rtp_failure", "failure to start RTP processing." },
-	[MGCP_MDCX_FAIL_REJECTED_BY_POLICY] = { "mdcx:conn_rejected", "connection rejected by policy." },
-	[MGCP_MDCX_DEFERRED_BY_POLICY] = { "mdcx:conn_deferred", "connection deferred by policy." },
 	[MGCP_MDCX_FAIL_AVAIL] = { "mdcx:unavailable", "endpoint unavailable." },
 };
 
@@ -115,8 +112,6 @@ static const struct rate_ctr_desc mgcp_dlcx_ctr_desc[] = {
 	[MGCP_DLCX_FAIL_INVALID_CONNID] =
 	    { "dlcx:connid", "connection ID specified in DLCX command does not exist on endpoint." },
 	[MGCP_DLCX_FAIL_UNHANDLED_PARAM] = { "dlcx:unhandled_param", "unhandled parameter in DLCX command." },
-	[MGCP_DLCX_FAIL_REJECTED_BY_POLICY] = { "dlcx:rejected", "connection deletion rejected by policy." },
-	[MGCP_DLCX_DEFERRED_BY_POLICY] = { "dlcx:deferred", "connection deletion deferred by policy." },
 	[MGCP_DLCX_FAIL_AVAIL] = { "dlcx:unavailable", "endpoint unavailable." },
 };
 
