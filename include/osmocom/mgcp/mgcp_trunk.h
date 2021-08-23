@@ -2,6 +2,8 @@
 
 #include <osmocom/gsm/i460_mux.h>
 #include <osmocom/abis/e1_input.h>
+#include <osmocom/mgcp/mgcp_ratectr.h>
+
 
 #define LOGPTRUNK(trunk, cat, level, fmt, args...) \
 LOGP(cat, level, "trunk:%u " fmt, \

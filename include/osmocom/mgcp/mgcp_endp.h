@@ -25,6 +25,7 @@
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/gsm/i460_mux.h>
+#include <osmocom/mgcp/mgcp_protocol.h>
 
 struct sockaddr;
 struct mgcp_conn;

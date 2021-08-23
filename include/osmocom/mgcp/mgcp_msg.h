@@ -25,10 +25,12 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 struct mgcp_conn;
 struct mgcp_parse_data;
 struct mgcp_endpoint;
+struct mgcp_trunk;
 
 void mgcp_disp_msg(unsigned char *message, unsigned int len, char *preamble);
 
