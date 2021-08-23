@@ -135,10 +135,10 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 	} else {
 		/* Choose any of the bind addresses, preferring v6 over v4 */
 		bind_addr = endp->cfg->net_ports.bind_addr_v6;
-		if (!bind_addr)
+		if (!strlen(bind_addr))
 			bind_addr = endp->cfg->net_ports.bind_addr_v4;
 	}
-	if (bind_addr) {
+	if (strlen(bind_addr)) {
 		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
 			 "using configured rtp bind ip as local bind ip %s\n",
 			 bind_addr);

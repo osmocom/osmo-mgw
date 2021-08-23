@@ -273,7 +273,7 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 	 * us for OSMUX connections. Perhaps adding a new internal API to get it
 	 * based on conn type.
 	 */
-	const char *addr = endp->cfg->local_ip ? : conn->end.local_addr;
+	const char *addr = strlen(endp->cfg->local_ip) ? endp->cfg->local_ip : conn->end.local_addr;
 	struct msgb *sdp;
 	int rc;
 	struct msgb *result;
@@ -1615,8 +1615,8 @@ struct mgcp_config *mgcp_config_alloc(void)
 	cfg->net_ports.last_port = cfg->net_ports.range_start;
 
 	cfg->source_port = 2427;
-	cfg->source_addr = talloc_strdup(cfg, "0.0.0.0");
-	cfg->osmux_addr = talloc_strdup(cfg, "0.0.0.0");
+	osmo_strlcpy(cfg->source_addr, "0.0.0.0", sizeof(cfg->source_addr));
+	osmo_strlcpy(cfg->osmux_addr, "0.0.0.0", sizeof(cfg->osmux_addr));
 
 	cfg->rtp_processing_cb = &mgcp_rtp_processing_default;
 	cfg->setup_rtp_processing_cb = &mgcp_setup_rtp_processing_default;

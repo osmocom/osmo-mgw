@@ -95,8 +95,8 @@ typedef void (*mgcp_get_format)(struct mgcp_endpoint *endp,
 struct mgcp_port_range {
 	pthread_mutex_t lock;
 	/* addr or NULL to fall-back to default */
-	char *bind_addr_v4;
-	char *bind_addr_v6;
+	char bind_addr_v4[INET6_ADDRSTRLEN];
+	char bind_addr_v6[INET6_ADDRSTRLEN];
 
 	/* dynamically allocated */
 	int range_start;
@@ -129,9 +129,9 @@ enum mgcp_role {
 
 struct mgcp_config {
 	int source_port;
-	char *local_ip;
-	char *source_addr;
-	char *call_agent_addr;
+	char local_ip[INET6_ADDRSTRLEN];
+	char source_addr[INET6_ADDRSTRLEN];
+	char call_agent_addr[INET6_ADDRSTRLEN];
 
 	/* RTP processing */
 	mgcp_processing rtp_processing_cb;
@@ -151,8 +151,6 @@ struct mgcp_config {
 	mgcp_rqnt rqnt_cb;
 	void *data;
 
-	uint32_t last_call_id;
-
 	/* list holding the trunks */
 	struct llist_head trunks;
 
@@ -161,7 +159,7 @@ struct mgcp_config {
 	/* osmux translator: 0 means disabled, 1 means enabled */
 	int osmux;
 	/* addr to bind the server to */
-	char *osmux_addr;
+	char osmux_addr[INET6_ADDRSTRLEN];
 	/* The BSC-NAT may ask for enabling osmux on demand. This tells us if
 	 * the osmux socket is already initialized.
 	 */

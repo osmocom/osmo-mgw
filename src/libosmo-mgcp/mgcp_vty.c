@@ -65,17 +65,17 @@ static int config_write_mgcp(struct vty *vty)
 
 	vty_out(vty, "mgcp%s", VTY_NEWLINE);
 	vty_out(vty, " domain %s%s", g_cfg->domain, VTY_NEWLINE);
-	if (g_cfg->local_ip)
+	if (strlen(g_cfg->local_ip))
 		vty_out(vty, "  local ip %s%s", g_cfg->local_ip, VTY_NEWLINE);
 	vty_out(vty, " bind ip %s%s", g_cfg->source_addr, VTY_NEWLINE);
 	vty_out(vty, " bind port %u%s", g_cfg->source_port, VTY_NEWLINE);
 	vty_out(vty, " rtp port-range %u %u%s",
 		g_cfg->net_ports.range_start, g_cfg->net_ports.range_end,
 		VTY_NEWLINE);
-	if (g_cfg->net_ports.bind_addr_v4)
+	if (strlen(g_cfg->net_ports.bind_addr_v4))
 		vty_out(vty, " rtp bind-ip %s%s",
 			g_cfg->net_ports.bind_addr_v4, VTY_NEWLINE);
-	if (g_cfg->net_ports.bind_addr_v6)
+	if (strlen(g_cfg->net_ports.bind_addr_v6))
 		vty_out(vty, " rtp bind-ip-v6 %s%s",
 			g_cfg->net_ports.bind_addr_v6, VTY_NEWLINE);
 	if (g_cfg->net_ports.bind_addr_probe)
@@ -122,7 +122,7 @@ static int config_write_mgcp(struct vty *vty)
 		trunk->v.vty_number_endpoints, VTY_NEWLINE);
 	vty_out(vty, " %sallow-transcoding%s",
 		trunk->no_audio_transcoding ? "no " : "", VTY_NEWLINE);
-	if (g_cfg->call_agent_addr)
+	if (strlen(g_cfg->call_agent_addr))
 		vty_out(vty, " call-agent ip %s%s", g_cfg->call_agent_addr,
 			VTY_NEWLINE);
 	if (g_cfg->force_ptime > 0)
@@ -443,7 +443,7 @@ DEFUN_USRATTR(cfg_mgcp_local_ip,
 	      "IPv4 Address to use in SDP record\n"
 	      "IPv6 Address to use in SDP record\n")
 {
-	osmo_talloc_replace_string(g_cfg, &g_cfg->local_ip, argv[0]);
+	osmo_strlcpy(g_cfg->local_ip, argv[0], sizeof(g_cfg->local_ip));
 	return CMD_SUCCESS;
 }
 
@@ -455,7 +455,7 @@ DEFUN(cfg_mgcp_bind_ip,
       "IPv4 Address to bind to\n"
       "IPv6 Address to bind to\n")
 {
-	osmo_talloc_replace_string(g_cfg, &g_cfg->source_addr, argv[0]);
+	osmo_strlcpy(g_cfg->source_addr, argv[0], sizeof(g_cfg->source_addr));
 	return CMD_SUCCESS;
 }
 
@@ -533,7 +533,7 @@ DEFUN_USRATTR(cfg_mgcp_rtp_bind_ip,
 	      RTP_STR "Bind endpoints facing the Network\n"
 	      "IPv4 Address to bind to\n")
 {
-	osmo_talloc_replace_string(g_cfg, &g_cfg->net_ports.bind_addr_v4, argv[0]);
+	osmo_strlcpy(g_cfg->net_ports.bind_addr_v4, argv[0], sizeof(g_cfg->net_ports.bind_addr_v4));
 	return CMD_SUCCESS;
 }
 ALIAS_DEPRECATED(cfg_mgcp_rtp_bind_ip,
@@ -548,8 +548,7 @@ DEFUN_USRATTR(cfg_mgcp_rtp_no_bind_ip,
 	      NO_STR RTP_STR "Bind endpoints facing the Network\n"
 	      "Address to bind to\n")
 {
-	talloc_free(g_cfg->net_ports.bind_addr_v4);
-	g_cfg->net_ports.bind_addr_v4 = NULL;
+	osmo_strlcpy(g_cfg->net_ports.bind_addr_v4, "", sizeof(g_cfg->net_ports.bind_addr_v4));
 	return CMD_SUCCESS;
 }
 ALIAS_DEPRECATED(cfg_mgcp_rtp_no_bind_ip,
@@ -565,7 +564,7 @@ DEFUN_USRATTR(cfg_mgcp_rtp_bind_ip_v6,
 	      RTP_STR "Bind endpoints facing the Network\n"
 	      "IPv6 Address to bind to\n")
 {
-	osmo_talloc_replace_string(g_cfg, &g_cfg->net_ports.bind_addr_v6, argv[0]);
+	osmo_strlcpy(g_cfg->net_ports.bind_addr_v6, argv[0], sizeof(g_cfg->net_ports.bind_addr_v6));
 	return CMD_SUCCESS;
 }
 
@@ -576,8 +575,7 @@ DEFUN_USRATTR(cfg_mgcp_rtp_no_bind_ip_v6,
 	      NO_STR RTP_STR "Bind endpoints facing the Network\n"
 	      "Address to bind to\n")
 {
-	talloc_free(g_cfg->net_ports.bind_addr_v6);
-	g_cfg->net_ports.bind_addr_v6 = NULL;
+	osmo_strlcpy(g_cfg->net_ports.bind_addr_v6, "", sizeof(g_cfg->net_ports.bind_addr_v6));
 	return CMD_SUCCESS;
 }
 
@@ -950,7 +948,7 @@ DEFUN(cfg_mgcp_agent_addr,
       "IPv4 Address of the call agent\n"
       "IPv6 Address of the call agent\n")
 {
-	osmo_talloc_replace_string(g_cfg, &g_cfg->call_agent_addr, argv[0]);
+	osmo_strlcpy(g_cfg->call_agent_addr, argv[0], sizeof(g_cfg->call_agent_addr));
 	return CMD_SUCCESS;
 }
 
@@ -1559,7 +1557,7 @@ DEFUN(cfg_mgcp_osmux_ip,
       "IPv4 Address to bind to\n"
       "IPv6 Address to bind to\n")
 {
-	osmo_talloc_replace_string(g_cfg, &g_cfg->osmux_addr, argv[0]);
+	osmo_strlcpy(g_cfg->osmux_addr, argv[0], sizeof(g_cfg->osmux_addr));
 	return CMD_SUCCESS;
 }
 
@@ -1748,7 +1746,7 @@ int mgcp_parse_config(const char *config_file, struct mgcp_config *cfg,
 		return rc;
 	}
 
-	if (!g_cfg->source_addr) {
+	if (!strlen(g_cfg->source_addr)) {
 		fprintf(stderr, "You need to specify a bind address.\n");
 		return -1;
 	}

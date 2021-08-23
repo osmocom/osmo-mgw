@@ -369,12 +369,12 @@ int main(int argc, char **argv)
 
 	/* we need to bind a socket */
 	flags = OSMO_SOCK_F_BIND;
-	if (cfg->call_agent_addr)
+	if (strlen(cfg->call_agent_addr))
 		flags |= OSMO_SOCK_F_CONNECT;
 
 	rc = osmo_sock_init2_ofd(&cfg->gw_fd.bfd, AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP,
 				cfg->source_addr, cfg->source_port,
-				cfg->call_agent_addr, cfg->call_agent_addr ? 2727 : 0, flags);
+				cfg->call_agent_addr, strlen(cfg->call_agent_addr) ? 2727 : 0, flags);
 	if (rc < 0) {
 		perror("Gateway failed to bind");
 		return -1;
