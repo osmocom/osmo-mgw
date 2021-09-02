@@ -1492,7 +1492,7 @@ mgcp_trans_id_t mgcp_msg_trans_id(struct msgb *msg)
 	return (mgcp_trans_id_t)msg->cb[MSGB_CB_MGCP_TRANS_ID];
 }
 
-/*! Get the configuration parameters a given MGCP client instance
+/*! Get the configuration parameters for a given MGCP client instance
  *  \param[in] mgcp MGCP client descriptor.
  *  \returns configuration */
 struct mgcp_client_conf *mgcp_client_conf_actual(struct mgcp_client *mgcp)
