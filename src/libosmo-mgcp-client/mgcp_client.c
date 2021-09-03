@@ -46,6 +46,9 @@
 #define OSMUX_CID_MAX 255 /* FIXME: use OSMUX_CID_MAX from libosmo-netif? */
 #endif
 
+#define LOGPMGW(mgcp, level, fmt, args...) \
+LOGP(DLMGCP, level, "MGW(%s) " fmt, mgcp_client_name(mgcp), ## args)
+
 /* Codec descripton for dynamic payload types (SDP) */
 const struct value_string osmo_mgcpc_codec_names[] = {
 	{ CODEC_PCMU_8000_1, "PCMU/8000/1" },
@@ -209,14 +212,13 @@ static void mgcp_client_handle_response(struct mgcp_client *mgcp,
 					struct mgcp_response *response)
 {
 	if (!pending) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Cannot handle NULL response\n");
+		LOGPMGW(mgcp, LOGL_ERROR, "Cannot handle NULL response\n");
 		return;
 	}
 	if (pending->response_cb)
 		pending->response_cb(response, pending->priv);
 	else
-		LOGP(DLMGCP, LOGL_DEBUG, "MGCP response ignored (NULL cb)\n");
+		LOGPMGW(mgcp, LOGL_DEBUG, "MGCP response ignored (NULL cb)\n");
 	talloc_free(pending);
 }
 
@@ -673,26 +675,25 @@ int mgcp_client_rx(struct mgcp_client *mgcp, struct msgb *msg)
 
 	rc = mgcp_response_parse_head(r, msg);
 	if (rc) {
-		LOGP(DLMGCP, LOGL_ERROR, "Cannot parse MGCP response (head)\n");
+		LOGPMGW(mgcp, LOGL_ERROR, "Cannot parse MGCP response (head)\n");
 		rc = 1;
 		goto error;
 	}
 
-	LOGP(DLMGCP, LOGL_DEBUG, "MGCP client: Rx %d %u %s\n",
+	LOGPMGW(mgcp, LOGL_DEBUG, "MGCP client: Rx %d %u %s\n",
 	     r->head.response_code, r->head.trans_id, r->head.comment);
 
 	rc = parse_head_params(r);
 	if (rc) {
-		LOGP(DLMGCP, LOGL_ERROR, "Cannot parse MGCP response (head parameters)\n");
+		LOGPMGW(mgcp, LOGL_ERROR, "Cannot parse MGCP response (head parameters)\n");
 		rc = 1;
 		goto error;
 	}
 
 	pending = mgcp_client_response_pending_get(mgcp, r->head.trans_id);
 	if (!pending) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Cannot find matching MGCP transaction for trans_id %d\n",
-		     r->head.trans_id);
+		LOGPMGW(mgcp, LOGL_ERROR, "Cannot find matching MGCP transaction for trans_id %d\n",
+			r->head.trans_id);
 		rc = -ENOENT;
 		goto error;
 	}
@@ -713,19 +714,19 @@ static int mgcp_do_read(struct osmo_fd *fd)
 
 	msg = msgb_alloc_headroom(4096, 128, "mgcp_from_gw");
 	if (!msg) {
-		LOGP(DLMGCP, LOGL_ERROR, "Failed to allocate MGCP message.\n");
+		LOGPMGW(mgcp, LOGL_ERROR, "Failed to allocate MGCP message.\n");
 		return -1;
 	}
 
 	ret = read(fd->fd, msg->data, 4096 - 128);
 	if (ret <= 0) {
-		LOGP(DLMGCP, LOGL_ERROR, "Failed to read: %s: %d='%s'\n", osmo_sock_get_name2(fd->fd),
-		     errno, strerror(errno));
+		LOGPMGW(mgcp, LOGL_ERROR, "Failed to read: %s: %d='%s'\n",
+		     osmo_sock_get_name2(fd->fd), errno, strerror(errno));
 
 		msgb_free(msg);
 		return -1;
 	} else if (ret > 4096 - 128) {
-		LOGP(DLMGCP, LOGL_ERROR, "Too much data: %s: %d\n", osmo_sock_get_name2(fd->fd), ret);
+		LOGPMGW(mgcp, LOGL_ERROR, "Too much data: %s: %d\n", osmo_sock_get_name2(fd->fd), ret);
 		msgb_free(msg);
 		return -1;
 	}
@@ -739,15 +740,17 @@ static int mgcp_do_read(struct osmo_fd *fd)
 static int mgcp_do_write(struct osmo_fd *fd, struct msgb *msg)
 {
 	int ret;
+	struct mgcp_client *mgcp = fd->data;
 
-	LOGP(DLMGCP, LOGL_DEBUG, "Tx MGCP: %s: len=%u '%s'...\n",
-	     osmo_sock_get_name2(fd->fd), msg->len, osmo_escape_str((const char*)msg->data, OSMO_MIN(42, msg->len)));
+	LOGPMGW(mgcp, LOGL_DEBUG, "Tx MGCP: %s: len=%u '%s'...\n",
+		osmo_sock_get_name2(fd->fd), msg->len,
+		osmo_escape_str((const char *)msg->data, OSMO_MIN(42, msg->len)));
 
 	ret = write(fd->fd, msg->data, msg->len);
 	if (ret != msg->len)
-		LOGP(DLMGCP, LOGL_ERROR, "Failed to Tx MGCP: %s: %d='%s'; msg: len=%u '%s'...\n",
-		     osmo_sock_get_name2(fd->fd), errno, strerror(errno),
-		     msg->len, osmo_escape_str((const char*)msg->data, OSMO_MIN(42, msg->len)));
+		LOGPMGW(mgcp, LOGL_ERROR, "Failed to Tx MGCP: %s: %d='%s'; msg: len=%u '%s'...\n",
+			osmo_sock_get_name2(fd->fd), errno, strerror(errno),
+			msg->len, osmo_escape_str((const char *)msg->data, OSMO_MIN(42, msg->len)));
 	return ret;
 }
 
@@ -780,18 +783,21 @@ struct mgcp_client *mgcp_client_init(void *ctx,
 	if (osmo_strlcpy(mgcp->actual.endpoint_domain_name, conf->endpoint_domain_name,
 			 sizeof(mgcp->actual.endpoint_domain_name))
 	    >= sizeof(mgcp->actual.endpoint_domain_name)) {
-		LOGP(DLMGCP, LOGL_ERROR, "MGCP client: endpoint domain name is too long, max length is %zu: '%s'\n",
-		     sizeof(mgcp->actual.endpoint_domain_name) - 1, conf->endpoint_domain_name);
+		LOGPMGW(mgcp, LOGL_ERROR, "MGCP client: endpoint domain name is too long, max length is %zu: '%s'\n",
+			sizeof(mgcp->actual.endpoint_domain_name) - 1, conf->endpoint_domain_name);
 		talloc_free(mgcp);
 		return NULL;
 	}
-	LOGP(DLMGCP, LOGL_NOTICE, "MGCP client: using endpoint domain '@%s'\n", mgcp_client_endpoint_domain(mgcp));
+	LOGPMGW(mgcp, LOGL_NOTICE, "MGCP client: using endpoint domain '@%s'\n", mgcp_client_endpoint_domain(mgcp));
 
 	INIT_LLIST_HEAD(&mgcp->actual.reset_epnames);
 	llist_for_each_entry(reset_ep, &conf->reset_epnames, list) {
 		actual_reset_ep = talloc_memdup(mgcp, reset_ep, sizeof(*reset_ep));
 		llist_add_tail(&actual_reset_ep->list, &mgcp->actual.reset_epnames);
 	}
+
+	if (conf->description)
+		mgcp->actual.description = talloc_strdup(mgcp, conf->description);
 
 	return mgcp;
 }
@@ -821,21 +827,21 @@ static int init_socket(struct mgcp_client *mgcp, unsigned int retry_n_ports)
 
 		if (i == retry_n_ports) {
 			/* Last try failed */
-			LOGP(DLMGCP, LOGL_NOTICE, "MGCPGW failed to bind to %s:%d -- check configuration!\n",
+			LOGPMGW(mgcp, LOGL_NOTICE, "Failed to bind to %s:%d -- check configuration!\n",
 			     mgcp->actual.local_addr ? mgcp->actual.local_addr : "(any)", mgcp->actual.local_port);
 			if (retry_n_ports == 0)
 				return -EINVAL;
 		} else {
 			/* Choose a new port number to try next */
-			LOGP(DLMGCP, LOGL_NOTICE,
-			     "MGCPGW failed to bind to %s:%d, retrying with port %d -- check configuration!\n",
+			LOGPMGW(mgcp, LOGL_NOTICE,
+			     "Failed to bind to %s:%d, retrying with port %d -- check configuration!\n",
 			     mgcp->actual.local_addr ? mgcp->actual.local_addr : "(any)", mgcp->actual.local_port,
 			     mgcp->actual.local_port + 1);
 			mgcp->actual.local_port++;
 		}
 	}
 
-	LOGP(DLMGCP, LOGL_FATAL, "MGCPGW failed to find a port to bind on %u times -- check configuration!\n", i);
+	LOGPMGW(mgcp, LOGL_FATAL, "Failed to find a port to bind on %u times -- check configuration!\n", i);
 	return -EINVAL;
 }
 
@@ -862,12 +868,12 @@ static const char *_mgcp_client_name_append_domain(const struct mgcp_client *mgc
 
 	rc = snprintf(endpoint, sizeof(endpoint), "%s@%s", name, mgcp_client_endpoint_domain(mgcp));
 	if (rc > sizeof(endpoint) - 1) {
-		LOGP(DLMGCP, LOGL_ERROR, "MGCP endpoint exceeds maximum length of %zu: '%s@%s'\n",
-		     sizeof(endpoint) - 1, name, mgcp_client_endpoint_domain(mgcp));
+		LOGPMGW(mgcp, LOGL_ERROR, "MGCP endpoint exceeds maximum length of %zu: '%s@%s'\n",
+			sizeof(endpoint) - 1, name, mgcp_client_endpoint_domain(mgcp));
 		return NULL;
 	}
 	if (rc < 1) {
-		LOGP(DLMGCP, LOGL_ERROR, "Cannot compose MGCP endpoint name\n");
+		LOGPMGW(mgcp, LOGL_ERROR, "Cannot compose MGCP endpoint name\n");
 		return NULL;
 	}
 	return endpoint;
@@ -885,7 +891,7 @@ int mgcp_client_connect2(struct mgcp_client *mgcp, unsigned int retry_n_ports)
 	const char *epname;
 
 	if (!mgcp) {
-		LOGP(DLMGCP, LOGL_FATAL, "MGCPGW client not initialized properly\n");
+		LOGPMGW(mgcp, LOGL_FATAL, "Client not initialized properly\n");
 		return -EINVAL;
 	}
 
@@ -898,21 +904,21 @@ int mgcp_client_connect2(struct mgcp_client *mgcp, unsigned int retry_n_ports)
 
 	rc = init_socket(mgcp, retry_n_ports);
 	if (rc < 0) {
-		LOGP(DLMGCP, LOGL_FATAL,
-		     "Failed to initialize socket %s:%u -> %s:%u for MGCP GW: %s\n",
+		LOGPMGW(mgcp, LOGL_FATAL,
+		     "Failed to initialize socket %s:%u -> %s:%u for MGW: %s\n",
 		     mgcp->actual.local_addr ? mgcp->actual.local_addr : "(any)", mgcp->actual.local_port,
 		     mgcp->actual.remote_addr ? mgcp->actual.local_addr : "(any)", mgcp->actual.remote_port,
 		     strerror(errno));
 		goto error_close_fd;
 	}
 
-	LOGP(DLMGCP, LOGL_INFO, "MGCP GW connection: %s\n", osmo_sock_get_name2(wq->bfd.fd));
+	LOGPMGW(mgcp, LOGL_INFO, "MGW connection: %s\n", osmo_sock_get_name2(wq->bfd.fd));
 
 	/* If configured, send a DLCX message to the endpoints that are configured to
 	 * be reset on startup. Usually this is a wildcarded endpoint. */
 	llist_for_each_entry(reset_ep, &mgcp->actual.reset_epnames, list) {
 		epname = _mgcp_client_name_append_domain(mgcp, reset_ep->name);
-		LOGP(DLMGCP, LOGL_INFO, "MGCP GW sending DLCX to: %s\n", epname);
+		LOGPMGW(mgcp, LOGL_INFO, "Sending DLCX to: %s\n", epname);
 		_mgcp_client_send_dlcx(mgcp, epname);
 	}
 	return 0;
@@ -938,13 +944,13 @@ void mgcp_client_disconnect(struct mgcp_client *mgcp)
 	struct osmo_wqueue *wq;
 
 	if (!mgcp) {
-		LOGP(DLMGCP, LOGL_FATAL, "MGCPGW client not initialized properly\n");
+		LOGP(DLMGCP, LOGL_FATAL, "MGCP client not initialized properly\n");
 		return;
 	}
 
 	wq = &mgcp->wq;
 	osmo_wqueue_clear(wq);
-	LOGP(DLMGCP, LOGL_INFO, "MGCP GW connection: %s -- closed!\n", osmo_sock_get_name2(wq->bfd.fd));
+	LOGPMGW(mgcp, LOGL_INFO, "MGCP association: %s -- closed!\n", osmo_sock_get_name2(wq->bfd.fd));
 	close(wq->bfd.fd);
 	wq->bfd.fd = -1;
 	if (osmo_fd_is_registered(&wq->bfd))
@@ -1014,7 +1020,7 @@ const char *mgcp_client_e1_epname(void *ctx, const struct mgcp_client *mgcp, uin
 	    talloc_asprintf(ctx, "ds/e1-%u/s-%u/su%u-%u@%s", trunk_id, ts, rate, offset,
 			    mgcp_client_endpoint_domain(mgcp));
 	if (!epname) {
-		LOGP(DLMGCP, LOGL_ERROR, "Cannot compose MGCP e1-endpoint name!\n");
+		LOGPMGW(mgcp, LOGL_ERROR, "Cannot compose MGCP e1-endpoint name!\n");
 		return NULL;
 	}
 
@@ -1024,9 +1030,9 @@ const char *mgcp_client_e1_epname(void *ctx, const struct mgcp_client *mgcp, uin
 			rate_offs_valid = true;
 	}
 	if (!rate_offs_valid) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Cannot compose MGCP e1-endpoint name (%s), rate(%u)/offset(%u) combination is invalid!\n", epname,
-		     rate, offset);
+		LOGPMGW(mgcp, LOGL_ERROR,
+			"Cannot compose MGCP e1-endpoint name (%s), rate(%u)/offset(%u) combination is invalid!\n",
+			epname, rate, offset);
 		talloc_free(epname);
 		return NULL;
 	}
@@ -1034,8 +1040,9 @@ const char *mgcp_client_e1_epname(void *ctx, const struct mgcp_client *mgcp, uin
 	/* An E1 line has a maximum of 32 timeslots, while the first (ts=0) is
 	 * reserverd for framing and alignment, so we can not use it here. */
 	if (ts == 0 || ts > NUM_E1_TS-1) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Cannot compose MGCP e1-endpoint name (%s), E1-timeslot number (%u) is invalid!\n", epname, ts);
+		LOGPMGW(mgcp, LOGL_ERROR,
+			"Cannot compose MGCP e1-endpoint name (%s), E1-timeslot number (%u) is invalid!\n",
+			epname, ts);
 		talloc_free(epname);
 		return NULL;
 	}
@@ -1063,7 +1070,7 @@ struct mgcp_response_pending * mgcp_client_pending_add(
 	return pending;
 }
 
-/* Send the MGCP message in msg to the MGCP GW and handle a response with
+/* Send the MGCP message in msg to the MGW and handle a response with
  * response_cb. NOTE: the response_cb still needs to call
  * mgcp_response_parse_params(response) to get the parsed parameters -- to
  * potentially save some CPU cycles, only the head line has been parsed when
@@ -1080,8 +1087,8 @@ int mgcp_client_tx(struct mgcp_client *mgcp, struct msgb *msg,
 
 	trans_id = msg->cb[MSGB_CB_MGCP_TRANS_ID];
 	if (!trans_id) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Unset transaction id in mgcp send request\n");
+		LOGPMGW(mgcp, LOGL_ERROR,
+			"Unset transaction id in mgcp send request\n");
 		talloc_free(msg);
 		return -EINVAL;
 	}
@@ -1096,9 +1103,9 @@ int mgcp_client_tx(struct mgcp_client *mgcp, struct msgb *msg,
 	}
 
 	if (msgb_l2len(msg) > 4096) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Cannot send, MGCP message too large: %u\n",
-		     msgb_l2len(msg));
+		LOGPMGW(mgcp, LOGL_ERROR,
+			"Cannot send, MGCP message too large: %u\n",
+			msgb_l2len(msg));
 		msgb_free(msg);
 		rc = -EINVAL;
 		goto mgcp_tx_error;
@@ -1106,12 +1113,12 @@ int mgcp_client_tx(struct mgcp_client *mgcp, struct msgb *msg,
 
 	rc = osmo_wqueue_enqueue(&mgcp->wq, msg);
 	if (rc) {
-		LOGP(DLMGCP, LOGL_FATAL, "Could not queue message to MGCP GW\n");
+		LOGPMGW(mgcp, LOGL_FATAL, "Could not queue message to MGW\n");
 		msgb_free(msg);
 		goto mgcp_tx_error;
 	} else
-		LOGP(DLMGCP, LOGL_DEBUG, "Queued %u bytes for MGCP GW\n",
-		     msgb_l2len(msg));
+		LOGPMGW(mgcp, LOGL_DEBUG, "Queued %u bytes for MGW\n",
+			msgb_l2len(msg));
 	return 0;
 
 mgcp_tx_error:
@@ -1138,10 +1145,10 @@ int mgcp_client_cancel(struct mgcp_client *mgcp, mgcp_trans_id_t trans_id)
 	struct mgcp_response_pending *pending = mgcp_client_response_pending_get(mgcp, trans_id);
 	if (!pending) {
 		/*! Note: it is not harmful to cancel a transaction twice. */
-		LOGP(DLMGCP, LOGL_ERROR, "Cannot cancel, no such transaction: %u\n", trans_id);
+		LOGPMGW(mgcp, LOGL_ERROR, "Cannot cancel, no such transaction: %u\n", trans_id);
 		return -ENOENT;
 	}
-	LOGP(DLMGCP, LOGL_DEBUG, "Canceled transaction %u\n", trans_id);
+	LOGPMGW(mgcp, LOGL_DEBUG, "Canceled transaction %u\n", trans_id);
 	talloc_free(pending);
 	return 0;
 	/*! We don't really need to clean up the wqueue: In all sane cases, the msgb has already been sent
@@ -1233,8 +1240,8 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 
 	/* Determine local IP-Address */
 	if (osmo_sock_local_ip(local_ip, mgcp->actual.remote_addr) < 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Could not determine local IP-Address!\n");
+		LOGPMGW(mgcp, LOGL_ERROR,
+			"Could not determine local IP-Address!\n");
 		msgb_free(msg);
 		return -EINVAL;
 	}
@@ -1259,14 +1266,14 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 
 	/* Add RTP address and port */
 	if (mgcp_msg->audio_port == 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Invalid port number, can not generate MGCP message\n");
+		LOGPMGW(mgcp, LOGL_ERROR,
+			"Invalid port number, can not generate MGCP message\n");
 		msgb_free(msg);
 		return -EINVAL;
 	}
 	if (strlen(mgcp_msg->audio_ip) <= 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Empty ip address, can not generate MGCP message\n");
+		LOGPMGW(mgcp, LOGL_ERROR,
+			"Empty ip address, can not generate MGCP message\n");
 		msgb_free(msg);
 		return -EINVAL;
 	}
@@ -1323,8 +1330,7 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 		rc |= msgb_printf(msg, "a=ptime:%u\r\n", mgcp_msg->ptime);
 
 	if (rc != 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "message buffer to small, can not generate MGCP message (SDP)\n");
+		LOGPMGW(mgcp, LOGL_ERROR, "Message buffer to small, can not generate MGCP message (SDP)\n");
 		msgb_free(msg);
 		return -ENOBUFS;
 	}
@@ -1371,16 +1377,15 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		rc |= msgb_printf(msg, "RSIP %u", trans_id);
 		break;
 	default:
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "Invalid command verb, can not generate MGCP message\n");
+		LOGPMGW(mgcp, LOGL_ERROR, "Invalid command verb, can not generate MGCP message\n");
 		msgb_free(msg);
 		return NULL;
 	}
 
 	/* Check if mandatory fields are missing */
 	if (!((mgcp_msg->presence & mandatory_mask) == mandatory_mask)) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "One or more missing mandatory fields, can not generate MGCP message\n");
+		LOGPMGW(mgcp, LOGL_ERROR,
+			"One or more missing mandatory fields, can not generate MGCP message\n");
 		msgb_free(msg);
 		return NULL;
 	}
@@ -1388,16 +1393,15 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	/* Add endpoint name */
 	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_ENDPOINT) {
 		if (strlen(mgcp_msg->endpoint) <= 0) {
-			LOGP(DLMGCP, LOGL_ERROR,
-			     "Empty endpoint name, can not generate MGCP message\n");
+			LOGPMGW(mgcp, LOGL_ERROR, "Empty endpoint name, can not generate MGCP message\n");
 			msgb_free(msg);
 			return NULL;
 		}
 
 		if (strstr(mgcp_msg->endpoint, "@") == NULL) {
-			LOGP(DLMGCP, LOGL_ERROR,
-			     "Endpoint name (%s) lacks separator (@), can not generate MGCP message\n",
-			     mgcp_msg->endpoint);
+			LOGPMGW(mgcp, LOGL_ERROR,
+				"Endpoint name (%s) lacks separator (@), can not generate MGCP message\n",
+				mgcp_msg->endpoint);
 			msgb_free(msg);
 			return NULL;
 		}
@@ -1415,8 +1419,7 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	/* Add connection id */
 	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CONN_ID) {
 		if (strlen(mgcp_msg->conn_id) <= 0) {
-			LOGP(DLMGCP, LOGL_ERROR,
-			     "Empty connection id, can not generate MGCP message\n");
+			LOGPMGW(mgcp, LOGL_ERROR, "Empty connection id, can not generate MGCP message\n");
 			msgb_free(msg);
 			return NULL;
 		}
@@ -1453,9 +1456,8 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	/* Add X-Osmo-Osmux */
 	if ((mgcp_msg->presence & MGCP_MSG_PRESENCE_X_OSMO_OSMUX_CID)) {
 		if (mgcp_msg->x_osmo_osmux_cid < -1 || mgcp_msg->x_osmo_osmux_cid > OSMUX_CID_MAX) {
-			LOGP(DLMGCP, LOGL_ERROR,
-			     "Wrong Osmux CID %d, can not generate MGCP message\n",
-			     mgcp_msg->x_osmo_osmux_cid);
+			LOGPMGW(mgcp, LOGL_ERROR, "Wrong Osmux CID %d, can not generate MGCP message\n",
+				mgcp_msg->x_osmo_osmux_cid);
 			msgb_free(msg);
 			return NULL;
 		}
@@ -1475,8 +1477,7 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	}
 
 	if (rc != 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "message buffer to small, can not generate MGCP message\n");
+		LOGPMGW(mgcp, LOGL_ERROR, "Message buffer to small, can not generate MGCP message\n");
 		msgb_free(msg);
 		msg = NULL;
 	}
@@ -1508,3 +1509,22 @@ const struct value_string mgcp_client_connection_mode_strs[] = {
 	{ MGCP_CONN_LOOPBACK, "loopback" },
 	{ 0, NULL }
 };
+
+/*! Get MGCP client instance name (VTY).
+ *  \param[in] mgcp MGCP client descriptor.
+ *  \returns MGCP client name.
+ *
+ *  The user can only modify the name of an MGCP client instance when it is
+ *  part of a pool. For single MGCP client instances and MGCP client instance
+ *  where no description is set via the VTY, the MGW domain name will be used
+ *  as name. */
+const char *mgcp_client_name(const struct mgcp_client *mgcp)
+{
+	if (!mgcp)
+		return "(null)";
+
+	if (mgcp->actual.description)
+		return mgcp->actual.description;
+	else
+		return mgcp_client_endpoint_domain(mgcp);
+}

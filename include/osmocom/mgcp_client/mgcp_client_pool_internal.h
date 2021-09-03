@@ -41,3 +41,5 @@ struct mgcp_client_pool {
 	/* VTY node specification used with this pool. This field is populated by mgcp_client_pool_vty_init() */
 	struct cmd_node *vty_node;
 };
+
+const char *mgcp_client_pool_member_name(const struct mgcp_client_pool_member *pool_member);

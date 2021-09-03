@@ -1,19 +1,19 @@
-DLMGCP MGCP client: using endpoint domain '@mgw'
-DLMGCP message buffer to small, can not generate MGCP message (SDP)
+DLMGCP MGW(mgw) MGCP client: using endpoint domain '@mgw'
+DLMGCP MGW(mgw) Message buffer to small, can not generate MGCP message (SDP)
 
 test_mgcp_client_cancel():
-DLMGCP MGCP client: using endpoint domain '@mgw'
+DLMGCP MGW(mgw) MGCP client: using endpoint domain '@mgw'
 - composed msg with trans_id=1
 - not in queue yet, cannot cancel yet
-DLMGCP Cannot cancel, no such transaction: 1
+DLMGCP MGW(mgw) Cannot cancel, no such transaction: 1
 - enqueue
 - cancel succeeds
-DLMGCP Canceled transaction 1
+DLMGCP MGW(mgw) Canceled transaction 1
 - late response gets discarded
-DLMGCP MGCP client: Rx 200 1 OK
-DLMGCP Cannot find matching MGCP transaction for trans_id 1
+DLMGCP MGW(mgw) MGCP client: Rx 200 1 OK
+DLMGCP MGW(mgw) Cannot find matching MGCP transaction for trans_id 1
 - canceling again does nothing
-DLMGCP Cannot cancel, no such transaction: 1
+DLMGCP MGW(mgw) Cannot cancel, no such transaction: 1
 test_mgcp_client_cancel() done
 
 test_sdp_section_start() test [0]:
@@ -130,9 +130,9 @@ DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2
 DLMGCP ptmap contains illegal mapping: codec=0 maps to pt=100
 DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2
 DLMGCP ptmap contains illegal mapping: codec=0 maps to pt=100
-DLMGCP MGCP client: using endpoint domain '@mgw'
-DLMGCP Cannot compose MGCP e1-endpoint name (ds/e1-15/s-1/su128-0@mgw), rate(128)/offset(0) combination is invalid!
-DLMGCP Cannot compose MGCP e1-endpoint name (ds/e1-15/s-1/su8-16@mgw), rate(8)/offset(16) combination is invalid!
-DLMGCP Cannot compose MGCP e1-endpoint name (ds/e1-15/s-0/su8-2@mgw), E1-timeslot number (0) is invalid!
-DLMGCP Cannot compose MGCP e1-endpoint name (ds/e1-15/s-64/su8-2@mgw), E1-timeslot number (64) is invalid!
+DLMGCP MGW(mgw) MGCP client: using endpoint domain '@mgw'
+DLMGCP MGW(mgw) Cannot compose MGCP e1-endpoint name (ds/e1-15/s-1/su128-0@mgw), rate(128)/offset(0) combination is invalid!
+DLMGCP MGW(mgw) Cannot compose MGCP e1-endpoint name (ds/e1-15/s-1/su8-16@mgw), rate(8)/offset(16) combination is invalid!
+DLMGCP MGW(mgw) Cannot compose MGCP e1-endpoint name (ds/e1-15/s-0/su8-2@mgw), E1-timeslot number (0) is invalid!
+DLMGCP MGW(mgw) Cannot compose MGCP e1-endpoint name (ds/e1-15/s-64/su8-2@mgw), E1-timeslot number (64) is invalid!
 Done

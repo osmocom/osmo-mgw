@@ -24,6 +24,35 @@
 #include <osmocom/mgcp_client/mgcp_client_pool.h>
 #include <stddef.h>
 
+#define LOGPPMGW(pool_member, level, fmt, args...) \
+LOGP(DLMGCP, level, "MGW-pool(%s) " fmt, mgcp_client_pool_member_name(pool_member), ## args)
+
+/* Get a human readable name for a given pool member. */
+const char *mgcp_client_pool_member_name(const struct mgcp_client_pool_member *pool_member)
+{
+	const struct mgcp_client *mpcp_client;
+	struct mgcp_client mpcp_client_dummy;
+	static char name[512];
+	const char *description;
+
+	if (!pool_member)
+		return "(null)";
+
+	/* It is not guranteed that a pool_member has an MGCP client. The client may not yet be initialized or the
+	 * initalization may have been failed. In this case we will generate a dummy MGCP client to work with. */
+	if (!pool_member->client) {
+		memcpy(&mpcp_client_dummy.actual, &pool_member->conf, sizeof(mpcp_client_dummy.actual));
+		mpcp_client = &mpcp_client_dummy;
+	} else {
+		mpcp_client = pool_member->client;
+	}
+
+	description = mgcp_client_name(mpcp_client);
+	snprintf(name, sizeof(name), "%d:%s", pool_member->nr, description);
+
+	return name;
+}
+
 /*! Allocate MGCP client pool. This is called once on startup and before the pool is used with
  *  mgcp_client_pool_vty_init(). Since the pool is linked with the VTY it must exist througout the entire runtime.
  *  \param[in] talloc_ctx talloc context. */
@@ -53,7 +82,7 @@ unsigned int mgcp_client_pool_connect(struct mgcp_client_pool *pool)
 		/* Initialize client */
 		pool_member->client = mgcp_client_init(pool_member, &pool_member->conf);
 		if (!pool_member->client) {
-			LOGP(DLMGCP, LOGL_ERROR, "MGW %u initialization failed\n", pool_member->nr);
+			LOGPPMGW(pool_member, LOGL_ERROR, "MGCP client initialization failed\n");
 			continue;
 		}
 
@@ -63,8 +92,8 @@ unsigned int mgcp_client_pool_connect(struct mgcp_client_pool *pool)
 
 		/* Connect client */
 		if (mgcp_client_connect2(pool_member->client, 0)) {
-			LOGP(DLMGCP, LOGL_ERROR, "MGW %u connect failed at (%s:%u)\n",
-			     pool_member->nr, pool_member->conf.remote_addr, pool_member->conf.remote_port);
+			LOGPPMGW(pool_member, LOGL_ERROR, "MGCP client connect failed at (%s:%u)\n",
+				 pool_member->conf.remote_addr, pool_member->conf.remote_port);
 			talloc_free(pool_member->client);
 			pool_member->client = NULL;
 			continue;
@@ -104,14 +133,14 @@ static struct mgcp_client_pool_member *mgcp_client_pool_pick(struct mgcp_client_
 			else if (pool_member_picked->refcount > pool_member->refcount)
 				pool_member_picked = pool_member;
 		} else {
-			LOGP(DLMGCP, LOGL_DEBUG, "MGW pool has %u members -- MGW %u is unusable\n", n_pool_members,
-			     pool_member->nr);
+			LOGPPMGW(pool_member, LOGL_DEBUG, "MGW pool has %u members -- MGW %u is unusable\n", n_pool_members,
+				 pool_member->nr);
 		}
 	}
 
 	if (pool_member_picked) {
-		LOGP(DLMGCP, LOGL_DEBUG, "MGW pool has %u members -- using MGW %u (active calls: %u)\n",
-		     n_pool_members, pool_member_picked->nr, pool_member_picked->refcount);
+		LOGPPMGW(pool_member_picked, LOGL_DEBUG, "MGW pool has %u members -- using MGW %u (active calls: %u)\n",
+			 n_pool_members, pool_member_picked->nr, pool_member_picked->refcount);
 		return pool_member_picked;
 	}
 
@@ -135,7 +164,8 @@ struct mgcp_client *mgcp_client_pool_get(struct mgcp_client_pool *pool)
 
 	/* When the pool is empty, return a single MGCP client if it is registered. */
 	if (llist_empty(&pool->pool) && pool->mgcp_client_single) {
-		LOGP(DLMGCP, LOGL_DEBUG, "MGW pool is empty -- using (single) MGW\n");
+		LOGP(DLMGCP, LOGL_DEBUG, "MGW pool is empty -- using (single) MGW %s\n",
+		     mgcp_client_name(pool->mgcp_client_single));
 		return pool->mgcp_client_single;
 	}
 
@@ -177,7 +207,7 @@ void mgcp_client_pool_put(struct mgcp_client *mgcp_client)
 	llist_for_each_entry(pool_member, &pool->pool, list) {
 		if (pool_member->client == mgcp_client) {
 			if (pool_member->refcount == 0) {
-				LOGP(DLMGCP, LOGL_ERROR, "MGW %u has invalid refcount\n", pool_member->nr);
+				LOGPPMGW(pool_member, LOGL_ERROR, "MGW pool member has invalid refcount\n");
 				return;
 			}
 			pool_member->refcount--;

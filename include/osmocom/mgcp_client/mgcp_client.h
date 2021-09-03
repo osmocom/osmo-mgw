@@ -32,6 +32,9 @@ struct mgcp_client_conf {
 	 * 'rtpbridge/(wildcard)' or a number of specific E1 like e.g.
 	 * 'ds/e1-0/s-3/su16-4' */
 	struct llist_head reset_epnames;
+
+	/* human readable name / description */
+	char *description;
 };
 
 typedef unsigned int mgcp_trans_id_t;
@@ -173,3 +176,5 @@ unsigned int map_codec_to_pt(const struct ptmap *ptmap, unsigned int ptmap_len,
 			     enum mgcp_codecs codec);
 enum mgcp_codecs map_pt_to_codec(struct ptmap *ptmap, unsigned int ptmap_len,
 				 unsigned int pt);
+
+const char *mgcp_client_name(const struct mgcp_client *mgcp);

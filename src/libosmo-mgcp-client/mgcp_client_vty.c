@@ -242,6 +242,9 @@ static int config_write(struct vty *vty, const char *indent, struct mgcp_client_
 	int port;
 	struct reset_ep *reset_ep;
 
+	if (conf->description)
+		vty_out(vty, "%sdescription %s%s", indent, conf->description, VTY_NEWLINE);
+
 	addr = conf->local_addr;
 	if (addr)
 		vty_out(vty, "%smgw local-ip %s%s", indent, addr,
@@ -366,7 +369,7 @@ DEFUN_ATTR(cfg_mgw,
 	}
 
 	vty->index = &pool_member->conf;
-	vty->index_sub = NULL;
+	vty->index_sub = &pool_member->conf.description;
 	vty->node = global_mgcp_client_pool->vty_node->node;
 
 	return CMD_SUCCESS;
@@ -387,8 +390,8 @@ DEFUN_ATTR(cfg_no_mgw,
 
 	/* Make sure that there are no ongoing calls */
 	if (pool_member->refcount > 0) {
-		vty_out(vty, "%% MGCP client (MGW %u) is still serving ongoing calls -- can't remove it now!%s",
-			pool_member->nr, VTY_NEWLINE);
+		vty_out(vty, "%% MGCP client (MGW %s) is still serving ongoing calls -- can't remove it now!%s",
+			mgcp_client_pool_member_name(pool_member), VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
@@ -417,8 +420,8 @@ DEFUN_ATTR(mgw_reconnect, mgw_reconnect_cmd,
 
 	/* Make sure that there are no ongoing calls */
 	if (pool_member->refcount > 0) {
-		vty_out(vty, "%% MGCP client (MGW %u) is still serving ongoing calls -- can't reconnect it now!%s",
-			pool_member->nr, VTY_NEWLINE);
+		vty_out(vty, "%% MGCP client (MGW %s) is still serving ongoing calls -- can't reconnect it now!%s",
+			mgcp_client_pool_member_name(pool_member), VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
@@ -431,8 +434,10 @@ DEFUN_ATTR(mgw_reconnect, mgw_reconnect_cmd,
 	/* Create a new MGCP client instance with the current config */
 	pool_member->client = mgcp_client_init(pool_member, &pool_member->conf);
 	if (!pool_member->client) {
-		LOGP(DLMGCP, LOGL_ERROR, "(manual) MGW %u initalization failed\n", pool_member->nr);
-		vty_out(vty, "%% MGCP client initalization failed ('%s')%s", argv[0], VTY_NEWLINE);
+		LOGP(DLMGCP, LOGL_ERROR, "(manual) MGW %s initalization failed\n",
+		     mgcp_client_pool_member_name(pool_member));
+		vty_out(vty, "%% MGCP client (MGW %s) initalization failed ('%s')%s",
+			mgcp_client_pool_member_name(pool_member), argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
@@ -441,11 +446,13 @@ DEFUN_ATTR(mgw_reconnect, mgw_reconnect_cmd,
 
 	/* Connect client */
 	if (mgcp_client_connect(pool_member->client)) {
-		LOGP(DLMGCP, LOGL_ERROR, "(manual) MGW %u connect failed at (%s:%u)\n",
-		     pool_member->nr, pool_member->conf.remote_addr, pool_member->conf.remote_port);
+		LOGP(DLMGCP, LOGL_ERROR, "(manual) MGW %s connect failed at (%s:%u)\n",
+		     mgcp_client_pool_member_name(pool_member), pool_member->conf.remote_addr,
+		     pool_member->conf.remote_port);
 		talloc_free(pool_member->client);
 		pool_member->client = NULL;
-		vty_out(vty, "%% MGCP client initalization failed ('%s')%s", argv[0], VTY_NEWLINE);
+		vty_out(vty, "%% MGCP client (MGW %s) initalization failed ('%s')%s",
+			mgcp_client_pool_member_name(pool_member), argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
 	}
 
@@ -500,7 +507,7 @@ DEFUN(mgw_show, mgw_snow_cmd, "show mgw-pool", SHOW_STR "Display information abo
 	}
 
 	llist_for_each_entry(pool_member, &global_mgcp_client_pool->pool, list) {
-		vty_out(vty, "%%  MGW %u%s", pool_member->nr, VTY_NEWLINE);
+		vty_out(vty, "%%  MGW %s%s", mgcp_client_pool_member_name(pool_member), VTY_NEWLINE);
 		vty_out(vty, "%%   mgcp-client:   %s%s", pool_member->client ? "connected" : "disconnected",
 			VTY_NEWLINE);
 		vty_out(vty, "%%   service:       %s%s", pool_member->blocked ? "blocked" : "unblocked", VTY_NEWLINE);
@@ -537,6 +544,8 @@ void mgcp_client_pool_vty_init(int parent_node, int mgw_node, const char *indent
 
 	install_node(pool->vty_node, config_write_pool);
 	vty_init_common(pool, mgw_node);
+
+	install_element(mgw_node, &cfg_description_cmd);
 
 	install_lib_element(ENABLE_NODE, &mgw_reconnect_cmd);
 	install_lib_element(ENABLE_NODE, &mgw_block_cmd);
