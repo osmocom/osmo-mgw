@@ -21,6 +21,7 @@
  *
  */
 
+#include <stdatomic.h>
 #include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_network.h>
 #include <osmocom/mgcp/mgcp_protocol.h>
@@ -89,7 +90,7 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 	/* FIXME: Each new rate counter group requires an unique index. At the
 	 * moment we generate this index using this counter, but perhaps there
 	 * is a more concious way to assign the indexes. */
-	static unsigned int rate_ctr_index = 0;
+	static atomic_uint rate_ctr_index = 0;
 
 	conn_rtp->type = MGCP_RTP_DEFAULT;
 	conn_rtp->osmux.cid_allocated = false;
@@ -110,13 +111,12 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 	end->output_enabled = 0;
 	end->maximum_packet_time = -1;
 
-	conn_rtp->rate_ctr_group = rate_ctr_group_alloc(conn, &rate_ctr_group_desc, rate_ctr_index);
+	conn_rtp->rate_ctr_group = rate_ctr_group_alloc(conn, &rate_ctr_group_desc, rate_ctr_index++);
 	if (!conn_rtp->rate_ctr_group)
 		return -1;
 
 	conn_rtp->state.in_stream.err_ts_ctr = rate_ctr_group_get_ctr(conn_rtp->rate_ctr_group, IN_STREAM_ERR_TSTMP_CTR);
 	conn_rtp->state.out_stream.err_ts_ctr = rate_ctr_group_get_ctr(conn_rtp->rate_ctr_group, OUT_STREAM_ERR_TSTMP_CTR);
-	rate_ctr_index++;
 
 	/* Make sure codec table is reset */
 	mgcp_codec_reset_all(conn_rtp);

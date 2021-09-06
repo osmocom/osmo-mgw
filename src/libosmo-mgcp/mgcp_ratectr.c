@@ -22,6 +22,7 @@
  *
  */
 
+#include <stdatomic.h>
 #include <errno.h>
 #include <osmocom/core/stats.h>
 #include <osmocom/core/stat_item.h>
@@ -152,17 +153,16 @@ const static struct rate_ctr_group_desc all_rtp_conn_rate_ctr_group_desc = {
 int mgcp_ratectr_global_alloc(struct mgcp_config *cfg)
 {
 	struct mgcp_ratectr_global *ratectr = &cfg->ratectr;
-	static unsigned int general_rate_ctr_index = 0;
+	static atomic_uint general_rate_ctr_index = 0;
 	char ctr_name[512];
 
 	if (ratectr->mgcp_general_ctr_group == NULL) {
 		ratectr->mgcp_general_ctr_group =
-		    rate_ctr_group_alloc(cfg, &mgcp_general_ctr_group_desc, general_rate_ctr_index);
+		    rate_ctr_group_alloc(cfg, &mgcp_general_ctr_group_desc, general_rate_ctr_index++);
 		if (!ratectr->mgcp_general_ctr_group)
 			return -EINVAL;
 		snprintf(ctr_name, sizeof(ctr_name), "%s:general", cfg->domain);
 		rate_ctr_group_set_name(ratectr->mgcp_general_ctr_group, ctr_name);
-		general_rate_ctr_index++;
 	}
 	return 0;
 }
@@ -187,62 +187,57 @@ void mgcp_ratectr_global_free(struct mgcp_config *cfg)
 int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 {
 	struct mgcp_ratectr_trunk *ratectr = &trunk->ratectr;
-	static unsigned int crcx_rate_ctr_index = 0;
-	static unsigned int mdcx_rate_ctr_index = 0;
-	static unsigned int dlcx_rate_ctr_index = 0;
-	static unsigned int all_rtp_conn_rate_ctr_index = 0;
+	static atomic_uint crcx_rate_ctr_index = 0;
+	static atomic_uint mdcx_rate_ctr_index = 0;
+	static atomic_uint dlcx_rate_ctr_index = 0;
+	static atomic_uint all_rtp_conn_rate_ctr_index = 0;
 	char ctr_name[256];
 
 	if (ratectr->mgcp_crcx_ctr_group == NULL) {
 		ratectr->mgcp_crcx_ctr_group =
-		    rate_ctr_group_alloc(trunk, &mgcp_crcx_ctr_group_desc, crcx_rate_ctr_index);
+		    rate_ctr_group_alloc(trunk, &mgcp_crcx_ctr_group_desc, crcx_rate_ctr_index++);
 		if (!ratectr->mgcp_crcx_ctr_group)
 			return -EINVAL;
 		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:crcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->mgcp_crcx_ctr_group, ctr_name);
-		crcx_rate_ctr_index++;
 	}
 	if (ratectr->mgcp_mdcx_ctr_group == NULL) {
 		ratectr->mgcp_mdcx_ctr_group =
-		    rate_ctr_group_alloc(trunk, &mgcp_mdcx_ctr_group_desc, mdcx_rate_ctr_index);
+		    rate_ctr_group_alloc(trunk, &mgcp_mdcx_ctr_group_desc, mdcx_rate_ctr_index++);
 		if (!ratectr->mgcp_mdcx_ctr_group)
 			return -EINVAL;
 		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:mdcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->mgcp_mdcx_ctr_group, ctr_name);
-		mdcx_rate_ctr_index++;
 	}
 	if (ratectr->mgcp_dlcx_ctr_group == NULL) {
 		ratectr->mgcp_dlcx_ctr_group =
-		    rate_ctr_group_alloc(trunk, &mgcp_dlcx_ctr_group_desc, dlcx_rate_ctr_index);
+		    rate_ctr_group_alloc(trunk, &mgcp_dlcx_ctr_group_desc, dlcx_rate_ctr_index++);
 		if (!ratectr->mgcp_dlcx_ctr_group)
 			return -EINVAL;
 		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:dlcx", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->mgcp_dlcx_ctr_group, ctr_name);
-		dlcx_rate_ctr_index++;
 	}
 	if (ratectr->all_rtp_conn_stats == NULL) {
 		ratectr->all_rtp_conn_stats = rate_ctr_group_alloc(trunk, &all_rtp_conn_rate_ctr_group_desc,
-								   all_rtp_conn_rate_ctr_index);
+								   all_rtp_conn_rate_ctr_index++);
 		if (!ratectr->all_rtp_conn_stats)
 			return -EINVAL;
 		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:rtp_conn", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->all_rtp_conn_stats, ctr_name);
-		all_rtp_conn_rate_ctr_index++;
 	}
 
 	/* E1 specific */
 	if (trunk->trunk_type == MGCP_TRUNK_E1 && ratectr->e1_stats == NULL) {
-		ratectr->e1_stats = rate_ctr_group_alloc(trunk, &e1_rate_ctr_group_desc, mdcx_rate_ctr_index);
+		ratectr->e1_stats = rate_ctr_group_alloc(trunk, &e1_rate_ctr_group_desc, mdcx_rate_ctr_index++);
 		if (!ratectr->e1_stats)
 			return -EINVAL;
 		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:e1", mgcp_trunk_type_strs_str(trunk->trunk_type),
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->e1_stats, ctr_name);
-		mdcx_rate_ctr_index++;
 	}
 	return 0;
 }
