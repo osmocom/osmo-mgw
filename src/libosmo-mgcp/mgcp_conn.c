@@ -328,12 +328,10 @@ void mgcp_conn_free_oldest(struct mgcp_endpoint *endp)
 void mgcp_conn_free_all(struct mgcp_endpoint *endp)
 {
 	struct mgcp_conn *conn;
-	struct mgcp_conn *conn_tmp;
 
-	/* Drop all items in the list */
-	llist_for_each_entry_safe(conn, conn_tmp, &endp->conns, entry) {
+	/* Drop all items in the list, might be consecutive! */
+	while ((conn = llist_first_entry_or_null(&endp->conns, struct mgcp_conn, entry)))
 		mgcp_conn_free(endp, conn->id);
-	}
 
 	return;
 }
