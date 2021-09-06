@@ -187,12 +187,16 @@ static void chop_epname_suffix(char *epname, const struct mgcp_trunk *trunk)
 	}
 }
 
-/* Convert all characters in epname to lowercase and strip trunk prefix and
+
+ /*! Convert all characters in epname to lowercase and strip trunk prefix and
  * endpoint name suffix (domain name) from epname. The result is written to
  * to the memory pointed at by epname_stripped. The expected size of the
  * result is either equal or lower then the length of the input string
- * (epname) */
-static void strip_epname(char *epname_stripped, const char *epname,
+ * (epname)
+ *  \param[out] epname_stripped pointer to store the stripped ep name.
+ *  \param[in] epname endpoint name to lookup.
+ *  \param[in] trunk where the endpoint is located. */
+void mgcp_endp_strip_name(char *epname_stripped, const char *epname,
 			 const struct mgcp_trunk *trunk)
 {
 	osmo_str_tolower_buf(epname_stripped, MGCP_ENDPOINT_MAXLEN, epname);
@@ -219,9 +223,11 @@ static struct mgcp_endpoint *find_free_endpoint(const struct mgcp_trunk *trunk)
 	return NULL;
 }
 
-/* Find an endpoint specified by its name. If the endpoint can not be found,
- * return NULL */
-static struct mgcp_endpoint *find_specific_endpoint(const char *epname,
+/*! Find an endpoint of a trunk specified by its name.
+ *  \param[in] epname endpoint name to check
+ *  \param[in] trunk mgcp_trunk that might have this endpoint
+ *  \returns NULL if no ep found, else endpoint */
+struct mgcp_endpoint *mgcp_endp_find_specific(const char *epname,
 						    const struct mgcp_trunk *trunk)
 {
 	char epname_stripped[MGCP_ENDPOINT_MAXLEN];
@@ -230,11 +236,11 @@ static struct mgcp_endpoint *find_specific_endpoint(const char *epname,
 	unsigned int i;
 
 	/* Strip irrelevant information from the endpoint name */
-	strip_epname(epname_stripped, epname, trunk);
+	mgcp_endp_strip_name(epname_stripped, epname, trunk);
 
 	for (i = 0; i < trunk->number_endpoints; i++) {
 		endp = trunk->endpoints[i];
-		strip_epname(epname_stripped_endp, endp->name, trunk);
+		mgcp_endp_strip_name(epname_stripped_endp, endp->name, trunk);
 		if (strcmp(epname_stripped_endp, epname_stripped) == 0)
 			return endp;
 	}
@@ -289,7 +295,7 @@ struct mgcp_endpoint *mgcp_endp_by_name_trunk(int *cause, const char *epname,
 
 	/* Find an endpoint by its name (if wildcarded request is not
 	 * applicable) */
-	endp = find_specific_endpoint(epname, trunk);
+	endp = mgcp_endp_find_specific(epname, trunk);
 	if (endp) {
 		LOGPENDP(endp, DLMGCP, LOGL_DEBUG,
 			 "(trunk:%d) found endpoint: %s\n",
@@ -540,7 +546,7 @@ static bool endp_avail_e1(struct mgcp_endpoint *endp)
 		epname_check = gen_e1_epname(endp, endp->trunk->cfg->domain,
 					     endp->trunk->trunk_nr, ts_nr,
 					     interlock[i]);
-		endp_check = find_specific_endpoint(epname_check, endp->trunk);
+		endp_check = mgcp_endp_find_specific(epname_check, endp->trunk);
 		if (!endp_check) {
 			LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 				 "cannot check endpoint availability, overlapping endpoint:%s not found!\n",
