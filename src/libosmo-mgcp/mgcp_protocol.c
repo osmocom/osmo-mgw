@@ -173,12 +173,15 @@ static int setup_rtp_processing(struct mgcp_endpoint *endp,
 }
 
 /* Helper function to allocate some memory for responses and retransmissions */
-static struct msgb *mgcp_msgb_alloc(void)
+static struct msgb *mgcp_msgb_alloc(void *ctx)
 {
 	struct msgb *msg;
-	msg = msgb_alloc_headroom(4096, 128, "MGCP msg");
-	if (!msg)
+	msg = msgb_alloc_headroom_c(ctx, 4096, 128, "MGCP msg");
+
+	if (!msg) {
 		LOGP(DLMGCP, LOGL_ERROR, "Failed to msgb for MGCP data.\n");
+		return NULL;
+	}
 
 	return msg;
 }
@@ -186,7 +189,7 @@ static struct msgb *mgcp_msgb_alloc(void)
 /* Helper function for do_retransmission() and create_resp() */
 static struct msgb *create_retransmission_response(const struct mgcp_endpoint *endp)
 {
-	struct msgb *msg = mgcp_msgb_alloc();
+	struct msgb *msg = mgcp_msgb_alloc(endp->trunk);
 	if (!msg)
 		return NULL;
 
@@ -196,15 +199,14 @@ static struct msgb *create_retransmission_response(const struct mgcp_endpoint *e
 	return msg;
 }
 
-static struct msgb *create_resp(struct mgcp_endpoint *endp, int code,
-				const char *txt, const char *msg,
-				const char *trans, const char *param,
-				const char *sdp)
+static struct msgb *create_resp(void *msgctx, struct mgcp_endpoint *endp, int code, const char *txt, const char *msg,
+				const char *trans, const char *param, const char *sdp)
 {
 	int len;
 	struct msgb *res;
 
-	res = mgcp_msgb_alloc();
+	OSMO_ASSERT(msgctx != 0);
+	res = mgcp_msgb_alloc(msgctx);
 	if (!res)
 		return NULL;
 
@@ -236,26 +238,22 @@ static struct msgb *create_resp(struct mgcp_endpoint *endp, int code,
 	return res;
 }
 
-static struct msgb *create_ok_resp_with_param(struct mgcp_endpoint *endp,
-					      int code, const char *msg,
-					      const char *trans,
-					      const char *param)
+static struct msgb *create_ok_resp_with_param(void *msgctx, struct mgcp_endpoint *endp, int code, const char *msg,
+					      const char *trans, const char *param)
 {
-	return create_resp(endp, code, " OK", msg, trans, param, NULL);
+	return create_resp(msgctx, endp, code, " OK", msg, trans, param, NULL);
 }
 
-static struct msgb *create_ok_response(struct mgcp_endpoint *endp,
-				       int code, const char *msg,
+static struct msgb *create_ok_response(void *msgctx, struct mgcp_endpoint *endp, int code, const char *msg,
 				       const char *trans)
 {
-	return create_ok_resp_with_param(endp, code, msg, trans, NULL);
+	return create_ok_resp_with_param(msgctx, endp, code, msg, trans, NULL);
 }
 
-static struct msgb *create_err_response(struct mgcp_endpoint *endp,
-					int code, const char *msg,
+static struct msgb *create_err_response(void *msgctx, struct mgcp_endpoint *endp, int code, const char *msg,
 					const char *trans)
 {
-	return create_resp(endp, code, " FAIL", msg, trans, NULL, NULL);
+	return create_resp(msgctx, endp, code, " FAIL", msg, trans, NULL, NULL);
 }
 
 /* Format MGCP response string (with SDP attached) */
@@ -278,7 +276,7 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 	int rc;
 	struct msgb *result;
 
-	sdp = msgb_alloc_headroom(4096, 128, "sdp record");
+	sdp = msgb_alloc_headroom_c(endp->trunk, 4096, 128, "sdp record");
 	if (!sdp)
 		return NULL;
 
@@ -309,7 +307,7 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 	rc = mgcp_write_response_sdp(endp, conn, sdp, addr);
 	if (rc < 0)
 		goto error;
-	result = create_resp(endp, 200, " OK", msg, trans_id, NULL, (char*) sdp->data);
+	result = create_resp(endp->trunk, endp, 200, " OK", msg, trans_id, NULL, (char *)sdp->data);
 	msgb_free(sdp);
 	return result;
 error:
@@ -376,7 +374,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 	if (rc < 0) {
 		LOGP(DLMGCP, LOGL_ERROR, "%s: failed to parse MCGP message\n", rq.name);
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_FAIL_MSG_PARSE));
-		return create_err_response(NULL, -rc, rq.name, "000000");
+		return create_err_response(cfg, NULL, -rc, rq.name, "000000");
 	}
 
 	/* Locate endpoint and trunk, if no endpoint can be located try at least to identify the trunk. */
@@ -397,7 +395,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 			if (!rq.trunk) {
 				LOGP(DLMGCP, LOGL_ERROR, "%s: failed to identify trunk for endpoint \"%s\" -- abort\n",
 				     rq.name, pdata.epname);
-				return create_err_response(NULL, -rq.mgcp_cause, rq.name, pdata.trans);
+				return create_err_response(cfg, NULL, -rq.mgcp_cause, rq.name, pdata.trans);
 			}
 		} else {
 			/* If the endpoint name suggests that the request refers to a specific endpoint, then the
@@ -405,7 +403,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 			LOGP(DLMGCP, LOGL_NOTICE,
 			     "%s: cannot find endpoint \"%s\", cause=%d -- abort\n", rq.name,
 			     pdata.epname, -rq.mgcp_cause);
-			return create_err_response(NULL, -rq.mgcp_cause, rq.name, pdata.trans);
+			return create_err_response(cfg, NULL, -rq.mgcp_cause, rq.name, pdata.trans);
 		}
 	} else {
 		osmo_strlcpy(debug_last_endpoint_name, rq.endp->name, sizeof(debug_last_endpoint_name));
@@ -428,7 +426,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 				LOGP(DLMGCP, LOGL_ERROR,
 				     "%s: the request handler \"%s\" requires an endpoint resource for \"%s\", which is not available -- abort\n",
 				     rq.name, mgcp_requests[i].debug_name, pdata.epname);
-				return create_err_response(NULL, -rq.mgcp_cause, rq.name, pdata.trans);
+				return create_err_response(rq.trunk, NULL, -rq.mgcp_cause, rq.name, pdata.trans);
 			}
 
 			/* Execute request handler */
@@ -461,7 +459,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 static struct msgb *handle_audit_endpoint(struct mgcp_request_data *rq)
 {
 	LOGPENDP(rq->endp, DLMGCP, LOGL_NOTICE, "AUEP: auditing endpoint ...\n");
-	return create_ok_response(rq->endp, 200, "AUEP", rq->pdata->trans);
+	return create_ok_response(rq->trunk, rq->endp, 200, "AUEP", rq->pdata->trans);
 }
 
 /* Try to find a free port by attempting to bind on it. Also handle the
@@ -859,7 +857,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_AVAIL));
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "CRCX: selected endpoint not available!\n");
-		return create_err_response(NULL, 501, "CRCX", pdata->trans);
+		return create_err_response(rq->trunk, NULL, 501, "CRCX", pdata->trans);
 	}
 
 	/* parse CallID C: and LocalParameters L: */
@@ -879,7 +877,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 			 * together with a CRCX, the MGW will assign the
 			 * connection identifier by itself on CRCX */
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BAD_ACTION));
-			return create_err_response(NULL, 523, "CRCX", pdata->trans);
+			return create_err_response(rq->trunk, NULL, 523, "CRCX", pdata->trans);
 			break;
 		case 'M':
 			mode = (const char *)line + 3;
@@ -905,7 +903,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 			LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
 				 "CRCX: unhandled option: '%c'/%d\n", *line, *line);
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_UNHANDLED_PARAM));
-			return create_err_response(NULL, 539, "CRCX", pdata->trans);
+			return create_err_response(rq->trunk, NULL, 539, "CRCX", pdata->trans);
 			break;
 		}
 	}
@@ -916,14 +914,14 @@ mgcp_header_done:
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "CRCX: insufficient parameters, missing callid\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_MISSING_CALLID));
-		return create_err_response(endp, 516, "CRCX", pdata->trans);
+		return create_err_response(endp, endp, 516, "CRCX", pdata->trans);
 	}
 
 	if (!mode) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "CRCX: insufficient parameters, missing mode\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_INVALID_MODE));
-		return create_err_response(endp, 517, "CRCX", pdata->trans);
+		return create_err_response(endp, endp, 517, "CRCX", pdata->trans);
 	}
 
 	/* Check if we are able to accept the creation of another connection */
@@ -940,7 +938,7 @@ mgcp_header_done:
 			/* There is no more room for a connection, leave
 			 * everything as it is and return with an error */
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_LIMIT_EXCEEDED));
-			return create_err_response(endp, 540, "CRCX", pdata->trans);
+			return create_err_response(endp, endp, 540, "CRCX", pdata->trans);
 		}
 	}
 
@@ -958,7 +956,7 @@ mgcp_header_done:
 			/* This is not our call, leave everything as it is and
 			 * return with an error. */
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_UNKNOWN_CALLID));
-			return create_err_response(endp, 400, "CRCX", pdata->trans);
+			return create_err_response(endp, endp, 400, "CRCX", pdata->trans);
 		}
 	}
 
@@ -969,7 +967,7 @@ mgcp_header_done:
 		rc = mgcp_endp_claim(endp, callid);
 		if (rc != 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_CLAIM));
-			return create_err_response(endp, 502, "CRCX", pdata->trans);
+			return create_err_response(endp, endp, 502, "CRCX", pdata->trans);
 		}
 	}
 
@@ -1088,7 +1086,7 @@ error2:
 	mgcp_endp_release(endp);
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
 		 "CRCX: unable to create connection\n");
-	return create_err_response(endp, error_code, "CRCX", pdata->trans);
+	return create_err_response(endp, endp, error_code, "CRCX", pdata->trans);
 }
 
 /* MDCX command handler, processes the received command */
@@ -1116,7 +1114,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_AVAIL));
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "MDCX: selected endpoint not available!\n");
-		return create_err_response(NULL, 501, "MDCX", pdata->trans);
+		return create_err_response(endp, NULL, 501, "MDCX", pdata->trans);
 	}
 
 	/* Prohibit wildcarded requests */
@@ -1124,14 +1122,14 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "MDCX: wildcarded endpoint names not supported.\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_WILDCARD));
-		return create_err_response(endp, 507, "MDCX", pdata->trans);
+		return create_err_response(rq->trunk, endp, 507, "MDCX", pdata->trans);
 	}
 
 	if (llist_count(&endp->conns) <= 0) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "MDCX: endpoint is not holding a connection.\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_NO_CONN));
-		return create_err_response(endp, 400, "MDCX", pdata->trans);
+		return create_err_response(endp, endp, 400, "MDCX", pdata->trans);
 	}
 
 	for_each_line(line, pdata->save) {
@@ -1181,7 +1179,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 				 "MDCX: Unhandled MGCP option: '%c'/%d\n",
 				 line[0], line[0]);
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_UNHANDLED_PARAM));
-			return create_err_response(NULL, 539, "MDCX", pdata->trans);
+			return create_err_response(rq->trunk, NULL, 539, "MDCX", pdata->trans);
 			break;
 		}
 	}
@@ -1191,13 +1189,13 @@ mgcp_header_done:
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "MDCX: insufficient parameters, missing ci (connectionIdentifier)\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_NO_CONNID));
-		return create_err_response(endp, 515, "MDCX", pdata->trans);
+		return create_err_response(endp, endp, 515, "MDCX", pdata->trans);
 	}
 
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	if (!conn) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_CONN_NOT_FOUND));
-		return create_err_response(endp, 400, "MDCX", pdata->trans);
+		return create_err_response(endp, endp, 400, "MDCX", pdata->trans);
 	}
 
 	mgcp_conn_watchdog_kick(conn->conn);
@@ -1304,7 +1302,7 @@ mgcp_header_done:
 	mgcp_endp_update(endp);
 	return create_response_with_sdp(endp, conn, "MDCX", pdata->trans, false, false);
 error3:
-	return create_err_response(endp, error_code, "MDCX", pdata->trans);
+	return create_err_response(endp, endp, error_code, "MDCX", pdata->trans);
 
 out_silent:
 	LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "MDCX: silent exit\n");
@@ -1335,14 +1333,14 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_AVAIL));
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "DLCX: selected endpoint not available!\n");
-		return create_err_response(NULL, 501, "DLCX", pdata->trans);
+		return create_err_response(rq->trunk, NULL, 501, "DLCX", pdata->trans);
 	}
 
 	if (endp && !rq->wildcarded && llist_empty(&endp->conns)) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "DLCX: endpoint is not holding a connection.\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_NO_CONN));
-		return create_err_response(endp, 515, "DLCX", pdata->trans);
+		return create_err_response(endp, endp, 515, "DLCX", pdata->trans);
 	}
 
 	for_each_line(line, pdata->save) {
@@ -1357,7 +1355,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 				LOGPTRUNK(trunk, DLMGCP, LOGL_NOTICE,
 					  "cannot handle requests with call-id (C) without endpoint -- abort!");
 				rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
-				return create_err_response(NULL, 539, "DLCX", pdata->trans);
+				return create_err_response(rq->trunk, NULL, 539, "DLCX", pdata->trans);
 			}
 
 			if (mgcp_verify_call_id(endp, line + 3) != 0) {
@@ -1373,7 +1371,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 				LOGPTRUNK(trunk, DLMGCP, LOGL_NOTICE,
 					  "cannot handle requests with conn-id (I) without endpoint -- abort!");
 				rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
-				return create_err_response(NULL, 539, "DLCX", pdata->trans);
+				return create_err_response(rq->trunk, NULL, 539, "DLCX", pdata->trans);
 			}
 
 			conn_id = (const char *)line + 3;
@@ -1389,7 +1387,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 			LOGPEPTR(endp, trunk, DLMGCP, LOGL_NOTICE, "DLCX: Unhandled MGCP option: '%c'/%d\n",
 				 line[0], line[0]);
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
-			return create_err_response(NULL, 539, "DLCX", pdata->trans);
+			return create_err_response(rq->trunk, NULL, 539, "DLCX", pdata->trans);
 			break;
 		}
 	}
@@ -1404,7 +1402,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 			mgcp_endp_release(trunk->endpoints[i]);
 		}
 		rate_ctr_add(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_SUCCESS), num_conns);
-		return create_ok_response(NULL, 200, "DLCX", pdata->trans);
+		return create_ok_response(trunk, NULL, 200, "DLCX", pdata->trans);
 	}
 
 	/* The logic does not permit to go past this point without having the
@@ -1429,7 +1427,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 		/* Note: In this case we do not return any statistics,
 		 * as we assume that the client is not interested in
 		 * this case. */
-		return create_ok_response(endp, 200, "DLCX", pdata->trans);
+		return create_ok_response(endp, endp, 200, "DLCX", pdata->trans);
 	}
 
 	/* Find the connection */
@@ -1458,10 +1456,10 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_SUCCESS));
 	if (silent)
 		goto out_silent;
-	return create_ok_resp_with_param(endp, 250, "DLCX", pdata->trans, stats);
+	return create_ok_resp_with_param(endp, endp, 250, "DLCX", pdata->trans, stats);
 
 error3:
-	return create_err_response(endp, error_code, "DLCX", pdata->trans);
+	return create_err_response(endp, endp, error_code, "DLCX", pdata->trans);
 
 out_silent:
 	LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "DLCX: silent exit\n");
@@ -1516,14 +1514,13 @@ static struct msgb *handle_noti_req(struct mgcp_request_data *rq)
 
 	/* we didn't see a signal request with a tone */
 	if (tone == CHAR_MAX)
-		return create_ok_response(rq->endp, 200, "RQNT", rq->pdata->trans);
+		return create_ok_response(rq->endp, rq->endp, 200, "RQNT", rq->pdata->trans);
 
 	if (rq->pdata->cfg->rqnt_cb)
 		res = rq->pdata->cfg->rqnt_cb(rq->endp, tone);
 
-	return res == 0 ?
-	    create_ok_response(rq->endp, 200, "RQNT", rq->pdata->trans) :
-	    create_err_response(rq->endp, res, "RQNT", rq->pdata->trans);
+	return res == 0 ? create_ok_response(rq->endp, rq->endp, 200, "RQNT", rq->pdata->trans) :
+				create_err_response(rq->endp, rq->endp, res, "RQNT", rq->pdata->trans);
 }
 
 /* Connection keepalive timer, will take care that dummy packets are send
