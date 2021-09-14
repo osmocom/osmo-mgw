@@ -97,10 +97,6 @@ struct mgcp_request {
 	/* function pointer to the request handler */
 	struct msgb *(*handle_request)(struct mgcp_request_data *data);
 
-	/* true if the request requires an endpoint, false if only a trunk
-	 * is sufficient. (corner cases, e.g. wildcarded DLCX) */
-	bool require_endp;
-
 	/* a human readable name that describes the request */
 	char *debug_name;
 };
@@ -112,32 +108,34 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *data);
 static struct msgb *handle_rsip(struct mgcp_request_data *data);
 static struct msgb *handle_noti_req(struct mgcp_request_data *data);
 static const struct mgcp_request mgcp_requests[] = {
-	{ .name = "AUEP",
-	  .handle_request = handle_audit_endpoint,
-	  .debug_name = "AuditEndpoint",
-	  .require_endp = true },
-	{ .name = "CRCX",
-	  .handle_request = handle_create_con,
-	  .debug_name = "CreateConnection",
-	  .require_endp = true },
-	{ .name = "DLCX",
-	  .handle_request = handle_delete_con,
-	  .debug_name = "DeleteConnection",
-	  .require_endp = false },
-	{ .name = "MDCX",
-	  .handle_request = handle_modify_con,
-	  .debug_name = "ModifiyConnection",
-	  .require_endp = true },
-	{ .name = "RQNT",
-	  .handle_request = handle_noti_req,
-	  .debug_name = "NotificationRequest",
-	  .require_endp = true },
+	{ .name = "AUEP", .handle_request = handle_audit_endpoint, .debug_name = "AuditEndpoint" },
+	{
+		.name = "CRCX",
+		.handle_request = handle_create_con,
+		.debug_name = "CreateConnection",
+	},
+	{
+		.name = "DLCX",
+		.handle_request = handle_delete_con,
+		.debug_name = "DeleteConnection",
+	},
+	{
+		.name = "MDCX",
+		.handle_request = handle_modify_con,
+		.debug_name = "ModifiyConnection",
+	},
+	{
+		.name = "RQNT",
+		.handle_request = handle_noti_req,
+		.debug_name = "NotificationRequest",
+	},
 
 	/* SPEC extension */
-	{ .name = "RSIP",
-	  .handle_request = handle_rsip,
-	  .debug_name = "ReSetInProgress",
-	  .require_endp = true },
+	{
+		.name = "RSIP",
+		.handle_request = handle_rsip,
+		.debug_name = "ReSetInProgress",
+	},
 };
 
 /* Initalize transcoder */
@@ -420,15 +418,6 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 	/* Find an appropriate handler for the current request and execute it */
 	for (i = 0; i < ARRAY_SIZE(mgcp_requests); i++) {
 		if (strcmp(mgcp_requests[i].name, rq.name) == 0) {
-			/* Check if the request requires and endpoint, if yes, check if we have it, otherwise don't
-			 * execute the request handler. */
-			if (mgcp_requests[i].require_endp && !rq.endp) {
-				LOGP(DLMGCP, LOGL_ERROR,
-				     "%s: the request handler \"%s\" requires an endpoint resource for \"%s\", which is not available -- abort\n",
-				     rq.name, mgcp_requests[i].debug_name, pdata.epname);
-				return create_err_response(rq.trunk, NULL, -rq.mgcp_cause, rq.name, pdata.trans);
-			}
-
 			/* Execute request handler */
 			if (rq.endp)
 				LOGP(DLMGCP, LOGL_INFO,
@@ -459,6 +448,11 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 static struct msgb *handle_audit_endpoint(struct mgcp_request_data *rq)
 {
 	LOGPENDP(rq->endp, DLMGCP, LOGL_NOTICE, "AUEP: auditing endpoint ...\n");
+	if (!rq->endp || !mgcp_endp_avail(rq->endp)) {
+		LOGPENDP(rq->endp, DLMGCP, LOGL_ERROR, "AUEP: selected endpoint not available!\n");
+		return create_err_response(rq->trunk, NULL, 501, "AUEP", rq->pdata->trans);
+	}
+
 	return create_ok_response(rq->trunk, rq->endp, 200, "AUEP", rq->pdata->trans);
 }
 
@@ -853,6 +847,13 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "CRCX: creating new connection ...\n");
 
+	/* we must have a free ep */
+	if (!endp) {
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_AVAIL));
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: no free endpoints available!\n");
+		return create_err_response(rq->trunk, NULL, 403, "CRCX", pdata->trans);
+	}
+
 	if (!mgcp_endp_avail(endp)) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_AVAIL));
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
@@ -1110,13 +1111,6 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "MDCX: modifying existing connection ...\n");
 
-	if (!mgcp_endp_avail(endp)) {
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_AVAIL));
-		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
-			 "MDCX: selected endpoint not available!\n");
-		return create_err_response(endp, NULL, 501, "MDCX", pdata->trans);
-	}
-
 	/* Prohibit wildcarded requests */
 	if (rq->wildcarded) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
@@ -1125,6 +1119,11 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		return create_err_response(rq->trunk, endp, 507, "MDCX", pdata->trans);
 	}
 
+	if (!endp || !mgcp_endp_avail(endp)) {
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_AVAIL));
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "MDCX: selected endpoint not available!\n");
+		return create_err_response(rq->trunk, NULL, 501, "MDCX", pdata->trans);
+	}
 	if (llist_count(&endp->conns) <= 0) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "MDCX: endpoint is not holding a connection.\n");
@@ -1343,6 +1342,19 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 		return create_err_response(endp, endp, 515, "DLCX", pdata->trans);
 	}
 
+	/* Handle wildcarded DLCX that refers to the whole trunk. This means
+	 * that we walk over all endpoints on the trunk in order to drop all
+	 * connections on the trunk. (see also RFC3435 Annex F.7) */
+	if (rq->wildcarded) {
+		int num_conns = 0;
+		for (i = 0; i < trunk->number_endpoints; i++) {
+			num_conns += llist_count(&trunk->endpoints[i]->conns);
+			mgcp_endp_release(trunk->endpoints[i]);
+		}
+		rate_ctr_add(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_SUCCESS), num_conns);
+		return create_ok_response(trunk, NULL, 200, "DLCX", pdata->trans);
+	}
+
 	for_each_line(line, pdata->save) {
 		if (!mgcp_check_param(endp, trunk, line))
 			continue;
@@ -1390,19 +1402,6 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 			return create_err_response(rq->trunk, NULL, 539, "DLCX", pdata->trans);
 			break;
 		}
-	}
-
-	/* Handle wildcarded DLCX that refers to the whole trunk. This means
-	 * that we walk over all endpoints on the trunk in order to drop all
-	 * connections on the trunk. (see also RFC3435 Annex F.7) */
-	if (rq->wildcarded) {
-		int num_conns = 0;
-		for (i = 0; i < trunk->number_endpoints; i++) {
-			num_conns += llist_count(&trunk->endpoints[i]->conns);
-			mgcp_endp_release(trunk->endpoints[i]);
-		}
-		rate_ctr_add(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_SUCCESS), num_conns);
-		return create_ok_response(trunk, NULL, 200, "DLCX", pdata->trans);
 	}
 
 	/* The logic does not permit to go past this point without having the
