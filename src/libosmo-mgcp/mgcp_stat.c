@@ -33,7 +33,7 @@
 /* Helper function for mgcp_format_stats_rtp() to calculate packet loss */
 #if defined(__has_attribute)
 #if __has_attribute(no_sanitize)
-__attribute__((no_sanitize("integer")))
+__attribute__((no_sanitize("undefined")))
 #endif
 #endif
 void calc_loss(struct mgcp_conn_rtp *conn, uint32_t *expected, int *loss)
