@@ -176,7 +176,7 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 			goto error;
 		}
 	} else {
-		strncpy(codec->audio_name, audio_name, sizeof(codec->audio_name));
+		OSMO_STRLCPY_ARRAY(codec->audio_name, audio_name);
 	}
 
 	/* Now we extract the codec subtype name, rate and channels. The latter
