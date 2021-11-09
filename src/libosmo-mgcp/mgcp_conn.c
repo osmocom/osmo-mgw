@@ -325,6 +325,11 @@ void mgcp_conn_free_oldest(struct mgcp_endpoint *endp)
 
 /*! free all connections at once.
  *  \param[in] endp associated endpoint */
+#if defined(__has_attribute)
+#if __has_attribute(no_sanitize)
+__attribute__((no_sanitize("undefined"))) /* ubsan detects a misaligned load */
+#endif
+#endif
 void mgcp_conn_free_all(struct mgcp_endpoint *endp)
 {
 	struct mgcp_conn *conn;
