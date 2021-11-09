@@ -224,9 +224,9 @@ static struct mgcp_endpoint *find_free_endpoint(const struct mgcp_trunk *trunk)
 }
 
 /*! Find an endpoint of a trunk specified by its name.
- *  \param[in] epname endpoint name to check
- *  \param[in] trunk mgcp_trunk that might have this endpoint
- *  \returns NULL if no ep found, else endpoint */
+ *  \param[in] epname endpoint name to check.
+ *  \param[in] trunk mgcp_trunk that might have this endpoint.
+ *  \returns NULL if no ep found, else endpoint. */
 struct mgcp_endpoint *mgcp_endp_find_specific(const char *epname,
 						    const struct mgcp_trunk *trunk)
 {
