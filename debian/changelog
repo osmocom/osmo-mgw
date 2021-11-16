@@ -1,3 +1,117 @@
+osmo-mgw (1.9.0) unstable; urgency=medium
+
+  [ Harald Welte ]
+  * TOS bits != DSCP
+  * manual: don't define fig-bsc twice
+  * switch from osmo_sock_set_dscp() to OSMO_SOCK_F_DSCP()
+  * mgw: Add support for setting socket priority from VTY
+  * manual: Include QoS chapter and add osmo-mgw specific example
+
+  [ Keith ]
+  * Add vty command 'show mgcp active'
+  * Log some useful messages at ERROR/INFO instead of DEBUG
+
+  [ Neels Hofmeyr ]
+  * send DLCX only once
+  * tweak termination DLCX log msg
+  * add osmo_mgcpc_ep_ci_get_remote_rtp_info()
+  * check_rtp_destin(): clarify log msg
+  * mgcp_client_fsm delete: set mgcp_client as ctx, not NULL
+  * mgcp_client_endpoint_fsm: on term, still let conns wait for DLCX OK
+  * mgcp_client_fsm: add missing log_subsys
+  * mgcp_client: add logging on received MGCP messages
+
+  [ Philipp Maier ]
+  * mgcp_network: fix implicit address loopback
+  * mgcp_common, mgcp_udp_send: make parameter buf const
+  * mgcp_network: refactor MGCP_DUMMY_LOAD
+  * mgcp_client: drop nunnecessary else statement
+  * mgcp_client: fix error handling in mgcp message generation
+  * mgcp_protocol: fix loop that sends dummy RTP packets
+  * mgw_main: fix loop that resets all endpoints
+  * mgcp_trunk: drop ws line
+  * mgcp_ratectr: drop ws line
+  * mgcp_ratectr: fix sourcecode formatting
+  * mgcp_trunk: add value string for trunk type.
+  * mgcp_ratectr: refactor rate counter and set group name
+  * mgcp_protocol: forward declare mgcp_endpoint
+  * mgcp_endp: make wildcarded detection separate
+  * mgcp_protocol: refactor request handler array
+  * mgcp_trunk: use unsigned int instead of int as trunk_nr
+  * mgcp_protocol: refactor MGCP request handling
+  * mgcp_ratectr: add stats items to monitor trunk usage
+  * mgcp_msg: add trunk parameter to mgcp_check_param for logging
+  * mgcp_protocol: refactor function create_response_with_sdp
+  * mgcp_protocol: add support for wildcarded DLCX
+  * remove struct member wildcarded_req from struct mgcp_endpoint
+  * mgcp_lient: remove unsubstantial FIXME note
+  * mgcp_protocol: assert endp when it becomes mandatory
+  * mgcp_trunk: check MGW domain name earlier
+  * mgcp_ratectr: add stats items to monitor trunk usage
+  * mgcp_client: fix typo Initalize -> Initialize
+  * mgcp_protocol: get rid of policy_cb and change_cb
+  * mgcp_ratectr: do not set talloc destructor on library allocated item
+  * mgcp_client: allow to reset endpoints on startup
+  * mgcp_client_vty: remove unnecessary checks
+  * mgcp_client: do not print (null) when address is ANY
+  * mgcp_client: refactor function init_socket
+  * libosmo-mgcp-client: extend the mgcp_client for MGW pooling
+  * mgcp_client_vty: add missing docstrings
+  * mgcp_client_vty: add OSMO_ASSERT on pool parameter
+  * mgcp_client_vty: fix docstrings for mgw-pool
+  * mgcp_client_vty: cosmetic: doc string should terminated with \n
+  * mgcp_client_vty: fixing docstring
+  * mgcp_ratectr: remove unusued rate counters
+  * mgcp_client: fix typo in doxygen comment
+  * mgcp_client: add MGW name as logging context
+
+  [ Pau Espin Pedrol ]
+  * Use new stat item/ctr getter APIs
+  * constify arg in addr_is_any()
+  * Define patch_ssrc as bool type
+  * constify some function arg pointers
+  * mgcp_network.c: Reorder some functions in file
+  * mgcp_send_dummy: Check RTP destination is available before attempt tx
+  * mgw: rx CRCX: Avoid sending dummy rtp if remote address not provided
+  * Fail rx MDCX sendrecv with invalid remote addr
+  * Take into account Marker bit when patching RTP stream
+  * Use DLMGCP instead of DLGLOBAL in log lines
+  * Fix attribute parsing on gcc 11.1.0
+
+  [ neels ]
+  * Revert "mgcp_ratectr: add stats items to monitor trunk usage"
+
+  [ Daniel Willmann ]
+  * contrib/jenkins: Use ASAN for osmo-mgw
+
+  [ Oliver Smith ]
+  * mgcp_client_vty: add missing NO_STR
+  * Revert "Turn some compiler warnings into errors"
+
+  [ Eric ]
+  * add vscode stuff to gitignore
+  * configure.ac: fix maybe-uninitialized for clang
+  * fix missing includes and forward declarations
+  * rename do_retransmission
+  * mgcp_sdp: fix potential leak
+  * stats: make sanitizers happy
+  * libosmo-mgcp: cleanup audio codex alloc
+  * libosmo-mgcp: atomic rate counter group indexes
+  * libosmo-mgcp: do not use the default msgb talloc context
+  * globally lock the portrange when trying to grab a port to prep for multithreading
+  * embed strings into structs
+  * adjust talloc context
+  * endp: do not cache cfg pointer
+  * add modified .clang-format
+  * rename strip_epname and find_specific_endpoint and make them available
+  * fix mgcp_conn_free_all
+  * fix up some docstrings that lost their dot
+
+  [ Vadim Yanitskiy ]
+  * libosmo-mgcp: use OSMO_STRLCPY_ARRAY in mgcp_codec_add()
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Tue, 16 Nov 2021 16:59:21 +0100
+
 osmo-mgw (1.8.1) unstable; urgency=medium
 
   * attempt to fix RPM spec file after recent soversion bump

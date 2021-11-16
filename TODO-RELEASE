@@ -24,5 +24,3 @@
 # If any interfaces have been removed or changed since the last public release, a=0.
 #
 #library		what		description / commit summary line
-update dependency to libosmocore > 1.5.1 for our use of osmo_sock_set_dscp()
-libosmo-mgcp-client  struct mgcp_client_conf ABI breackage
