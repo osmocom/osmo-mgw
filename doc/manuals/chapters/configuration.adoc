@@ -91,6 +91,11 @@ the IP related aspects is nearly identical to the configuration of the virtual
 trunk. However, it is important that the user assigns one of the E1 line numbers
 that were configured under the e1_input node.
 
+NOTE: The endpoint name that is used on MGCP level will include the trunk number,
+not the E1 line number. For simplicity (and compatibility with OsmoBSC) it is
+recommended to use equal numbers for trunk and E1 line. However, if required any
+E1 line can be mapped flexible on any trunk as long as the mapping is bijective.
+
 .Example: A typical configuration with one E1 trunk
 ----
 e1_input
