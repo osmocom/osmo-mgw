@@ -1225,6 +1225,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 				if (data[0] == 0xe0) {
 					data[0] = 0xe4;
 					data[1] = 0x00;
+					data[2] = 0x09; /* Patch CRC Header to adapt to new header above */
 					rtp_state->patched_first_rtp_payload = true;
 					LOGPENDP(endp, DRTP, LOGL_DEBUG,
 						 "Patching over first two bytes"
