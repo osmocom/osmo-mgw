@@ -49,6 +49,7 @@ enum mgcp_codecs {
 	CODEC_GSMHR_8000_1 = 111,
 	CODEC_AMR_8000_1 = 112,
 	CODEC_AMRWB_16000_1 = 113,
+	CODEC_IUFP = 96,
 };
 /* Note: when new codec types are added, the corresponding value strings
  * in mgcp_client.c (codec_table) must be updated as well. Enumerations
