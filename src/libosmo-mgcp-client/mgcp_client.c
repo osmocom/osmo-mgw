@@ -59,6 +59,7 @@ const struct value_string osmo_mgcpc_codec_names[] = {
 	{ CODEC_GSMHR_8000_1, "GSM-HR-08/8000/1" },
 	{ CODEC_AMR_8000_1, "AMR/8000/1" },
 	{ CODEC_AMRWB_16000_1, "AMR-WB/16000/1" },
+	{ CODEC_IUUP, "VND.3GPP.IuFP/16000/1" },
 	{ 0, NULL },
 };
 
