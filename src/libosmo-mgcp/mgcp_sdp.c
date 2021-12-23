@@ -98,7 +98,7 @@ static void codecs_initialize(void *ctx, struct sdp_rtp_map *codecs, int used)
 /* Helper function to update codec map information with additional data from
  * SDP, called from: mgcp_parse_sdp_data() */
 static void codecs_update(void *ctx, struct sdp_rtp_map *codecs, int used,
-			  int payload, const char *audio_name)
+			  int payload_type, const char *audio_name)
 {
 	int i;
 
@@ -110,7 +110,7 @@ static void codecs_update(void *ctx, struct sdp_rtp_map *codecs, int used,
 		/* Note: We can only update payload codecs that already exist
 		 * in our codec list. If we get an unexpected payload type,
 		 * we just drop it */
-		if (codecs[i].payload_type != payload)
+		if (codecs[i].payload_type != payload_type)
 			continue;
 
 		if (sscanf(audio_name, "%63[^/]/%d/%d",
@@ -127,7 +127,7 @@ static void codecs_update(void *ctx, struct sdp_rtp_map *codecs, int used,
 		return;
 	}
 
-	LOGP(DLMGCP, LOGL_ERROR, "Unconfigured PT(%d) with %s\n", payload,
+	LOGP(DLMGCP, LOGL_ERROR, "Unconfigured PT(%d) with %s\n", payload_type,
 	     audio_name);
 }
 
@@ -334,7 +334,7 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	void *tmp_ctx = talloc_new(NULL);
 	struct mgcp_rtp_end *rtp;
 
-	int payload;
+	int payload_type;
 	int ptime, ptime2 = 0;
 	char audio_name[64];
 	int port, rc;
@@ -355,8 +355,8 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 			/* skip these SDP attributes */
 			break;
 		case 'a':
-			if (sscanf(line, "a=rtpmap:%d %63s", &payload, audio_name) == 2) {
-				codecs_update(tmp_ctx, codecs, codecs_used, payload, audio_name);
+			if (sscanf(line, "a=rtpmap:%d %63s", &payload_type, audio_name) == 2) {
+				codecs_update(tmp_ctx, codecs, codecs_used, payload_type, audio_name);
 				break;
 			}
 
