@@ -48,7 +48,7 @@
 #include <osmocom/mgcp/debug.h>
 #include <osmocom/codec/codec.h>
 #include <osmocom/mgcp/mgcp_e1.h>
-
+#include <osmocom/mgcp/mgcp_iuup.h>
 
 #define RTP_SEQ_MOD		(1 << 16)
 #define RTP_MAX_DROPOUT		3000
@@ -59,7 +59,7 @@ enum rtp_proto {
 	MGCP_PROTO_RTCP,
 };
 
-static void rtpconn_rate_ctr_add(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *endp,
+void rtpconn_rate_ctr_add(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *endp,
 				 int id, int inc)
 {
 	struct rate_ctr_group *conn_stats = conn_rtp->rate_ctr_group;
@@ -156,7 +156,7 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 /* This does not need to be a precision timestamp and
  * is allowed to wrap quite fast. The returned value is
  * 1/codec_rate seconds. */
-static uint32_t get_current_ts(unsigned codec_rate)
+uint32_t mgcp_get_current_ts(unsigned codec_rate)
 {
 	struct timespec tp;
 	uint64_t ret;
@@ -529,7 +529,7 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 	rtp_hdr = (struct rtp_hdr *)msgb_data(msg);
 	seq = ntohs(rtp_hdr->sequence);
 	timestamp = ntohl(rtp_hdr->timestamp);
-	arrival_time = get_current_ts(rtp_end->codec->rate);
+	arrival_time = mgcp_get_current_ts(rtp_end->codec->rate);
 	ssrc = ntohl(rtp_hdr->ssrc);
 	marker_bit = !!rtp_hdr->marker;
 	transit = arrival_time - timestamp;
@@ -789,7 +789,7 @@ static int amr_oa_check(char *data, int len)
 
 /* Forward data to a debug tap. This is debug function that is intended for
  * debugging the voice traffic with tools like gstreamer */
-static void forward_data(int fd, struct mgcp_rtp_tap *tap, struct msgb *msg)
+void forward_data_tap(int fd, struct mgcp_rtp_tap *tap, struct msgb *msg)
 {
 	int rc;
 
@@ -815,7 +815,7 @@ static void gen_rtp_header(struct msgb *msg, struct mgcp_rtp_end *rtp_end,
 
 	hdr->version = 2;
 	hdr->payload_type = rtp_end->codec->payload_type;
-	hdr->timestamp = osmo_htonl(get_current_ts(rtp_end->codec->rate));
+	hdr->timestamp = osmo_htonl(mgcp_get_current_ts(rtp_end->codec->rate));
 	hdr->sequence = osmo_htons(state->alt_rtp_tx_sequence);
 	hdr->ssrc = state->alt_rtp_tx_ssrc;
 }
@@ -975,7 +975,7 @@ static int check_rtp(struct mgcp_conn_rtp *conn_src, struct msgb *msg)
 	 * the length is because we currently handle IUUP packets as RTP
 	 * packets, so they must pass this check, if we weould be more
 	 * strict here, we would possibly break 3G. (see also FIXME note
-	 * below */
+	 * below.*/
 
 	return 0;
 }
@@ -1013,6 +1013,19 @@ static int mgcp_send_rtp(struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
 			 "endpoint type is MGCP_OSMUX_BSC_NAT, "
 			 "using osmux_xfrm_to_osmux() to forward data through OSMUX\n");
 		return osmux_xfrm_to_osmux((char*)msgb_data(msg), msgb_length(msg), conn_dst);
+	case MGCP_RTP_IUUP:
+		if (proto == MGCP_PROTO_RTP) {
+			LOGPENDP(endp, DRTP, LOGL_DEBUG,
+				 "endpoint type is MGCP_RTP_IUUP, "
+				 "using mgcp_conn_iuup_send_rtp() to forward data over IuUP\n");
+			return mgcp_conn_iuup_send_rtp(conn_src, conn_dst, msg);
+		}
+		/* RTCP: we forward as usual for regular RTP connection */
+		LOGPENDP(endp, DRTP, LOGL_DEBUG,
+			 "endpoint type is MGCP_RTP_IUUP and proto!=MGCP_PROTO_RTP, "
+			 "using mgcp_send() to forward data directly\n");
+		return mgcp_send(endp, false,
+				 mc->from_addr, msg, conn_src, conn_dst);
 	}
 
 	/* If the data has not been handled/forwarded until here, it will
@@ -1073,8 +1086,11 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	if (check_rtp_destin(conn) != 0)
 		goto failed;
 
-	rc = mgcp_udp_send(conn->end.rtp.fd, &conn->end.addr,
-			   conn->end.rtp_port, rtp_dummy_payload, sizeof(rtp_dummy_payload));
+	if (mgcp_conn_rtp_is_iuup(conn))
+		rc = mgcp_conn_iuup_send_dummy(conn);
+	else
+		rc = mgcp_udp_send(conn->end.rtp.fd, &conn->end.addr, conn->end.rtp_port,
+				   rtp_dummy_payload, sizeof(rtp_dummy_payload));
 
 	if (rc == -1)
 		goto failed;
@@ -1138,7 +1154,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 	 * course unable to patch the payload type. A situation like this
 	 * should not occur if transcoding is consequently avoided. Until
 	 * we have transcoding support in osmo-mgw we can not resolve this. */
-	if (is_rtp) {
+	if (is_rtp && conn_dst->type != MGCP_RTP_IUUP) {
 		rc = mgcp_patch_pt(conn_src, conn_dst, msg);
 		if (rc < 0) {
 			LOGPENDP(endp, DRTP, LOGL_DEBUG,
@@ -1185,7 +1201,9 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 				mgcp_patch_and_count(endp, rtp_state, rtp_end,
 						     addr, msg);
 
-			if (amr_oa_bwe_convert_indicated(conn_dst->end.codec)) {
+			if (mgcp_conn_rtp_is_iuup(conn_dst) || mgcp_conn_rtp_is_iuup(conn_src)) {
+				/* the iuup code will correctly transform to the correct AMR mode */
+			} else if (amr_oa_bwe_convert_indicated(conn_dst->end.codec)) {
 				rc = amr_oa_bwe_convert(endp, msg,
 							conn_dst->end.codec->param.amr_octet_aligned);
 				if (rc < 0) {
@@ -1211,27 +1229,8 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 				);
 
 			/* Forward a copy of the RTP data to a debug ip/port */
-			forward_data(rtp_end->rtp.fd, &conn_src->tap_out,
+			forward_data_tap(rtp_end->rtp.fd, &conn_src->tap_out,
 				     msg);
-
-			/* FIXME: HACK HACK HACK. See OS#2459.
-			 * The ip.access nano3G needs the first RTP payload's first two bytes to read hex
-			 * 'e400', or it will reject the RAB assignment. It seems to not harm other femto
-			 * cells (as long as we patch only the first RTP payload in each stream).
-			 */
-			if (!rtp_state->patched_first_rtp_payload
-			    && conn_src->conn->mode == MGCP_CONN_LOOPBACK) {
-				uint8_t *data = msgb_data(msg) + 12;
-				if (data[0] == 0xe0) {
-					data[0] = 0xe4;
-					data[1] = 0x00;
-					data[2] = (0x09 << 2); /* Patch CRC Header to adapt to new header above */
-					rtp_state->patched_first_rtp_payload = true;
-					LOGPENDP(endp, DRTP, LOGL_DEBUG,
-						 "Patching over first two bytes"
-						 " to fake an IuUP Initialization Ack\n");
-				}
-			}
 
 			len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr, rtp_end->rtp_port,
 					    (char *)msgb_data(msg), msgb_length(msg));
@@ -1292,6 +1291,9 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 	 *  destination connection is known the RTP packet is sent via
 	 *  the destination connection. */
 
+	/* If source is IuUP, we need to handle state, forward it through specific bridge path: */
+	if (mgcp_conn_rtp_is_iuup(conn_src) && mc->proto == MGCP_PROTO_RTP)
+		return mgcp_conn_iuup_dispatch_rtp(msg);
 
 	 /* Check if the connection is in loopback mode, if yes, just send the
 	 * incoming data back to the origin */
@@ -1507,7 +1509,7 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	/* FIXME: count RTP and RTCP separately, also count IuUP payload-less separately */
 
 	/* Forward a copy of the RTP data to a debug ip/port */
-	forward_data(fd->fd, &conn_src->tap_in, msg);
+	forward_data_tap(fd->fd, &conn_src->tap_in, msg);
 
 	rc = rx_rtp(msg);
 

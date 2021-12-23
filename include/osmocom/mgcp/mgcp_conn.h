@@ -28,6 +28,7 @@
 #include <osmocom/mgcp/osmux.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/rate_ctr.h>
+#include <osmocom/gsm/iuup.h>
 #include <inttypes.h>
 
 #define LOGPCONN(conn, cat, level, fmt, args...) \
@@ -47,6 +48,7 @@ enum mgcp_conn_rtp_type {
 	MGCP_RTP_DEFAULT	= 0,
 	MGCP_OSMUX_BSC,
 	MGCP_OSMUX_BSC_NAT,
+	MGCP_RTP_IUUP,
 };
 
 /*! Connection type, specifies which member of the union "u" in mgcp_conn
@@ -92,6 +94,14 @@ struct mgcp_conn_rtp {
 			uint32_t octets;
 		} stats;
 	} osmux;
+
+	struct {
+		struct osmo_iuup_instance *iui;
+		bool active_init; /* true: Send IuUP Init */
+		int rfci_idx_no_data; /* Index for RFCI NO_DATA (-1 if not available) */
+		bool configured;
+		struct osmo_iuup_rnl_prim *init_ind;
+	} iuup;
 
 	struct rate_ctr_group *rate_ctr_group;
 };
@@ -174,6 +184,12 @@ static const struct rate_ctr_desc all_rtp_conn_rate_ctr_desc[] = {
 /* Was conn configured to handle Osmux? */
 static inline bool mgcp_conn_rtp_is_osmux(const struct mgcp_conn_rtp *conn) {
 	return conn->type == MGCP_OSMUX_BSC || conn->type == MGCP_OSMUX_BSC_NAT;
+}
+
+/* Was conn configured to handle Osmux? */
+static inline bool mgcp_conn_rtp_is_iuup(const struct mgcp_conn_rtp *conn)
+{
+	return conn->type == MGCP_RTP_IUUP;
 }
 
 struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,

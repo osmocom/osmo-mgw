@@ -48,4 +48,5 @@ libosmo_mgcp_a_SOURCES = \
 	mgcp_ctrl.c \
 	mgcp_ratectr.c \
 	mgcp_e1.c \
+	mgcp_iuup.c \
 	$(NULL)

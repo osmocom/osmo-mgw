@@ -70,8 +70,6 @@ struct mgcp_rtp_state {
 	 * data is just re-used) */
 	uint16_t alt_rtp_tx_sequence;
 	uint32_t alt_rtp_tx_ssrc;
-
-	bool patched_first_rtp_payload; /* FIXME: drop this, see OS#2459 */
 };
 
 struct mgcp_rtp_codec {
@@ -177,3 +175,8 @@ void mgcp_get_net_downlink_format_default(struct mgcp_endpoint *endp,
 void mgcp_rtp_annex_count(const struct mgcp_endpoint *endp, struct mgcp_rtp_state *state,
 			const uint16_t seq, const int32_t transit,
 			const uint32_t ssrc, const bool marker_bit);
+
+void rtpconn_rate_ctr_add(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *endp,
+				 int id, int inc);
+void forward_data_tap(int fd, struct mgcp_rtp_tap *tap, struct msgb *msg);
+uint32_t mgcp_get_current_ts(unsigned codec_rate);
