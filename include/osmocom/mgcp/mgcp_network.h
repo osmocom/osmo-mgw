@@ -70,8 +70,6 @@ struct mgcp_rtp_state {
 	 * data is just re-used) */
 	uint16_t alt_rtp_tx_sequence;
 	uint32_t alt_rtp_tx_ssrc;
-
-	bool patched_first_rtp_payload; /* FIXME: drop this, see OS#2459 */
 };
 
 struct mgcp_rtp_codec {

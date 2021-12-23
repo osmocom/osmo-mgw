@@ -48,7 +48,7 @@
 #include <osmocom/mgcp/debug.h>
 #include <osmocom/codec/codec.h>
 #include <osmocom/mgcp/mgcp_e1.h>
-
+#include <osmocom/mgcp/mgcp_iuup.h>
 
 #define RTP_SEQ_MOD		(1 << 16)
 #define RTP_MAX_DROPOUT		3000
@@ -975,7 +975,8 @@ static int check_rtp(struct mgcp_conn_rtp *conn_src, struct msgb *msg)
 	 * the length is because we currently handle IUUP packets as RTP
 	 * packets, so they must pass this check, if we weould be more
 	 * strict here, we would possibly break 3G. (see also FIXME note
-	 * below */
+	 * below. */
+	 /* FIXME UPDATE: we can now apply more checks based on mgcp_conn_rtp_is_iuup(conn_src) */
 
 	return 0;
 }
@@ -1013,6 +1014,11 @@ static int mgcp_send_rtp(struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
 			 "endpoint type is MGCP_OSMUX_BSC_NAT, "
 			 "using osmux_xfrm_to_osmux() to forward data through OSMUX\n");
 		return osmux_xfrm_to_osmux((char*)msgb_data(msg), msgb_length(msg), conn_dst);
+	case MGCP_RTP_IUUP:
+		LOGPENDP(endp, DRTP, LOGL_DEBUG,
+			 "endpoint type is MGCP_RTP_IUUP, "
+			 "using mgcp_conn_iuup_send_rtp() to forward data over IuUP\n");
+		return mgcp_conn_iuup_send_rtp(conn_dst, msg);
 	}
 
 	/* If the data has not been handled/forwarded until here, it will
@@ -1214,25 +1220,6 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 			forward_data(rtp_end->rtp.fd, &conn_src->tap_out,
 				     msg);
 
-			/* FIXME: HACK HACK HACK. See OS#2459.
-			 * The ip.access nano3G needs the first RTP payload's first two bytes to read hex
-			 * 'e400', or it will reject the RAB assignment. It seems to not harm other femto
-			 * cells (as long as we patch only the first RTP payload in each stream).
-			 */
-			if (!rtp_state->patched_first_rtp_payload
-			    && conn_src->conn->mode == MGCP_CONN_LOOPBACK) {
-				uint8_t *data = msgb_data(msg) + 12;
-				if (data[0] == 0xe0) {
-					data[0] = 0xe4;
-					data[1] = 0x00;
-					data[2] = 0x09; /* Patch CRC Header to adapt to new header above */
-					rtp_state->patched_first_rtp_payload = true;
-					LOGPENDP(endp, DRTP, LOGL_DEBUG,
-						 "Patching over first two bytes"
-						 " to fake an IuUP Initialization Ack\n");
-				}
-			}
-
 			len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr, rtp_end->rtp_port,
 					    (char *)msgb_data(msg), msgb_length(msg));
 
@@ -1292,6 +1279,9 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 	 *  destination connection is known the RTP packet is sent via
 	 *  the destination connection. */
 
+	/* If source is IuUP, we need to handle state, forward it rhough specific bridge: */
+	if (mgcp_conn_rtp_is_iuup(conn_src))
+		return mgcp_conn_iuup_dispatch_rtp(msg);
 
 	 /* Check if the connection is in loopback mode, if yes, just send the
 	 * incoming data back to the origin */

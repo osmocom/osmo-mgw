@@ -30,6 +30,8 @@
 #include <osmocom/mgcp/mgcp_trunk.h>
 #include <osmocom/mgcp/mgcp_sdp.h>
 #include <osmocom/mgcp/mgcp_codec.h>
+#include <osmocom/mgcp/mgcp_iuup.h>
+
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/timer.h>
@@ -129,6 +131,8 @@ static void mgcp_rtp_conn_cleanup(struct mgcp_conn_rtp *conn_rtp)
 {
 	if (mgcp_conn_rtp_is_osmux(conn_rtp))
 		conn_osmux_disable(conn_rtp);
+	if (mgcp_conn_rtp_is_iuup(conn_rtp))
+		mgcp_conn_iuup_cleanup(conn_rtp);
 	mgcp_free_rtp_port(&conn_rtp->end);
 	rate_ctr_group_free(conn_rtp->rate_ctr_group);
 	mgcp_codec_reset_all(conn_rtp);

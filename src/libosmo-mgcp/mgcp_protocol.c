@@ -46,6 +46,7 @@
 #include <osmocom/mgcp/mgcp_sdp.h>
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/mgcp/mgcp_conn.h>
+#include <osmocom/mgcp/mgcp_iuup.h>
 
 /* Contains the last successfully resolved endpoint name. This variable is used
  * for the unit-tests to verify that the endpoint was correctly resolved. */
@@ -1027,6 +1028,11 @@ mgcp_header_done:
 		error_code = rc;
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_CODEC_NEGOTIATION));
 		goto error2;
+	}
+	/* Upgrade the conn type RTP_DEFAULT->RTP_IUUP if needed based on requested codec: */
+	/* TODO: "codec" probably needs to be moved from endp to conn */
+	if (conn->type == MGCP_RTP_DEFAULT && strcmp(conn->end.codec->subtype_name, "VND.3GPP.IUFP") == 0) {
+		rc = mgcp_conn_iuup_init(conn);
 	}
 
 	conn->end.fmtp_extra = talloc_strdup(trunk->endpoints,
