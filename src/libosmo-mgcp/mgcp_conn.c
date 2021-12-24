@@ -108,7 +108,7 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 	/* Set default values */
 	end->frames_per_packet = 0;	/* unknown */
 	end->packet_duration_ms = DEFAULT_RTP_AUDIO_PACKET_DURATION_MS;
-	end->output_enabled = 0;
+	end->output_enabled = false;
 	end->maximum_packet_time = -1;
 
 	conn_rtp->rate_ctr_group = rate_ctr_group_alloc(conn, &rate_ctr_group_desc, rate_ctr_index++);

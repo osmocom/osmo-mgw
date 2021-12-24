@@ -868,7 +868,7 @@ static void test_messages(void)
 					printf("Connection mode not set\n");
 
 				OSMO_ASSERT(conn->end.output_enabled
-					    == (conn->conn->mode & MGCP_CONN_SEND_ONLY ? 1 : 0));
+					    == !!(conn->conn->mode & MGCP_CONN_SEND_ONLY));
 
 				conn->conn->mode |= CONN_UNMODIFIED;
 

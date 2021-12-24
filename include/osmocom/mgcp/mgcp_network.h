@@ -110,8 +110,8 @@ struct mgcp_rtp_end {
 	uint32_t packet_duration_ms;
 	int maximum_packet_time; /* -1: not set */
 	char *fmtp_extra;
-	/* are we transmitting packets (1) or dropping (0) outbound packets */
-	int output_enabled;
+	/* are we transmitting packets (true) or dropping (false) outbound packets */
+	bool output_enabled;
 	/* FIXME: This parameter can be set + printed, but is nowhere used! */
 	int force_output_ptime;
 

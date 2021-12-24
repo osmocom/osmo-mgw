@@ -110,8 +110,7 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 
 	/* Special handling for RTP connections */
 	if (conn->type == MGCP_CONN_TYPE_RTP) {
-		conn->u.rtp.end.output_enabled =
-		    conn->mode & MGCP_CONN_SEND_ONLY ? 1 : 0;
+		conn->u.rtp.end.output_enabled = !!(conn->mode & MGCP_CONN_SEND_ONLY);
 	}
 
 	LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "conn:%s\n", mgcp_conn_dump(conn));
@@ -121,7 +120,7 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 
 	/* Special handling für RTP connections */
 	if (conn->type == MGCP_CONN_TYPE_RTP) {
-		LOGPCONN(conn, DLMGCP, LOGL_DEBUG, "output_enabled %d\n",
+		LOGPCONN(conn, DLMGCP, LOGL_DEBUG, "output_enabled %u\n",
 			 conn->u.rtp.end.output_enabled);
 	}
 
