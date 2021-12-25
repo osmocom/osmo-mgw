@@ -107,8 +107,8 @@ We are planning to add further endpoint types for:
 
 You can find the OsmoMGW issue tracker and wiki online at
 
-- https://osmocom.org/projects/osmomgw
-- https://osmocom.org/projects/osmomgw/wiki
+- https://osmocom.org/projects/osmo-mgw
+- https://osmocom.org/projects/osmo-mgw/wiki
 
 RFC 3435 for MGCP is located at
 
