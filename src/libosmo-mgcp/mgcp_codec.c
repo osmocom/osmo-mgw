@@ -25,6 +25,7 @@
 #include <osmocom/mgcp/mgcp_trunk.h>
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <errno.h>
+#include <strings.h>
 
 /* Helper function to dump codec information of a specified codec to a printable
  * string, used by dump_codec_summary() */
@@ -241,6 +242,8 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 				codec->payload_type = 112;
 			else if (!strcmp(codec->subtype_name, "AMR-WB"))
 				codec->payload_type = 113;
+			else if (!strcasecmp(codec->subtype_name, "VND.3GPP.IuFP"))
+				codec->payload_type = 97;
 		}
 
 		/* If we could not determine a payload type we assume that
@@ -355,7 +358,7 @@ int mgcp_codec_decide(struct mgcp_conn_rtp *conn)
  *
  * https://tools.ietf.org/html/rfc4867
  */
-static bool amr_is_octet_aligned(const struct mgcp_rtp_codec *codec)
+bool mgcp_codec_amr_is_octet_aligned(const struct mgcp_rtp_codec *codec)
 {
 	if (!codec->param_present)
 		return false;
@@ -379,7 +382,7 @@ static bool codecs_same(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_codec *c
 	if (strcmp(codec_a->subtype_name, codec_b->subtype_name))
 		return false;
 	if (!strcmp(codec_a->subtype_name, "AMR")) {
-		if (amr_is_octet_aligned(codec_a) != amr_is_octet_aligned(codec_b))
+		if (mgcp_codec_amr_is_octet_aligned(codec_a) != mgcp_codec_amr_is_octet_aligned(codec_b))
 			return false;
 	}
 
@@ -417,7 +420,7 @@ int mgcp_codec_pt_translate(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp
 	if (!codec_src)
 		return -EINVAL;
 
-	/* Use the codec infrmation from the source and try to find the
+	/* Use the codec information from the source and try to find the
 	 * equivalent of it on the destination side */
 	codecs_assigned = rtp_dst->codecs_assigned;
 	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);

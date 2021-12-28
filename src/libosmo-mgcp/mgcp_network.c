@@ -768,25 +768,6 @@ static bool amr_oa_bwe_convert_indicated(struct mgcp_rtp_codec *codec)
 }
 
 
-/* Return whether an RTP packet with AMR payload is in octet-aligned mode.
- * Return 0 if in bandwidth-efficient mode, 1 for octet-aligned mode, and negative if the RTP data is invalid. */
-static int amr_oa_check(char *data, int len)
-{
-	struct rtp_hdr *rtp_hdr;
-	unsigned int payload_len;
-
-	if (len < sizeof(struct rtp_hdr))
-		return -EINVAL;
-
-	rtp_hdr = (struct rtp_hdr *)data;
-
-	payload_len = len - sizeof(struct rtp_hdr);
-	if (payload_len < sizeof(struct amr_hdr))
-		return -EINVAL;
-
-	return osmo_amr_is_oa(rtp_hdr->data, payload_len) ? 1 : 0;
-}
-
 /* Forward data to a debug tap. This is debug function that is intended for
  * debugging the voice traffic with tools like gstreamer */
 static void forward_data(int fd, struct mgcp_rtp_tap *tap, struct msgb *msg)
@@ -1018,7 +999,7 @@ static int mgcp_send_rtp(struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
 		LOGPENDP(endp, DRTP, LOGL_DEBUG,
 			 "endpoint type is MGCP_RTP_IUUP, "
 			 "using mgcp_conn_iuup_send_rtp() to forward data over IuUP\n");
-		return mgcp_conn_iuup_send_rtp(conn_dst, msg);
+		return mgcp_conn_iuup_send_rtp(conn_src, conn_dst, msg);
 	}
 
 	/* If the data has not been handled/forwarded until here, it will
@@ -1145,10 +1126,12 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 	 * should not occur if transcoding is consequently avoided. Until
 	 * we have transcoding support in osmo-mgw we can not resolve this. */
 	if (is_rtp) {
-		rc = mgcp_patch_pt(conn_src, conn_dst, msg);
-		if (rc < 0) {
-			LOGPENDP(endp, DRTP, LOGL_DEBUG,
-				 "can not patch PT because no suitable egress codec was found.\n");
+		if (conn_dst->type != MGCP_RTP_IUUP) {
+			rc = mgcp_patch_pt(conn_src, conn_dst, msg);
+			if (rc < 0) {
+				LOGPENDP(endp, DRTP, LOGL_DEBUG,
+					 "can not patch PT because no suitable egress codec was found.\n");
+			}
 		}
 	}
 
@@ -1191,7 +1174,9 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 				mgcp_patch_and_count(endp, rtp_state, rtp_end,
 						     addr, msg);
 
-			if (amr_oa_bwe_convert_indicated(conn_dst->end.codec)) {
+			if (mgcp_conn_rtp_is_iuup(conn_dst) || mgcp_conn_rtp_is_iuup(conn_src)) {
+				/* the iuup code will correctly transform to the correct AMR mode */
+			} else if (amr_oa_bwe_convert_indicated(conn_dst->end.codec)) {
 				rc = amr_oa_bwe_convert(endp, msg,
 							conn_dst->end.codec->param.amr_octet_aligned);
 				if (rc < 0) {
@@ -1279,10 +1264,6 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 	 *  destination connection is known the RTP packet is sent via
 	 *  the destination connection. */
 
-	/* If source is IuUP, we need to handle state, forward it rhough specific bridge: */
-	if (mgcp_conn_rtp_is_iuup(conn_src))
-		return mgcp_conn_iuup_dispatch_rtp(msg);
-
 	 /* Check if the connection is in loopback mode, if yes, just send the
 	 * incoming data back to the origin */
 	if (conn->mode == MGCP_CONN_LOOPBACK) {
@@ -1308,8 +1289,17 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 				     osmo_sockaddr_ntop(&from_addr->u.sa, ipbuf),
 				     conn->u.rtp.end.rtp_port);
 		}
+		/* If source is IuUP, we need to handle state, forward it rhough specific bridge: */
+		if (mgcp_conn_rtp_is_iuup(conn_src))
+			return mgcp_conn_iuup_dispatch_rtp(msg);
+
 		return mgcp_send_rtp(conn_src, msg);
 	}
+
+	/* If source is IuUP, we need to handle state, forward it rhough specific bridge: */
+	if (mgcp_conn_rtp_is_iuup(conn_src))
+		return mgcp_conn_iuup_dispatch_rtp(msg);
+
 
 	/* Find a destination connection. */
 	/* NOTE: This code path runs every time an RTP packet is received. The
@@ -1517,18 +1507,6 @@ static int rx_rtp(struct msgb *msg)
 	LOG_CONN_RTP(conn_src, LOGL_DEBUG, "rx_rtp(%u bytes)\n", msgb_length(msg));
 
 	mgcp_conn_watchdog_kick(conn_src->conn);
-
-	/* If AMR is configured for the ingress connection a conversion of the
-	 * framing mode (octet-aligned vs. bandwith-efficient is explicitly
-	 * define, then we check if the incoming payload matches that
-	 * expectation. */
-	if (amr_oa_bwe_convert_indicated(conn_src->end.codec)) {
-		int oa = amr_oa_check((char*)msgb_data(msg), msgb_length(msg));
-		if (oa < 0)
-			return -1;
-		if (((bool)oa) != conn_src->end.codec->param.amr_octet_aligned)
-			return -1;
-	}
 
 	/* Check if the origin of the RTP packet seems plausible */
 	if (!trunk->rtp_accept_all && check_rtp_origin(conn_src, from_addr))

@@ -14,8 +14,10 @@
 
 #include <osmocom/gsm/iuup.h>
 
+#include <osmocom/netif/amr.h>
 #include <osmocom/netif/rtp.h>
 
+#include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_iuup.h>
 #include <osmocom/mgcp/mgcp_endp.h>
@@ -104,9 +106,16 @@ static int check_rtp_iuup(const struct mgcp_conn_rtp *conn_rtp, struct msgb *msg
 
 static int _conn_iuup_rx_rnl_data(struct mgcp_conn_rtp *conn_rtp_src, struct osmo_iuup_rnl_prim *irp)
 {
-	struct mgcp_conn *conn_dst;
-	struct mgcp_conn_rtp *conn_rtp_dst;
+	struct mgcp_conn *conn_src, *conn_dst;
+	struct mgcp_conn_rtp *conn_src_rtp, *conn_rtp_dst;
 	int rc;
+	uint8_t rfci, frame_nr, fqc;
+	int ft;
+	struct msgb *msg;
+	struct amr_hdr *amr_hdr;
+	uint8_t *amr_data;
+	ssize_t amr_length = 0;
+	struct rtp_hdr *rtp_hdr;
 
 	conn_dst = _find_dst_conn(conn_rtp_src->conn);
 
@@ -138,6 +147,65 @@ static int _conn_iuup_rx_rnl_data(struct mgcp_conn_rtp *conn_rtp_src, struct osm
 		break;
 	case MGCP_RTP_DEFAULT:
 		/* FIXME: We probably need transcoding here?! Or at least look up AMR modes and translate to related RFCI */
+		rfci = irp->u.data.rfci;
+		frame_nr = irp->u.data.frame_nr;
+		fqc = irp->u.data.fqc;
+		msg = irp->oph.msg;
+		ft = osmo_amr_bytes_to_ft(msgb_l3len(msg));
+		if (ft < 0) {
+			/* FIXME LOGP */
+			return ft;
+		}
+		msgb_pull_to_l3(msg);
+		LOGP(DLMGCP, LOGL_ERROR, "Convert Iuup -> AMR: ft %d, len %d\n", ft, msgb_l3len(msg));
+
+		if (mgcp_codec_amr_is_octet_aligned(conn_rtp_dst->end.codec)) {
+			amr_hdr = (struct amr_hdr *) msgb_push(msg, sizeof(struct amr_hdr));
+			amr_hdr->cmr = 15; /* no change */
+			amr_hdr->f = 0;
+			amr_hdr->q = !fqc;
+			amr_hdr->ft = ft & 0xff;
+			amr_hdr->pad1 = 0;
+			amr_hdr->pad2 = 0;
+		} else {
+			if (msgb_tailroom(msg) < 2) {
+				/* FIXME not enought tailroom */
+				return -4;
+			}
+			msgb_put(msg, 2);
+			osmo_amr_iuup_to_bwe(msgb_data(msg), msgb_length(msg) - 2, msgb_length(msg) + 2);
+			/* fill bwe header */
+			amr_data = msgb_data(msg);
+			/* CMR no change      | follow bit | ft (3 of 4 bits) */
+			amr_data[0] = 15 << 4 | (0 << 3) | (ft >> 1);
+			LOGP(DLMGCP, LOGL_ERROR, "Convert Iuup -> AMR bwe: amr[0] 0x%x 0x%x\n", amr_data[0], amr_data[1]);
+			amr_data[1] |= ((ft & 0x1) << 7) | (((!fqc) & 0x1) << 6);
+			LOGP(DLMGCP, LOGL_ERROR, "Convert Iuup -> AMR bwe: amr[0] 0x%x 0x%x\n", amr_data[0], amr_data[1]);
+			amr_length = (osmo_amr_bits(ft) + 10 + 7) / 8;
+			msgb_trim(msg, amr_length);
+		}
+		rtp_hdr = (struct rtp_hdr *) msgb_push(msg, sizeof(struct rtp_hdr));
+		*rtp_hdr = (struct rtp_hdr){
+			.csrc_count = 0,
+			.extension = 0,
+			.padding = 0,
+			.version = 0,
+			.payload_type = 0,
+			.marker = 0,
+			.sequence = 0,
+			.timestamp = 0,
+			.ssrc = 0
+		};
+
+		conn_src = _find_dst_conn(conn_dst);
+		if (conn_src)
+			conn_src_rtp = &conn_src->u.rtp;
+		else
+			conn_src_rtp = &conn_dst->u.rtp;
+
+		rc = mgcp_send(conn_dst->endp, 1,
+			 NULL, msg, conn_src_rtp, conn_rtp_dst);
+		break;
 	case MGCP_OSMUX_BSC:
 	case MGCP_OSMUX_BSC_NAT:
 	default:
@@ -222,13 +290,14 @@ static int _conn_iuup_user_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
 
 static int _conn_iuup_transport_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
 {
-	struct mgcp_conn_rtp *conn_rtp_dst = ctx;
+	struct mgcp_conn_rtp *conn_src_rtp = NULL, *conn_rtp_dst = ctx;
 	struct mgcp_conn *conn_dst = conn_rtp_dst->conn;
 	struct osmo_iuup_tnl_prim *itp = (struct osmo_iuup_tnl_prim *)oph;
 	struct mgcp_conn *conn_src;
 	struct msgb *msg;
 	struct rtp_hdr *rtph;
 	struct osmo_sockaddr from_addr = {0}; /* FIXME: what to do with this one? */
+
 
 	OSMO_ASSERT(OSMO_PRIM_HDR(&itp->oph) == OSMO_PRIM(OSMO_IUUP_TNL_UNITDATA, PRIM_OP_REQUEST));
 
@@ -242,8 +311,8 @@ static int _conn_iuup_transport_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
 		.csrc_count = 0,
 		.extension = 0,
 		.padding = 0,
-		.version = 2,
-		.payload_type = 96,
+		.version = 0,
+		.payload_type = conn_rtp_dst->end.codec->payload_type,
 		.marker = 0,
 		.sequence = 0,
 		.timestamp = 0,
@@ -251,12 +320,20 @@ static int _conn_iuup_transport_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
 	};
 
 	/* TODO: mgcp_send_rtp() expects msg to have OSMO_RTP_MSG_CTX filled */
+	// 	struct osmo_rtp_msg_ctx *mc = OSMO_RTP_MSG_CTX(msg);
+	// how to handle an early init packet which need to be answered correct! */
+
 
 	/* The destination of the destination conn is the source conn, right? */
 	conn_src = _find_dst_conn(conn_dst);
+	if (conn_src)
+		conn_src_rtp = &conn_src->u.rtp;
+	else
+		conn_src_rtp = &conn_dst->u.rtp;
 
+	/* FIXME: set from_addr = NULL */
 	return mgcp_send(conn_dst->endp, 1,
-			 &from_addr, msg, &conn_src->u.rtp, conn_rtp_dst);
+			 &from_addr, msg, conn_src_rtp, conn_rtp_dst);
 }
 
 int mgcp_conn_iuup_init(struct mgcp_conn_rtp *conn_rtp)
@@ -320,25 +397,49 @@ free_ret:
 
 /* Build IuUP RNL Data primitive from msg containing an incoming RTP pkt from
  * peer and send it down the IuUP layer towards the destination as IuUP/RTP: */
-int mgcp_conn_iuup_send_rtp(struct mgcp_conn_rtp *conn_rtp, struct msgb *msg)
+int mgcp_conn_iuup_send_rtp(struct mgcp_conn_rtp *conn_src_rtp, struct mgcp_conn_rtp *conn_dest_rtp, struct msgb *msg)
 {
 	struct osmo_iuup_rnl_prim *irp;
 	struct rtp_hdr *rtph;
-	int rc;
+	struct amr_hdr *amr_hdr;
+	int rc = -1;
+	int iuup_length = 0;
 
 	/* Tx RNL-DATA.req */
 	rtph = (struct rtp_hdr *)msgb_data(msg);
 	msgb_pull(msg, sizeof(*rtph));
 
-	irp = osmo_iuup_rnl_prim_alloc(conn_rtp->conn, OSMO_IUUP_RNL_DATA, PRIM_OP_REQUEST, MGW_IUUP_MSGB_SIZE);
+	/* FIXME: validate amr packets */
+	irp = osmo_iuup_rnl_prim_alloc(conn_dest_rtp->conn, OSMO_IUUP_RNL_DATA, PRIM_OP_REQUEST, MGW_IUUP_MSGB_SIZE);
+
 	/* FIXME: We probably need transcoding here?! Or at least look up AMR modes and translate to related RFCI */
-	irp->u.data.rfci = 0;
-	irp->u.data.frame_nr = rtph->sequence % 4;
-	irp->u.data.fqc = IUUP_FQC_FRAME_GOOD;
+	irp->u.data.frame_nr = htons(rtph->sequence) % 16;
+
+	if (msgb_length(msg) < (sizeof(struct amr_hdr))) {
+		return -1;
+	}
+
+	amr_hdr = (struct amr_hdr *) msgb_data(msg);
+	if (mgcp_codec_amr_is_octet_aligned(conn_src_rtp->end.codec)) {
+		/* FIXME: CMR handling & multiple frames handling */
+		irp->u.data.fqc = IUUP_FQC_FRAME_GOOD;
+		irp->u.data.rfci = amr_hdr->ft < 8 ? 0 : 1;
+		msgb_pull(msg, 2);
+	} else {
+		irp->u.data.fqc = amr_hdr->q;
+		irp->u.data.rfci = amr_hdr->ft < 8 ? 0 : 1;
+		rc = iuup_length = osmo_amr_bwe_to_iuup(msgb_data(msg), msgb_length(msg));
+		if (rc < 0) {
+			LOG_CONN_RTP(conn_dest_rtp, LOGL_ERROR, "Failed convert the RTP/AMR to IuUP payload\n");
+			return rc;
+		}
+		msgb_trim(msg, iuup_length);
+	}
+
 	irp->oph.msg->l3h = msgb_put(irp->oph.msg, msgb_length(msg));
 	memcpy(irp->oph.msg->l3h, msgb_data(msg), msgb_length(msg));
-	if ((rc = osmo_iuup_rnl_prim_down(conn_rtp->iuup.iui, irp)) != 0) {
-		LOG_CONN_RTP(conn_rtp, LOGL_ERROR, "Failed Tx RTP payload down the IuUP layer\n");
+	if ((rc = osmo_iuup_rnl_prim_down(conn_dest_rtp->iuup.iui, irp)) != 0) {
+		LOG_CONN_RTP(conn_dest_rtp, LOGL_ERROR, "Failed Tx RTP payload down the IuUP layer\n");
 		return rc;
 	}
 

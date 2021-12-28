@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
+#include <strings.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -98,7 +99,7 @@ enum mgcp_codecs map_str_to_codec(const char *str)
 		codec_name = extract_codec_name(osmo_mgcpc_codec_names[i].str);
 		if (!codec_name)
 			continue;
-		if (strcmp(codec_name, str_buf) == 0)
+		if (strcasecmp(codec_name, str_buf) == 0)
 			return osmo_mgcpc_codec_names[i].value;
 	}
 

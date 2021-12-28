@@ -29,4 +29,4 @@ struct mgcp_conn_rtp;
 int mgcp_conn_iuup_init(struct mgcp_conn_rtp *conn_rtp);
 void mgcp_conn_iuup_cleanup(struct mgcp_conn_rtp *conn_rtp);
 int mgcp_conn_iuup_dispatch_rtp(struct msgb *msg);
-int mgcp_conn_iuup_send_rtp(struct mgcp_conn_rtp *conn_rtp, struct msgb *msg);
+int mgcp_conn_iuup_send_rtp(struct mgcp_conn_rtp *conn_src_rtp, struct mgcp_conn_rtp *conn_dest_rtp, struct msgb *msg);

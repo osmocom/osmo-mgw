@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <pthread.h>
+#include <strings.h>
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/talloc.h>
@@ -1031,7 +1032,7 @@ mgcp_header_done:
 	}
 	/* Upgrade the conn type RTP_DEFAULT->RTP_IUUP if needed based on requested codec: */
 	/* TODO: "codec" probably needs to be moved from endp to conn */
-	if (conn->type == MGCP_RTP_DEFAULT && strcmp(conn->end.codec->subtype_name, "VND.3GPP.IUFP") == 0) {
+	if (conn->type == MGCP_RTP_DEFAULT && strcasecmp(conn->end.codec->subtype_name, "VND.3GPP.IuFP") == 0) {
 		rc = mgcp_conn_iuup_init(conn);
 	}
 

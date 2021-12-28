@@ -99,6 +99,7 @@ struct mgcp_conn_rtp {
 		struct osmo_iuup_instance *iui;
 		bool active_init; /* true: Send IuUP Init */
 		bool first_rtp_pkt_received;
+		uint8_t frame_num; /* shouldn't this part of the IUUP layer? */
 	} iuup;
 
 	struct rate_ctr_group *rate_ctr_group;
