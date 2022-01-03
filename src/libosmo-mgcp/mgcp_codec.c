@@ -355,7 +355,7 @@ int mgcp_codec_decide(struct mgcp_conn_rtp *conn)
  *
  * https://tools.ietf.org/html/rfc4867
  */
-static bool amr_is_octet_aligned(const struct mgcp_rtp_codec *codec)
+bool mgcp_codec_amr_is_octet_aligned(const struct mgcp_rtp_codec *codec)
 {
 	if (!codec->param_present)
 		return false;
@@ -379,7 +379,7 @@ static bool codecs_same(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_codec *c
 	if (strcmp(codec_a->subtype_name, codec_b->subtype_name))
 		return false;
 	if (!strcmp(codec_a->subtype_name, "AMR")) {
-		if (amr_is_octet_aligned(codec_a) != amr_is_octet_aligned(codec_b))
+		if (mgcp_codec_amr_is_octet_aligned(codec_a) != mgcp_codec_amr_is_octet_aligned(codec_b))
 			return false;
 	}
 
