@@ -417,7 +417,7 @@ int mgcp_codec_pt_translate(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp
 	if (!codec_src)
 		return -EINVAL;
 
-	/* Use the codec infrmation from the source and try to find the
+	/* Use the codec information from the source and try to find the
 	 * equivalent of it on the destination side */
 	codecs_assigned = rtp_dst->codecs_assigned;
 	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
