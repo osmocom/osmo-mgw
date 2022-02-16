@@ -1347,32 +1347,24 @@ Testing mgcp_codec_pt_translate()
 #5: test AMR with differing octet-aligned settings
  - add codecs on conn0:
     0: 111 AMR/8000 octet-aligned=1  -> rc=0
-    1: 112 AMR/8000 octet-aligned=0  -> rc=0
  - add codecs on conn1:
     0: 122 AMR/8000 octet-aligned=0  -> rc=0
-    1: 121 AMR/8000 octet-aligned=1  -> rc=0
- - mgcp_codec_pt_translate(conn0, conn1, 111) -> 121
- - mgcp_codec_pt_translate(conn1, conn0, 121) -> 111
- - mgcp_codec_pt_translate(conn0, conn1, 112) -> 122
- - mgcp_codec_pt_translate(conn1, conn0, 122) -> 112
+ - mgcp_codec_pt_translate(conn0, conn1, 111) -> 122
+ - mgcp_codec_pt_translate(conn1, conn0, 122) -> 111
 #6: test AMR with missing octet-aligned settings (defaults to 0)
  - add codecs on conn0:
     0: 111 AMR/8000 octet-aligned=1  -> rc=0
-    1: 112 AMR/8000 octet-aligned=0  -> rc=0
  - add codecs on conn1:
     0: 122 AMR/8000 octet-aligned=unset  -> rc=0
- - mgcp_codec_pt_translate(conn0, conn1, 111) -> -22
- - mgcp_codec_pt_translate(conn0, conn1, 112) -> 122
- - mgcp_codec_pt_translate(conn1, conn0, 122) -> 112
+ - mgcp_codec_pt_translate(conn0, conn1, 111) -> 122
+ - mgcp_codec_pt_translate(conn1, conn0, 122) -> 111
 #7: test AMR with NULL param (defaults to 0)
  - add codecs on conn0:
     0: 111 AMR/8000 octet-aligned=1  -> rc=0
-    1: 112 AMR/8000 octet-aligned=0  -> rc=0
  - add codecs on conn1:
     0: 122 AMR/8000  -> rc=0
- - mgcp_codec_pt_translate(conn0, conn1, 111) -> -22
- - mgcp_codec_pt_translate(conn0, conn1, 112) -> 122
- - mgcp_codec_pt_translate(conn1, conn0, 122) -> 112
+ - mgcp_codec_pt_translate(conn0, conn1, 111) -> 122
+ - mgcp_codec_pt_translate(conn1, conn0, 122) -> 111
 #8: match FOO/8000/1 and FOO/8000 as identical, single channel is implicit
  - add codecs on conn0:
     0:   0 PCMU/8000/1  -> rc=0
