@@ -1896,16 +1896,13 @@ static const struct testcase_mgcp_codec_pt_translate test_mgcp_codec_pt_translat
 		.codecs = {
 			{
 				{ 111, "AMR/8000", &amr_param_octet_aligned_true, },
-				{ 112, "AMR/8000", &amr_param_octet_aligned_false, },
 			},
 			{
 				{ 122, "AMR/8000", &amr_param_octet_aligned_false, },
-				{ 121, "AMR/8000", &amr_param_octet_aligned_true, },
 			},
 		},
 		.expect = {
-			{ .payload_type_map = {111, 121}, },
-			{ .payload_type_map = {112, 122} },
+			{ .payload_type_map = {111, 122}, },
 			{ .end = true },
 		},
 	},
@@ -1914,15 +1911,13 @@ static const struct testcase_mgcp_codec_pt_translate test_mgcp_codec_pt_translat
 		.codecs = {
 			{
 				{ 111, "AMR/8000", &amr_param_octet_aligned_true, },
-				{ 112, "AMR/8000", &amr_param_octet_aligned_false, },
 			},
 			{
 				{ 122, "AMR/8000", &amr_param_octet_aligned_unset, },
 			},
 		},
 		.expect = {
-			{ .payload_type_map = {111, -EINVAL}, },
-			{ .payload_type_map = {112, 122} },
+			{ .payload_type_map = {111, 122}, },
 			{ .end = true },
 		},
 	},
@@ -1931,15 +1926,13 @@ static const struct testcase_mgcp_codec_pt_translate test_mgcp_codec_pt_translat
 		.codecs = {
 			{
 				{ 111, "AMR/8000", &amr_param_octet_aligned_true, },
-				{ 112, "AMR/8000", &amr_param_octet_aligned_false, },
 			},
 			{
 				{ 122, "AMR/8000", NULL, },
 			},
 		},
 		.expect = {
-			{ .payload_type_map = {111, -EINVAL}, },
-			{ .payload_type_map = {112, 122} },
+			{ .payload_type_map = {111, 122}, },
 			{ .end = true },
 		},
 	},

@@ -378,10 +378,10 @@ static bool codecs_same(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_codec *c
 		return false;
 	if (strcmp(codec_a->subtype_name, codec_b->subtype_name))
 		return false;
-	if (!strcmp(codec_a->subtype_name, "AMR")) {
-		if (mgcp_codec_amr_is_octet_aligned(codec_a) != mgcp_codec_amr_is_octet_aligned(codec_b))
-			return false;
-	}
+
+	/* Note: AMR allows to set the RTP payload format to octet-aligned or bandwith-efficient (octet-aligned=0)
+	 * via SDP. This difference concerns payload format only, but not the actual codec. It is not a difference
+	 * within the meaning of this function. */
 
 	return true;
 }
