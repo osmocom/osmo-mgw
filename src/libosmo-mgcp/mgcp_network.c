@@ -1471,7 +1471,7 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	msgb_put(msg, ret);
 
 	LOG_CONN_RTP(conn_src, LOGL_DEBUG, "%s: rx %u bytes from %s:%u\n",
-		     proto == MGCP_PROTO_RTP ? "RTP" : "RTPC",
+		     proto == MGCP_PROTO_RTP ? "RTP" : "RTCP",
 		     msgb_length(msg), osmo_sockaddr_ntop(&addr.u.sa, ipbuf),
 		     osmo_sockaddr_port(&addr.u.sa));
 
