@@ -1518,6 +1518,7 @@ out:
 	return rc;
 }
 
+/* Note: This function is able to handle RTP and RTCP */
 static int rx_rtp(struct msgb *msg)
 {
 	struct osmo_rtp_msg_ctx *mc = OSMO_RTP_MSG_CTX(msg);
@@ -1534,7 +1535,8 @@ static int rx_rtp(struct msgb *msg)
 	 * framing mode (octet-aligned vs. bandwith-efficient is explicitly
 	 * define, then we check if the incoming payload matches that
 	 * expectation. */
-	if (amr_oa_bwe_convert_indicated(conn_src->end.codec)) {
+	if (mc->proto == MGCP_PROTO_RTP &&
+	    amr_oa_bwe_convert_indicated(conn_src->end.codec)) {
 		int oa = amr_oa_check((char*)msgb_data(msg), msgb_length(msg));
 		if (oa < 0)
 			return -1;
