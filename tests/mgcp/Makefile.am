@@ -24,7 +24,7 @@ EXTRA_DIST = \
 	mgcp_test.ok \
 	$(NULL)
 
-noinst_PROGRAMS = \
+check_PROGRAMS = \
 	mgcp_test \
 	$(NULL)
 

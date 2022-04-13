@@ -22,7 +22,7 @@ EXTRA_DIST = \
 	mgcp_client_test.err \
 	$(NULL)
 
-noinst_PROGRAMS = \
+check_PROGRAMS = \
 	mgcp_client_test \
 	$(NULL)
 
