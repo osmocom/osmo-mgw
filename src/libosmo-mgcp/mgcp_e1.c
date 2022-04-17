@@ -338,6 +338,7 @@ static void e1_recv_cb(struct e1inp_ts *ts, struct msgb *msg)
 	trunk = mgcp_trunk_by_line_num(cfg, ts->line->num);
 	if (!trunk) {
 		LOGP(DE1, LOGL_ERROR, "E1-RX: unable to find a trunk for E1-line %u!\n", ts->line->num);
+		msgb_free(msg);
 		return;
 	}
 
@@ -359,6 +360,9 @@ static void e1_recv_cb(struct e1inp_ts *ts, struct msgb *msg)
 
 	/* Trigger sending of pending E1 traffic */
 	e1_send(ts, trunk);
+
+	/* e1inp_rx_ts() does not free() msgb */
+	msgb_free(msg);
 }
 
 static int e1_init(struct mgcp_trunk *trunk, uint8_t ts_nr)
