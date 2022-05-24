@@ -98,7 +98,7 @@ struct mgcp_conn_rtp {
 	struct {
 		struct osmo_iuup_instance *iui;
 		bool active_init; /* true: Send IuUP Init */
-		int rfci_idx_no_data; /* Index for RFCI NO_DATA (-1 if not available) */
+		int rfci_id_no_data; /* RFCI Id for RFCI NO_DATA (-1 if not available) */
 		bool configured;
 		struct osmo_iuup_rnl_prim *init_ind;
 	} iuup;

@@ -64,19 +64,29 @@ static struct mgcp_conn *_find_dst_conn(struct mgcp_conn *conn)
 static int _find_rfci_no_data(struct osmo_iuup_rnl_prim *irp)
 {
 	int i;
+	uint8_t rfci_cnt = 0;
 	/* Find RFCI containing NO_DATA: */
-	for (i = 0; i < irp->u.status.u.initialization.num_rfci; i++) {
+	for (i = 0; i < ARRAY_SIZE(irp->u.status.u.initialization.rfci); i++) {
+		struct osmo_iuup_rfci *rfci = &irp->u.status.u.initialization.rfci[i];
 		int j;
-		bool is_no_data = true;
+		bool is_no_data;
+		if (!rfci->used)
+			continue;
+		rfci_cnt++;
+
+		is_no_data = true;
 		for (j = 0; j < irp->u.status.u.initialization.num_subflows; j++) {
-			if (irp->u.status.u.initialization.subflow_sizes[i][j]) {
+			if (rfci->subflow_sizes[j]) {
 				is_no_data = false;
 				break;
 			}
 		}
-		if (is_no_data) {
-			return i;
-		}
+		if (is_no_data)
+			return rfci->id;
+
+		/* early loop termination: */
+		if (rfci_cnt == irp->u.status.u.initialization.num_subflows)
+			break;
 	}
 	return -1;
 }
@@ -85,20 +95,30 @@ static int _find_rfci_no_data(struct osmo_iuup_rnl_prim *irp)
 static int8_t _conn_iuup_amr_ft_2_rfci(struct mgcp_conn_rtp *conn_rtp, uint8_t ft)
 {
 	int8_t i;
+	uint8_t rfci_cnt = 0;
 	unsigned match_bytes = (unsigned)osmo_amr_bytes(ft);
 	struct osmo_iuup_rnl_prim *irp = conn_rtp->iuup.init_ind;
 	OSMO_ASSERT(irp);
 
 	/* TODO: cache this somehow */
-	for (i = 0; i < irp->u.status.u.initialization.num_rfci; i++) {
+	for (i = 0; i < ARRAY_SIZE(irp->u.status.u.initialization.rfci); i++) {
+		struct osmo_iuup_rfci *rfci = &irp->u.status.u.initialization.rfci[i];
 		int j;
-		unsigned num_bits = 0;
-		for (j = 0; j < irp->u.status.u.initialization.num_subflows; j++)
-			num_bits += irp->u.status.u.initialization.subflow_sizes[i][j];
-		if (match_bytes == (num_bits + 7)/8)
-			return i;
-	}
+		unsigned num_bits;
+		if (!rfci->used)
+			continue;
+		rfci_cnt++;
 
+		num_bits = 0;
+		for (j = 0; j < irp->u.status.u.initialization.num_subflows; j++)
+			num_bits += rfci->subflow_sizes[j];
+		if (match_bytes == (num_bits + 7)/8)
+			return rfci->id;
+
+		/* early loop termination: */
+		if (rfci_cnt == irp->u.status.u.initialization.num_subflows)
+			break;
+	}
 	return -1;
 }
 
@@ -134,9 +154,9 @@ static int _conn_iuup_configure_as_active(struct mgcp_conn_rtp *conn_rtp, struct
 	conn_rtp->iuup.active_init = true;
 
 	/* Find RFCI containing NO_DATA: */
-	conn_rtp->iuup.rfci_idx_no_data = _find_rfci_no_data(init_ind);
+	conn_rtp->iuup.rfci_id_no_data = _find_rfci_no_data(init_ind);
 
-	/* Copy over the rfci_idx_no_data, since we reuse the same subflow set: */
+	/* Copy over the rfci_id_no_data, since we reuse the same subflow set: */
 	msg = msgb_copy_c(conn_rtp->conn, irp->oph.msg, "iuup-init-copy");
 	conn_rtp->iuup.init_ind = (struct osmo_iuup_rnl_prim *)msgb_data(msg);
 	conn_rtp->iuup.init_ind->oph.msg = msg;
@@ -149,12 +169,8 @@ static int _conn_iuup_configure_as_active(struct mgcp_conn_rtp *conn_rtp, struct
 	irp2->u.config.supported_versions_mask = def_configure_req.supported_versions_mask;
 	irp2->u.config.num_rfci = irp->u.status.u.initialization.num_rfci;
 	irp2->u.config.num_subflows = irp->u.status.u.initialization.num_subflows;
-	memcpy(irp2->u.config.subflow_sizes, irp->u.status.u.initialization.subflow_sizes,
-	       IUUP_MAX_RFCIS * IUUP_MAX_SUBFLOWS * sizeof(irp2->u.config.subflow_sizes[0][0]));
 	irp2->u.config.IPTIs_present = irp->u.status.u.initialization.IPTIs_present;
-	if (irp->u.status.u.initialization.IPTIs_present)
-		memcpy(irp2->u.config.IPTIs, irp->u.status.u.initialization.IPTIs,
-		       IUUP_MAX_RFCIS * sizeof(irp2->u.config.IPTIs[0]));
+	memcpy(irp2->u.config.rfci, irp->u.status.u.initialization.rfci, sizeof(irp2->u.config.rfci));
 	irp2->u.config.t_init = def_configure_req.t_init;
 	irp2->u.config.t_ta = def_configure_req.t_ta;
 	irp2->u.config.t_rc = def_configure_req.t_rc;
@@ -350,7 +366,7 @@ static int _conn_iuup_rx_rnl_status_init(struct mgcp_conn_rtp *conn_rtp_src, str
 	struct msgb *msg;
 
 	/* Find RFCI containing NO_DATA: */
-	conn_rtp_src->iuup.rfci_idx_no_data = _find_rfci_no_data(irp);
+	conn_rtp_src->iuup.rfci_id_no_data = _find_rfci_no_data(irp);
 
 	msg = msgb_copy_c(conn_rtp_src->conn, irp->oph.msg, "iuup-init-copy");
 	conn_rtp_src->iuup.init_ind = (struct osmo_iuup_rnl_prim *)msgb_data(msg);
@@ -554,7 +570,7 @@ int mgcp_conn_iuup_init(struct mgcp_conn_rtp *conn_rtp)
 	OSMO_ASSERT(conn_rtp->iuup.iui);
 	osmo_iuup_instance_set_user_prim_cb(conn_rtp->iuup.iui, _conn_iuup_user_prim_cb, conn_rtp);
 	osmo_iuup_instance_set_transport_prim_cb(conn_rtp->iuup.iui, _conn_iuup_transport_prim_cb, conn_rtp);
-	conn_rtp->iuup.rfci_idx_no_data = -1;
+	conn_rtp->iuup.rfci_id_no_data = -1;
 	return 0;
 }
 
@@ -701,7 +717,7 @@ int mgcp_conn_iuup_send_dummy(struct mgcp_conn_rtp *conn_rtp)
 	struct osmo_iuup_rnl_prim *irp;
 	int rc;
 
-	if (conn_rtp->iuup.rfci_idx_no_data == -1) {
+	if (conn_rtp->iuup.rfci_id_no_data == -1) {
 		LOG_CONN_RTP(conn_rtp, LOGL_NOTICE, "No RFCI NO_DATA found, unable to send dummy packet\n");
 		return -ENOTSUP;
 	}
@@ -709,7 +725,7 @@ int mgcp_conn_iuup_send_dummy(struct mgcp_conn_rtp *conn_rtp)
 	irp = osmo_iuup_rnl_prim_alloc(conn_rtp->conn, OSMO_IUUP_RNL_DATA, PRIM_OP_REQUEST, MGW_IUUP_MSGB_SIZE);
 	irp->u.data.frame_nr = 0;
 	irp->u.data.fqc = IUUP_FQC_FRAME_GOOD;
-	irp->u.data.rfci = conn_rtp->iuup.rfci_idx_no_data;
+	irp->u.data.rfci = conn_rtp->iuup.rfci_id_no_data;
 	irp->oph.msg->l3h = irp->oph.msg->tail;
 	if ((rc = osmo_iuup_rnl_prim_down(conn_rtp->iuup.iui, irp)) != 0) {
 		LOG_CONN_RTP(conn_rtp, LOGL_ERROR, "Failed Tx RTP dummy payload down the IuUP layer\n");
