@@ -270,7 +270,7 @@ static int bridge_iuup_to_rtp_peer(struct mgcp_conn_rtp *conn_rtp_src, struct mg
 		return ft;
 	}
 	msgb_pull_to_l3(msg);
-	LOGP(DLMGCP, LOGL_DEBUG, "Convert Iuup -> AMR: ft %d, len %d\n", ft, msgb_l3len(msg));
+	LOGP(DLMGCP, LOGL_DEBUG, "Convert IuUP -> AMR: ft %d, len %d\n", ft, msgb_l3len(msg));
 
 	if (mgcp_codec_amr_is_octet_aligned(conn_rtp_dst->end.codec)) {
 		amr_hdr = (struct amr_hdr *) msgb_push(msg, sizeof(struct amr_hdr));
