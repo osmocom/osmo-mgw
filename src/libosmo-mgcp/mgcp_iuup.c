@@ -365,12 +365,21 @@ static int _conn_iuup_rx_rnl_status_init(struct mgcp_conn_rtp *conn_rtp_src, str
 	int rc = 0;
 	struct msgb *msg;
 
-	/* Find RFCI containing NO_DATA: */
-	conn_rtp_src->iuup.rfci_id_no_data = _find_rfci_no_data(irp);
+	if (conn_rtp_src->iuup.init_ind) {
+		/* We received more than one IuUP Initialization. It's probably
+		 * a retransmission, so simply ignore it (lower layers take care
+		 * of ACKing it). */
+		LOGPCONN(conn_rtp_src->conn, DRTP, LOGL_INFO,
+		  "Ignoring potential IuUP Initialization retrans\n");
+		return 0;
+	}
 
 	msg = msgb_copy_c(conn_rtp_src->conn, irp->oph.msg, "iuup-init-copy");
 	conn_rtp_src->iuup.init_ind = (struct osmo_iuup_rnl_prim *)msgb_data(msg);
 	conn_rtp_src->iuup.init_ind->oph.msg = msg;
+
+	/* Find RFCI containing NO_DATA: */
+	conn_rtp_src->iuup.rfci_id_no_data = _find_rfci_no_data(irp);
 
 	conn_dst = _find_dst_conn(conn_rtp_src->conn);
 	/* If not yet there, peer will potentially be IuUP-Initialized later
