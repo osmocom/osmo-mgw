@@ -11,8 +11,8 @@ Build-Depends: debhelper (>=9),
                libosmo-abis-dev (>= 1.2.0),
                osmo-gsm-manuals-dev (>= 1.2.0)
 Standards-Version: 3.9.8
-Vcs-Git: git://git.osmocom.org/osmo-mgw.git
-Vcs-Browser: https://git.osmocom.org/osmo-mgw/
+Vcs-Git: https://gitea.osmocom.org/cellular-infrastructure/osmo-mgw
+Vcs-Browser: https://gitea.osmocom.org/cellular-infrastructure/osmo-mgw
 Homepage: https://osmocom.org/projects/osmo-mgw
 
 Package: osmo-mgw
