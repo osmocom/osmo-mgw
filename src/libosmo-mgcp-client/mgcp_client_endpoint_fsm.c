@@ -997,7 +997,7 @@ static int osmo_mgcpc_ep_fsm_timer_cb(struct osmo_fsm_inst *fi)
 	return 0;
 }
 
-void osmo_mgcpc_ep_fsm_pre_term(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause cause)
+static void osmo_mgcpc_ep_fsm_pre_term(struct osmo_fsm_inst *fi, enum osmo_fsm_term_cause cause)
 {
 	int i;
 	struct osmo_mgcpc_ep *ep = osmo_mgcpc_ep_fi_mgwep(fi);
