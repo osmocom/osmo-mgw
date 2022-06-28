@@ -24,4 +24,3 @@
 # If any interfaces have been removed or changed since the last public release, a=0.
 #
 #library		what		description / commit summary line
-libosmogsm              >1.6.0          use of iuup.h (libosmocore.git Ib21cee2e30bf83dff4e167f79541796007af9845)

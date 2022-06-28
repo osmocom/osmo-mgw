@@ -1,3 +1,47 @@
+osmo-mgw (1.10.0) unstable; urgency=medium
+
+  [ Eric ]
+  * adjust mgcp response context
+  * rework message handling
+  * add a lock-free bounded spsc interthread queue
+  * clang-format: remove foreach macros
+  * fix mgcp_conn_free_all ubsan complaints
+
+  [ Philipp Maier ]
+  * configuration: point out difference between trunk-nr and e1 line nr
+  * mgcp_client: add new codec IUFP as VND.3GPP.IUFP
+  * mgcp_codec: do not differentiate between oa and bwe when comparing codec
+  * mgcp_network: do not try to convert RTCP packets
+  * mgcp_network: fix typo RTPC -> RTCP
+
+  [ Oliver Smith ]
+  * treewide: remove FSF address
+
+  [ Pau Espin Pedrol ]
+  * mgcp_network.c: Set proper CRC Header for ACK Initialization
+  * cosmetic: Rename variable payload=>payload_type
+  * mgcp_network.c: Fix byte alignment of CRC Header for ACK Initialization
+  * Define mgcp_rtp_end.output_enabled as bool
+  * cosmetic: mgcp_codec.c: Fix typo in comment
+  * Drop unneeded ax_check_compile_flag.m4
+  * Make function amr_is_octet_aligned publicly available
+  * Initial IuUP support using proper FSMs
+  * IuUP: Support RFCI ID != RFCI Index
+  * iuup: Fix caps in logging message
+  * iuup: Check for IuUP Initialization retrans
+
+  [ Alexander Couzens ]
+  * doc/overview: fix wrong project page link
+
+  [ Vadim Yanitskiy ]
+  * tests: use 'check_PROGRAMS' instead of 'noinst_PROGRAMS'
+  * libosmo-mgcp: e1: fix memleaks in e1_recv_cb()
+
+  [ Harald Welte ]
+  * update git URLs (git -> https; gitea)
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Tue, 28 Jun 2022 18:50:25 +0200
+
 osmo-mgw (1.9.0) unstable; urgency=medium
 
   [ Harald Welte ]
