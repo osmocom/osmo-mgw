@@ -726,10 +726,6 @@ static int mgcp_do_read(struct osmo_fd *fd)
 
 		msgb_free(msg);
 		return -1;
-	} else if (ret > 4096 - 128) {
-		LOGPMGW(mgcp, LOGL_ERROR, "Too much data: %s: %d\n", osmo_sock_get_name2(fd->fd), ret);
-		msgb_free(msg);
-		return -1;
 	}
 
 	msg->l2h = msgb_put(msg, ret);
