@@ -496,7 +496,7 @@ static bool tf_type_is_amr(enum osmo_trau_frame_type ft)
 	}
 }
 
-/* !Equip E1 endpoint with I.460 mux resources.
+/*! Equip E1 endpoint with I.460 mux resources.
  *  \param[in] endp endpoint to equip
  *  \param[in] ts E1 timeslot number.
  *  \param[in] ss E1 subslot number.
