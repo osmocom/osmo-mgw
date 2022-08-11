@@ -1734,7 +1734,7 @@ int mgcp_parse_config(const char *config_file, struct mgcp_config *cfg,
 	int rc;
 	struct mgcp_trunk *trunk;
 
-	cfg->osmux_port = OSMUX_PORT;
+	cfg->osmux_port = OSMUX_DEFAULT_PORT;
 	cfg->osmux_batch = 4;
 	cfg->osmux_batch_size = OSMUX_BATCH_DEFAULT_MAX;
 
