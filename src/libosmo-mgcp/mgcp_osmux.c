@@ -524,7 +524,6 @@ void conn_osmux_disable(struct mgcp_conn_rtp *conn)
 
 		osmux_xfrm_input_close_circuit(conn->osmux.in, conn->osmux.cid);
 		conn->osmux.state = OSMUX_STATE_DISABLED;
-		conn_osmux_release_cid(conn);
 		osmux_handle_put(conn->osmux.in);
 	}
 	conn_osmux_release_cid(conn);
