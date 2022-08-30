@@ -3,6 +3,8 @@ Description=Osmocom Media Gateway (MGW)
 
 [Service]
 Type=simple
+StateDirectory=osmocom
+WorkingDirectory=%S/osmocom
 Restart=always
 ExecStart=/usr/bin/osmo-mgw -s -c /etc/osmocom/osmo-mgw.cfg
 RestartSec=2
