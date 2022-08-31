@@ -403,7 +403,7 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 		if (endp_osmux_state_check(conn_src->conn->endp, conn_src, false) == 0) {
 			conn_src->osmux.stats.octets += osmux_chunk_length(msg, rem);
 			conn_src->osmux.stats.chunks++;
-			osmux_xfrm_output_sched(&conn_src->osmux.out, osmuxh);
+			osmux_xfrm_output_sched(conn_src->osmux.out, osmuxh);
 		}
 		rem = msg->len;
 	}
@@ -494,12 +494,12 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		return -1;
 	}
 
-	osmux_xfrm_output_init2(&conn->osmux.out,
-			       (conn->osmux.cid * rtp_ssrc_winlen) +
-			        (random() % rtp_ssrc_winlen),
-			       conn->end.codec->payload_type);
-
-	osmux_xfrm_output_set_tx_cb(&conn->osmux.out,
+	conn->osmux.out = osmux_xfrm_output_alloc(osmux);
+	osmux_xfrm_output_set_rtp_ssrc(conn->osmux.out,
+				       (conn->osmux.cid * rtp_ssrc_winlen) +
+				       (random() % rtp_ssrc_winlen));
+	osmux_xfrm_output_set_rtp_pl_type(conn->osmux.out, conn->end.codec->payload_type);
+	osmux_xfrm_output_set_tx_cb(conn->osmux.out,
 				    scheduled_from_osmux_tx_rtp_cb, conn);
 
 	conn->osmux.state = OSMUX_STATE_ENABLED;
@@ -519,8 +519,8 @@ void conn_osmux_disable(struct mgcp_conn_rtp *conn)
 
 	if (conn->osmux.state == OSMUX_STATE_ENABLED) {
 		/* We are closing, we don't need pending RTP packets to be transmitted */
-		osmux_xfrm_output_set_tx_cb(&conn->osmux.out, NULL, NULL);
-		osmux_xfrm_output_flush(&conn->osmux.out);
+		osmux_xfrm_output_set_tx_cb(conn->osmux.out, NULL, NULL);
+		TALLOC_FREE(conn->osmux.out);
 
 		osmux_xfrm_input_close_circuit(conn->osmux.in, conn->osmux.cid);
 		conn->osmux.state = OSMUX_STATE_DISABLED;

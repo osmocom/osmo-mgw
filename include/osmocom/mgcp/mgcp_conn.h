@@ -84,10 +84,10 @@ struct mgcp_conn_rtp {
 		bool cid_allocated;
 		/* Allocated Osmux circuit ID for this conn */
 		uint8_t cid;
-		/* handle to batch messages */
+		/* handle to batch messages, shared (refcounted) among several conns */
 		struct osmux_in_handle *in;
-		/* handle to unbatch messages */
-		struct osmux_out_handle out;
+		/* handle to unbatch messages, one allocated and owned per conn */
+		struct osmux_out_handle *out;
 		/* statistics */
 		struct {
 			uint32_t chunks;
