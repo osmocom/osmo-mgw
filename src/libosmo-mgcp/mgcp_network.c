@@ -111,6 +111,17 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 	bool rem_addr_set = !addr_is_any(&conn->end.addr);
 	char *bind_addr;
 
+	/* Osmux: No smart IP addresses allocation is supported yet. Simply
+	 * return the one set in VTY config: */
+	if (mgcp_conn_rtp_is_osmux(conn)) {
+		bind_addr = conn->conn->endp->trunk->cfg->osmux_addr;
+		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
+			 "using configured osmux bind ip as local bind ip %s\n",
+			 bind_addr);
+		osmo_strlcpy(addr, bind_addr, INET6_ADDRSTRLEN);
+		return;
+	}
+
 	/* Try probing the local IP-Address */
 	if (endp->trunk->cfg->net_ports.bind_addr_probe && rem_addr_set) {
 		rc = osmo_sock_local_ip(addr, osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf));
@@ -125,7 +136,7 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 		}
 	}
 
-	/* Select from preconfigured IP-Addresses. We don't have bind_addr for Osmux (yet?). */
+	/* Select from preconfigured IP-Addresses. */
 	if (rem_addr_set) {
 		/* Check there is a bind IP for the RTP traffic configured,
 		 * if so, use that IP-Address */
