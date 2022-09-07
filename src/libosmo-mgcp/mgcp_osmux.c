@@ -290,7 +290,7 @@ static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_r
 
 	switch(conn->osmux.state) {
 	case OSMUX_STATE_ACTIVATING:
-	if (osmux_enable_conn(endp, conn, &conn->end.addr, conn->end.rtp_port) < 0) {
+		if (osmux_enable_conn(endp, conn, &conn->end.addr, conn->end.rtp_port) < 0) {
 			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
 				 "Could not enable osmux for conn on %s: %s\n",
 				 sending ? "sent" : "received",
