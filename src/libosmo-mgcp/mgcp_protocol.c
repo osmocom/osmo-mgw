@@ -301,7 +301,7 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 
 	/* Attach optional OSMUX parameters */
 	if (mgcp_conn_rtp_is_osmux(conn)) {
-		rc = msgb_printf(sdp, "X-Osmux: %u\r\n", conn->osmux.cid);
+		rc = msgb_printf(sdp, MGCP_X_OSMO_OSMUX_HEADER " %u\r\n", conn->osmux.cid);
 		if (rc < 0)
 			goto error;
 	}
