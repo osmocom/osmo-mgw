@@ -192,18 +192,18 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 	int ret;
 	struct msgb *msg;
 
+	if (conn->osmux.state != OSMUX_STATE_ENABLED) {
+		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO, "forwarding RTP to Osmux conn not yet enabled, dropping (cid=%d)\n",
+		conn->osmux.cid);
+		return -1;
+	}
+
 	msg = msgb_alloc(4096, "RTP");
 	if (!msg)
 		return -1;
 
 	memcpy(msg->data, buf, buf_len);
 	msgb_put(msg, buf_len);
-
-	if (conn->osmux.state != OSMUX_STATE_ENABLED) {
-		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO, "forwarding RTP to Osmux conn not yet enabled, dropping (cid=%d)\n",
-		conn->osmux.cid);
-		return -1;
-	}
 
 	while ((ret = osmux_xfrm_input(conn->osmux.in, msg, conn->osmux.cid)) > 0) {
 		/* batch full, build and deliver it */
