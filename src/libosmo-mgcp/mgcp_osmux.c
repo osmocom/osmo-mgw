@@ -78,10 +78,10 @@ osmux_handle_find_get(const struct osmo_sockaddr *rem_addr)
 
 	llist_for_each_entry(h, &osmux_handle_list, head) {
 		if (osmo_sockaddr_cmp(&h->rem_addr, rem_addr) == 0) {
-			LOGP(DOSMUX, LOGL_DEBUG,
-			     "Using existing OSMUX handle for rem_addr=%s\n",
-			     osmo_sockaddr_to_str(rem_addr));
 			h->refcnt++;
+			LOGP(DOSMUX, LOGL_DEBUG,
+			     "Using existing OSMUX handle for addr=%s (rfcnt=%u)\n",
+			     osmo_sockaddr_to_str(rem_addr), h->refcnt);
 			return h;
 		}
 	}
@@ -96,6 +96,9 @@ static void osmux_handle_put(struct osmux_in_handle *in)
 
 	llist_for_each_entry(h, &osmux_handle_list, head) {
 		if (h->in == in) {
+			LOGP(DOSMUX, LOGL_DEBUG,
+			     "Putting existing OSMUX handle for addr=%s (rfcnt=%u)\n",
+			     osmo_sockaddr_to_str(&h->rem_addr), h->refcnt);
 			if (--h->refcnt == 0) {
 				LOGP(DOSMUX, LOGL_INFO,
 				     "Releasing unused osmux handle for %s\n",
