@@ -295,19 +295,22 @@ static const struct log_info_cat log_categories[] = {
 		  .name = "DRTP",
 		  .description = "RTP stream handling",
 		  .color = "\033[1;30m",
-		  .enabled = 1,.loglevel = LOGL_NOTICE,
+		  .enabled = 1,
+		  .loglevel = LOGL_NOTICE,
 	},
 	[DE1] = {
 		  .name = "DE1",
 		  .description = "E1 line handling",
 		  .color = "\033[1;31m",
-		  .enabled = 1,.loglevel = LOGL_NOTICE,
+		  .enabled = 1,
+		  .loglevel = LOGL_NOTICE,
 	},
 	[DOSMUX] = {
 		  .name = "DOSMUX",
 		  .description = "Osmux (Osmocom RTP multiplexing)",
 		  .color = "\033[1;32m",
-		  .enabled = 1,.loglevel = LOGL_NOTICE,
+		  .enabled = 1,
+		  .loglevel = LOGL_NOTICE,
 	},
 };
 
