@@ -22,6 +22,7 @@
 #include <osmocom/netif/rtp.h>
 #include <osmocom/netif/amr.h>
 
+#include <osmocom/mgcp/debug.h>
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_protocol.h>
 #include <osmocom/mgcp/osmux.h>
@@ -71,7 +72,7 @@ osmux_handle_find_get(struct in_addr *addr, int rem_port)
 	llist_for_each_entry(h, &osmux_handle_list, head) {
 		if (memcmp(&h->rem_addr, addr, sizeof(struct in_addr)) == 0 &&
 		    h->rem_port == rem_port) {
-			LOGP(DLMGCP, LOGL_DEBUG, "using existing OSMUX handle "
+			LOGP(DOSMUX, LOGL_DEBUG, "using existing OSMUX handle "
 						"for addr=%s:%d\n",
 				inet_ntoa(*addr), ntohs(rem_port));
 			h->refcnt++;
@@ -90,11 +91,11 @@ static void osmux_handle_put(struct osmux_in_handle *in)
 	llist_for_each_entry(h, &osmux_handle_list, head) {
 		if (h->in == in) {
 			if (--h->refcnt == 0) {
-				LOGP(DLMGCP, LOGL_INFO,
+				LOGP(DOSMUX, LOGL_INFO,
 				     "Releasing unused osmux handle for %s:%d\n",
 				     inet_ntoa(h->rem_addr),
 				     ntohs(h->rem_port));
-				LOGP(DLMGCP, LOGL_INFO, "Stats: "
+				LOGP(DOSMUX, LOGL_INFO, "Stats: "
 				     "input RTP msgs: %u bytes: %"PRIu64" "
 				     "output osmux msgs: %u bytes: %"PRIu64"\n",
 				     in->stats.input_rtp_msgs,
@@ -108,7 +109,7 @@ static void osmux_handle_put(struct osmux_in_handle *in)
 			return;
 		}
 	}
-	LOGP(DLMGCP, LOGL_ERROR, "cannot find Osmux input handle %p\n", in);
+	LOGP(DOSMUX, LOGL_ERROR, "cannot find Osmux input handle %p\n", in);
 }
 
 /* Allocate free OSMUX handle */
@@ -145,7 +146,7 @@ osmux_handle_alloc(struct mgcp_conn_rtp *conn, struct in_addr *addr, int rem_por
 
 	llist_add(&h->head, &osmux_handle_list);
 
-	LOGP(DLMGCP, LOGL_DEBUG, "created new OSMUX handle for addr=%s:%d\n",
+	LOGP(DOSMUX, LOGL_DEBUG, "created new OSMUX handle for addr=%s:%d\n",
 		inet_ntoa(*addr), ntohs(rem_port));
 
 	return h;
@@ -159,7 +160,7 @@ osmux_handle_lookup(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *addr, int 
 	struct osmux_handle *h;
 
 	if (addr->u.sa.sa_family != AF_INET) {
-		LOGP(DLMGCP, LOGL_DEBUG, "IPv6 not supported in osmux yet!\n");
+		LOGP(DOSMUX, LOGL_DEBUG, "IPv6 not supported in osmux yet!\n");
 		return NULL;
 	}
 
@@ -192,7 +193,7 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 	msgb_put(msg, buf_len);
 
 	if (conn->osmux.state != OSMUX_STATE_ENABLED) {
-		LOGPCONN(conn->conn, DLMGCP, LOGL_INFO, "forwarding RTP to Osmux conn not yet enabled, dropping (cid=%d)\n",
+		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO, "forwarding RTP to Osmux conn not yet enabled, dropping (cid=%d)\n",
 		conn->osmux.cid);
 		return -1;
 	}
@@ -232,7 +233,7 @@ osmux_conn_lookup(struct mgcp_config *cfg, uint8_t cid,
 		}
 	}
 
-	LOGP(DLMGCP, LOGL_ERROR, "Cannot find osmux conn with cid=%d\n", cid);
+	LOGP(DOSMUX, LOGL_ERROR, "Cannot find osmux conn with cid=%d\n", cid);
 
 	return NULL;
 }
@@ -267,14 +268,14 @@ static struct msgb *osmux_recv(struct osmo_fd *ofd, struct sockaddr_in *addr)
 
 	msg = msgb_alloc(4096, "OSMUX");
 	if (!msg) {
-		LOGP(DLMGCP, LOGL_ERROR, "cannot allocate message\n");
+		LOGP(DOSMUX, LOGL_ERROR, "cannot allocate message\n");
 		return NULL;
 	}
 	ret = recvfrom(ofd->fd, msg->data, msg->data_len, 0,
 			(struct sockaddr *)addr, &slen);
 	if (ret <= 0) {
 		msgb_free(msg);
-		LOGP(DLMGCP, LOGL_ERROR, "cannot receive message\n");
+		LOGP(DOSMUX, LOGL_ERROR, "cannot receive message\n");
 		return NULL;
 	}
 	msgb_put(msg, ret);
@@ -291,13 +292,13 @@ static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_r
 	switch(conn->osmux.state) {
 	case OSMUX_STATE_ACTIVATING:
 		if (osmux_enable_conn(endp, conn, &conn->end.addr, conn->end.rtp_port) < 0) {
-			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+			LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 				 "Could not enable osmux for conn on %s: %s\n",
 				 sending ? "sent" : "received",
 				 mgcp_conn_dump(conn->conn));
 			return -1;
 		}
-		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 			 "Osmux %s CID %u towards %s:%u is now enabled\n",
 			 sending ? "sent" : "received",
 			 conn->osmux.cid,
@@ -307,7 +308,7 @@ static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_r
 	case OSMUX_STATE_ENABLED:
 		return 0;
 	default:
-		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 			 "Osmux %s in conn %s without full negotiation, state %d\n",
 			 sending ? "sent" : "received",
 			 mgcp_conn_dump(conn->conn), conn->osmux.state);
@@ -319,7 +320,7 @@ static int osmux_legacy_dummy_parse_cid(struct sockaddr_in *addr, struct msgb *m
 					uint8_t *osmux_cid)
 {
 	if (msg->len < 1 + sizeof(*osmux_cid)) {
-		LOGP(DLMGCP, LOGL_ERROR,
+		LOGP(DOSMUX, LOGL_ERROR,
 		     "Discarding truncated Osmux dummy load: %s\n", osmo_hexdump(msg->data, msg->len));
 		return -1;
 	}
@@ -341,7 +342,7 @@ static int osmux_handle_dummy(struct mgcp_config *cfg, struct sockaddr_in *addr,
 
 	conn = osmux_conn_lookup(cfg, osmux_cid, &addr->sin_addr);
 	if (!conn) {
-		LOGP(DLMGCP, LOGL_ERROR,
+		LOGP(DOSMUX, LOGL_ERROR,
 		     "Cannot find conn for Osmux CID %d\n", osmux_cid);
 		goto out;
 	}
@@ -369,7 +370,7 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 		return -1;
 
 	if (!cfg->osmux) {
-		LOGP(DLMGCP, LOGL_ERROR,
+		LOGP(DOSMUX, LOGL_ERROR,
 		     "bsc-nat wants to use Osmux but bsc did not request it\n");
 		goto out;
 	}
@@ -384,7 +385,7 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 		conn_src = osmux_conn_lookup(cfg, osmuxh->circuit_id,
 					     &addr.sin_addr);
 		if (!conn_src) {
-			LOGP(DLMGCP, LOGL_ERROR,
+			LOGP(DOSMUX, LOGL_ERROR,
 			     "Cannot find a src conn for circuit_id=%d\n",
 			     osmuxh->circuit_id);
 			goto out;
@@ -394,7 +395,7 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 
 		/*conn_dst = mgcp_find_dst_conn(conn_src->conn);
 		if (!conn_dst) {
-			LOGP(DLMGCP, LOGL_ERROR,
+			LOGP(DOSMUX, LOGL_ERROR,
 			     "Cannot find a dst conn for circuit_id=%d\n",
 			     osmuxh->circuit_id);
 			goto out;
@@ -421,20 +422,20 @@ int osmux_init(int role, struct mgcp_config *cfg)
 	ret = mgcp_create_bind(cfg->osmux_addr, &osmux_fd, cfg->osmux_port,
 				cfg->endp_dscp, cfg->endp_priority);
 	if (ret < 0) {
-		LOGP(DLMGCP, LOGL_ERROR, "cannot bind OSMUX socket to %s:%u\n",
+		LOGP(DOSMUX, LOGL_ERROR, "cannot bind OSMUX socket to %s:%u\n",
 		     cfg->osmux_addr, cfg->osmux_port);
 		return ret;
 	}
 
 	ret = osmo_fd_register(&osmux_fd);
 	if (ret < 0) {
-		LOGP(DLMGCP, LOGL_ERROR, "cannot register OSMUX socket %s\n",
+		LOGP(DOSMUX, LOGL_ERROR, "cannot register OSMUX socket %s\n",
 		     osmo_sock_get_name2(osmux_fd.fd));
 		return ret;
 	}
 	cfg->osmux_init = 1;
 
-	LOGP(DLMGCP, LOGL_INFO, "OSMUX socket listening on %s\n",
+	LOGP(DOSMUX, LOGL_INFO, "OSMUX socket listening on %s\n",
 		 osmo_sock_get_name2(osmux_fd.fd));
 
 	return 0;
@@ -464,7 +465,7 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 
 	/* Check if osmux is enabled for the specified connection */
 	if (conn->osmux.state != OSMUX_STATE_ACTIVATING) {
-		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 			 "conn:%s didn't negotiate Osmux, state %d\n",
 			 mgcp_conn_dump(conn->conn), conn->osmux.state);
 		return -1;
@@ -475,20 +476,20 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		   conn->end.addr.u.sa.sa_family == AF_INET6 ?
 			sizeof(struct in6_addr) :
 			sizeof(struct in_addr)) == 0) {
-		LOGPCONN(conn->conn, DLMGCP, LOGL_INFO,
+		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
 			"Osmux remote address/port still unknown\n");
 		return -1;
 	}
 
 	conn->osmux.in = osmux_handle_lookup(conn, addr, port);
 	if (!conn->osmux.in) {
-		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 			"Cannot allocate input osmux handle for conn:%s\n",
 			mgcp_conn_dump(conn->conn));
 		return -1;
 	}
 	if (osmux_xfrm_input_open_circuit(conn->osmux.in, conn->osmux.cid, osmux_dummy) < 0) {
-		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 			"Cannot open osmux circuit %u for conn:%s\n",
 		     conn->osmux.cid, mgcp_conn_dump(conn->conn));
 		return -1;
@@ -514,7 +515,7 @@ void conn_osmux_disable(struct mgcp_conn_rtp *conn)
 
 	OSMO_ASSERT(conn->osmux.state != OSMUX_STATE_DISABLED);
 
-	LOGPCONN(conn->conn, DLMGCP, LOGL_INFO,
+	LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
 		"Releasing connection using Osmux CID %u\n", conn->osmux.cid);
 
 	if (conn->osmux.state == OSMUX_STATE_ENABLED) {
@@ -547,7 +548,7 @@ void conn_osmux_release_cid(struct mgcp_conn_rtp *conn)
 int conn_osmux_allocate_cid(struct mgcp_conn_rtp *conn, int osmux_cid)
 {
 	if (osmux_cid != -1 && osmux_cid_pool_allocated((uint8_t) osmux_cid)) {
-		LOGPCONN(conn->conn, DLMGCP, LOGL_INFO,
+		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
 			 "Osmux CID %d already allocated!\n",
 			 osmux_cid);
 		return -1;
@@ -556,7 +557,7 @@ int conn_osmux_allocate_cid(struct mgcp_conn_rtp *conn, int osmux_cid)
 	if (osmux_cid == -1) {
 		osmux_cid = osmux_cid_pool_get_next();
 		if (osmux_cid == -1) {
-			LOGPCONN(conn->conn, DLMGCP, LOGL_INFO,
+			LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
 				 "no available Osmux CID to allocate!\n");
 			return -1;
 		}
@@ -603,7 +604,7 @@ int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	osmuxh->amr_ft = AMR_FT_0;
 	osmuxh->circuit_id = conn->osmux.cid;
 
-	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
+	LOGPCONN(conn->conn, DOSMUX, LOGL_DEBUG,
 		 "sending OSMUX dummy load to %s:%u CID %u\n",
 		 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf),
 		 ntohs(conn->end.rtp_port), conn->osmux.cid);
@@ -643,13 +644,13 @@ int osmux_cid_pool_get_next(void)
 				continue;
 
 			osmux_cid_bitmap[i] |= (1 << j);
-			LOGP(DLMGCP, LOGL_DEBUG,
+			LOGP(DOSMUX, LOGL_DEBUG,
 			     "Allocating Osmux CID %u from pool\n", (i * 8) + j);
 			return (i * 8) + j;
 		}
 	}
 
-	LOGP(DLMGCP, LOGL_ERROR, "All Osmux circuits are in use!\n");
+	LOGP(DOSMUX, LOGL_ERROR, "All Osmux circuits are in use!\n");
 	return -1;
 }
 
@@ -657,7 +658,7 @@ int osmux_cid_pool_get_next(void)
  *  \param[in] osmux_cid OSMUX cid */
 void osmux_cid_pool_get(uint8_t osmux_cid)
 {
-	LOGP(DLMGCP, LOGL_DEBUG, "Allocating Osmux CID %u from pool\n", osmux_cid);
+	LOGP(DOSMUX, LOGL_DEBUG, "Allocating Osmux CID %u from pool\n", osmux_cid);
 	osmux_cid_bitmap[osmux_cid / 8] |= (1 << (osmux_cid % 8));
 }
 
@@ -665,7 +666,7 @@ void osmux_cid_pool_get(uint8_t osmux_cid)
  *  \param[in] osmux_cid OSMUX cid */
 void osmux_cid_pool_put(uint8_t osmux_cid)
 {
-	LOGP(DLMGCP, LOGL_DEBUG, "Osmux CID %u is back to the pool\n", osmux_cid);
+	LOGP(DOSMUX, LOGL_DEBUG, "Osmux CID %u is back to the pool\n", osmux_cid);
 	osmux_cid_bitmap[osmux_cid / 8] &= ~(1 << (osmux_cid % 8));
 }
 

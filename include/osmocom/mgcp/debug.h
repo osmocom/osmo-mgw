@@ -30,6 +30,7 @@
 enum {
 	DRTP,
 	DE1,
+	DOSMUX,
 	Debug_LastEntry,
 };
 

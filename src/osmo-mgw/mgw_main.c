@@ -303,6 +303,12 @@ static const struct log_info_cat log_categories[] = {
 		  .color = "\033[1;31m",
 		  .enabled = 1,.loglevel = LOGL_NOTICE,
 	},
+	[DOSMUX] = {
+		  .name = "DOSMUX",
+		  .description = "Osmux (Osmocom RTP multiplexing)",
+		  .color = "\033[1;32m",
+		  .enabled = 1,.loglevel = LOGL_NOTICE,
+	},
 };
 
 const struct log_info log_info = {
