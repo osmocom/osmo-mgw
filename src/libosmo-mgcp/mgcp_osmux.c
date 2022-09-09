@@ -36,7 +36,6 @@ static LLIST_HEAD(osmux_handle_list);
 
 struct osmux_handle {
 	struct llist_head head;
-	struct mgcp_conn_rtp *conn;
 	struct osmux_in_handle *in;
 	struct osmo_sockaddr rem_addr;
 	int refcnt;
@@ -48,13 +47,7 @@ static void *osmux;
 static void osmux_deliver_cb(struct msgb *batch_msg, void *data)
 {
 	struct osmux_handle *handle = data;
-	struct mgcp_conn_rtp *conn = handle->conn;
 	socklen_t dest_len;
-
-	if (!conn->end.output_enabled) {
-		msgb_free(batch_msg);
-		return;
-	}
 
 	switch (handle->rem_addr.u.sa.sa_family) {
 	case AF_INET6:
@@ -130,7 +123,6 @@ osmux_handle_alloc(struct mgcp_conn_rtp *conn, const struct osmo_sockaddr *rem_a
 	h = talloc_zero(osmux, struct osmux_handle);
 	if (!h)
 		return NULL;
-	h->conn = conn;
 	h->rem_addr = *rem_addr;
 	h->refcnt++;
 
@@ -191,6 +183,9 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 {
 	int ret;
 	struct msgb *msg;
+
+	if (!conn->end.output_enabled)
+		return -1;
 
 	if (conn->osmux.state != OSMUX_STATE_ENABLED) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO, "forwarding RTP to Osmux conn not yet enabled, dropping (cid=%d)\n",
