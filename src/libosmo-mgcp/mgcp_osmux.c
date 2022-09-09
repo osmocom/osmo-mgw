@@ -155,7 +155,7 @@ osmux_handle_alloc(struct mgcp_conn_rtp *conn, struct in_addr *addr, int rem_por
 /* Lookup existing handle for a specified address, if the handle can not be
  * found, the function will automatically allocate one */
 static struct osmux_in_handle *
-osmux_handle_lookup(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *addr, int rem_port)
+osmux_handle_find_or_create(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *addr, int rem_port)
 {
 	struct osmux_handle *h;
 
@@ -481,7 +481,7 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		return -1;
 	}
 
-	conn->osmux.in = osmux_handle_lookup(conn, addr, port);
+	conn->osmux.in = osmux_handle_find_or_create(conn, addr, port);
 	if (!conn->osmux.in) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 			"Cannot allocate input osmux handle for conn:%s\n",
