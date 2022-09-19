@@ -303,7 +303,7 @@ static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_r
 				 mgcp_conn_dump(conn->conn));
 			return -1;
 		}
-		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
+		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
 			 "Osmux %s CID %u towards %s is now enabled\n",
 			 sending ? "sent" : "received",
 			 conn->osmux.cid, osmo_sockaddr_to_str(&rem_addr));
