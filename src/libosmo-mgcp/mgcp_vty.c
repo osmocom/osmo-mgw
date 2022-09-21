@@ -189,7 +189,7 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_conn_rtp *conn)
 		rx_packets->current, rx_bytes->current, VTY_NEWLINE,
 		state->in_stream.err_ts_ctr->current,
 		state->out_stream.err_ts_ctr->current,
-	        VTY_NEWLINE,
+		VTY_NEWLINE,
 		dropped_packets->current, VTY_NEWLINE,
 		codec->payload_type, codec->rate, codec->channels, VTY_NEWLINE,
 		codec->frame_duration_num, codec->frame_duration_den,
