@@ -34,6 +34,10 @@ enum osmux_state {
 	OSMUX_STATE_ENABLED,	  /* Osmux was initialized by \ref osmux_enable_endpoint and can process frames */
 };
 
+extern const struct value_string osmux_state_strs[];
+static inline const char *osmux_state_str(enum osmux_state val)
+{ return get_value_string(osmux_state_strs, val); }
+
 enum osmux_usage {
 	OSMUX_USAGE_OFF = 0,
 	OSMUX_USAGE_ON = 1,

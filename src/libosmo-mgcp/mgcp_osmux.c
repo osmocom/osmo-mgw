@@ -41,6 +41,13 @@ struct osmux_handle {
 	int refcnt;
 };
 
+const struct value_string osmux_state_strs[] = {
+	{ OSMUX_STATE_DISABLED,		"disabled" },
+	{ OSMUX_STATE_ACTIVATING,	"activating" },
+	{ OSMUX_STATE_ENABLED,		"enabled" },
+	{ 0, NULL }
+};
+
 static const struct rate_ctr_group_desc rate_ctr_group_osmux_desc = {
 	.group_name_prefix = "conn_osmux",
 	.group_description = "Osmux connection statistics",

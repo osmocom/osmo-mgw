@@ -197,6 +197,30 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_conn_rtp *conn)
 		VTY_NEWLINE, end->fmtp_extra, codec->audio_name,
 		codec->subtype_name, VTY_NEWLINE, end->output_enabled,
 		end->force_output_ptime, VTY_NEWLINE);
+	if (mgcp_conn_rtp_is_osmux(conn)) {
+		struct rate_ctr *rx_chunks, *rx_octets, *rtp_tx, *rtp_tx_dropped, *octets_tx;
+		rx_chunks = rate_ctr_group_get_ctr(conn->osmux.ctrg, OSMUX_CHUNKS_RX_CTR);
+		rx_octets = rate_ctr_group_get_ctr(conn->osmux.ctrg, OSMUX_OCTETS_RX_CTR);
+		rtp_tx = rate_ctr_group_get_ctr(conn->osmux.ctrg, OSMUX_RTP_PACKETS_TX_CTR);
+		rtp_tx_dropped =  rate_ctr_group_get_ctr(conn->osmux.ctrg, OSMUX_RTP_PACKETS_TX_DROPPED_CTR);
+		octets_tx = rate_ctr_group_get_ctr(conn->osmux.ctrg, OSMUX_AMR_OCTETS_TX_CTR);
+		vty_out(vty,
+		"   Osmux:%s"
+		"    State: %s%s"
+		"    Local CID: %d%s"
+		"    Remote CID: %d%s"
+		"    Chunks received: %" PRIu64 " (%" PRIu64 " bytes total)%s"
+		"    RTP Packets encoded (Tx): %" PRIu64 " (%" PRIu64 " AMR octets total)%s"
+		"    AMR payloads Dropped (Tx): %" PRIu64 "%s",
+		VTY_NEWLINE, osmux_state_str(conn->osmux.state), VTY_NEWLINE,
+		conn->osmux.local_cid_allocated ? conn->osmux.local_cid : -1, VTY_NEWLINE,
+		conn->osmux.remote_cid_present ? conn->osmux.remote_cid : -1, VTY_NEWLINE,
+		rx_chunks->current, rx_octets->current, VTY_NEWLINE,
+		rtp_tx->current, octets_tx->current, VTY_NEWLINE,
+		rtp_tx_dropped->current, VTY_NEWLINE
+		);
+
+	}
 }
 
 static void dump_endpoint(struct vty *vty, struct mgcp_endpoint *endp,
