@@ -145,12 +145,12 @@ struct mgcp_conn {
 enum {
 	IN_STREAM_ERR_TSTMP_CTR,
 	OUT_STREAM_ERR_TSTMP_CTR,
-        RTP_PACKETS_RX_CTR,
-        RTP_OCTETS_RX_CTR,
-        RTP_PACKETS_TX_CTR,
-        RTP_OCTETS_TX_CTR,
-        RTP_DROPPED_PACKETS_CTR,
-        RTP_NUM_CONNECTIONS,
+	RTP_PACKETS_RX_CTR,
+	RTP_OCTETS_RX_CTR,
+	RTP_PACKETS_TX_CTR,
+	RTP_OCTETS_TX_CTR,
+	RTP_DROPPED_PACKETS_CTR,
+	RTP_NUM_CONNECTIONS,
 };
 
 /* RTP per-connection statistics. Instances of the corresponding rate counter group
