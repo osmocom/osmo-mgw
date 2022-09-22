@@ -48,6 +48,7 @@ static void osmux_deliver_cb(struct msgb *batch_msg, void *data)
 {
 	struct osmux_handle *handle = data;
 	socklen_t dest_len;
+	int rc;
 
 	switch (handle->rem_addr.u.sa.sa_family) {
 	case AF_INET6:
@@ -58,8 +59,14 @@ static void osmux_deliver_cb(struct msgb *batch_msg, void *data)
 		dest_len = sizeof(handle->rem_addr.u.sin);
 		break;
 	}
-	sendto(osmux_fd.fd, batch_msg->data, batch_msg->len, 0,
-	       (struct sockaddr *)&handle->rem_addr.u.sa, dest_len);
+	rc = sendto(osmux_fd.fd, batch_msg->data, batch_msg->len, 0,
+		    (struct sockaddr *)&handle->rem_addr.u.sa, dest_len);
+	if (rc < 0) {
+		char errbuf[129];
+		strerror_r(errno, errbuf, sizeof(errbuf));
+		LOGP(DOSMUX, LOGL_NOTICE, "osmux sendto(%s) failed: %s\n",
+			 osmo_sockaddr_to_str(&handle->rem_addr), errbuf);
+	}
 	msgb_free(batch_msg);
 }
 
