@@ -112,9 +112,12 @@ static void mgcp_format_stats_rtp(char *str, size_t str_len,
 		str_len -= nchars;
 
 		if (conn->osmux.state == OSMUX_STATE_ENABLED) {
+			struct rate_ctr *osmux_chunks_rx, *osmux_octets_rx;
+			osmux_chunks_rx = rate_ctr_group_get_ctr(conn->ctrg, OSMUX_CHUNKS_RX_CTR);
+			osmux_octets_rx = rate_ctr_group_get_ctr(conn->ctrg, OSMUX_OCTETS_RX_CTR);
 			snprintf(str, str_len,
-				 "\r\nX-Osmux-ST: CR=%u, BR=%u",
-				 conn->osmux.stats.chunks, conn->osmux.stats.octets);
+				 "\r\nX-Osmux-ST: CR=%" PRIu64 ", BR=%" PRIu64,
+				 osmux_chunks_rx->current, osmux_octets_rx->current);
 		}
 	}
 

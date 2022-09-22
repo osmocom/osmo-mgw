@@ -80,6 +80,8 @@ struct mgcp_ratectr_trunk {
 	struct rate_ctr_group *mgcp_dlcx_ctr_group;
 	/* Rate counter group which aggregates stats of individual RTP connections. */
 	struct rate_ctr_group *all_rtp_conn_stats;
+	/* Rate counter group which aggregates stats of individual Osmux connections. */
+	struct rate_ctr_group *all_osmux_conn_stats;
 	/* Rate counter group which contains stats for E1 events (only valid for E1 trunks) */
 	struct rate_ctr_group *e1_stats;
 };

@@ -146,6 +146,14 @@ static const struct rate_ctr_group_desc all_rtp_conn_rate_ctr_group_desc = {
 	.ctr_desc = all_rtp_conn_rate_ctr_desc
 };
 
+static const struct rate_ctr_group_desc all_osmux_conn_rate_ctr_group_desc = {
+	.group_name_prefix = "all_osmux_conn",
+	.group_description = "aggregated statistics for all osmux connections",
+	.class_id = 1,
+	.num_ctr = ARRAY_SIZE(all_osmux_conn_rate_ctr_desc),
+	.ctr_desc = all_rtp_conn_rate_ctr_desc
+};
+
 /*! allocate global rate counters
  *  (called once at startup).
  *  \param[in] cfg mgw configuration for which the rate counters are allocated.
@@ -191,6 +199,7 @@ int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 	static atomic_uint mdcx_rate_ctr_index = 0;
 	static atomic_uint dlcx_rate_ctr_index = 0;
 	static atomic_uint all_rtp_conn_rate_ctr_index = 0;
+	static atomic_uint all_osmux_conn_rate_ctr_index = 0;
 	char ctr_name[256];
 
 	if (ratectr->mgcp_crcx_ctr_group == NULL) {
@@ -229,6 +238,15 @@ int mgcp_ratectr_trunk_alloc(struct mgcp_trunk *trunk)
 			 trunk->trunk_nr);
 		rate_ctr_group_set_name(ratectr->all_rtp_conn_stats, ctr_name);
 	}
+	if (ratectr->all_osmux_conn_stats == NULL) {
+		ratectr->all_osmux_conn_stats = rate_ctr_group_alloc(trunk, &all_osmux_conn_rate_ctr_group_desc,
+								   all_osmux_conn_rate_ctr_index++);
+		if (!ratectr->all_osmux_conn_stats)
+			return -EINVAL;
+		snprintf(ctr_name, sizeof(ctr_name), "%s-%u:osmux_conn", mgcp_trunk_type_strs_str(trunk->trunk_type),
+			 trunk->trunk_nr);
+		rate_ctr_group_set_name(ratectr->all_osmux_conn_stats, ctr_name);
+	}
 
 	/* E1 specific */
 	if (trunk->trunk_type == MGCP_TRUNK_E1 && ratectr->e1_stats == NULL) {
@@ -264,6 +282,10 @@ void mgcp_ratectr_trunk_free(struct mgcp_trunk *trunk)
 	if (ratectr->all_rtp_conn_stats) {
 		rate_ctr_group_free(ratectr->all_rtp_conn_stats);
 		ratectr->all_rtp_conn_stats = NULL;
+	}
+	if (ratectr->all_osmux_conn_stats) {
+		rate_ctr_group_free(ratectr->all_osmux_conn_stats);
+		ratectr->all_osmux_conn_stats = NULL;
 	}
 
 	/* E1 specific */

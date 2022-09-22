@@ -289,6 +289,14 @@ static void dump_ratectr_trunk(struct vty *vty, struct mgcp_trunk *trunk)
 					   "   %25n: %10c (%S/s %M/m %H/h %D/d) %d",
 					   ratectr->all_rtp_conn_stats);
 	}
+	if (ratectr->all_osmux_conn_stats) {
+		vty_out(vty, "   %s:%s",
+			ratectr->all_osmux_conn_stats->desc->group_description,
+			VTY_NEWLINE);
+		vty_out_rate_ctr_group_fmt(vty,
+					   "   %25n: %10c (%S/s %M/m %H/h %D/d) %d",
+					   ratectr->all_osmux_conn_stats);
+	}
 
 	if (ratectr->e1_stats && trunk->trunk_type == MGCP_TRUNK_E1) {
 		vty_out(vty, "   %s:%s",

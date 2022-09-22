@@ -41,12 +41,22 @@ struct osmux_handle {
 	int refcnt;
 };
 
+static const struct rate_ctr_group_desc rate_ctr_group_osmux_desc = {
+	.group_name_prefix = "conn_osmux",
+	.group_description = "Osmux connection statistics",
+	.class_id = 1,
+	.num_ctr = ARRAY_SIZE(mgcp_conn_osmux_rate_ctr_desc),
+	.ctr_desc = mgcp_conn_osmux_rate_ctr_desc
+};
+
 /* Deliver OSMUX batch to the remote end */
 static void osmux_deliver_cb(struct msgb *batch_msg, void *data)
 {
 	struct osmux_handle *handle = data;
 	socklen_t dest_len;
 	int rc;
+	struct mgcp_trunk *trunk = (struct mgcp_trunk *)osmux_fd.data;
+	struct rate_ctr_group *all_osmux_stats = trunk->ratectr.all_osmux_conn_stats;
 
 	switch (handle->rem_addr.u.sa.sa_family) {
 	case AF_INET6:
@@ -64,6 +74,9 @@ static void osmux_deliver_cb(struct msgb *batch_msg, void *data)
 		strerror_r(errno, errbuf, sizeof(errbuf));
 		LOGP(DOSMUX, LOGL_NOTICE, "osmux sendto(%s) failed: %s\n",
 			 osmo_sockaddr_to_str(&handle->rem_addr), errbuf);
+		rate_ctr_inc(rate_ctr_group_get_ctr(all_osmux_stats, OSMUX_DROPPED_PACKETS_CTR));
+	} else {
+		rate_ctr_inc(rate_ctr_group_get_ctr(all_osmux_stats, OSMUX_PACKETS_TX_CTR));
 	}
 	msgb_free(batch_msg);
 }
@@ -190,12 +203,15 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 	int ret;
 	struct msgb *msg;
 
-	if (!conn->end.output_enabled)
+	if (!conn->end.output_enabled) {
+		rtpconn_rate_ctr_inc(conn, conn->conn->endp, OSMUX_DROPPED_AMR_PAYLOADS_CTR);
 		return -1;
+	}
 
 	if (conn->osmux.state != OSMUX_STATE_ENABLED) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO, "forwarding RTP to Osmux conn not yet enabled, dropping (cid=%d)\n",
 		conn->osmux.cid);
+		rtpconn_rate_ctr_inc(conn, conn->conn->endp, OSMUX_DROPPED_AMR_PAYLOADS_CTR);
 		return -1;
 	}
 
@@ -368,13 +384,15 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 	struct msgb *msg;
 	struct osmux_hdr *osmuxh;
 	struct osmo_sockaddr rem_addr;
-	struct mgcp_trunk *trunk = ofd->data;
 	uint32_t rem;
-	struct mgcp_conn_rtp *conn_src;
+	struct mgcp_trunk *trunk = ofd->data;
+	struct rate_ctr_group *all_rtp_stats = trunk->ratectr.all_osmux_conn_stats;
 
 	msg = osmux_recv(ofd, &rem_addr);
 	if (!msg)
 		return -1;
+
+	rate_ctr_inc(rate_ctr_group_get_ctr(all_rtp_stats, OSMUX_PACKETS_RX_CTR));
 
 	if (!trunk->cfg->osmux) {
 		LOGP(DOSMUX, LOGL_ERROR,
@@ -388,7 +406,8 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 
 	rem = msg->len;
 	while((osmuxh = osmux_xfrm_output_pull(msg)) != NULL) {
-
+		struct mgcp_endpoint *endp;
+		struct mgcp_conn_rtp *conn_src;
 		conn_src = osmux_conn_lookup(trunk, osmuxh->circuit_id,
 					     &rem_addr);
 		if (!conn_src) {
@@ -397,7 +416,7 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 			     osmuxh->circuit_id);
 			goto out;
 		}
-
+		endp = conn_src->conn->endp;
 		mgcp_conn_watchdog_kick(conn_src->conn);
 
 		/*conn_dst = mgcp_find_dst_conn(conn_src->conn);
@@ -407,10 +426,10 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 			     osmuxh->circuit_id);
 			goto out;
 		}*/
-
-		if (endp_osmux_state_check(conn_src->conn->endp, conn_src, false) == 0) {
-			conn_src->osmux.stats.octets += osmux_chunk_length(msg, rem);
-			conn_src->osmux.stats.chunks++;
+		if (endp_osmux_state_check(endp, conn_src, false) == 0) {
+			rtpconn_rate_ctr_inc(conn_src, endp, OSMUX_CHUNKS_RX_CTR);
+			rtpconn_rate_ctr_add(conn_src, endp, OSMUX_OCTETS_RX_CTR,
+					     osmux_chunk_length(msg, rem));
 			osmux_xfrm_output_sched(conn_src->osmux.out, osmuxh);
 		}
 		rem = msg->len;
@@ -513,6 +532,8 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 	osmux_xfrm_output_set_tx_cb(conn->osmux.out,
 				    scheduled_from_osmux_tx_rtp_cb, conn);
 
+	conn->osmux.ctrg = rate_ctr_group_alloc(conn->conn, &rate_ctr_group_osmux_desc, conn->ctrg->idx);
+
 	conn->osmux.state = OSMUX_STATE_ENABLED;
 
 	return 0;
@@ -528,6 +549,9 @@ void conn_osmux_disable(struct mgcp_conn_rtp *conn)
 	LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
 		"Releasing connection using Osmux CID %u\n", conn->osmux.cid);
 
+	struct rate_ctr_group *all_osmux_stats = conn->conn->endp->trunk->ratectr.all_osmux_conn_stats;
+	rate_ctr_inc(rate_ctr_group_get_ctr(all_osmux_stats, OSMUX_NUM_CONNECTIONS));
+
 	if (conn->osmux.state == OSMUX_STATE_ENABLED) {
 		/* We are closing, we don't need pending RTP packets to be transmitted */
 		osmux_xfrm_output_set_tx_cb(conn->osmux.out, NULL, NULL);
@@ -536,6 +560,9 @@ void conn_osmux_disable(struct mgcp_conn_rtp *conn)
 		osmux_xfrm_input_close_circuit(conn->osmux.in, conn->osmux.cid);
 		conn->osmux.state = OSMUX_STATE_DISABLED;
 		osmux_handle_put(conn->osmux.in);
+
+		rate_ctr_group_free(conn->osmux.ctrg);
+		conn->osmux.ctrg = NULL;
 	}
 	conn_osmux_release_cid(conn);
 }

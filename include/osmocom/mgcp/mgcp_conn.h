@@ -88,11 +88,8 @@ struct mgcp_conn_rtp {
 		struct osmux_in_handle *in;
 		/* handle to unbatch messages, one allocated and owned per conn */
 		struct osmux_out_handle *out;
-		/* statistics */
-		struct {
-			uint32_t chunks;
-			uint32_t octets;
-		} stats;
+		/* statistics: */
+		struct rate_ctr_group *ctrg;
 	} osmux;
 
 	struct {
@@ -179,6 +176,40 @@ static const struct rate_ctr_desc all_rtp_conn_rate_ctr_desc[] = {
 
 	/* This last counter does not exist in per-connection stats, only here. */
 	[RTP_NUM_CONNECTIONS] = {"all_rtp:num_closed_conns", "Total number of rtp connections closed."}
+};
+
+/* Osmux connection related counters */
+enum {
+	OSMUX_CHUNKS_RX_CTR,
+	OSMUX_OCTETS_RX_CTR,
+	OSMUX_DROPPED_AMR_PAYLOADS_CTR,
+	/* Only available in global stats: */
+	OSMUX_NUM_CONNECTIONS,
+	OSMUX_PACKETS_RX_CTR,
+	OSMUX_PACKETS_TX_CTR,
+	OSMUX_DROPPED_PACKETS_CTR,
+};
+
+/* RTP per-connection statistics. Instances of the corresponding rate counter group
+ * exist for the lifetime of an RTP connection.
+ * Must be kept in sync with all_rtp_conn_rate_ctr_desc below */
+static const struct rate_ctr_desc mgcp_conn_osmux_rate_ctr_desc[] = {
+	[OSMUX_CHUNKS_RX_CTR] = {"osmux:chunks_rx", "Inbound Osmux chunks."},
+	[OSMUX_OCTETS_RX_CTR] = {"osmux:octets_rx", "Inbound Osmux octets."},
+	[OSMUX_DROPPED_AMR_PAYLOADS_CTR] = {"osmux:dropped_amr_payloads", "Dropped outbound AMR payloads."}
+};
+
+/* Aggregated Osmux connection stats. These are updated when an Osmux connection is freed.
+ * Must be kept in sync with mgcp_conn_osmux_rate_ctr_desc above */
+static const struct rate_ctr_desc all_osmux_conn_rate_ctr_desc[] = {
+	[OSMUX_CHUNKS_RX_CTR] = {"all_osmux:chunks_rx", "Inbound Osmux chunks."},
+	[OSMUX_OCTETS_RX_CTR] = {"all_osmux:octets_rx", "Inbound Osmux octets."},
+	[OSMUX_DROPPED_AMR_PAYLOADS_CTR] = {"all_osmux:dropped_amr_payloads", "Dropped outbound AMR payloads."},
+	/* These last counters below do not exist in per-connection stats, only here: */
+	[OSMUX_NUM_CONNECTIONS] = {"all_osmux:num_closed_conns", "Total number of osmux connections closed."},
+	[OSMUX_PACKETS_RX_CTR] = {"all_osmux:packets_rx", "Total inbound UDP/Osmux packets."},
+	[OSMUX_PACKETS_TX_CTR] = {"all_osmux:packets_tx", "Total outbound UDP/Osmux packets."},
+	[OSMUX_DROPPED_PACKETS_CTR] = {"all_osmux:dropped_packets", "Dropped outbound UDP/Osmux packets."}
 };
 
 /* Was conn configured to handle Osmux? */

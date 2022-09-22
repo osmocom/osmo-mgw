@@ -70,7 +70,7 @@ void rtpconn_rate_ctr_add(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *
 	rate_ctr_add(rate_ctr_group_get_ctr(mgw_stats, id), inc);
 }
 
-static void rtpconn_rate_ctr_inc(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *endp, int id)
+void rtpconn_rate_ctr_inc(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *endp, int id)
 {
 	rtpconn_rate_ctr_add(conn_rtp, endp, id, 1);
 }
