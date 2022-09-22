@@ -37,7 +37,7 @@
 #include <osmocom/core/timer.h>
 #include <ctype.h>
 
-const static struct rate_ctr_group_desc rate_ctr_group_desc = {
+static const struct rate_ctr_group_desc rate_ctr_group_desc = {
 	.group_name_prefix = "conn_rtp",
 	.group_description = "rtp connection statistics",
 	.class_id = 1,

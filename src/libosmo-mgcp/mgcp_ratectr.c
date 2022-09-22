@@ -43,7 +43,7 @@ static const struct rate_ctr_desc mgcp_general_ctr_desc[] = {
 	    { "mgcp:err_rx_no_endpoint", "can't find MGCP endpoint, probably we've used all allocated endpoints." },
 };
 
-const static struct rate_ctr_group_desc mgcp_general_ctr_group_desc = {
+static const struct rate_ctr_group_desc mgcp_general_ctr_group_desc = {
 	.group_name_prefix = "mgcp",
 	.group_description = "mgcp general statistics",
 	.class_id = OSMO_STATS_CLASS_GLOBAL,
@@ -71,7 +71,7 @@ static const struct rate_ctr_desc mgcp_crcx_ctr_desc[] = {
 	[MGCP_CRCX_FAIL_CLAIM] = { "crcx:claim", "endpoint can not be claimed." },
 };
 
-const static struct rate_ctr_group_desc mgcp_crcx_ctr_group_desc = {
+static const struct rate_ctr_group_desc mgcp_crcx_ctr_group_desc = {
 	.group_name_prefix = "crcx",
 	.group_description = "crxc statistics",
 	.class_id = OSMO_STATS_CLASS_GLOBAL,
@@ -97,7 +97,7 @@ static const struct rate_ctr_desc mgcp_mdcx_ctr_desc[] = {
 	[MGCP_MDCX_FAIL_AVAIL] = { "mdcx:unavailable", "endpoint unavailable." },
 };
 
-const static struct rate_ctr_group_desc mgcp_mdcx_ctr_group_desc = {
+static const struct rate_ctr_group_desc mgcp_mdcx_ctr_group_desc = {
 	.group_name_prefix = "mdcx",
 	.group_description = "mdcx statistics",
 	.class_id = OSMO_STATS_CLASS_GLOBAL,
@@ -116,7 +116,7 @@ static const struct rate_ctr_desc mgcp_dlcx_ctr_desc[] = {
 	[MGCP_DLCX_FAIL_AVAIL] = { "dlcx:unavailable", "endpoint unavailable." },
 };
 
-const static struct rate_ctr_group_desc mgcp_dlcx_ctr_group_desc = {
+static const struct rate_ctr_group_desc mgcp_dlcx_ctr_group_desc = {
 	.group_name_prefix = "dlcx",
 	.group_description = "dlcx statistics",
 	.class_id = OSMO_STATS_CLASS_GLOBAL,
@@ -130,7 +130,7 @@ static const struct rate_ctr_desc e1_rate_ctr_desc[] = {
 	[E1_I460_TRAU_MUX_EMPTY_CTR] = { "e1:i460", "Outbound I.460 MUX queue empty." }
 };
 
-const static struct rate_ctr_group_desc e1_rate_ctr_group_desc = {
+static const struct rate_ctr_group_desc e1_rate_ctr_group_desc = {
 	.group_name_prefix = "e1",
 	.group_description = "e1 statistics",
 	.class_id = OSMO_STATS_CLASS_GLOBAL,
@@ -138,7 +138,7 @@ const static struct rate_ctr_group_desc e1_rate_ctr_group_desc = {
 	.ctr_desc = e1_rate_ctr_desc
 };
 
-const static struct rate_ctr_group_desc all_rtp_conn_rate_ctr_group_desc = {
+static const struct rate_ctr_group_desc all_rtp_conn_rate_ctr_group_desc = {
 	.group_name_prefix = "all_rtp_conn",
 	.group_description = "aggregated statistics for all rtp connections",
 	.class_id = 1,
