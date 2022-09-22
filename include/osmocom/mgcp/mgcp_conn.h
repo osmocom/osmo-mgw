@@ -103,7 +103,7 @@ struct mgcp_conn_rtp {
 		struct osmo_iuup_rnl_prim *init_ind;
 	} iuup;
 
-	struct rate_ctr_group *rate_ctr_group;
+	struct rate_ctr_group *ctrg;
 };
 
 /*! MGCP connection (untyped) */

@@ -1071,7 +1071,7 @@ static void test_packet_loss_calc(void)
 				    "test-connection");
 		conn = mgcp_conn_get_rtp(&endp, _conn->id);
 		state = &conn->state;
-		packets_rx = rate_ctr_group_get_ctr(conn->rate_ctr_group, RTP_PACKETS_RX_CTR);
+		packets_rx = rate_ctr_group_get_ctr(conn->ctrg, RTP_PACKETS_RX_CTR);
 
 		state->stats.initialized = 1;
 		state->stats.base_seq = pl_test_dat[i].base_seq;

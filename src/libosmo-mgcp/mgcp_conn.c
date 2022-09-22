@@ -113,12 +113,12 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 	end->output_enabled = false;
 	end->maximum_packet_time = -1;
 
-	conn_rtp->rate_ctr_group = rate_ctr_group_alloc(conn, &rate_ctr_group_desc, rate_ctr_index++);
-	if (!conn_rtp->rate_ctr_group)
+	conn_rtp->ctrg = rate_ctr_group_alloc(conn, &rate_ctr_group_desc, rate_ctr_index++);
+	if (!conn_rtp->ctrg)
 		return -1;
 
-	conn_rtp->state.in_stream.err_ts_ctr = rate_ctr_group_get_ctr(conn_rtp->rate_ctr_group, IN_STREAM_ERR_TSTMP_CTR);
-	conn_rtp->state.out_stream.err_ts_ctr = rate_ctr_group_get_ctr(conn_rtp->rate_ctr_group, OUT_STREAM_ERR_TSTMP_CTR);
+	conn_rtp->state.in_stream.err_ts_ctr = rate_ctr_group_get_ctr(conn_rtp->ctrg, IN_STREAM_ERR_TSTMP_CTR);
+	conn_rtp->state.out_stream.err_ts_ctr = rate_ctr_group_get_ctr(conn_rtp->ctrg, OUT_STREAM_ERR_TSTMP_CTR);
 
 	/* Make sure codec table is reset */
 	mgcp_codec_reset_all(conn_rtp);
@@ -134,7 +134,7 @@ static void mgcp_rtp_conn_cleanup(struct mgcp_conn_rtp *conn_rtp)
 	if (mgcp_conn_rtp_is_iuup(conn_rtp))
 		mgcp_conn_iuup_cleanup(conn_rtp);
 	mgcp_free_rtp_port(&conn_rtp->end);
-	rate_ctr_group_free(conn_rtp->rate_ctr_group);
+	rate_ctr_group_free(conn_rtp->ctrg);
 	mgcp_codec_reset_all(conn_rtp);
 }
 
@@ -263,7 +263,7 @@ struct mgcp_conn_rtp *mgcp_conn_get_rtp(struct mgcp_endpoint *endp,
 static void aggregate_rtp_conn_stats(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn_rtp)
 {
 	struct rate_ctr_group *all_stats = endp->trunk->ratectr.all_rtp_conn_stats;
-	struct rate_ctr_group *conn_stats = conn_rtp->rate_ctr_group;
+	struct rate_ctr_group *conn_stats = conn_rtp->ctrg;
 
 	if (all_stats == NULL || conn_stats == NULL)
 		return;

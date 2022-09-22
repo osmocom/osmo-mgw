@@ -62,7 +62,7 @@ enum rtp_proto {
 void rtpconn_rate_ctr_add(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *endp,
 				 int id, int inc)
 {
-	struct rate_ctr_group *conn_stats = conn_rtp->rate_ctr_group;
+	struct rate_ctr_group *conn_stats = conn_rtp->ctrg;
 	struct rate_ctr_group *mgw_stats = endp->trunk->ratectr.all_rtp_conn_stats;
 
 	/* add to both the per-connection and the global stats */
@@ -1515,8 +1515,8 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 					sizeof(struct sockaddr_in)));
 
 	/* Increment RX statistics */
-	rate_ctr_inc(rate_ctr_group_get_ctr(conn_src->rate_ctr_group, RTP_PACKETS_RX_CTR));
-	rate_ctr_add(rate_ctr_group_get_ctr(conn_src->rate_ctr_group, RTP_OCTETS_RX_CTR), msgb_length(msg));
+	rate_ctr_inc(rate_ctr_group_get_ctr(conn_src->ctrg, RTP_PACKETS_RX_CTR));
+	rate_ctr_add(rate_ctr_group_get_ctr(conn_src->ctrg, RTP_OCTETS_RX_CTR), msgb_length(msg));
 	/* FIXME: count RTP and RTCP separately, also count IuUP payload-less separately */
 
 	/* Forward a copy of the RTP data to a debug ip/port */
