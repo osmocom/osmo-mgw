@@ -41,8 +41,6 @@ struct osmux_handle {
 	int refcnt;
 };
 
-static void *osmux;
-
 /* Deliver OSMUX batch to the remote end */
 static void osmux_deliver_cb(struct msgb *batch_msg, void *data)
 {
@@ -125,9 +123,10 @@ static struct osmux_handle *
 osmux_handle_alloc(struct mgcp_conn_rtp *conn, const struct osmo_sockaddr *rem_addr)
 {
 	struct osmux_handle *h;
-	struct mgcp_config *cfg = conn->conn->endp->trunk->cfg;
+	struct mgcp_trunk *trunk = conn->conn->endp->trunk;
+	struct mgcp_config *cfg = trunk->cfg;
 
-	h = talloc_zero(osmux, struct osmux_handle);
+	h = talloc_zero(trunk, struct osmux_handle);
 	if (!h)
 		return NULL;
 	h->rem_addr = *rem_addr;
@@ -506,7 +505,7 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		return -1;
 	}
 
-	conn->osmux.out = osmux_xfrm_output_alloc(osmux);
+	conn->osmux.out = osmux_xfrm_output_alloc(conn->conn);
 	osmux_xfrm_output_set_rtp_ssrc(conn->osmux.out,
 				       (conn->osmux.cid * rtp_ssrc_winlen) +
 				       (random() % rtp_ssrc_winlen));
