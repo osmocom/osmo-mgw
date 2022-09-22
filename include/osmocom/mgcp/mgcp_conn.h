@@ -163,7 +163,7 @@ static const struct rate_ctr_desc mgcp_conn_rate_ctr_desc[] = {
 	[RTP_OCTETS_RX_CTR] = {"rtp:octets_rx", "Inbound rtp octets."},
 	[RTP_PACKETS_TX_CTR] = {"rtp:packets_tx", "Outbound rtp packets."},
 	[RTP_OCTETS_TX_CTR] = {"rtp:octets_tx", "Outbound rtp octets."},
-	[RTP_DROPPED_PACKETS_CTR] = {"rtp:dropped", "dropped rtp packets."}
+	[RTP_DROPPED_PACKETS_CTR] = {"rtp:dropped", "Dropped rtp packets."}
 };
 
 /* Aggregated RTP connection stats. These are updated when an RTP connection is freed.
