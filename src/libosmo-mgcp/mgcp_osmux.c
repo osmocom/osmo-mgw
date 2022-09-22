@@ -216,9 +216,8 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 
 /* Lookup the endpoint that corresponds to the specified address (port) */
 static struct mgcp_conn_rtp*
-osmux_conn_lookup(struct mgcp_config *cfg, uint8_t cid, const struct osmo_sockaddr *rem_addr)
+osmux_conn_lookup(struct mgcp_trunk *trunk, uint8_t cid, const struct osmo_sockaddr *rem_addr)
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	struct mgcp_endpoint *endp;
 	struct mgcp_conn *conn = NULL;
 	struct mgcp_conn_rtp * conn_rtp;
@@ -341,7 +340,7 @@ static int osmux_legacy_dummy_parse_cid(const struct osmo_sockaddr *rem_addr, st
 }
 
 /* This is called from the bsc-nat */
-static int osmux_handle_dummy(struct mgcp_config *cfg, const struct osmo_sockaddr *rem_addr,
+static int osmux_handle_dummy(struct mgcp_trunk *trunk, const struct osmo_sockaddr *rem_addr,
 			      struct msgb *msg)
 {
 	uint8_t osmux_cid;
@@ -350,7 +349,7 @@ static int osmux_handle_dummy(struct mgcp_config *cfg, const struct osmo_sockadd
 	if (osmux_legacy_dummy_parse_cid(rem_addr, msg, &osmux_cid) < 0)
 		goto out;
 
-	conn = osmux_conn_lookup(cfg, osmux_cid, rem_addr);
+	conn = osmux_conn_lookup(trunk, osmux_cid, rem_addr);
 	if (!conn) {
 		LOGP(DOSMUX, LOGL_ERROR,
 		     "Cannot find conn for Osmux CID %d\n", osmux_cid);
@@ -371,7 +370,7 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 	struct msgb *msg;
 	struct osmux_hdr *osmuxh;
 	struct osmo_sockaddr rem_addr;
-	struct mgcp_config *cfg = ofd->data;
+	struct mgcp_trunk *trunk = ofd->data;
 	uint32_t rem;
 	struct mgcp_conn_rtp *conn_src;
 
@@ -379,7 +378,7 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 	if (!msg)
 		return -1;
 
-	if (!cfg->osmux) {
+	if (!trunk->cfg->osmux) {
 		LOGP(DOSMUX, LOGL_ERROR,
 		     "bsc-nat wants to use Osmux but bsc did not request it\n");
 		goto out;
@@ -387,12 +386,12 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 
 	/* not any further processing dummy messages */
 	if (mgcp_is_rtp_dummy_payload(msg))
-		return osmux_handle_dummy(cfg, &rem_addr, msg);
+		return osmux_handle_dummy(trunk, &rem_addr, msg);
 
 	rem = msg->len;
 	while((osmuxh = osmux_xfrm_output_pull(msg)) != NULL) {
 
-		conn_src = osmux_conn_lookup(cfg, osmuxh->circuit_id,
+		conn_src = osmux_conn_lookup(trunk, osmuxh->circuit_id,
 					     &rem_addr);
 		if (!conn_src) {
 			LOGP(DOSMUX, LOGL_ERROR,
@@ -423,11 +422,15 @@ out:
 	return 0;
 }
 
-int osmux_init(int role, struct mgcp_config *cfg)
+int osmux_init(int role, struct mgcp_trunk *trunk)
 {
 	int ret;
+	struct mgcp_config *cfg = trunk->cfg;
 
-	osmo_fd_setup(&osmux_fd, -1, OSMO_FD_READ, osmux_read_fd_cb, cfg, 0);
+	/* So far we only support running on one trunk: */
+	OSMO_ASSERT(trunk == mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID));
+
+	osmo_fd_setup(&osmux_fd, -1, OSMO_FD_READ, osmux_read_fd_cb, trunk, 0);
 
 	ret = mgcp_create_bind(cfg->osmux_addr, &osmux_fd, cfg->osmux_port,
 				cfg->endp_dscp, cfg->endp_priority);
