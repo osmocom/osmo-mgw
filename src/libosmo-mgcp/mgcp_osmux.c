@@ -598,8 +598,9 @@ int conn_osmux_allocate_cid(struct mgcp_conn_rtp *conn, int osmux_cid)
 				 "no available Osmux CID to allocate!\n");
 			return -1;
 		}
-	} else
+	} else {
 		osmux_cid_pool_get(osmux_cid);
+	}
 
 	conn->osmux.cid = (uint8_t) osmux_cid;
 	conn->osmux.cid_allocated = true;
