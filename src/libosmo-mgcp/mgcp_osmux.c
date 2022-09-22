@@ -363,8 +363,7 @@ out:
 	return 0;
 }
 
-#define osmux_chunk_length(msg, rem) (rem - msg->len);
-
+#define osmux_chunk_length(msg, rem) ((rem) - (msg)->len)
 static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 {
 	struct msgb *msg;
