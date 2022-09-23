@@ -49,6 +49,21 @@ static const struct rate_ctr_group_desc rate_ctr_group_osmux_desc = {
 	.ctr_desc = mgcp_conn_osmux_rate_ctr_desc
 };
 
+static void rtpconn_osmux_rate_ctr_add(struct mgcp_conn_rtp *conn_rtp, int id, int inc)
+{
+	struct rate_ctr_group *conn_osmux_stats = conn_rtp->osmux.ctrg;
+	struct rate_ctr_group *trunk_osmux_stats = conn_rtp->conn->endp->trunk->ratectr.all_osmux_conn_stats;
+
+	/* add to both the per-connection and the global stats */
+	rate_ctr_add(rate_ctr_group_get_ctr(conn_osmux_stats, id), inc);
+	rate_ctr_add(rate_ctr_group_get_ctr(trunk_osmux_stats, id), inc);
+}
+
+static void rtpconn_osmux_rate_ctr_inc(struct mgcp_conn_rtp *conn_rtp, int id)
+{
+	rtpconn_osmux_rate_ctr_add(conn_rtp, id, 1);
+}
+
 /* Deliver OSMUX batch to the remote end */
 static void osmux_deliver_cb(struct msgb *batch_msg, void *data)
 {
@@ -204,14 +219,14 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 	struct msgb *msg;
 
 	if (!conn->end.output_enabled) {
-		rtpconn_rate_ctr_inc(conn, conn->conn->endp, OSMUX_DROPPED_AMR_PAYLOADS_CTR);
+		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_DROPPED_AMR_PAYLOADS_CTR);
 		return -1;
 	}
 
 	if (conn->osmux.state != OSMUX_STATE_ENABLED) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO, "forwarding RTP to Osmux conn not yet enabled, dropping (cid=%d)\n",
 		conn->osmux.remote_cid);
-		rtpconn_rate_ctr_inc(conn, conn->conn->endp, OSMUX_DROPPED_AMR_PAYLOADS_CTR);
+		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_DROPPED_AMR_PAYLOADS_CTR);
 		return -1;
 	}
 
@@ -428,9 +443,9 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 			goto out;
 		}*/
 		if (endp_osmux_state_check(endp, conn_src, false) == 0) {
-			rtpconn_rate_ctr_inc(conn_src, endp, OSMUX_CHUNKS_RX_CTR);
-			rtpconn_rate_ctr_add(conn_src, endp, OSMUX_OCTETS_RX_CTR,
-					     osmux_chunk_length(msg, rem));
+			rtpconn_osmux_rate_ctr_inc(conn_src, OSMUX_CHUNKS_RX_CTR);
+			rtpconn_osmux_rate_ctr_add(conn_src, OSMUX_OCTETS_RX_CTR,
+						   osmux_chunk_length(msg, rem));
 			osmux_xfrm_output_sched(conn_src->osmux.out, osmuxh);
 		}
 		rem = msg->len;

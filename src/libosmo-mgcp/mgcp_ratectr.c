@@ -151,7 +151,7 @@ static const struct rate_ctr_group_desc all_osmux_conn_rate_ctr_group_desc = {
 	.group_description = "aggregated statistics for all osmux connections",
 	.class_id = 1,
 	.num_ctr = ARRAY_SIZE(all_osmux_conn_rate_ctr_desc),
-	.ctr_desc = all_rtp_conn_rate_ctr_desc
+	.ctr_desc = all_osmux_conn_rate_ctr_desc
 };
 
 /*! allocate global rate counters
