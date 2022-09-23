@@ -463,7 +463,7 @@ int osmux_init(int role, struct mgcp_trunk *trunk)
 		     osmo_sock_get_name2(osmux_fd.fd));
 		return ret;
 	}
-	cfg->osmux_init = 1;
+	cfg->osmux_init = true;
 
 	LOGP(DOSMUX, LOGL_INFO, "OSMUX socket listening on %s\n",
 		 osmo_sock_get_name2(osmux_fd.fd));
