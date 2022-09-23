@@ -219,14 +219,14 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 	struct msgb *msg;
 
 	if (!conn->end.output_enabled) {
-		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_DROPPED_AMR_PAYLOADS_CTR);
+		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_DROPPED_CTR);
 		return -1;
 	}
 
 	if (conn->osmux.state != OSMUX_STATE_ENABLED) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO, "forwarding RTP to Osmux conn not yet enabled, dropping (cid=%d)\n",
 		conn->osmux.remote_cid);
-		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_DROPPED_AMR_PAYLOADS_CTR);
+		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_DROPPED_CTR);
 		return -1;
 	}
 
@@ -240,6 +240,12 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 	while ((ret = osmux_xfrm_input(conn->osmux.in, msg, conn->osmux.remote_cid)) > 0) {
 		/* batch full, build and deliver it */
 		osmux_xfrm_input_deliver(conn->osmux.in);
+	}
+	if (ret < 0) {
+		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_DROPPED_CTR);
+	} else {
+		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_CTR);
+		rtpconn_osmux_rate_ctr_add(conn, OSMUX_AMR_OCTETS_TX_CTR, buf_len - sizeof(struct rtp_hdr));
 	}
 	return 0;
 }
