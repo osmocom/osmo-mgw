@@ -210,7 +210,7 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 
 	if (conn->osmux.state != OSMUX_STATE_ENABLED) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO, "forwarding RTP to Osmux conn not yet enabled, dropping (cid=%d)\n",
-		conn->osmux.cid);
+		conn->osmux.remote_cid);
 		rtpconn_rate_ctr_inc(conn, conn->conn->endp, OSMUX_DROPPED_AMR_PAYLOADS_CTR);
 		return -1;
 	}
@@ -222,7 +222,7 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 	memcpy(msg->data, buf, buf_len);
 	msgb_put(msg, buf_len);
 
-	while ((ret = osmux_xfrm_input(conn->osmux.in, msg, conn->osmux.cid)) > 0) {
+	while ((ret = osmux_xfrm_input(conn->osmux.in, msg, conn->osmux.remote_cid)) > 0) {
 		/* batch full, build and deliver it */
 		osmux_xfrm_input_deliver(conn->osmux.in);
 	}
@@ -231,7 +231,7 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 
 /* Lookup the endpoint that corresponds to the specified address (port) */
 static struct mgcp_conn_rtp*
-osmux_conn_lookup(struct mgcp_trunk *trunk, uint8_t cid, const struct osmo_sockaddr *rem_addr)
+osmux_conn_lookup(struct mgcp_trunk *trunk, uint8_t local_cid, const struct osmo_sockaddr *rem_addr)
 {
 	struct mgcp_endpoint *endp;
 	struct mgcp_conn *conn = NULL;
@@ -252,13 +252,13 @@ osmux_conn_lookup(struct mgcp_trunk *trunk, uint8_t cid, const struct osmo_socka
 
 			/* FIXME: Match remote address! */
 
-			if (conn_rtp->osmux.cid == cid)
+			if (conn_rtp->osmux.local_cid == local_cid)
 				return conn_rtp;
 		}
 	}
 
-	LOGP(DOSMUX, LOGL_ERROR, "Cannot find osmux conn with rem_addr=%s cid=%d\n",
-	     osmo_sockaddr_to_str(rem_addr), cid);
+	LOGP(DOSMUX, LOGL_ERROR, "Cannot find osmux conn with rem_addr=%s local_cid=%d\n",
+	     osmo_sockaddr_to_str(rem_addr), local_cid);
 
 	return NULL;
 }
@@ -327,7 +327,8 @@ static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_r
 		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
 			 "Osmux %s CID %u towards %s is now enabled\n",
 			 sending ? "sent" : "received",
-			 conn->osmux.cid, osmo_sockaddr_to_str(&rem_addr));
+			 sending ? conn->osmux.remote_cid : conn->osmux.local_cid,
+			 osmo_sockaddr_to_str(&rem_addr));
 		return 0;
 	case OSMUX_STATE_ENABLED:
 		return 0;
@@ -517,16 +518,16 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 			mgcp_conn_dump(conn->conn));
 		return -1;
 	}
-	if (osmux_xfrm_input_open_circuit(conn->osmux.in, conn->osmux.cid, osmux_dummy) < 0) {
+	if (osmux_xfrm_input_open_circuit(conn->osmux.in, conn->osmux.remote_cid, osmux_dummy) < 0) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 			"Cannot open osmux circuit %u for conn:%s\n",
-		     conn->osmux.cid, mgcp_conn_dump(conn->conn));
+		     conn->osmux.remote_cid, mgcp_conn_dump(conn->conn));
 		return -1;
 	}
 
 	conn->osmux.out = osmux_xfrm_output_alloc(conn->conn);
 	osmux_xfrm_output_set_rtp_ssrc(conn->osmux.out,
-				       (conn->osmux.cid * rtp_ssrc_winlen) +
+				       (conn->osmux.remote_cid * rtp_ssrc_winlen) +
 				       (random() % rtp_ssrc_winlen));
 	osmux_xfrm_output_set_rtp_pl_type(conn->osmux.out, conn->end.codec->payload_type);
 	osmux_xfrm_output_set_tx_cb(conn->osmux.out,
@@ -547,7 +548,7 @@ void conn_osmux_disable(struct mgcp_conn_rtp *conn)
 	OSMO_ASSERT(conn->osmux.state != OSMUX_STATE_DISABLED);
 
 	LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
-		"Releasing connection using Osmux CID %u\n", conn->osmux.cid);
+		"Releasing connection using local Osmux CID %u\n", conn->osmux.local_cid);
 
 	struct rate_ctr_group *all_osmux_stats = conn->conn->endp->trunk->ratectr.all_osmux_conn_stats;
 	rate_ctr_inc(rate_ctr_group_get_ctr(all_osmux_stats, OSMUX_NUM_CONNECTIONS));
@@ -557,53 +558,44 @@ void conn_osmux_disable(struct mgcp_conn_rtp *conn)
 		osmux_xfrm_output_set_tx_cb(conn->osmux.out, NULL, NULL);
 		TALLOC_FREE(conn->osmux.out);
 
-		osmux_xfrm_input_close_circuit(conn->osmux.in, conn->osmux.cid);
+		osmux_xfrm_input_close_circuit(conn->osmux.in, conn->osmux.remote_cid);
 		conn->osmux.state = OSMUX_STATE_DISABLED;
 		osmux_handle_put(conn->osmux.in);
+		conn->osmux.remote_cid = 0;
+		conn->osmux.remote_cid_present = false;
 
 		rate_ctr_group_free(conn->osmux.ctrg);
 		conn->osmux.ctrg = NULL;
 	}
-	conn_osmux_release_cid(conn);
+	conn_osmux_release_local_cid(conn);
 }
 
 /*! relase OSXMUX cid, that had been allocated to this connection.
  *  \param[in] conn connection with OSMUX cid to release */
-void conn_osmux_release_cid(struct mgcp_conn_rtp *conn)
+void conn_osmux_release_local_cid(struct mgcp_conn_rtp *conn)
 {
-	if (conn->osmux.cid_allocated)
-		osmux_cid_pool_put(conn->osmux.cid);
-	conn->osmux.cid = 0;
-	conn->osmux.cid_allocated = false;
+	if (conn->osmux.local_cid_allocated)
+		osmux_cid_pool_put(conn->osmux.local_cid);
+	conn->osmux.local_cid = 0;
+	conn->osmux.local_cid_allocated = false;
 }
 
-/*! allocate OSXMUX cid to connection.
- *  \param[in] conn connection for which we allocate the OSMUX cid
- * \param[in] osmux_cid OSMUX cid to allocate. -1 Means take next available one.
- * \returns Allocated OSMUX cid, -1 on error (no free  cids avail, or selected one is already taken).
+/*! allocate local OSMUX cid to connection.
+ *  \param[in] conn connection for which we allocate the local OSMUX cid
+ * \returns Allocated OSMUX cid, -1 on error (no free CIDs avail).
  */
-int conn_osmux_allocate_cid(struct mgcp_conn_rtp *conn, int osmux_cid)
+int conn_osmux_allocate_local_cid(struct mgcp_conn_rtp *conn)
 {
-	if (osmux_cid != -1 && osmux_cid_pool_allocated((uint8_t) osmux_cid)) {
+	OSMO_ASSERT(conn->osmux.local_cid_allocated == false);
+	int osmux_cid = osmux_cid_pool_get_next();
+	if (osmux_cid == -1) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
-			 "Osmux CID %d already allocated!\n",
-			 osmux_cid);
+			 "no available local Osmux CID to allocate!\n");
 		return -1;
 	}
 
-	if (osmux_cid == -1) {
-		osmux_cid = osmux_cid_pool_get_next();
-		if (osmux_cid == -1) {
-			LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
-				 "no available Osmux CID to allocate!\n");
-			return -1;
-		}
-	} else {
-		osmux_cid_pool_get(osmux_cid);
-	}
-
-	conn->osmux.cid = (uint8_t) osmux_cid;
-	conn->osmux.cid_allocated = true;
+	conn->osmux.local_cid = (uint8_t) osmux_cid;
+	conn->osmux.local_cid_allocated = true;
 	conn->type = MGCP_OSMUX_BSC;
 	return osmux_cid;
 }
@@ -640,12 +632,12 @@ int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	memset(osmuxh, 0, buf_len);
 	osmuxh->ft = OSMUX_FT_DUMMY;
 	osmuxh->amr_ft = AMR_FT_0;
-	osmuxh->circuit_id = conn->osmux.cid;
+	osmuxh->circuit_id = conn->osmux.remote_cid;
 
 	LOGPCONN(conn->conn, DOSMUX, LOGL_DEBUG,
 		 "sending OSMUX dummy load to %s:%u CID %u\n",
 		 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf),
-		 ntohs(conn->end.rtp_port), conn->osmux.cid);
+		 ntohs(conn->end.rtp_port), conn->osmux.remote_cid);
 
 	return mgcp_udp_send(osmux_fd.fd, &conn->end.addr,
 			     conn->end.rtp_port, (char*)osmuxh, buf_len);

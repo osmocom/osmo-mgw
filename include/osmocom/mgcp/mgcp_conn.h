@@ -80,10 +80,14 @@ struct mgcp_conn_rtp {
 	struct {
 		/* Osmux state: disabled, activating, active */
 		enum osmux_state state;
-		/* Is cid holding valid data? is it allocated from pool? */
-		bool cid_allocated;
-		/* Allocated Osmux circuit ID for this conn */
-		uint8_t cid;
+		/* Is local_cid holding valid data? is it allocated from pool? */
+		bool local_cid_allocated;
+		/* Allocated local Osmux circuit ID for this conn */
+		uint8_t local_cid;
+		/* Is remote_cid holding valid data? was it already received from client? */
+		bool remote_cid_present;
+		/* Received remote Osmux circuit ID for this conn */
+		uint8_t remote_cid;
 		/* handle to batch messages, shared (refcounted) among several conns */
 		struct osmux_in_handle *in;
 		/* handle to unbatch messages, one allocated and owned per conn */

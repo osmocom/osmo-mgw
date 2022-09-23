@@ -301,7 +301,7 @@ static struct msgb *create_response_with_sdp(struct mgcp_endpoint *endp,
 
 	/* Attach optional OSMUX parameters */
 	if (mgcp_conn_rtp_is_osmux(conn)) {
-		rc = msgb_printf(sdp, MGCP_X_OSMO_OSMUX_HEADER " %u\r\n", conn->osmux.cid);
+		rc = msgb_printf(sdp, MGCP_X_OSMO_OSMUX_HEADER " %u\r\n", conn->osmux.local_cid);
 		if (rc < 0)
 			goto error;
 	}
@@ -846,7 +846,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 	const char *callid = NULL;
 	const char *mode = NULL;
 	char *line;
-	int have_sdp = 0, osmux_cid = -2;
+	int have_sdp = 0, remote_osmux_cid = -2;
 	struct mgcp_conn_rtp *conn = NULL;
 	struct mgcp_conn *_conn = NULL;
 	char conn_name[512];
@@ -895,7 +895,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 				/* If osmux is disabled, just skip setting it up */
 				if (rq->endp->trunk->cfg->osmux_use == OSMUX_USAGE_OFF)
 					break;
-				osmux_cid = mgcp_osmux_setup(endp, line);
+				remote_osmux_cid = mgcp_osmux_setup(endp, line);
 				break;
 			}
 
@@ -1001,11 +1001,16 @@ mgcp_header_done:
 	/* Annotate Osmux circuit ID and set it to negotiating state until this
 	 * is fully set up from the dummy load. */
 	conn->osmux.state = OSMUX_STATE_DISABLED;
-	if (osmux_cid >= -1) { /* -1 is wilcard, alloc next avail CID */
+	/* If X-Osmux (remote CID) was received (-1 is wilcard), alloc next avail CID as local CID */
+	if (remote_osmux_cid >= -1) {
 		conn->osmux.state = OSMUX_STATE_ACTIVATING;
-		if (conn_osmux_allocate_cid(conn, osmux_cid) == -1) {
+		if (conn_osmux_allocate_local_cid(conn) == -1) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
 			goto error2;
+		}
+		if (remote_osmux_cid >= 0) {
+			conn->osmux.remote_cid_present = true;
+			conn->osmux.remote_cid = remote_osmux_cid;
 		}
 	} else if (endp->trunk->cfg->osmux_use == OSMUX_USAGE_ONLY) {
 		LOGPCONN(_conn, DLMGCP, LOGL_ERROR,
@@ -1118,7 +1123,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	const char *mode = NULL;
 	struct mgcp_conn_rtp *conn = NULL;
         const char *conn_id = NULL;
-	int osmux_cid = -2;
+	int remote_osmux_cid = -2;
 	int rc;
 
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "MDCX: modifying existing connection ...\n");
@@ -1176,7 +1181,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 				/* If osmux is disabled, just skip setting it up */
 				if (endp->trunk->cfg->osmux_use == OSMUX_USAGE_OFF)
 					break;
-				osmux_cid = mgcp_osmux_setup(endp, line);
+				remote_osmux_cid = mgcp_osmux_setup(endp, line);
 				break;
 			}
 			/* Ignore unknown X-headers */
@@ -1253,23 +1258,23 @@ mgcp_header_done:
 	}
 
 	if (mgcp_conn_rtp_is_osmux(conn)) {
-		OSMO_ASSERT(conn->osmux.cid_allocated);
-		if (osmux_cid < -1) {
+		OSMO_ASSERT(conn->osmux.local_cid_allocated);
+		if (remote_osmux_cid < -1) {
 			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
 				 "MDCX: Failed to parse Osmux CID!\n");
 			goto error3;
-		} else if (osmux_cid == -1) {
+		} else if (remote_osmux_cid == -1) {
 			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
 				 "MDCX: wilcard in MDCX is not supported!\n");
 			goto error3;
-		} else if (osmux_cid != (int) conn->osmux.cid) {
+		} else if (conn->osmux.remote_cid_present &&
+			   remote_osmux_cid != (int) conn->osmux.remote_cid) {
 			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
 				 "MDCX: changing already allocated CID is not supported!\n");
 			goto error3;
 		}
-		/* TODO: In the future (when we have recvCID!=sendCID), we need to
-		   tell Osmux code that osmux_cid is to be used as sendCID for
-		   that conn. */
+		conn->osmux.remote_cid_present = true;
+		conn->osmux.remote_cid = remote_osmux_cid;
 	}
 
 	/* MDCX may have provided a new remote address, which means we may need

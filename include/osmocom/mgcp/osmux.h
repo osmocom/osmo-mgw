@@ -17,8 +17,8 @@ int osmux_init(int role, struct mgcp_trunk *trunk);
 int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		      const struct osmo_sockaddr *addr);
 void conn_osmux_disable(struct mgcp_conn_rtp *conn);
-int conn_osmux_allocate_cid(struct mgcp_conn_rtp *conn, int osmux_cid);
-void conn_osmux_release_cid(struct mgcp_conn_rtp *conn);
+int conn_osmux_allocate_local_cid(struct mgcp_conn_rtp *conn);
+void conn_osmux_release_local_cid(struct mgcp_conn_rtp *conn);
 int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn);
 int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn);
 
