@@ -99,7 +99,7 @@ static void mgcp_format_stats_rtp(char *str, size_t str_len,
 	str += nchars;
 	str_len -= nchars;
 
-	if (conn->conn->endp->trunk->cfg->osmux != OSMUX_USAGE_OFF) {
+	if (conn->conn->endp->trunk->cfg->osmux_use != OSMUX_USAGE_OFF) {
 		/* Error Counter */
 		nchars = snprintf(str, str_len,
 				  "\r\nX-Osmo-CP: EC TI=%" PRIu64 ", TO=%" PRIu64,

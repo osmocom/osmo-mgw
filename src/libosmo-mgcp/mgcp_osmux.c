@@ -394,7 +394,7 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 
 	rate_ctr_inc(rate_ctr_group_get_ctr(all_rtp_stats, OSMUX_PACKETS_RX_CTR));
 
-	if (!trunk->cfg->osmux) {
+	if (trunk->cfg->osmux_use == OSMUX_USAGE_OFF) {
 		LOGP(DOSMUX, LOGL_ERROR,
 		     "bsc-nat wants to use Osmux but bsc did not request it\n");
 		goto out;

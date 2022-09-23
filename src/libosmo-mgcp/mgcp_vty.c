@@ -129,7 +129,7 @@ static int config_write_mgcp(struct vty *vty)
 		vty_out(vty, " rtp force-ptime %d%s", g_cfg->force_ptime,
 			VTY_NEWLINE);
 
-	switch (g_cfg->osmux) {
+	switch (g_cfg->osmux_use) {
 	case OSMUX_USAGE_ON:
 		vty_out(vty, " osmux on%s", VTY_NEWLINE);
 		break;
@@ -141,7 +141,7 @@ static int config_write_mgcp(struct vty *vty)
 		vty_out(vty, " osmux off%s", VTY_NEWLINE);
 		break;
 	}
-	if (g_cfg->osmux) {
+	if (g_cfg->osmux_use != OSMUX_USAGE_OFF) {
 		vty_out(vty, " osmux bind-ip %s%s",
 			g_cfg->osmux_addr, VTY_NEWLINE);
 		vty_out(vty, " osmux batch-factor %d%s",
@@ -350,7 +350,7 @@ static int mgcp_show(struct vty *vty, int argc, const char **argv,
 	llist_for_each_entry(trunk, &g_cfg->trunks, entry)
 		dump_trunk(vty, trunk, show_stats, active_only);
 
-	if (g_cfg->osmux)
+	if (g_cfg->osmux_use != OSMUX_USAGE_OFF)
 		vty_out(vty, "Osmux used CID: %d%s", osmux_cid_pool_count_used(),
 			VTY_NEWLINE);
 
@@ -1547,12 +1547,12 @@ DEFUN(cfg_mgcp_osmux,
 	OSMO_ASSERT(trunk);
 
 	if (strcmp(argv[0], "off") == 0) {
-		g_cfg->osmux = OSMUX_USAGE_OFF;
+		g_cfg->osmux_use = OSMUX_USAGE_OFF;
 		return CMD_SUCCESS;
 	} else if (strcmp(argv[0], "on") == 0)
-		g_cfg->osmux = OSMUX_USAGE_ON;
+		g_cfg->osmux_use = OSMUX_USAGE_ON;
 	else if (strcmp(argv[0], "only") == 0)
-		g_cfg->osmux = OSMUX_USAGE_ONLY;
+		g_cfg->osmux_use = OSMUX_USAGE_ONLY;
 
 	return CMD_SUCCESS;
 

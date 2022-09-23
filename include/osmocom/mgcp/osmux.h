@@ -9,6 +9,10 @@ enum {
 	OSMUX_ROLE_BSC_NAT,
 };
 
+struct mgcp_trunk;
+struct mgcp_endpoint;
+struct mgcp_conn_rtp;
+
 int osmux_init(int role, struct mgcp_trunk *trunk);
 int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		      const struct osmo_sockaddr *addr);

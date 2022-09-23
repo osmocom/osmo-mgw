@@ -29,6 +29,7 @@
 #include <osmocom/core/logging.h>
 
 #include <osmocom/mgcp/mgcp_common.h>
+#include <osmocom/mgcp/osmux.h>
 
 #include <arpa/inet.h>
 #include <sys/types.h>
@@ -156,8 +157,8 @@ struct mgcp_config {
 
 	enum mgcp_role role;
 
-	/* osmux translator: 0 means disabled, 1 means enabled */
-	int osmux;
+	/* Osmux usage policy: */
+	enum osmux_usage osmux_use;
 	/* addr to bind the server to */
 	char osmux_addr[INET6_ADDRSTRLEN];
 	/* The BSC-NAT may ask for enabling osmux on demand. This tells us if

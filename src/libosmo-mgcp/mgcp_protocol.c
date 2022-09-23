@@ -893,7 +893,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		case 'X':
 			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
 				/* If osmux is disabled, just skip setting it up */
-				if (!rq->endp->trunk->cfg->osmux)
+				if (rq->endp->trunk->cfg->osmux_use == OSMUX_USAGE_OFF)
 					break;
 				osmux_cid = mgcp_osmux_setup(endp, line);
 				break;
@@ -1007,7 +1007,7 @@ mgcp_header_done:
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
 			goto error2;
 		}
-	} else if (endp->trunk->cfg->osmux == OSMUX_USAGE_ONLY) {
+	} else if (endp->trunk->cfg->osmux_use == OSMUX_USAGE_ONLY) {
 		LOGPCONN(_conn, DLMGCP, LOGL_ERROR,
 			 "CRCX: osmux only and no osmux offered\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
@@ -1174,7 +1174,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		case 'X':
 			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
 				/* If osmux is disabled, just skip setting it up */
-				if (!endp->trunk->cfg->osmux)
+				if (endp->trunk->cfg->osmux_use == OSMUX_USAGE_OFF)
 					break;
 				osmux_cid = mgcp_osmux_setup(endp, line);
 				break;
