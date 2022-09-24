@@ -164,7 +164,7 @@ struct mgcp_config {
 	/* The BSC-NAT may ask for enabling osmux on demand. This tells us if
 	 * the osmux socket is already initialized.
 	 */
-	bool osmux_init;
+	bool osmux_initialized;
 	/* osmux batch factor: from 1 to 4 maximum */
 	int osmux_batch;
 	/* osmux batch size (in bytes) */

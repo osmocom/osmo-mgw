@@ -740,7 +740,7 @@ uint32_t mgcp_rtp_packet_duration(const struct mgcp_endpoint *endp,
  */
 static int mgcp_osmux_setup(struct mgcp_endpoint *endp, const char *line)
 {
-	if (!endp->trunk->cfg->osmux_init) {
+	if (!endp->trunk->cfg->osmux_initialized) {
 		if (osmux_init(OSMUX_ROLE_BSC, endp->trunk) < 0) {
 			LOGPENDP(endp, DLMGCP, LOGL_ERROR, "Cannot init OSMUX\n");
 			return -3;
