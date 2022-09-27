@@ -583,7 +583,6 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
  *  \param[in] conn connection to disable */
 void conn_osmux_disable(struct mgcp_conn_rtp *conn)
 {
-
 	OSMO_ASSERT(conn->osmux.state != OSMUX_STATE_DISABLED);
 
 	LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
