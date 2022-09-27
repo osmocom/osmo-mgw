@@ -14,6 +14,7 @@ struct mgcp_endpoint;
 struct mgcp_conn_rtp;
 
 int osmux_init(int role, struct mgcp_trunk *trunk);
+int osmux_init_conn(struct mgcp_conn_rtp *conn);
 int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		      const struct osmo_sockaddr *addr);
 void conn_osmux_disable(struct mgcp_conn_rtp *conn);

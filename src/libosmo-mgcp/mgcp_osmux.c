@@ -500,6 +500,19 @@ int osmux_init(int role, struct mgcp_trunk *trunk)
 	return 0;
 }
 
+/*! Initialize Osmux bits of a conn.
+ *  \param[in] conn Osmux connection to initialize
+ *  \returns 0 on success, negative on ERROR */
+int osmux_init_conn(struct mgcp_conn_rtp *conn)
+{
+	if (conn_osmux_allocate_local_cid(conn) == -1)
+		return -1;
+	conn->osmux.ctrg = rate_ctr_group_alloc(conn->conn, &rate_ctr_group_osmux_desc, conn->ctrg->idx);
+
+	conn->osmux.state = OSMUX_STATE_ACTIVATING;
+	return 0;
+}
+
 /*! enable OSXMUX circuit for a specified connection.
  *  \param[in] endp mgcp endpoint (configuration)
  *  \param[in] conn connection to disable
@@ -561,8 +574,6 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 	osmux_xfrm_output_set_tx_cb(conn->osmux.out,
 				    scheduled_from_osmux_tx_rtp_cb, conn);
 
-	conn->osmux.ctrg = rate_ctr_group_alloc(conn->conn, &rate_ctr_group_osmux_desc, conn->ctrg->idx);
-
 	conn->osmux.state = OSMUX_STATE_ENABLED;
 
 	return 0;
@@ -591,11 +602,12 @@ void conn_osmux_disable(struct mgcp_conn_rtp *conn)
 		osmux_handle_put(conn->osmux.in);
 		conn->osmux.remote_cid = 0;
 		conn->osmux.remote_cid_present = false;
-
-		rate_ctr_group_free(conn->osmux.ctrg);
-		conn->osmux.ctrg = NULL;
 	}
+
 	conn_osmux_release_local_cid(conn);
+
+	rate_ctr_group_free(conn->osmux.ctrg);
+	conn->osmux.ctrg = NULL;
 }
 
 /*! relase OSXMUX cid, that had been allocated to this connection.

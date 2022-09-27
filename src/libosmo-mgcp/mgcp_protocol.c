@@ -1003,8 +1003,7 @@ mgcp_header_done:
 	conn->osmux.state = OSMUX_STATE_DISABLED;
 	/* If X-Osmux (remote CID) was received (-1 is wilcard), alloc next avail CID as local CID */
 	if (remote_osmux_cid >= -1) {
-		conn->osmux.state = OSMUX_STATE_ACTIVATING;
-		if (conn_osmux_allocate_local_cid(conn) == -1) {
+		if (osmux_init_conn(conn) < 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
 			goto error2;
 		}
