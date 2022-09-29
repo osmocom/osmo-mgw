@@ -448,13 +448,6 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 		endp = conn_src->conn->endp;
 		mgcp_conn_watchdog_kick(conn_src->conn);
 
-		/*conn_dst = mgcp_find_dst_conn(conn_src->conn);
-		if (!conn_dst) {
-			LOGP(DOSMUX, LOGL_ERROR,
-			     "Cannot find a dst conn for circuit_id=%d\n",
-			     osmuxh->circuit_id);
-			goto out;
-		}*/
 		if (endp_osmux_state_check(endp, conn_src, false) == 0) {
 			rtpconn_osmux_rate_ctr_inc(conn_src, OSMUX_CHUNKS_RX_CTR);
 			rtpconn_osmux_rate_ctr_add(conn_src, OSMUX_OCTETS_RX_CTR,
