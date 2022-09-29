@@ -144,7 +144,7 @@ static void osmux_handle_put(struct osmux_in_handle *in)
 				     in->stats.output_osmux_msgs,
 				     in->stats.output_osmux_bytes);
 				llist_del(&h->head);
-				osmux_xfrm_input_fini(h->in);
+				TALLOC_FREE(h->in);
 				talloc_free(h);
 			}
 			return;
@@ -167,22 +167,17 @@ osmux_handle_alloc(struct mgcp_conn_rtp *conn, const struct osmo_sockaddr *rem_a
 	h->rem_addr = *rem_addr;
 	h->refcnt++;
 
-	h->in = talloc_zero(h, struct osmux_in_handle);
+	h->in = osmux_xfrm_input_alloc(h);
 	if (!h->in) {
 		talloc_free(h);
 		return NULL;
 	}
-
 	/* sequence number to start OSMUX message from */
-	h->in->osmux_seq = 0;
-
-	h->in->batch_factor = cfg->osmux_batch;
-
-	/* If batch size is zero, the library defaults to 1470 bytes. */
-	h->in->batch_size = cfg->osmux_batch_size;
-	h->in->deliver = osmux_deliver_cb;
-	osmux_xfrm_input_init(h->in);
-	h->in->data = h;
+	osmux_xfrm_input_set_initial_seqnum(h->in, 0);
+	osmux_xfrm_input_set_batch_factor(h->in, cfg->osmux_batch);
+	/* If batch size is zero, the library defaults to 1472 bytes. */
+	osmux_xfrm_input_set_batch_size(h->in, cfg->osmux_batch_size);
+	osmux_xfrm_input_set_deliver_cb(h->in, osmux_deliver_cb, h);
 
 	llist_add(&h->head, &osmux_handle_list);
 
