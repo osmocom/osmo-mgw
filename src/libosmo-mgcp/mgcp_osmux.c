@@ -285,7 +285,7 @@ osmux_conn_lookup(struct mgcp_trunk *trunk, uint8_t local_cid, const struct osmo
 		}
 	}
 
-	LOGP(DOSMUX, LOGL_ERROR, "Cannot find osmux conn with rem_addr=%s local_cid=%d\n",
+	LOGP(DOSMUX, LOGL_DEBUG, "Cannot find osmux conn with rem_addr=%s local_cid=%d\n",
 	     osmo_sockaddr_to_str(rem_addr), local_cid);
 
 	return NULL;
@@ -395,7 +395,7 @@ static int osmux_handle_dummy(struct mgcp_trunk *trunk, const struct osmo_sockad
 
 	conn = osmux_conn_lookup(trunk, osmux_cid, rem_addr);
 	if (!conn) {
-		LOGP(DOSMUX, LOGL_ERROR,
+		LOGP(DOSMUX, LOGL_DEBUG,
 		     "Cannot find conn for Osmux CID %d\n", osmux_cid);
 		goto out;
 	}
@@ -440,7 +440,7 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 		conn_src = osmux_conn_lookup(trunk, osmuxh->circuit_id,
 					     &rem_addr);
 		if (!conn_src) {
-			LOGP(DOSMUX, LOGL_ERROR,
+			LOGP(DOSMUX, LOGL_DEBUG,
 			     "Cannot find a src conn for circuit_id=%d\n",
 			     osmuxh->circuit_id);
 			goto out;
