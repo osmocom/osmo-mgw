@@ -443,7 +443,8 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 			LOGP(DOSMUX, LOGL_DEBUG,
 			     "Cannot find a src conn for circuit_id=%d\n",
 			     osmuxh->circuit_id);
-			goto out;
+			rem = msg->len;
+			continue;
 		}
 		endp = conn_src->conn->endp;
 		mgcp_conn_watchdog_kick(conn_src->conn);
