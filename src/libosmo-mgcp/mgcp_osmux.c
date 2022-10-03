@@ -251,7 +251,8 @@ osmux_conn_lookup(struct mgcp_trunk *trunk, uint8_t local_cid, const struct osmo
 {
 	struct mgcp_endpoint *endp;
 	struct mgcp_conn *conn = NULL;
-	struct mgcp_conn_rtp * conn_rtp;
+	struct mgcp_conn_rtp *conn_rtp;
+	struct osmux_handle *h;
 	int i;
 
 	for (i = 0; i < trunk->number_endpoints; i++) {
@@ -266,7 +267,18 @@ osmux_conn_lookup(struct mgcp_trunk *trunk, uint8_t local_cid, const struct osmo
 			if (!mgcp_conn_rtp_is_osmux(conn_rtp))
 				continue;
 
-			/* FIXME: Match remote address! */
+			/* Current implementation sets remote address & port for
+			 * the conn based on src address received on the socket
+			 * for the CID, in order to workaround NATs.
+			 * Once the conn is fully established (remote address is
+			 * known), validate the remote address doesn't change: */
+			if (conn_rtp->osmux.state == OSMUX_STATE_ENABLED) {
+				h = osmux_xfrm_input_get_deliver_cb_data(conn_rtp->osmux.in);
+				if (osmo_sockaddr_cmp(&h->rem_addr, rem_addr) != 0)
+					continue;
+			}
+			/* else: select based on CID only, to learn rem addr in NAT-based scenarios.
+			 * FIXME: This should be configurable, have some sort of "osmux nat (on|off)" */
 
 			if (conn_rtp->osmux.local_cid == local_cid)
 				return conn_rtp;
