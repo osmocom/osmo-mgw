@@ -295,12 +295,12 @@ static void scheduled_from_osmux_tx_rtp_cb(struct msgb *msg, void *data)
 {
 	struct mgcp_conn_rtp *conn = data;
 	struct mgcp_endpoint *endp = conn->conn->endp;
-	struct osmo_sockaddr addr = { /* FIXME: do we know the source address?? */ };
+	struct osmux_handle *h = osmux_xfrm_input_get_deliver_cb_data(conn->osmux.in);
 	struct osmo_rtp_msg_ctx *mc = OSMO_RTP_MSG_CTX(msg);
 	*mc = (struct osmo_rtp_msg_ctx){
 		.proto = MGCP_PROTO_RTP,
 		.conn_src = conn,
-		.from_addr = &addr,
+		.from_addr = &h->rem_addr,
 	};
 
 	endp->type->dispatch_rtp_cb(msg);
