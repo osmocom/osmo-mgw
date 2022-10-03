@@ -150,8 +150,7 @@ static int setup_rtp_processing(struct mgcp_endpoint *endp,
 
 	switch (conn->type) {
 	case MGCP_RTP_DEFAULT:
-	case MGCP_OSMUX_BSC:
-	case MGCP_OSMUX_BSC_NAT:
+	case MGCP_RTP_OSMUX:
 	case MGCP_RTP_IUUP:
 		break;
 	default:

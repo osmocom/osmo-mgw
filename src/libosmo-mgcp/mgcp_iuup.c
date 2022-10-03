@@ -342,8 +342,7 @@ static int _conn_iuup_rx_rnl_data(struct mgcp_conn_rtp *conn_rtp_src, struct osm
 		return bridge_iuup_to_iuup_peer(conn_rtp_src, conn_rtp_dst, irp);
 	case MGCP_RTP_DEFAULT:
 		return bridge_iuup_to_rtp_peer(conn_rtp_src, conn_rtp_dst, irp);
-	case MGCP_OSMUX_BSC:
-	case MGCP_OSMUX_BSC_NAT:
+	case MGCP_RTP_OSMUX:
 	default:
 		LOGPCONN(conn_rtp_src->conn, DRTP, LOGL_ERROR,
 			 "Forward of IuUP payload to RTP connection type %u not supported!\n",

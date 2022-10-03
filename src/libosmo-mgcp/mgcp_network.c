@@ -1013,10 +1013,9 @@ static int mgcp_send_rtp(struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
 			 "using mgcp_send() to forward data directly\n");
 		return mgcp_send(endp, proto == MGCP_PROTO_RTP,
 				 mc->from_addr, msg, conn_src, conn_dst);
-	case MGCP_OSMUX_BSC_NAT:
-	case MGCP_OSMUX_BSC:
+	case MGCP_RTP_OSMUX:
 		LOGPENDP(endp, DRTP, LOGL_DEBUG,
-			 "endpoint type is MGCP_OSMUX_BSC_NAT, "
+			 "endpoint type is MGCP_RTP_OSMUX, "
 			 "using osmux_xfrm_to_osmux() to forward data through OSMUX\n");
 		return osmux_xfrm_to_osmux((char*)msgb_data(msg), msgb_length(msg), conn_dst);
 	case MGCP_RTP_IUUP:

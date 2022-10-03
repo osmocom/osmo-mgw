@@ -46,8 +46,7 @@ LOGPENDP((conn)->endp, cat, level, "CI:%s " fmt, \
 /* Specific rtp connection type (see struct mgcp_conn_rtp) */
 enum mgcp_conn_rtp_type {
 	MGCP_RTP_DEFAULT	= 0,
-	MGCP_OSMUX_BSC,
-	MGCP_OSMUX_BSC_NAT,
+	MGCP_RTP_OSMUX,
 	MGCP_RTP_IUUP,
 };
 
@@ -224,7 +223,7 @@ static const struct rate_ctr_desc all_osmux_conn_rate_ctr_desc[] = {
 
 /* Was conn configured to handle Osmux? */
 static inline bool mgcp_conn_rtp_is_osmux(const struct mgcp_conn_rtp *conn) {
-	return conn->type == MGCP_OSMUX_BSC || conn->type == MGCP_OSMUX_BSC_NAT;
+	return conn->type == MGCP_RTP_OSMUX;
 }
 
 /* Was conn configured to handle Osmux? */

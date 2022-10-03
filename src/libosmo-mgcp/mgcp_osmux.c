@@ -611,7 +611,7 @@ int conn_osmux_allocate_local_cid(struct mgcp_conn_rtp *conn)
 
 	conn->osmux.local_cid = (uint8_t) osmux_cid;
 	conn->osmux.local_cid_allocated = true;
-	conn->type = MGCP_OSMUX_BSC;
+	conn->type = MGCP_RTP_OSMUX;
 	return osmux_cid;
 }
 
