@@ -279,12 +279,6 @@ osmux_conn_lookup(struct mgcp_trunk *trunk, uint8_t local_cid, const struct osmo
 	return NULL;
 }
 
-/* FIXME: this is declared and used in mgcp_network.c, but documentation of mgcp_dispatch_rtp_bridge_cb() states another enum is to be used */
-enum {
-	MGCP_PROTO_RTP,
-	MGCP_PROTO_RTCP,
-};
-
 static void scheduled_from_osmux_tx_rtp_cb(struct msgb *msg, void *data)
 {
 	struct mgcp_conn_rtp *conn = data;

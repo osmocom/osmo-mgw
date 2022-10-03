@@ -54,11 +54,6 @@
 #define RTP_MAX_DROPOUT		3000
 #define RTP_MAX_MISORDER	100
 
-enum rtp_proto {
-	MGCP_PROTO_RTP,
-	MGCP_PROTO_RTCP,
-};
-
 void rtpconn_rate_ctr_add(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *endp,
 				 int id, int inc)
 {
@@ -1278,13 +1273,12 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 	return 0;
 }
 
-/*! dispatch incoming RTP packet to opposite RTP connection.
- *  \param[in] proto protocol (MGCP_CONN_TYPE_RTP or MGCP_CONN_TYPE_RTCP).
- *  \param[in] addr socket address where the RTP packet has been received from.
- *  \param[in] buf buffer that hold the RTP payload.
- *  \param[in] buf_size size data length of buf.
- *  \param[in] conn originating connection.
- *  \returns 0 on success, -1 on ERROR. */
+/*! Dispatch incoming RTP packet to opposite RTP connection.
+ * \param[in] msg Message buffer to bridge, coming from source connection.
+ *            msg shall contain "struct osmo_rtp_msg_ctx *" attached in
+ *            "OSMO_RTP_MSG_CTX(msg)".
+ *  \returns 0 on success, -1 on ERROR.
+ */
 int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 {
 	struct osmo_rtp_msg_ctx *mc = OSMO_RTP_MSG_CTX(msg);

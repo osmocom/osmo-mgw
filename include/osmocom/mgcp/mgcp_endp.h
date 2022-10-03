@@ -40,8 +40,13 @@ LOGP(cat, level, "endpoint:%s " fmt, \
      endp ? endp->name : "none", \
      ## args)
 
+enum rtp_proto {
+	MGCP_PROTO_RTP,
+	MGCP_PROTO_RTCP,
+};
+
 struct osmo_rtp_msg_ctx {
-	int proto;
+	enum rtp_proto proto;
 	struct mgcp_conn_rtp *conn_src;
 	struct osmo_sockaddr *from_addr;
 };
