@@ -410,16 +410,19 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 	uint32_t rem;
 	struct mgcp_trunk *trunk = ofd->data;
 	struct rate_ctr_group *all_rtp_stats = trunk->ratectr.all_osmux_conn_stats;
+	char addr_str[64];
 
 	msg = osmux_recv(ofd, &rem_addr);
 	if (!msg)
 		return -1;
 
 	rate_ctr_inc(rate_ctr_group_get_ctr(all_rtp_stats, OSMUX_PACKETS_RX_CTR));
+	osmo_sockaddr_to_str_buf(addr_str, sizeof(addr_str), &rem_addr);
 
 	if (trunk->cfg->osmux_use == OSMUX_USAGE_OFF) {
 		LOGP(DOSMUX, LOGL_ERROR,
-		     "bsc-nat wants to use Osmux but bsc did not request it\n");
+		     "Peer %s wants to use Osmux but MGCP Client did not request it\n",
+		     addr_str);
 		goto out;
 	}
 
@@ -435,8 +438,8 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 					     &rem_addr);
 		if (!conn_src) {
 			LOGP(DOSMUX, LOGL_DEBUG,
-			     "Cannot find a src conn for circuit_id=%d\n",
-			     osmuxh->circuit_id);
+			     "Cannot find a src conn for %s CID=%d\n",
+			     addr_str, osmuxh->circuit_id);
 			rem = msg->len;
 			continue;
 		}
