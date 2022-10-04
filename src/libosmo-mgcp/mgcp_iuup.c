@@ -489,7 +489,7 @@ static int mgcp_send_iuup(struct mgcp_endpoint *endp, struct msgb *msg,
 			 "rtp_port:%u rtcp_port:%u\n",
 			 dest_name,
 			 osmo_sockaddr_ntop(&rtp_end->addr.u.sa, ipbuf),
-			 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
+			 osmo_sockaddr_port(&rtp_end->addr.u.sa), ntohs(rtp_end->rtcp_port)
 			);
 		return 0;
 	}
@@ -505,14 +505,13 @@ static int mgcp_send_iuup(struct mgcp_endpoint *endp, struct msgb *msg,
 	LOGPENDP(endp, DRTP, LOGL_DEBUG,
 		 "process/send IuUP to %s %s rtp_port:%u rtcp_port:%u\n",
 		 dest_name, osmo_sockaddr_ntop(&rtp_end->addr.u.sa, ipbuf),
-		 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port));
+		 osmo_sockaddr_port(&rtp_end->addr.u.sa), ntohs(rtp_end->rtcp_port));
 
 	/* Forward a copy of the RTP data to a debug ip/port */
 	forward_data_tap(rtp_end->rtp.fd, &conn_src->tap_out,
 		     msg);
 
-	len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr, rtp_end->rtp_port,
-			    (char *)hdr, buflen);
+	len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr, (char *)hdr, buflen);
 
 	if (len <= 0)
 		return len;
@@ -617,9 +616,8 @@ int mgcp_conn_iuup_dispatch_rtp(struct msgb *msg)
 		force_output_enabled = true;
 		/* Fill in the peer address so that we can send Init-ACK back: */
 		prev_rem_addr = conn_rtp_src->end.addr;
-		prev_rem_rtp_port = conn_rtp_src->end.rtp_port;
+		prev_rem_rtp_port = osmo_sockaddr_port(&conn_rtp_src->end.addr.u.sa);
 		conn_rtp_src->end.addr = *mc->from_addr;
-		conn_rtp_src->end.rtp_port = htons(osmo_sockaddr_port(&mc->from_addr->u.sa));
 	}
 
 	rc = _conn_iuup_rtp_pl_up(conn_rtp_src, msg);
@@ -627,7 +625,7 @@ int mgcp_conn_iuup_dispatch_rtp(struct msgb *msg)
 	if (force_output_enabled) {
 		conn_rtp_src->end.output_enabled = prev_output_enabled;
 		conn_rtp_src->end.addr = prev_rem_addr;
-		conn_rtp_src->end.rtp_port = prev_rem_rtp_port;
+		osmo_sockaddr_set_port(&conn_rtp_src->end.addr.u.sa, prev_rem_rtp_port);
 	}
 
 	return rc;

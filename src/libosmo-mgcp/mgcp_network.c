@@ -74,7 +74,8 @@ static int rx_rtp(struct msgb *msg);
 
 bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end)
 {
-	return rtp_end->rtp_port && (osmo_sockaddr_is_any(&rtp_end->addr) == 0);
+	return (osmo_sockaddr_port(&rtp_end->addr.u.sa) != 0) &&
+	       (osmo_sockaddr_is_any(&rtp_end->addr) == 0);
 }
 
 /*! Determine the local rtp bind IP-address.
@@ -870,14 +871,14 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *ad
 	 * the same as the remote port where we transmit outgoing RTP traffic
 	 * to (set by MDCX). We use this to check the origin of the data for
 	 * plausibility. */
-	if (ntohs(conn->end.rtp_port) != osmo_sockaddr_port(&addr->u.sa) &&
+	if (osmo_sockaddr_port(&conn->end.addr.u.sa) != osmo_sockaddr_port(&addr->u.sa) &&
 	    ntohs(conn->end.rtcp_port) != osmo_sockaddr_port(&addr->u.sa)) {
 		LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
 			 "data from wrong source port: %d, ",
 			 osmo_sockaddr_port(&addr->u.sa));
 		LOGPC(DRTP, LOGL_ERROR,
 		      "expected: %d for RTP or %d for RTCP\n",
-		      ntohs(conn->end.rtp_port), ntohs(conn->end.rtcp_port));
+		      osmo_sockaddr_port(&conn->end.addr.u.sa), ntohs(conn->end.rtcp_port));
 		LOGPCONN(conn->conn, DRTP, LOGL_ERROR, "packet tossed\n");
 		return -1;
 	}
@@ -891,27 +892,28 @@ static int check_rtp_destin(struct mgcp_conn_rtp *conn)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
 	bool ip_is_any = osmo_sockaddr_is_any(&conn->end.addr) != 0;
+	uint16_t port = osmo_sockaddr_port(&conn->end.addr.u.sa);
 
 	/* Note: it is legal to create a connection but never setting a port
 	 * and IP-address for outgoing data. */
-	if (ip_is_any && conn->end.rtp_port == 0) {
+	if (ip_is_any && port == 0) {
 		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
 			 "destination IP-address and rtp port is not (yet) known (%s:%u)\n",
-			 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf), conn->end.rtp_port);
+			 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf), port);
 		return -1;
 	}
 
 	if (ip_is_any) {
 		LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
 			 "destination IP-address is invalid (%s:%u)\n",
-			 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf), conn->end.rtp_port);
+			 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf), port);
 		return -1;
 	}
 
-	if (conn->end.rtp_port == 0) {
+	if (port == 0) {
 		LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
 			 "destination rtp port is invalid (%s:%u)\n",
-			 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf), conn->end.rtp_port);
+			 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf), port);
 		return -1;
 	}
 
@@ -1033,26 +1035,22 @@ static int mgcp_send_rtp(struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
 /*! send udp packet.
  *  \param[in] fd associated file descriptor.
  *  \param[in] addr destination ip-address.
- *  \param[in] port destination UDP port (network byte order).
  *  \param[in] buf buffer that holds the data to be send.
  *  \param[in] len length of the data to be sent.
  *  \returns bytes sent, -1 on error. */
-int mgcp_udp_send(int fd, struct osmo_sockaddr *addr, int port, const char *buf, int len)
+int mgcp_udp_send(int fd, const struct osmo_sockaddr *addr, const char *buf, int len)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
 	size_t addr_len;
-	bool is_ipv6 =  addr->u.sa.sa_family == AF_INET6;
 
 	LOGP(DRTP, LOGL_DEBUG,
 	     "sending %i bytes length packet to %s:%u ...\n", len,
 	     osmo_sockaddr_ntop(&addr->u.sa, ipbuf),
-	     ntohs(port));
+	     osmo_sockaddr_port(&addr->u.sa));
 
-	if (is_ipv6) {
-		addr->u.sin6.sin6_port = port;
+	if (addr->u.sa.sa_family == AF_INET6) {
 		addr_len = sizeof(addr->u.sin6);
 	} else {
-		addr->u.sin.sin_port = port;
 		addr_len = sizeof(addr->u.sin);
 	}
 
@@ -1067,6 +1065,7 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 {
 	int rc;
 	int was_rtcp = 0;
+	struct osmo_sockaddr rtcp_addr;
 
 	OSMO_ASSERT(endp);
 	OSMO_ASSERT(conn);
@@ -1083,7 +1082,7 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	if (mgcp_conn_rtp_is_iuup(conn))
 		rc = mgcp_conn_iuup_send_dummy(conn);
 	else
-		rc = mgcp_udp_send(conn->end.rtp.fd, &conn->end.addr, conn->end.rtp_port,
+		rc = mgcp_udp_send(conn->end.rtp.fd, &conn->end.addr,
 				   rtp_dummy_payload, sizeof(rtp_dummy_payload));
 
 	if (rc == -1)
@@ -1093,8 +1092,10 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 		return rc;
 
 	was_rtcp = 1;
-	rc = mgcp_udp_send(conn->end.rtcp.fd, &conn->end.addr,
-			   conn->end.rtcp_port, rtp_dummy_payload, sizeof(rtp_dummy_payload));
+	rtcp_addr = conn->end.addr;
+	osmo_sockaddr_set_port(&rtcp_addr.u.sa, ntohs(conn->end.rtcp_port));
+	rc = mgcp_udp_send(conn->end.rtcp.fd, &rtcp_addr,
+			   rtp_dummy_payload, sizeof(rtp_dummy_payload));
 
 	if (rc >= 0)
 		return rc;
@@ -1174,7 +1175,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 			 "rtp_port:%u rtcp_port:%u\n",
 			 dest_name,
 			 osmo_sockaddr_ntop(&rtp_end->addr.u.sa, ipbuf),
-			 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
+			 osmo_sockaddr_port(&rtp_end->addr.u.sa), ntohs(rtp_end->rtcp_port)
 		    );
 	} else if (is_rtp) {
 		int cont;
@@ -1219,14 +1220,14 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 				 "rtp_port:%u rtcp_port:%u\n",
 				 dest_name,
 				 osmo_sockaddr_ntop(&rtp_end->addr.u.sa, ipbuf),
-				 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
+				 osmo_sockaddr_port(&rtp_end->addr.u.sa), ntohs(rtp_end->rtcp_port)
 				);
 
 			/* Forward a copy of the RTP data to a debug ip/port */
 			forward_data_tap(rtp_end->rtp.fd, &conn_src->tap_out,
 				     msg);
 
-			len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr, rtp_end->rtp_port,
+			len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr,
 					    (char *)msgb_data(msg), msgb_length(msg));
 
 			if (len <= 0)
@@ -1241,15 +1242,17 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 		} while (buflen > 0);
 		return nbytes;
 	} else if (!trunk->omit_rtcp) {
+		struct osmo_sockaddr rtcp_addr = rtp_end->addr;
+		osmo_sockaddr_set_port(&rtcp_addr.u.sa, rtp_end->rtcp_port);
 		LOGPENDP(endp, DRTP, LOGL_DEBUG,
 			 "send to %s %s rtp_port:%u rtcp_port:%u\n",
-			 dest_name, osmo_sockaddr_ntop(&rtp_end->addr.u.sa, ipbuf),
-			 ntohs(rtp_end->rtp_port), ntohs(rtp_end->rtcp_port)
+			 dest_name, osmo_sockaddr_ntop(&rtcp_addr.u.sa, ipbuf),
+			 osmo_sockaddr_port(&rtp_end->addr.u.sa),
+			 osmo_sockaddr_port(&rtcp_addr.u.sa)
 			);
 
-		len = mgcp_udp_send(rtp_end->rtcp.fd,
-				    &rtp_end->addr,
-				    rtp_end->rtcp_port, (char *)msgb_data(msg), msgb_length(msg));
+		len = mgcp_udp_send(rtp_end->rtcp.fd, &rtcp_addr,
+				    (char *)msgb_data(msg), msgb_length(msg));
 
 		rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
 		rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
@@ -1295,23 +1298,13 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 		 * packets back to their origin. We will use the originating
 		 * address data from the UDP packet header to patch the
 		 * outgoing address in connection on the fly */
-		if (conn->u.rtp.end.rtp_port == 0) {
+		if (osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa) == 0) {
 			memcpy(&conn->u.rtp.end.addr, from_addr,
 			       sizeof(conn->u.rtp.end.addr));
-			switch (from_addr->u.sa.sa_family) {
-			case AF_INET:
-				conn->u.rtp.end.rtp_port = from_addr->u.sin.sin_port;
-				break;
-			case AF_INET6:
-				conn->u.rtp.end.rtp_port = from_addr->u.sin6.sin6_port;
-				break;
-			default:
-				OSMO_ASSERT(false);
-			}
 			LOG_CONN_RTP(conn_src, LOGL_NOTICE,
 				     "loopback mode: implicitly using source address (%s:%u) as destination address\n",
 				     osmo_sockaddr_ntop(&from_addr->u.sa, ipbuf),
-				     conn->u.rtp.end.rtp_port);
+				     osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa));
 		}
 		return mgcp_send_rtp(conn_src, msg);
 	}
@@ -1370,23 +1363,13 @@ int mgcp_dispatch_e1_bridge_cb(struct msgb *msg)
 		 * packets back to their origin. We will use the originating
 		 * address data from the UDP packet header to patch the
 		 * outgoing address in connection on the fly */
-		if (conn->u.rtp.end.rtp_port == 0) {
+		if (osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa) == 0) {
 			memcpy(&conn->u.rtp.end.addr, from_addr,
 			       sizeof(conn->u.rtp.end.addr));
-			switch (from_addr->u.sa.sa_family) {
-			case AF_INET:
-				conn->u.rtp.end.rtp_port = from_addr->u.sin.sin_port;
-				break;
-			case AF_INET6:
-				conn->u.rtp.end.rtp_port = from_addr->u.sin6.sin6_port;
-				break;
-			default:
-				OSMO_ASSERT(false);
-			}
 			LOG_CONN_RTP(conn_src, LOGL_NOTICE,
 				     "loopback mode: implicitly using source address (%s:%u) as destination address\n",
 				     osmo_sockaddr_ntop(&from_addr->u.sa, ipbuf),
-				     conn->u.rtp.end.rtp_port);
+				     osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa));
 		}
 		return mgcp_send_rtp(conn_src, msg);
 	}

@@ -105,7 +105,8 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 
 	end->rtp.fd = -1;
 	end->rtcp.fd = -1;
-	end->rtp_port = end->rtcp_port = 0;
+	memset(&end->addr, 0, sizeof(end->addr));
+	end->rtcp_port = 0;
 	talloc_free(end->fmtp_extra);
 	end->fmtp_extra = NULL;
 
@@ -368,7 +369,7 @@ char *mgcp_conn_dump(struct mgcp_conn *conn)
 			 conn->name,
 			 conn->id,
 			 osmo_sockaddr_ntop(&conn->u.rtp.end.addr.u.sa, ipbuf),
-			 ntohs(conn->u.rtp.end.rtp_port),
+			 osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa),
 			 ntohs(conn->u.rtp.end.rtcp_port));
 		break;
 

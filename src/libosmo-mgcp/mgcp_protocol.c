@@ -708,7 +708,7 @@ void mgcp_rtp_end_config(struct mgcp_endpoint *endp, int expect_ssrc_change,
 
 	LOGPENDP(endp, DLMGCP, LOGL_DEBUG,
 		 "Configuring RTP endpoint: local port %d%s%s\n",
-		 ntohs(rtp->rtp_port),
+		 osmo_sockaddr_port(&rtp->addr.u.sa),
 		 rtp->force_aligned_timing ? ", force constant timing" : "",
 		 rtp->force_constant_ssrc ? ", force constant ssrc" : "");
 }
@@ -1057,7 +1057,7 @@ mgcp_header_done:
 	/* check connection mode setting */
 	if (conn->conn->mode != MGCP_CONN_LOOPBACK
 	    && conn->conn->mode != MGCP_CONN_RECV_ONLY
-	    && conn->end.rtp_port == 0) {
+	    && osmo_sockaddr_port(&conn->end.addr.u.sa) == 0) {
 		LOGPCONN(_conn, DLMGCP, LOGL_ERROR,
 			 "CRCX: selected connection mode type requires an opposite end!\n");
 		error_code = 527;

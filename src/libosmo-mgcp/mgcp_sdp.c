@@ -384,7 +384,7 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 		case 'm':
 			rc = sscanf(line, "m=audio %d RTP/AVP", &port);
 			if (rc == 1) {
-				rtp->rtp_port = htons(port);
+				osmo_sockaddr_set_port(&rtp->addr.u.sa, port);
 				rtp->rtcp_port = htons(port + 1);
 			}
 
@@ -432,7 +432,7 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 
 	LOGPCONN(conn->conn, DLMGCP, LOGL_NOTICE,
 	     "Got media info via SDP: port:%d, addr:%s, duration:%d, payload-types:",
-	     ntohs(rtp->rtp_port), osmo_sockaddr_ntop(&rtp->addr.u.sa, ipbuf),
+	     osmo_sockaddr_port(&rtp->addr.u.sa), osmo_sockaddr_ntop(&rtp->addr.u.sa, ipbuf),
 	     rtp->packet_duration_ms);
 	if (codecs_used == 0)
 		LOGPC(DLMGCP, LOGL_NOTICE, "none");

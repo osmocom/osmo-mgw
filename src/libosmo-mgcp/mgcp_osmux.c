@@ -338,7 +338,6 @@ static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_r
 	switch(conn->osmux.state) {
 	case OSMUX_STATE_ACTIVATING:
 		rem_addr = conn->end.addr;
-		osmo_sockaddr_set_port(&rem_addr.u.sa, ntohs(conn->end.rtp_port));
 		if (osmux_enable_conn(endp, conn, &rem_addr) < 0) {
 			LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 				 "Could not enable osmux for conn on %s: %s\n",
@@ -651,10 +650,9 @@ int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	LOGPCONN(conn->conn, DOSMUX, LOGL_DEBUG,
 		 "sending OSMUX dummy load to %s:%u CID %u\n",
 		 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf),
-		 ntohs(conn->end.rtp_port), conn->osmux.remote_cid);
+		 osmo_sockaddr_port(&conn->end.addr.u.sa), conn->osmux.remote_cid);
 
-	return mgcp_udp_send(osmux_fd.fd, &conn->end.addr,
-			     conn->end.rtp_port, (char*)osmuxh, buf_len);
+	return mgcp_udp_send(osmux_fd.fd, &conn->end.addr, (char *)osmuxh, buf_len);
 }
 
 /* bsc-nat allocates/releases the Osmux circuit ID. +7 to round up to 8 bit boundary. */

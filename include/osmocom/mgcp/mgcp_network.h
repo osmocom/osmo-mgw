@@ -93,7 +93,7 @@ struct mgcp_rtp_end {
 	struct osmo_sockaddr addr;
 
 	/* in network byte order */
-	int rtp_port, rtcp_port;
+	int rtcp_port;
 
 	/* currently selected audio codec */
 	struct mgcp_rtp_codec *codec;

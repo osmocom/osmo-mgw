@@ -1492,7 +1492,7 @@ static void test_multilple_codec(void)
 	conn = mgcp_conn_get_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 3);
-	OSMO_ASSERT(conn->end.rtp_port == htons(16434));
+	OSMO_ASSERT(osmo_sockaddr_port(&conn->end.addr.u.sa) == 16434);
 	memset(&addr, 0, sizeof(addr));
 	inet_aton("8.8.8.8", &addr);
 	OSMO_ASSERT(conn->end.addr.u.sa.sa_family == AF_INET);
