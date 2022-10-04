@@ -323,7 +323,7 @@ error:
  * osmux connection, send the dummy packet via OSMUX */
 static void send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 {
-	if (conn->osmux.state != OSMUX_STATE_DISABLED)
+	if (mgcp_conn_rtp_is_osmux(conn))
 		osmux_send_dummy(endp, conn);
 	else
 		mgcp_send_dummy(endp, conn);
