@@ -30,7 +30,8 @@
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
 
-static struct osmo_fd osmux_fd;
+static struct osmo_fd osmux_fd_v4;
+static struct osmo_fd osmux_fd_v6;
 
 static LLIST_HEAD(osmux_handle_list);
 
@@ -76,20 +77,22 @@ static void osmux_deliver_cb(struct msgb *batch_msg, void *data)
 {
 	struct osmux_handle *handle = data;
 	socklen_t dest_len;
-	int rc;
-	struct mgcp_trunk *trunk = (struct mgcp_trunk *)osmux_fd.data;
+	int rc, fd;
+	struct mgcp_trunk *trunk = (struct mgcp_trunk *)osmux_fd_v4.data;
 	struct rate_ctr_group *all_osmux_stats = trunk->ratectr.all_osmux_conn_stats;
 
 	switch (handle->rem_addr.u.sa.sa_family) {
 	case AF_INET6:
 		dest_len = sizeof(handle->rem_addr.u.sin6);
+		fd = osmux_fd_v6.fd;
 		break;
 	case AF_INET:
 	default:
 		dest_len = sizeof(handle->rem_addr.u.sin);
+		fd = osmux_fd_v4.fd;
 		break;
 	}
-	rc = sendto(osmux_fd.fd, batch_msg->data, batch_msg->len, 0,
+	rc = sendto(fd, batch_msg->data, batch_msg->len, 0,
 		    (struct sockaddr *)&handle->rem_addr.u.sa, dest_len);
 	if (rc < 0) {
 		char errbuf[129];
@@ -186,11 +189,6 @@ static struct osmux_in_handle *
 osmux_handle_find_or_create(struct mgcp_conn_rtp *conn, const struct osmo_sockaddr *rem_addr)
 {
 	struct osmux_handle *h;
-
-	if (rem_addr->u.sa.sa_family != AF_INET) {
-		LOGP(DOSMUX, LOGL_DEBUG, "IPv6 not supported in osmux yet!\n");
-		return NULL;
-	}
 
 	h = osmux_handle_find_get(rem_addr);
 	if (h != NULL)
@@ -450,27 +448,46 @@ int osmux_init(int role, struct mgcp_trunk *trunk)
 	/* So far we only support running on one trunk: */
 	OSMO_ASSERT(trunk == mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID));
 
-	osmo_fd_setup(&osmux_fd, -1, OSMO_FD_READ, osmux_read_fd_cb, trunk, 0);
+	osmo_fd_setup(&osmux_fd_v4, -1, OSMO_FD_READ, osmux_read_fd_cb, trunk, 0);
+	osmo_fd_setup(&osmux_fd_v6, -1, OSMO_FD_READ, osmux_read_fd_cb, trunk, 0);
 
-	ret = mgcp_create_bind(cfg->osmux_addr, &osmux_fd, cfg->osmux_port,
-				cfg->endp_dscp, cfg->endp_priority);
-	if (ret < 0) {
-		LOGP(DOSMUX, LOGL_ERROR, "cannot bind OSMUX socket to %s:%u\n",
-		     cfg->osmux_addr, cfg->osmux_port);
-		return ret;
+	if (cfg->osmux_addr_v4) {
+		ret = mgcp_create_bind(cfg->osmux_addr_v4, &osmux_fd_v4, cfg->osmux_port,
+					cfg->endp_dscp, cfg->endp_priority);
+		if (ret < 0) {
+			LOGP(DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv4 socket to %s:%u\n",
+			     cfg->osmux_addr_v4, cfg->osmux_port);
+			return ret;
+		}
+
+		ret = osmo_fd_register(&osmux_fd_v4);
+		if (ret < 0) {
+			LOGP(DOSMUX, LOGL_ERROR, "Cannot register OSMUX IPv4 socket %s\n",
+			     osmo_sock_get_name2(osmux_fd_v4.fd));
+			return ret;
+		}
+		LOGP(DOSMUX, LOGL_INFO, "OSMUX IPv4 socket listening on %s\n",
+		     osmo_sock_get_name2(osmux_fd_v4.fd));
 	}
+	if (cfg->osmux_addr_v6) {
+		ret = mgcp_create_bind(cfg->osmux_addr_v6, &osmux_fd_v6, cfg->osmux_port,
+					cfg->endp_dscp, cfg->endp_priority);
+		if (ret < 0) {
+			LOGP(DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv6 socket to %s:%u\n",
+			     cfg->osmux_addr_v6, cfg->osmux_port);
+			return ret;
+		}
 
-	ret = osmo_fd_register(&osmux_fd);
-	if (ret < 0) {
-		LOGP(DOSMUX, LOGL_ERROR, "cannot register OSMUX socket %s\n",
-		     osmo_sock_get_name2(osmux_fd.fd));
-		return ret;
+		ret = osmo_fd_register(&osmux_fd_v6);
+		if (ret < 0) {
+			LOGP(DOSMUX, LOGL_ERROR, "Cannot register OSMUX IPv6 socket %s\n",
+			     osmo_sock_get_name2(osmux_fd_v6.fd));
+			return ret;
+		}
+		LOGP(DOSMUX, LOGL_INFO, "OSMUX IPv6 socket listening on %s\n",
+		     osmo_sock_get_name2(osmux_fd_v6.fd));
 	}
 	cfg->osmux_initialized = true;
-
-	LOGP(DOSMUX, LOGL_INFO, "OSMUX socket listening on %s\n",
-		 osmo_sock_get_name2(osmux_fd.fd));
-
 	return 0;
 }
 
@@ -647,7 +664,7 @@ int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 		 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf),
 		 osmo_sockaddr_port(&conn->end.addr.u.sa), conn->osmux.remote_cid);
 
-	return mgcp_udp_send(osmux_fd.fd, &conn->end.addr, (char *)osmuxh, buf_len);
+	return mgcp_udp_send(osmux_fd_v4.fd, &conn->end.addr, (char *)osmuxh, buf_len);
 }
 
 /* bsc-nat allocates/releases the Osmux circuit ID. +7 to round up to 8 bit boundary. */

@@ -1067,7 +1067,10 @@ mgcp_header_done:
 
 	/* Find a local address for conn based on policy and initial SDP remote
 	   information, then find a free port for it */
-	mgcp_get_local_addr(conn->end.local_addr, conn);
+	if (mgcp_get_local_addr(conn->end.local_addr, conn) < 0) {
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
+		goto error2;
+	}
 	if (allocate_port(endp, conn) != 0) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
 		goto error2;
@@ -1279,7 +1282,10 @@ mgcp_header_done:
 	   to update our announced IP addr and re-bind our local end. This can
 	   happen for instance if MGW initially provided an IPv4 during CRCX
 	   ACK, and now MDCX tells us the remote has an IPv6 address. */
-	mgcp_get_local_addr(new_local_addr, conn);
+	if (mgcp_get_local_addr(new_local_addr, conn) < 0) {
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
+		goto error3;
+	}
 	if (strcmp(new_local_addr, conn->end.local_addr)) {
 		osmo_strlcpy(conn->end.local_addr, new_local_addr, sizeof(conn->end.local_addr));
 		mgcp_free_rtp_port(&conn->end);
@@ -1627,7 +1633,6 @@ struct mgcp_config *mgcp_config_alloc(void)
 
 	cfg->source_port = 2427;
 	osmo_strlcpy(cfg->source_addr, "0.0.0.0", sizeof(cfg->source_addr));
-	osmo_strlcpy(cfg->osmux_addr, "0.0.0.0", sizeof(cfg->osmux_addr));
 
 	cfg->rtp_processing_cb = &mgcp_rtp_processing_default;
 	cfg->setup_rtp_processing_cb = &mgcp_setup_rtp_processing_default;

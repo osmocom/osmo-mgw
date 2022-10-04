@@ -142,8 +142,12 @@ static int config_write_mgcp(struct vty *vty)
 		break;
 	}
 	if (g_cfg->osmux_use != OSMUX_USAGE_OFF) {
-		vty_out(vty, " osmux bind-ip %s%s",
-			g_cfg->osmux_addr, VTY_NEWLINE);
+		if (g_cfg->osmux_addr_v4)
+			vty_out(vty, " osmux bind-ip %s%s",
+				g_cfg->osmux_addr_v4, VTY_NEWLINE);
+		if (g_cfg->osmux_addr_v6)
+			vty_out(vty, " osmux bind-ip-v6 %s%s",
+				g_cfg->osmux_addr_v6, VTY_NEWLINE);
 		vty_out(vty, " osmux batch-factor %d%s",
 			g_cfg->osmux_batch, VTY_NEWLINE);
 		vty_out(vty, " osmux batch-size %u%s",
@@ -1584,12 +1588,21 @@ DEFUN(cfg_mgcp_osmux,
 
 DEFUN(cfg_mgcp_osmux_ip,
       cfg_mgcp_osmux_ip_cmd,
-      "osmux bind-ip " VTY_IPV46_CMD,
+      "osmux bind-ip " VTY_IPV4_CMD,
       OSMUX_STR IP_STR
-      "IPv4 Address to bind to\n"
+      "IPv4 Address to bind to\n")
+{
+	osmo_talloc_replace_string(g_cfg, &g_cfg->osmux_addr_v4, argv[0]);
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_mgcp_osmux_ip_v6,
+      cfg_mgcp_osmux_ip_v6_cmd,
+      "osmux bind-ip-v6 " VTY_IPV6_CMD,
+      OSMUX_STR IP_STR
       "IPv6 Address to bind to\n")
 {
-	osmo_strlcpy(g_cfg->osmux_addr, argv[0], sizeof(g_cfg->osmux_addr));
+	osmo_talloc_replace_string(g_cfg, &g_cfg->osmux_addr_v6, argv[0]);
 	return CMD_SUCCESS;
 }
 
@@ -1718,6 +1731,7 @@ int mgcp_vty_init(void)
 	install_element(MGCP_NODE, &cfg_mgcp_no_sdp_payload_send_name_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_ip_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_osmux_ip_v6_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_batch_factor_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_batch_size_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_port_cmd);

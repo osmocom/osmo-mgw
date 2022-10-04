@@ -160,7 +160,8 @@ struct mgcp_config {
 	/* Osmux usage policy: */
 	enum osmux_usage osmux_use;
 	/* addr to bind the server to */
-	char osmux_addr[INET6_ADDRSTRLEN];
+	char *osmux_addr_v4;
+	char *osmux_addr_v6;
 	/* The BSC-NAT may ask for enabling osmux on demand. This tells us if
 	 * the osmux socket is already initialized.
 	 */

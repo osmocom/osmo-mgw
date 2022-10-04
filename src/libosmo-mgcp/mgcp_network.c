@@ -81,12 +81,13 @@ bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end)
 /*! Determine the local rtp bind IP-address.
  *  \param[out] addr caller provided memory to store the resulting IP-Address.
  *  \param[in] endp mgcp endpoint, that holds a copy of the VTY parameters.
+ * \ returns 0 on success, -1 if no local address could be provided.
  *
  *  The local bind IP-address is automatically selected by probing the
  *  IP-Address of the interface that is pointing towards the remote IP-Address,
  *  if no remote IP-Address is known yet, the statically configured
  *  IP-Addresses are used as fallback. */
-void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
+int mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 {
 
 	struct mgcp_endpoint *endp;
@@ -99,12 +100,30 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 	/* Osmux: No smart IP addresses allocation is supported yet. Simply
 	 * return the one set in VTY config: */
 	if (mgcp_conn_rtp_is_osmux(conn)) {
-		bind_addr = conn->conn->endp->trunk->cfg->osmux_addr;
-		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
-			 "using configured osmux bind ip as local bind ip %s\n",
+		if (rem_addr_set) {
+			/* Match IP version with what was requested from remote: */
+			bind_addr = conn->end.addr.u.sa.sa_family == AF_INET6 ?
+				    conn->conn->endp->trunk->cfg->osmux_addr_v6 :
+				    conn->conn->endp->trunk->cfg->osmux_addr_v4;
+		} else {
+			/* Choose any of the bind addresses, preferring v6 over v4 if available: */
+			bind_addr = conn->conn->endp->trunk->cfg->osmux_addr_v6;
+			if (!bind_addr)
+				bind_addr = conn->conn->endp->trunk->cfg->osmux_addr_v4;
+		}
+		if (!bind_addr) {
+			LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
+				"Unable to locate local Osmux address, check your configuration! v4=%u v6=%u remote_known=%s\n",
+				!!conn->conn->endp->trunk->cfg->osmux_addr_v4,
+				!!conn->conn->endp->trunk->cfg->osmux_addr_v6,
+				rem_addr_set ? osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf) : "no");
+			return -1;
+		}
+		LOGPCONN(conn->conn, DOSMUX, LOGL_DEBUG,
+			 "Using configured osmux bind ip as local bind ip %s\n",
 			 bind_addr);
 		osmo_strlcpy(addr, bind_addr, INET6_ADDRSTRLEN);
-		return;
+		return 0;
 	}
 
 	/* Try probing the local IP-Address */
@@ -117,7 +136,7 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 			LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
 				 "selected local rtp bind ip %s by probing using remote ip %s\n",
 				 addr, osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf));
-			return;
+			return 0;
 		}
 	}
 
@@ -147,6 +166,7 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 			"using mgcp bind ip as local rtp bind ip: %s\n", bind_addr);
 	}
 	osmo_strlcpy(addr, bind_addr, INET6_ADDRSTRLEN);
+	return 0;
 }
 
 /* This does not need to be a precision timestamp and
