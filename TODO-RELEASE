@@ -25,3 +25,4 @@
 #
 #library		what		description / commit summary line
 libosmo-netif           >1.2.0          OSMUX_DEFAULT_PORT, osmux_xfrm_output_*, osmux_xfrm_input_*
+libosmocore             >1.7.0          osmo_sockaddr_is_any()

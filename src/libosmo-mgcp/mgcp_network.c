@@ -72,20 +72,9 @@ void rtpconn_rate_ctr_inc(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *
 
 static int rx_rtp(struct msgb *msg);
 
-static bool addr_is_any(const struct osmo_sockaddr *osa)
-{
-	if (osa->u.sa.sa_family == AF_INET6) {
-		struct in6_addr ip6_any = IN6ADDR_ANY_INIT;
-		return memcmp(&osa->u.sin6.sin6_addr,
-				   &ip6_any, sizeof(ip6_any)) == 0;
-	} else {
-		return osa->u.sin.sin_addr.s_addr == 0;
-	}
-}
-
 bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end)
 {
-	return rtp_end->rtp_port && !addr_is_any(&rtp_end->addr);
+	return rtp_end->rtp_port && (osmo_sockaddr_is_any(&rtp_end->addr) == 0);
 }
 
 /*! Determine the local rtp bind IP-address.
@@ -103,7 +92,7 @@ void mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 	char ipbuf[INET6_ADDRSTRLEN];
 	int rc;
 	endp = conn->conn->endp;
-	bool rem_addr_set = !addr_is_any(&conn->end.addr);
+	bool rem_addr_set = osmo_sockaddr_is_any(&conn->end.addr) == 0;
 	char *bind_addr;
 
 	/* Osmux: No smart IP addresses allocation is supported yet. Simply
@@ -832,7 +821,7 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *ad
 {
 	char ipbuf[INET6_ADDRSTRLEN];
 
-	if (addr_is_any(&conn->end.addr)) {
+	if (osmo_sockaddr_is_any(&conn->end.addr) != 0) {
 		switch (conn->conn->mode) {
 		case MGCP_CONN_LOOPBACK:
 			/* HACK: for IuUP, we want to reply with an IuUP Initialization ACK upon the first RTP
@@ -901,7 +890,7 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *ad
 static int check_rtp_destin(struct mgcp_conn_rtp *conn)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
-	bool ip_is_any = addr_is_any(&conn->end.addr);
+	bool ip_is_any = osmo_sockaddr_is_any(&conn->end.addr) != 0;
 
 	/* Note: it is legal to create a connection but never setting a port
 	 * and IP-address for outgoing data. */
