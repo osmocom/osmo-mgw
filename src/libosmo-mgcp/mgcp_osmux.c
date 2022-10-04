@@ -363,29 +363,13 @@ static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_r
 	}
 }
 
-static int osmux_legacy_dummy_parse_cid(const struct osmo_sockaddr *rem_addr, struct msgb *msg,
-					uint8_t *osmux_cid)
-{
-	if (msg->len < 1 + sizeof(*osmux_cid)) {
-		LOGP(DOSMUX, LOGL_ERROR,
-		     "Discarding truncated Osmux dummy load: %s\n", osmo_hexdump(msg->data, msg->len));
-		return -1;
-	}
-
-	/* extract the osmux CID from the dummy message */
-	memcpy(osmux_cid, &msg->data[1], sizeof(*osmux_cid));
-	return 0;
-}
-
-/* This is called from the bsc-nat */
-static int osmux_handle_dummy(struct mgcp_trunk *trunk, const struct osmo_sockaddr *rem_addr,
+/* Old versions of osmux used to send dummy packets [0x23 0x<CID>] to punch the
+ * hole in the NAT. Let's handle them speficially. */
+static int osmux_handle_legacy_dummy(struct mgcp_trunk *trunk, const struct osmo_sockaddr *rem_addr,
 			      struct msgb *msg)
 {
-	uint8_t osmux_cid;
+	uint8_t osmux_cid = msg->data[1];
 	struct mgcp_conn_rtp *conn;
-
-	if (osmux_legacy_dummy_parse_cid(rem_addr, msg, &osmux_cid) < 0)
-		goto out;
 
 	conn = osmux_conn_lookup(trunk, osmux_cid, rem_addr);
 	if (!conn) {
@@ -426,9 +410,9 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 		goto out;
 	}
 
-	/* not any further processing dummy messages */
-	if (mgcp_is_rtp_dummy_payload(msg))
-		return osmux_handle_dummy(trunk, &rem_addr, msg);
+	/* Catch legacy dummy message and process them separately: */
+	if (msg->len == 2 && msg->data[0] == MGCP_DUMMY_LOAD)
+		return osmux_handle_legacy_dummy(trunk, &rem_addr, msg);
 
 	rem = msg->len;
 	while((osmuxh = osmux_xfrm_output_pull(msg)) != NULL) {

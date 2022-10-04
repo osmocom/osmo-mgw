@@ -9,7 +9,8 @@
 
 /* The following constant defines an RTP dummy payload that is used for
  * "UDP Hole Punching" (NAT) */
-static const char rtp_dummy_payload[] = { 0x23 };
+#define MGCP_DUMMY_LOAD 0x23
+static const char rtp_dummy_payload[] = { MGCP_DUMMY_LOAD };
 
 /* Check if the data in a given message buffer matches the rtp dummy payload
  * defined above */
