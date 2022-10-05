@@ -89,13 +89,12 @@ bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end)
  *  IP-Addresses are used as fallback. */
 int mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 {
-
-	struct mgcp_endpoint *endp;
+	const struct mgcp_endpoint *endp = conn->conn->endp;
+	const struct mgcp_config *cfg = endp->trunk->cfg;
 	char ipbuf[INET6_ADDRSTRLEN];
 	int rc;
-	endp = conn->conn->endp;
 	bool rem_addr_set = osmo_sockaddr_is_any(&conn->end.addr) == 0;
-	char *bind_addr;
+	const char *bind_addr;
 
 	/* Osmux: No smart IP addresses allocation is supported yet. Simply
 	 * return the one set in VTY config: */
@@ -103,19 +102,19 @@ int mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 		if (rem_addr_set) {
 			/* Match IP version with what was requested from remote: */
 			bind_addr = conn->end.addr.u.sa.sa_family == AF_INET6 ?
-				    conn->conn->endp->trunk->cfg->osmux_addr_v6 :
-				    conn->conn->endp->trunk->cfg->osmux_addr_v4;
+				    cfg->osmux_addr_v6 :
+				    cfg->osmux_addr_v4;
 		} else {
 			/* Choose any of the bind addresses, preferring v6 over v4 if available: */
-			bind_addr = conn->conn->endp->trunk->cfg->osmux_addr_v6;
+			bind_addr = cfg->osmux_addr_v6;
 			if (!bind_addr)
-				bind_addr = conn->conn->endp->trunk->cfg->osmux_addr_v4;
+				bind_addr = cfg->osmux_addr_v4;
 		}
 		if (!bind_addr) {
 			LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 				"Unable to locate local Osmux address, check your configuration! v4=%u v6=%u remote_known=%s\n",
-				!!conn->conn->endp->trunk->cfg->osmux_addr_v4,
-				!!conn->conn->endp->trunk->cfg->osmux_addr_v6,
+				!!cfg->osmux_addr_v4,
+				!!cfg->osmux_addr_v6,
 				rem_addr_set ? osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf) : "no");
 			return -1;
 		}
@@ -127,7 +126,7 @@ int mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 	}
 
 	/* Try probing the local IP-Address */
-	if (endp->trunk->cfg->net_ports.bind_addr_probe && rem_addr_set) {
+	if (cfg->net_ports.bind_addr_probe && rem_addr_set) {
 		rc = osmo_sock_local_ip(addr, osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf));
 		if (rc < 0)
 			LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
@@ -145,13 +144,13 @@ int mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 		/* Check there is a bind IP for the RTP traffic configured,
 		 * if so, use that IP-Address */
 		bind_addr = conn->end.addr.u.sa.sa_family == AF_INET6 ?
-				endp->trunk->cfg->net_ports.bind_addr_v6 :
-				endp->trunk->cfg->net_ports.bind_addr_v4;
+				cfg->net_ports.bind_addr_v6 :
+				cfg->net_ports.bind_addr_v4;
 	} else {
 		/* Choose any of the bind addresses, preferring v6 over v4 */
-		bind_addr = endp->trunk->cfg->net_ports.bind_addr_v6;
+		bind_addr = cfg->net_ports.bind_addr_v6;
 		if (!strlen(bind_addr))
-			bind_addr = endp->trunk->cfg->net_ports.bind_addr_v4;
+			bind_addr = cfg->net_ports.bind_addr_v4;
 	}
 	if (strlen(bind_addr)) {
 		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
@@ -161,7 +160,7 @@ int mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 		/* No specific bind IP is configured for the RTP traffic, so
 		 * assume the IP where we listen for incoming MGCP messages
 		 * as bind IP */
-		bind_addr = endp->trunk->cfg->source_addr;
+		bind_addr = cfg->source_addr;
 		LOGPCONN(conn->conn, DRTP, LOGL_DEBUG,
 			"using mgcp bind ip as local rtp bind ip: %s\n", bind_addr);
 	}
