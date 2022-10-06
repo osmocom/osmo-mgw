@@ -47,6 +47,7 @@
 #include <osmocom/mgcp/mgcp_codec.h>
 #include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_iuup.h>
+#include <osmocom/mgcp/debug.h>
 
 /* Contains the last successfully resolved endpoint name. This variable is used
  * for the unit-tests to verify that the endpoint was correctly resolved. */
@@ -741,10 +742,10 @@ static int mgcp_osmux_setup(struct mgcp_endpoint *endp, const char *line)
 {
 	if (!endp->trunk->cfg->osmux_initialized) {
 		if (osmux_init(OSMUX_ROLE_BSC, endp->trunk) < 0) {
-			LOGPENDP(endp, DLMGCP, LOGL_ERROR, "Cannot init OSMUX\n");
+			LOGPENDP(endp, DOSMUX, LOGL_ERROR, "Cannot init OSMUX\n");
 			return -3;
 		}
-		LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "OSMUX socket has been set up\n");
+		LOGPENDP(endp, DOSMUX, LOGL_NOTICE, "OSMUX socket has been set up\n");
 	}
 
 	return mgcp_parse_osmux_cid(line);
