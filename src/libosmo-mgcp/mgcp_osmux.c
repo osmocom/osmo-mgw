@@ -535,21 +535,21 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 	/* Wait until we have the connection information from MDCX */
 	if (!mgcp_rtp_end_remote_addr_available(&conn->end)) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
-			"Osmux remote address/port still unknown\n");
+			 "Osmux remote address/port still unknown\n");
 		return -1;
 	}
 
 	conn->osmux.in = osmux_handle_find_or_create(conn, rem_addr);
 	if (!conn->osmux.in) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
-			"Cannot allocate input osmux handle for conn:%s\n",
-			mgcp_conn_dump(conn->conn));
+			 "Cannot allocate input osmux handle for conn:%s\n",
+			 mgcp_conn_dump(conn->conn));
 		return -1;
 	}
 	if (osmux_xfrm_input_open_circuit(conn->osmux.in, conn->osmux.remote_cid, osmux_dummy) < 0) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
-			"Cannot open osmux circuit %u for conn:%s\n",
-		     conn->osmux.remote_cid, mgcp_conn_dump(conn->conn));
+			 "Cannot open osmux circuit %u for conn:%s\n",
+			 conn->osmux.remote_cid, mgcp_conn_dump(conn->conn));
 		return -1;
 	}
 
