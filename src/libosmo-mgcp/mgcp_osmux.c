@@ -440,7 +440,7 @@ out:
 	return 0;
 }
 
-int osmux_init(int role, struct mgcp_trunk *trunk)
+int osmux_init(struct mgcp_trunk *trunk)
 {
 	int ret;
 	struct mgcp_config *cfg = trunk->cfg;

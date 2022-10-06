@@ -4,16 +4,11 @@
 
 #include <osmocom/netif/osmux.h>
 struct mgcp_conn_rtp;
-enum {
-	OSMUX_ROLE_BSC = 0,
-	OSMUX_ROLE_BSC_NAT,
-};
-
 struct mgcp_trunk;
 struct mgcp_endpoint;
 struct mgcp_conn_rtp;
 
-int osmux_init(int role, struct mgcp_trunk *trunk);
+int osmux_init(struct mgcp_trunk *trunk);
 int osmux_init_conn(struct mgcp_conn_rtp *conn);
 int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		      const struct osmo_sockaddr *addr);
