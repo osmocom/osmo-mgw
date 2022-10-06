@@ -524,6 +524,8 @@ int osmux_init_conn(struct mgcp_conn_rtp *conn)
 	conn->osmux.ctrg = rate_ctr_group_alloc(conn->conn, &rate_ctr_group_osmux_desc, conn->ctrg->idx);
 
 	conn->type = MGCP_RTP_OSMUX;
+	/* Annotate Osmux circuit ID and set it to negotiating state until this
+	 * is fully set up from the dummy load. */
 	conn->osmux.state = OSMUX_STATE_ACTIVATING;
 	return 0;
 }

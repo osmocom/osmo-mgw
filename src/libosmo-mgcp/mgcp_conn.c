@@ -95,6 +95,9 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 	static atomic_uint rate_ctr_index = 0;
 
 	conn_rtp->type = MGCP_RTP_DEFAULT;
+
+	/* Osmux specific defaults, only used if conn is later on Osmux-enabled: */
+	conn_rtp->osmux.state = OSMUX_STATE_DISABLED;
 	conn_rtp->osmux.local_cid_allocated = false;
 	conn_rtp->osmux.local_cid = 0;
 	conn_rtp->osmux.remote_cid_present = false;

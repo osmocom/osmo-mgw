@@ -1003,9 +1003,6 @@ mgcp_header_done:
 		goto error2;
 	}
 
-	/* Annotate Osmux circuit ID and set it to negotiating state until this
-	 * is fully set up from the dummy load. */
-	conn->osmux.state = OSMUX_STATE_DISABLED;
 	/* If X-Osmux (remote CID) was received (-1 is wilcard), alloc next avail CID as local CID */
 	if (remote_osmux_cid >= -1) {
 		if (osmux_init_conn(conn) < 0) {
