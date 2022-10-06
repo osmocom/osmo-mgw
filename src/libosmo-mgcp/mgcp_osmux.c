@@ -485,6 +485,35 @@ int osmux_init(struct mgcp_trunk *trunk)
 	return 0;
 }
 
+/*! relase OSXMUX cid, that had been allocated to this connection.
+ *  \param[in] conn connection with OSMUX cid to release */
+static void conn_osmux_release_local_cid(struct mgcp_conn_rtp *conn)
+{
+	if (conn->osmux.local_cid_allocated)
+		osmux_cid_pool_put(conn->osmux.local_cid);
+	conn->osmux.local_cid = 0;
+	conn->osmux.local_cid_allocated = false;
+}
+
+/*! allocate local OSMUX cid to connection.
+ *  \param[in] conn connection for which we allocate the local OSMUX cid
+ * \returns Allocated OSMUX cid, -1 on error (no free CIDs avail).
+ */
+static int conn_osmux_allocate_local_cid(struct mgcp_conn_rtp *conn)
+{
+	OSMO_ASSERT(conn->osmux.local_cid_allocated == false);
+	int osmux_cid = osmux_cid_pool_get_next();
+	if (osmux_cid == -1) {
+		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
+			 "no available local Osmux CID to allocate!\n");
+		return -1;
+	}
+
+	conn->osmux.local_cid = (uint8_t) osmux_cid;
+	conn->osmux.local_cid_allocated = true;
+	return osmux_cid;
+}
+
 /*! Initialize Osmux bits of a conn.
  *  \param[in] conn Osmux connection to initialize
  *  \returns 0 on success, negative on ERROR */
@@ -587,35 +616,6 @@ void conn_osmux_disable(struct mgcp_conn_rtp *conn)
 
 	rate_ctr_group_free(conn->osmux.ctrg);
 	conn->osmux.ctrg = NULL;
-}
-
-/*! relase OSXMUX cid, that had been allocated to this connection.
- *  \param[in] conn connection with OSMUX cid to release */
-void conn_osmux_release_local_cid(struct mgcp_conn_rtp *conn)
-{
-	if (conn->osmux.local_cid_allocated)
-		osmux_cid_pool_put(conn->osmux.local_cid);
-	conn->osmux.local_cid = 0;
-	conn->osmux.local_cid_allocated = false;
-}
-
-/*! allocate local OSMUX cid to connection.
- *  \param[in] conn connection for which we allocate the local OSMUX cid
- * \returns Allocated OSMUX cid, -1 on error (no free CIDs avail).
- */
-int conn_osmux_allocate_local_cid(struct mgcp_conn_rtp *conn)
-{
-	OSMO_ASSERT(conn->osmux.local_cid_allocated == false);
-	int osmux_cid = osmux_cid_pool_get_next();
-	if (osmux_cid == -1) {
-		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
-			 "no available local Osmux CID to allocate!\n");
-		return -1;
-	}
-
-	conn->osmux.local_cid = (uint8_t) osmux_cid;
-	conn->osmux.local_cid_allocated = true;
-	return osmux_cid;
 }
 
 /*! send RTP dummy packet to OSMUX connection port.
