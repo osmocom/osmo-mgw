@@ -202,7 +202,7 @@ int mgcp_parse_osmux_cid(const char *line)
 		     osmux_cid, OSMUX_CID_MAX);
 		return -2;
 	}
-	LOGP(DLMGCP, LOGL_DEBUG, "bsc-nat offered Osmux CID %u\n", osmux_cid);
+	LOGP(DLMGCP, LOGL_DEBUG, "MGCP client offered Osmux CID %u\n", osmux_cid);
 
 	return osmux_cid;
 }

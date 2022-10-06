@@ -162,9 +162,8 @@ struct mgcp_config {
 	/* addr to bind the server to */
 	char *osmux_addr_v4;
 	char *osmux_addr_v6;
-	/* The BSC-NAT may ask for enabling osmux on demand. This tells us if
-	 * the osmux socket is already initialized.
-	 */
+	/* The osmux socket is allocated on demand (1st time used).
+	 * This tells us if the osmux socket is already initialized.  */
 	bool osmux_initialized;
 	/* osmux batch factor: from 1 to 4 maximum */
 	int osmux_batch;

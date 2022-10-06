@@ -657,7 +657,7 @@ int osmux_send_dummy(struct mgcp_conn_rtp *conn)
 	return mgcp_udp_send(osmux_fd_v4.fd, &conn->end.addr, (char *)osmuxh, buf_len);
 }
 
-/* bsc-nat allocates/releases the Osmux circuit ID. +7 to round up to 8 bit boundary. */
+/* Keeps track of locally allocated Osmux circuit ID. +7 to round up to 8 bit boundary. */
 static uint8_t osmux_cid_bitmap[(OSMUX_CID_MAX + 1 + 7) / 8];
 
 /*! count the number of taken OSMUX cids.
