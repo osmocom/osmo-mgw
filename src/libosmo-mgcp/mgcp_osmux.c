@@ -645,9 +645,6 @@ int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	 *  endpoint may have already punched the hole in the firewall. This
 	 *  approach is simple though. */
 
-	/* Wait until we have the connection information from MDCX */
-	if (!mgcp_rtp_end_remote_addr_available(&conn->end))
-		return 0;
 
 	if (endp_osmux_state_check(endp, conn, true) < 0)
 		return 0;

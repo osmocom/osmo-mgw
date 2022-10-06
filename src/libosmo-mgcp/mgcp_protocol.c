@@ -324,6 +324,11 @@ error:
  * osmux connection, send the dummy packet via OSMUX */
 static void send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 {
+	/* Avoid sending dummy packet if the remote address was not yet
+	 * configured through CRCX/MDCX: */
+	if (!mgcp_rtp_end_remote_addr_available(&conn->end))
+		return;
+
 	if (mgcp_conn_rtp_is_osmux(conn))
 		osmux_send_dummy(endp, conn);
 	else
@@ -1090,7 +1095,6 @@ mgcp_header_done:
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
 	OSMO_ASSERT(trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
 	if (conn->conn->mode & MGCP_CONN_RECV_ONLY &&
-	    mgcp_rtp_end_remote_addr_available(&conn->end) &&
 	    trunk->keepalive_interval != MGCP_KEEPALIVE_NEVER)
 		send_dummy(endp, conn);
 
@@ -1310,7 +1314,6 @@ mgcp_header_done:
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
 	OSMO_ASSERT(trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
 	if (conn->conn->mode & MGCP_CONN_RECV_ONLY &&
-	    mgcp_rtp_end_remote_addr_available(&conn->end) &&
 	    trunk->keepalive_interval != MGCP_KEEPALIVE_NEVER)
 		send_dummy(endp, conn);
 
@@ -1579,8 +1582,7 @@ static void mgcp_keepalive_timer_cb(void *_trunk)
 		struct mgcp_endpoint *endp = trunk->endpoints[i];
 		llist_for_each_entry(conn, &endp->conns, entry) {
 			if (conn->type == MGCP_CONN_TYPE_RTP &&
-			    conn->mode == MGCP_CONN_RECV_ONLY &&
-			     mgcp_rtp_end_remote_addr_available(&conn->u.rtp.end))
+			    conn->mode == MGCP_CONN_RECV_ONLY)
 				send_dummy(endp, &conn->u.rtp);
 		}
 	}
