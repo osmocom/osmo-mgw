@@ -330,7 +330,7 @@ static void send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 		return;
 
 	if (mgcp_conn_rtp_is_osmux(conn))
-		osmux_send_dummy(endp, conn);
+		osmux_send_dummy(conn);
 	else
 		mgcp_send_dummy(endp, conn);
 }

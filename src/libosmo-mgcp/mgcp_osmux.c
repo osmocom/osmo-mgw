@@ -151,11 +151,10 @@ static void osmux_handle_put(struct osmux_in_handle *in)
 
 /* Allocate free OSMUX handle */
 static struct osmux_handle *
-osmux_handle_alloc(struct mgcp_conn_rtp *conn, const struct osmo_sockaddr *rem_addr)
+osmux_handle_alloc(const struct mgcp_trunk *trunk, const struct osmo_sockaddr *rem_addr)
 {
 	struct osmux_handle *h;
-	struct mgcp_trunk *trunk = conn->conn->endp->trunk;
-	struct mgcp_config *cfg = trunk->cfg;
+	const struct mgcp_config *cfg = trunk->cfg;
 
 	h = talloc_zero(trunk, struct osmux_handle);
 	if (!h)
@@ -186,7 +185,7 @@ osmux_handle_alloc(struct mgcp_conn_rtp *conn, const struct osmo_sockaddr *rem_a
 /* Lookup existing handle for a specified address, if the handle can not be
  * found, the function will automatically allocate one */
 static struct osmux_in_handle *
-osmux_handle_find_or_create(struct mgcp_conn_rtp *conn, const struct osmo_sockaddr *rem_addr)
+osmux_handle_find_or_create(const struct mgcp_trunk *trunk, const struct osmo_sockaddr *rem_addr)
 {
 	struct osmux_handle *h;
 
@@ -194,7 +193,7 @@ osmux_handle_find_or_create(struct mgcp_conn_rtp *conn, const struct osmo_sockad
 	if (h != NULL)
 		return h->in;
 
-	h = osmux_handle_alloc(conn, rem_addr);
+	h = osmux_handle_alloc(trunk, rem_addr);
 	if (h == NULL)
 		return NULL;
 
@@ -245,7 +244,7 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 
 /* Lookup the endpoint that corresponds to the specified address (port) */
 static struct mgcp_conn_rtp*
-osmux_conn_lookup(struct mgcp_trunk *trunk, uint8_t local_cid, const struct osmo_sockaddr *rem_addr)
+osmux_conn_lookup(const struct mgcp_trunk *trunk, uint8_t local_cid, const struct osmo_sockaddr *rem_addr)
 {
 	struct mgcp_endpoint *endp;
 	struct mgcp_conn *conn = NULL;
@@ -292,7 +291,7 @@ osmux_conn_lookup(struct mgcp_trunk *trunk, uint8_t local_cid, const struct osmo
 static void scheduled_from_osmux_tx_rtp_cb(struct msgb *msg, void *data)
 {
 	struct mgcp_conn_rtp *conn = data;
-	struct mgcp_endpoint *endp = conn->conn->endp;
+	const struct mgcp_endpoint *endp = conn->conn->endp;
 	struct osmux_handle *h = osmux_xfrm_input_get_deliver_cb_data(conn->osmux.in);
 	struct osmo_rtp_msg_ctx *mc = OSMO_RTP_MSG_CTX(msg);
 	*mc = (struct osmo_rtp_msg_ctx){
@@ -327,16 +326,13 @@ static struct msgb *osmux_recv(struct osmo_fd *ofd, struct osmo_sockaddr *addr)
 	return msg;
 }
 
-/* Updates endp osmux state and returns 0 if it can process messages, -1 otherwise */
-static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
+/* Updates conn osmux state and returns 0 if it can process messages, -1 otherwise */
+static int conn_osmux_state_check(struct mgcp_conn_rtp *conn,
 				  bool sending)
 {
-	struct osmo_sockaddr rem_addr;
-
 	switch(conn->osmux.state) {
 	case OSMUX_STATE_ACTIVATING:
-		rem_addr = conn->end.addr;
-		if (osmux_enable_conn(endp, conn, &rem_addr) < 0) {
+		if (conn_osmux_enable(conn) < 0) {
 			LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 				 "Could not enable osmux for conn on %s: %s\n",
 				 sending ? "sent" : "received",
@@ -347,7 +343,7 @@ static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_r
 			 "Osmux %s CID %u towards %s is now enabled\n",
 			 sending ? "sent" : "received",
 			 sending ? conn->osmux.remote_cid : conn->osmux.local_cid,
-			 osmo_sockaddr_to_str(&rem_addr));
+			 osmo_sockaddr_to_str(&conn->end.addr));
 		return 0;
 	case OSMUX_STATE_ENABLED:
 		return 0;
@@ -362,8 +358,8 @@ static int endp_osmux_state_check(struct mgcp_endpoint *endp, struct mgcp_conn_r
 
 /* Old versions of osmux used to send dummy packets [0x23 0x<CID>] to punch the
  * hole in the NAT. Let's handle them speficially. */
-static int osmux_handle_legacy_dummy(struct mgcp_trunk *trunk, const struct osmo_sockaddr *rem_addr,
-			      struct msgb *msg)
+static int osmux_handle_legacy_dummy(const struct mgcp_trunk *trunk, const struct osmo_sockaddr *rem_addr,
+				     struct msgb *msg)
 {
 	uint8_t osmux_cid = msg->data[1];
 	struct mgcp_conn_rtp *conn;
@@ -375,7 +371,7 @@ static int osmux_handle_legacy_dummy(struct mgcp_trunk *trunk, const struct osmo
 		goto out;
 	}
 
-	endp_osmux_state_check(conn->conn->endp, conn, false);
+	conn_osmux_state_check(conn, false);
 	/* Only needed to punch hole in firewall, it can be dropped */
 out:
 	msgb_free(msg);
@@ -413,7 +409,6 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 
 	rem = msg->len;
 	while((osmuxh = osmux_xfrm_output_pull(msg)) != NULL) {
-		struct mgcp_endpoint *endp;
 		struct mgcp_conn_rtp *conn_src;
 		conn_src = osmux_conn_lookup(trunk, osmuxh->circuit_id,
 					     &rem_addr);
@@ -424,10 +419,9 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 			rem = msg->len;
 			continue;
 		}
-		endp = conn_src->conn->endp;
 		mgcp_conn_watchdog_kick(conn_src->conn);
 
-		if (endp_osmux_state_check(endp, conn_src, false) == 0) {
+		if (conn_osmux_state_check(conn_src, false) == 0) {
 			rtpconn_osmux_rate_ctr_inc(conn_src, OSMUX_CHUNKS_RX_CTR);
 			rtpconn_osmux_rate_ctr_add(conn_src, OSMUX_OCTETS_RX_CTR,
 						   osmux_chunk_length(msg, rem));
@@ -505,12 +499,9 @@ int osmux_init_conn(struct mgcp_conn_rtp *conn)
 }
 
 /*! enable OSXMUX circuit for a specified connection.
- *  \param[in] endp mgcp endpoint (configuration)
- *  \param[in] conn connection to disable
- *  \param[in] addr IP address and port of remote OSMUX endpoint
+ *  \param[in] conn connection to enable
  *  \returns 0 on success, -1 on ERROR */
-int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
-		      const struct osmo_sockaddr *rem_addr)
+int conn_osmux_enable(struct mgcp_conn_rtp *conn)
 {
 	/*! If osmux is enabled, initialize the output handler. This handler is
 	 *  used to reconstruct the RTP flow from osmux. The RTP SSRC is
@@ -521,8 +512,9 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 	 *  overlapping RTP SSRC traveling to the BTSes behind the BSC,
 	 *  similarly, for flows traveling to the MSC.
 	 */
+	const struct mgcp_trunk *trunk = conn->conn->endp->trunk;
 	static const uint32_t rtp_ssrc_winlen = UINT32_MAX / (OSMUX_CID_MAX + 1);
-	uint16_t osmux_dummy = endp->trunk->cfg->osmux_dummy;
+	uint16_t osmux_dummy = trunk->cfg->osmux_dummy;
 
 	/* Check if osmux is enabled for the specified connection */
 	if (conn->osmux.state != OSMUX_STATE_ACTIVATING) {
@@ -539,7 +531,7 @@ int osmux_enable_conn(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn,
 		return -1;
 	}
 
-	conn->osmux.in = osmux_handle_find_or_create(conn, rem_addr);
+	conn->osmux.in = osmux_handle_find_or_create(trunk, &conn->end.addr);
 	if (!conn->osmux.in) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 			 "Cannot allocate input osmux handle for conn:%s\n",
@@ -627,10 +619,9 @@ int conn_osmux_allocate_local_cid(struct mgcp_conn_rtp *conn)
 }
 
 /*! send RTP dummy packet to OSMUX connection port.
- *  \param[in] endp mcgp endpoint that holds the RTP connection
  *  \param[in] conn associated RTP connection
  *  \returns bytes sent, -1 on error */
-int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
+int osmux_send_dummy(struct mgcp_conn_rtp *conn)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
 	struct osmux_hdr *osmuxh;
@@ -646,7 +637,7 @@ int osmux_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	 *  approach is simple though. */
 
 
-	if (endp_osmux_state_check(endp, conn, true) < 0)
+	if (conn_osmux_state_check(conn, true) < 0)
 		return 0;
 
 	buf_len = sizeof(struct osmux_hdr) + osmo_amr_bytes(AMR_FT_0);
