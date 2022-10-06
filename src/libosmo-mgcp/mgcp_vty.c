@@ -156,6 +156,8 @@ static int config_write_mgcp(struct vty *vty)
 			g_cfg->osmux_port, VTY_NEWLINE);
 		vty_out(vty, " osmux dummy %s%s",
 			g_cfg->osmux_dummy ? "on" : "off", VTY_NEWLINE);
+		vty_out(vty, " osmux peer-behind-nat %s%s",
+			g_cfg->osmux_peer_behind_nat ? "on" : "off", VTY_NEWLINE);
 	}
 
 	if (g_cfg->conn_timeout)
@@ -1646,6 +1648,21 @@ DEFUN(cfg_mgcp_osmux_dummy,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_mgcp_osmux_peer_behind_nat,
+      cfg_mgcp_osmux_peer_behind_nat_cmd,
+      "osmux peer-behind-nat (on|off)",
+      OSMUX_STR "Define whether peer is behind NAT\n"
+      "Peer is behind NAT\n"
+      "Peer is NOT behind NAT\n")
+{
+	if (strcmp(argv[0], "on") == 0)
+		g_cfg->osmux_peer_behind_nat = true;
+	else if (strcmp(argv[0], "off") == 0)
+		g_cfg->osmux_peer_behind_nat = false;
+
+	return CMD_SUCCESS;
+}
+
 DEFUN(cfg_mgcp_domain,
       cfg_mgcp_domain_cmd,
       "domain NAME",
@@ -1736,6 +1753,7 @@ int mgcp_vty_init(void)
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_batch_size_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_port_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_dummy_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_osmux_peer_behind_nat_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_allow_transcoding_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_no_allow_transcoding_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_domain_cmd);

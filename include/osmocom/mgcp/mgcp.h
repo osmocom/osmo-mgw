@@ -173,6 +173,8 @@ struct mgcp_config {
 	uint16_t osmux_port;
 	/* Pad circuit with dummy AMR frames if no payload to transmit is available */
 	bool osmux_dummy;
+	/* Whether peer is behind NAT (Retrieve remote addr from 1st received Osmux packet) */
+	bool osmux_peer_behind_nat;
 	/* domain name of the media gateway */
 	char domain[255+1];
 

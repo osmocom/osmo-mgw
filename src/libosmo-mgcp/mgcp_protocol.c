@@ -1086,6 +1086,14 @@ mgcp_header_done:
 		goto error2;
 	}
 
+	/* Notify Osmux conn that CRCX was received */
+	if (mgcp_conn_rtp_is_osmux(conn)) {
+		if (conn_osmux_event_rx_crcx_mdcx(conn) < 0) {
+			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR, "CRCX: Osmux handling failed!\n");
+			goto error2;
+		}
+	}
+
 	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
 		 "CRCX: Creating connection: port: %u\n", conn->end.local_port);
 
@@ -1271,13 +1279,19 @@ mgcp_header_done:
 				 "MDCX: wilcard in MDCX is not supported!\n");
 			goto error3;
 		} else if (conn->osmux.remote_cid_present &&
-			   remote_osmux_cid != (int) conn->osmux.remote_cid) {
-			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
-				 "MDCX: changing already allocated CID is not supported!\n");
-			goto error3;
+				remote_osmux_cid != conn->osmux.remote_cid) {
+				LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+					"MDCX: changing already allocated CID is not supported!\n");
+				goto error3;
+		} else {
+			conn->osmux.remote_cid_present = true;
+			conn->osmux.remote_cid = remote_osmux_cid;
+			if (conn_osmux_event_rx_crcx_mdcx(conn) < 0) {
+				LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+					"MDCX: Osmux handling failed!\n");
+				goto error3;
+			}
 		}
-		conn->osmux.remote_cid_present = true;
-		conn->osmux.remote_cid = remote_osmux_cid;
 	}
 
 	/* MDCX may have provided a new remote address, which means we may need

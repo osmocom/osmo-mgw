@@ -264,18 +264,34 @@ osmux_conn_lookup(const struct mgcp_trunk *trunk, uint8_t local_cid, const struc
 			if (!mgcp_conn_rtp_is_osmux(conn_rtp))
 				continue;
 
-			/* Current implementation sets remote address & port for
-			 * the conn based on src address received on the socket
-			 * for the CID, in order to workaround NATs.
-			 * Once the conn is fully established (remote address is
-			 * known), validate the remote address doesn't change: */
+			/* If Osmux peer is behind NAT:
+			 * + state OSMUX_STATE_ACTIVATING: we cannot validate the remote address & port for
+			 *   the conn since we actually set conn's remote IP address from the info we received
+			 *   from this source address. NOTE: This means if Osmux peer is behind NAT we cannot
+			 *   have more than 1 osmux trunk since it's not possible to differentiate based on
+			 *   remote address.
+			 * + state OSMUX_STATE_ENABLED: the conn is fully established (remote address is known),
+			 *   it is now posssible to validate the remote address doesn't change.
+			 * If Osmux peer is not behind NAT:
+			 * We can always validate the remote IP address is matching the one we received in
+			 * CRCX/MDCX, we can support several parallel Osmux trunks since we can differentiate same CID
+			 * based on remote IP addr+port. However, if Osmux peer is not behind NAT it means it will go
+			 * into OSMUX_STATE_ENABLED as soon as the remote address is known, meaning if the conn is not
+			 * in that state we cannot (nor want) validate the IP address, we want to skip it until it is
+			 * ready (to avoid 3rd party data injections).
+			 * TLDR: When in OSMUX_STATE_ENABLED we can always validate remote address+port.
+			 *       When in OSMUX_STATE_ACTIVATING, in case peer behind NAT we select it,
+			 *					 in case peer NOT behind NAT we skip it.
+			 */
 			if (conn_rtp->osmux.state == OSMUX_STATE_ENABLED) {
 				h = osmux_xfrm_input_get_deliver_cb_data(conn_rtp->osmux.in);
 				if (osmo_sockaddr_cmp(&h->rem_addr, rem_addr) != 0)
 					continue;
-			}
-			/* else: select based on CID only, to learn rem addr in NAT-based scenarios.
-			 * FIXME: This should be configurable, have some sort of "osmux nat (on|off)" */
+			} else if (!trunk->cfg->osmux_peer_behind_nat) {
+				LOGPCONN(conn, DOSMUX, LOGL_DEBUG, "osmux_conn_lookup(rem_addr=%s local_cid=%d): Skipping because not (yet) ENABLED\n",
+					 osmo_sockaddr_to_str(rem_addr), local_cid);
+				continue; /* skip, read above */
+			} /* else: continue CID validation below: */
 
 			if (conn_rtp->osmux.local_cid == local_cid)
 				return conn_rtp;
@@ -326,34 +342,76 @@ static struct msgb *osmux_recv(struct osmo_fd *ofd, struct osmo_sockaddr *addr)
 	return msg;
 }
 
-/* Updates conn osmux state and returns 0 if it can process messages, -1 otherwise */
-static int conn_osmux_state_check(struct mgcp_conn_rtp *conn,
-				  bool sending)
+/* To be called every time some AMR data is received on a connection
+ * returns: 0 if conn can process data, negative if an error ocurred and data should not be further processed */
+static int conn_osmux_event_data_received(struct mgcp_conn_rtp *conn, const struct osmo_sockaddr *rem_addr)
 {
+	const struct mgcp_config *cfg;
 	switch(conn->osmux.state) {
 	case OSMUX_STATE_ACTIVATING:
+		/* If peer is not behind NAT, transition to OSMUX_STATE_ENABLED is done through
+		 * conn_osmux_rx_mdcx() whenever a CRCX/MDCX with the remote address is received.
+		 */
+		cfg = conn->conn->endp->trunk->cfg;
+		if (!cfg->osmux_peer_behind_nat) {
+			/* osmux_conn_lookup() should never provide us with an
+			 * ACTIVATING conn without NAT in first place. This should never happen. */
+			LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
+				 "Unexpected rx osmux data for conn in ACTIVATING state without NAT\n");
+			return -1;
+		}
+		/* We have to wait until we received the remote CID from CRCX/MDCX. */
+		if (!conn->osmux.remote_cid_present)
+			return -1;
+
+		/* Update remote address with the src address of the package we received */
+		conn->end.addr = *rem_addr;
+		/* mgcp_rtp_end_remote_addr_available() is now true and we can enable the conn: */
 		if (conn_osmux_enable(conn) < 0) {
 			LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
-				 "Could not enable osmux for conn on %s: %s\n",
-				 sending ? "sent" : "received",
+				 "Could not enable osmux conn: %s\n",
 				 mgcp_conn_dump(conn->conn));
 			return -1;
 		}
-		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
-			 "Osmux %s CID %u towards %s is now enabled\n",
-			 sending ? "sent" : "received",
-			 sending ? conn->osmux.remote_cid : conn->osmux.local_cid,
-			 osmo_sockaddr_to_str(&conn->end.addr));
 		return 0;
 	case OSMUX_STATE_ENABLED:
 		return 0;
 	default:
-		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
-			 "Osmux %s in conn %s without full negotiation, state %d\n",
-			 sending ? "sent" : "received",
-			 mgcp_conn_dump(conn->conn), conn->osmux.state);
 		return -1;
 	}
+}
+
+/* To be called every time an CRCX/MDCX is received.
+ * returns: 0 if conn can continue, negative if an error ocurred during setup */
+int conn_osmux_event_rx_crcx_mdcx(struct mgcp_conn_rtp *conn)
+{
+	struct mgcp_config *cfg;
+
+	switch (conn->osmux.state) {
+	case OSMUX_STATE_ACTIVATING:
+		/* If peer is behind NAT, we have to wait until 1st osmux frame is received
+		* to discover peer's real remote address */
+		cfg = conn->conn->endp->trunk->cfg;
+		if (cfg->osmux_peer_behind_nat)
+			return 0;
+		/* Keep waiting to receive remote CID through CRCX/MDCX */
+		if (!conn->osmux.remote_cid_present)
+			return 0;
+		/* keep waiting to receive remote address through CRCX/MDCX */
+		if (!mgcp_rtp_end_remote_addr_available(&conn->end))
+			return 0;
+		/* Since the peer is not behind NAT, we can enable the conn right away since the proper
+		 * remote address is now known: */
+		if (conn_osmux_enable(conn) < 0)
+			return -1;
+		/* We have already transitioned to OSMUX_STATE_ENABLED here */
+		return 0;
+	case OSMUX_STATE_ENABLED:
+		return 0;
+	default:
+		OSMO_ASSERT(NULL);
+	}
+	return 0;
 }
 
 /* Old versions of osmux used to send dummy packets [0x23 0x<CID>] to punch the
@@ -371,7 +429,7 @@ static int osmux_handle_legacy_dummy(const struct mgcp_trunk *trunk, const struc
 		goto out;
 	}
 
-	conn_osmux_state_check(conn, false);
+	conn_osmux_event_data_received(conn, rem_addr);
 	/* Only needed to punch hole in firewall, it can be dropped */
 out:
 	msgb_free(msg);
@@ -416,17 +474,19 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 			LOGP(DOSMUX, LOGL_DEBUG,
 			     "Cannot find a src conn for %s CID=%d\n",
 			     addr_str, osmuxh->circuit_id);
-			rem = msg->len;
-			continue;
+			goto next;
 		}
+
+		if (conn_osmux_event_data_received(conn_src, &rem_addr) < 0)
+			goto next;
+
 		mgcp_conn_watchdog_kick(conn_src->conn);
 
-		if (conn_osmux_state_check(conn_src, false) == 0) {
-			rtpconn_osmux_rate_ctr_inc(conn_src, OSMUX_CHUNKS_RX_CTR);
-			rtpconn_osmux_rate_ctr_add(conn_src, OSMUX_OCTETS_RX_CTR,
-						   osmux_chunk_length(msg, rem));
-			osmux_xfrm_output_sched(conn_src->osmux.out, osmuxh);
-		}
+		rtpconn_osmux_rate_ctr_inc(conn_src, OSMUX_CHUNKS_RX_CTR);
+		rtpconn_osmux_rate_ctr_add(conn_src, OSMUX_OCTETS_RX_CTR,
+						osmux_chunk_length(msg, rem));
+		osmux_xfrm_output_sched(conn_src->osmux.out, osmuxh);
+next:
 		rem = msg->len;
 	}
 out:
@@ -535,6 +595,8 @@ int osmux_init_conn(struct mgcp_conn_rtp *conn)
  *  \returns 0 on success, -1 on ERROR */
 int conn_osmux_enable(struct mgcp_conn_rtp *conn)
 {
+	OSMO_ASSERT(conn->osmux.state == OSMUX_STATE_ACTIVATING);
+	OSMO_ASSERT(conn->osmux.remote_cid_present == true);
 	/*! If osmux is enabled, initialize the output handler. This handler is
 	 *  used to reconstruct the RTP flow from osmux. The RTP SSRC is
 	 *  allocated based on the circuit ID (conn_net->osmux.cid), which is unique
@@ -548,15 +610,8 @@ int conn_osmux_enable(struct mgcp_conn_rtp *conn)
 	static const uint32_t rtp_ssrc_winlen = UINT32_MAX / (OSMUX_CID_MAX + 1);
 	bool osmux_dummy = trunk->cfg->osmux_dummy;
 
-	/* Check if osmux is enabled for the specified connection */
-	if (conn->osmux.state != OSMUX_STATE_ACTIVATING) {
-		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
-			 "conn:%s didn't negotiate Osmux, state %d\n",
-			 mgcp_conn_dump(conn->conn), conn->osmux.state);
-		return -1;
-	}
-
-	/* Wait until we have the connection information from MDCX */
+	/* Wait until we have the remote connection information, be it from MDCX (peer not behind NAT)
+	 * or later learned from first received remote osmux packet (peer behind NAT) */
 	if (!mgcp_rtp_end_remote_addr_available(&conn->end)) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
 			 "Osmux remote address/port still unknown\n");
@@ -586,7 +641,10 @@ int conn_osmux_enable(struct mgcp_conn_rtp *conn)
 				    scheduled_from_osmux_tx_rtp_cb, conn);
 
 	conn->osmux.state = OSMUX_STATE_ENABLED;
-
+	LOGPCONN(conn->conn, DOSMUX, LOGL_INFO,
+		 "Osmux CID %u towards %s is now enabled\n",
+		 conn->osmux.remote_cid,
+		 osmo_sockaddr_to_str(&conn->end.addr));
 	return 0;
 }
 
@@ -637,10 +695,6 @@ int osmux_send_dummy(struct mgcp_conn_rtp *conn)
 	/*! We don't need to send the dummy load for osmux so often as another
 	 *  endpoint may have already punched the hole in the firewall. This
 	 *  approach is simple though. */
-
-
-	if (conn_osmux_state_check(conn, true) < 0)
-		return 0;
 
 	buf_len = sizeof(struct osmux_hdr) + osmo_amr_bytes(AMR_FT_0);
 	osmuxh = (struct osmux_hdr *) alloca(buf_len);
