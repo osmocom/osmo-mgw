@@ -544,7 +544,7 @@ int conn_osmux_enable(struct mgcp_conn_rtp *conn)
 	 */
 	const struct mgcp_trunk *trunk = conn->conn->endp->trunk;
 	static const uint32_t rtp_ssrc_winlen = UINT32_MAX / (OSMUX_CID_MAX + 1);
-	uint16_t osmux_dummy = trunk->cfg->osmux_dummy;
+	bool osmux_dummy = trunk->cfg->osmux_dummy;
 
 	/* Check if osmux is enabled for the specified connection */
 	if (conn->osmux.state != OSMUX_STATE_ACTIVATING) {

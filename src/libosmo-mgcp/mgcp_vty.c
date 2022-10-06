@@ -1639,9 +1639,9 @@ DEFUN(cfg_mgcp_osmux_dummy,
       "Disable dummy padding\n")
 {
 	if (strcmp(argv[0], "on") == 0)
-		g_cfg->osmux_dummy = 1;
+		g_cfg->osmux_dummy = true;
 	else if (strcmp(argv[0], "off") == 0)
-		g_cfg->osmux_dummy = 0;
+		g_cfg->osmux_dummy = false;
 
 	return CMD_SUCCESS;
 }

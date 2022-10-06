@@ -172,10 +172,8 @@ struct mgcp_config {
 	int osmux_batch_size;
 	/* osmux port */
 	uint16_t osmux_port;
-	/* Pad circuit with dummy messages until we see the first voice
-	 * message.
-	 */
-	uint16_t osmux_dummy;
+	/* Pad circuit with dummy AMR frames if no payload to transmit is available */
+	bool osmux_dummy;
 	/* domain name of the media gateway */
 	char domain[255+1];
 
