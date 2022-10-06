@@ -473,7 +473,7 @@ int osmux_init(int role, struct mgcp_trunk *trunk)
 		ret = mgcp_create_bind(cfg->osmux_addr_v6, &osmux_fd_v6, cfg->osmux_port,
 					cfg->endp_dscp, cfg->endp_priority);
 		if (ret < 0) {
-			LOGP(DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv6 socket to %s:%u\n",
+			LOGP(DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv6 socket to [%s]:%u\n",
 			     cfg->osmux_addr_v6, cfg->osmux_port);
 			return ret;
 		}
