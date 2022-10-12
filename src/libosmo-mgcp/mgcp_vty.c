@@ -129,7 +129,7 @@ static int config_write_mgcp(struct vty *vty)
 		vty_out(vty, " rtp force-ptime %d%s", g_cfg->force_ptime,
 			VTY_NEWLINE);
 
-	switch (g_cfg->osmux_use) {
+	switch (g_cfg->osmux.usage) {
 	case OSMUX_USAGE_ON:
 		vty_out(vty, " osmux on%s", VTY_NEWLINE);
 		break;
@@ -141,23 +141,23 @@ static int config_write_mgcp(struct vty *vty)
 		vty_out(vty, " osmux off%s", VTY_NEWLINE);
 		break;
 	}
-	if (g_cfg->osmux_use != OSMUX_USAGE_OFF) {
-		if (g_cfg->osmux_addr_v4)
+	if (g_cfg->osmux.usage != OSMUX_USAGE_OFF) {
+		if (g_cfg->osmux.local_addr_v4)
 			vty_out(vty, " osmux bind-ip %s%s",
-				g_cfg->osmux_addr_v4, VTY_NEWLINE);
-		if (g_cfg->osmux_addr_v6)
+				g_cfg->osmux.local_addr_v4, VTY_NEWLINE);
+		if (g_cfg->osmux.local_addr_v6)
 			vty_out(vty, " osmux bind-ip-v6 %s%s",
-				g_cfg->osmux_addr_v6, VTY_NEWLINE);
+				g_cfg->osmux.local_addr_v6, VTY_NEWLINE);
 		vty_out(vty, " osmux batch-factor %d%s",
-			g_cfg->osmux_batch, VTY_NEWLINE);
+			g_cfg->osmux.batch_factor, VTY_NEWLINE);
 		vty_out(vty, " osmux batch-size %u%s",
-			g_cfg->osmux_batch_size, VTY_NEWLINE);
+			g_cfg->osmux.batch_size, VTY_NEWLINE);
 		vty_out(vty, " osmux port %u%s",
-			g_cfg->osmux_port, VTY_NEWLINE);
+			g_cfg->osmux.local_port, VTY_NEWLINE);
 		vty_out(vty, " osmux dummy %s%s",
-			g_cfg->osmux_dummy ? "on" : "off", VTY_NEWLINE);
+			g_cfg->osmux.dummy_padding ? "on" : "off", VTY_NEWLINE);
 		vty_out(vty, " osmux peer-behind-nat %s%s",
-			g_cfg->osmux_peer_behind_nat ? "on" : "off", VTY_NEWLINE);
+			g_cfg->osmux.peer_behind_nat ? "on" : "off", VTY_NEWLINE);
 	}
 
 	if (g_cfg->conn_timeout)
@@ -380,7 +380,7 @@ static int mgcp_show(struct vty *vty, int argc, const char **argv,
 	llist_for_each_entry(trunk, &g_cfg->trunks, entry)
 		dump_trunk(vty, trunk, show_stats, active_only);
 
-	if (g_cfg->osmux_use != OSMUX_USAGE_OFF)
+	if (g_cfg->osmux.usage != OSMUX_USAGE_OFF)
 		vty_out(vty, "Osmux used CID: %d%s", osmux_cid_pool_count_used(),
 			VTY_NEWLINE);
 
@@ -1577,12 +1577,12 @@ DEFUN(cfg_mgcp_osmux,
 	OSMO_ASSERT(trunk);
 
 	if (strcmp(argv[0], "off") == 0) {
-		g_cfg->osmux_use = OSMUX_USAGE_OFF;
+		g_cfg->osmux.usage = OSMUX_USAGE_OFF;
 		return CMD_SUCCESS;
 	} else if (strcmp(argv[0], "on") == 0)
-		g_cfg->osmux_use = OSMUX_USAGE_ON;
+		g_cfg->osmux.usage = OSMUX_USAGE_ON;
 	else if (strcmp(argv[0], "only") == 0)
-		g_cfg->osmux_use = OSMUX_USAGE_ONLY;
+		g_cfg->osmux.usage = OSMUX_USAGE_ONLY;
 
 	return CMD_SUCCESS;
 
@@ -1594,7 +1594,7 @@ DEFUN(cfg_mgcp_osmux_ip,
       OSMUX_STR IP_STR
       "IPv4 Address to bind to\n")
 {
-	osmo_talloc_replace_string(g_cfg, &g_cfg->osmux_addr_v4, argv[0]);
+	osmo_talloc_replace_string(g_cfg, &g_cfg->osmux.local_addr_v4, argv[0]);
 	return CMD_SUCCESS;
 }
 
@@ -1604,7 +1604,15 @@ DEFUN(cfg_mgcp_osmux_ip_v6,
       OSMUX_STR IP_STR
       "IPv6 Address to bind to\n")
 {
-	osmo_talloc_replace_string(g_cfg, &g_cfg->osmux_addr_v6, argv[0]);
+	osmo_talloc_replace_string(g_cfg, &g_cfg->osmux.local_addr_v6, argv[0]);
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_mgcp_osmux_port,
+      cfg_mgcp_osmux_port_cmd,
+      "osmux port <1-65535>", OSMUX_STR "port\n" "UDP port\n")
+{
+	g_cfg->osmux.local_port = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
 
@@ -1613,7 +1621,7 @@ DEFUN(cfg_mgcp_osmux_batch_factor,
       "osmux batch-factor <1-8>",
       OSMUX_STR "Batching factor\n" "Number of messages in the batch\n")
 {
-	g_cfg->osmux_batch = atoi(argv[0]);
+	g_cfg->osmux.batch_factor = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
 
@@ -1622,15 +1630,7 @@ DEFUN(cfg_mgcp_osmux_batch_size,
       "osmux batch-size <1-65535>",
       OSMUX_STR "batch size\n" "Batch size in bytes\n")
 {
-	g_cfg->osmux_batch_size = atoi(argv[0]);
-	return CMD_SUCCESS;
-}
-
-DEFUN(cfg_mgcp_osmux_port,
-      cfg_mgcp_osmux_port_cmd,
-      "osmux port <1-65535>", OSMUX_STR "port\n" "UDP port\n")
-{
-	g_cfg->osmux_port = atoi(argv[0]);
+	g_cfg->osmux.batch_size = atoi(argv[0]);
 	return CMD_SUCCESS;
 }
 
@@ -1641,9 +1641,9 @@ DEFUN(cfg_mgcp_osmux_dummy,
       "Disable dummy padding\n")
 {
 	if (strcmp(argv[0], "on") == 0)
-		g_cfg->osmux_dummy = true;
+		g_cfg->osmux.dummy_padding = true;
 	else if (strcmp(argv[0], "off") == 0)
-		g_cfg->osmux_dummy = false;
+		g_cfg->osmux.dummy_padding = false;
 
 	return CMD_SUCCESS;
 }
@@ -1656,9 +1656,9 @@ DEFUN(cfg_mgcp_osmux_peer_behind_nat,
       "Peer is NOT behind NAT\n")
 {
 	if (strcmp(argv[0], "on") == 0)
-		g_cfg->osmux_peer_behind_nat = true;
+		g_cfg->osmux.peer_behind_nat = true;
 	else if (strcmp(argv[0], "off") == 0)
-		g_cfg->osmux_peer_behind_nat = false;
+		g_cfg->osmux.peer_behind_nat = false;
 
 	return CMD_SUCCESS;
 }
@@ -1749,9 +1749,9 @@ int mgcp_vty_init(void)
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_ip_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_ip_v6_cmd);
+	install_element(MGCP_NODE, &cfg_mgcp_osmux_port_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_batch_factor_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_batch_size_cmd);
-	install_element(MGCP_NODE, &cfg_mgcp_osmux_port_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_dummy_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_osmux_peer_behind_nat_cmd);
 	install_element(MGCP_NODE, &cfg_mgcp_allow_transcoding_cmd);
@@ -1798,9 +1798,9 @@ int mgcp_parse_config(const char *config_file, struct mgcp_config *cfg,
 	int rc;
 	struct mgcp_trunk *trunk;
 
-	cfg->osmux_port = OSMUX_DEFAULT_PORT;
-	cfg->osmux_batch = 4;
-	cfg->osmux_batch_size = OSMUX_BATCH_DEFAULT_MAX;
+	cfg->osmux.local_port = OSMUX_DEFAULT_PORT;
+	cfg->osmux.batch_factor = 4;
+	cfg->osmux.batch_size = OSMUX_BATCH_DEFAULT_MAX;
 
 	g_cfg = cfg;
 	rc = vty_read_config_file(config_file, NULL);

@@ -601,7 +601,7 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 
 		payload_types[0] = payload_type;
 		if (mgcp_conn_rtp_is_osmux(conn))
-			local_port = endp->trunk->cfg->osmux_port;
+			local_port = endp->trunk->cfg->osmux.local_port;
 		else
 			local_port = conn->end.local_port;
 		rc = add_audio(sdp, payload_types, 1, local_port);

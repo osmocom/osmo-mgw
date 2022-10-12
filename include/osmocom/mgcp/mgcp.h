@@ -157,24 +157,26 @@ struct mgcp_config {
 
 	enum mgcp_role role;
 
-	/* Osmux usage policy: */
-	enum osmux_usage osmux_use;
-	/* addr to bind the server to */
-	char *osmux_addr_v4;
-	char *osmux_addr_v6;
-	/* The osmux socket is allocated on demand (1st time used).
-	 * This tells us if the osmux socket is already initialized.  */
-	bool osmux_initialized;
-	/* osmux batch factor: from 1 to 4 maximum */
-	int osmux_batch;
-	/* osmux batch size (in bytes) */
-	int osmux_batch_size;
-	/* osmux port */
-	uint16_t osmux_port;
-	/* Pad circuit with dummy AMR frames if no payload to transmit is available */
-	bool osmux_dummy;
-	/* Whether peer is behind NAT (Retrieve remote addr from 1st received Osmux packet) */
-	bool osmux_peer_behind_nat;
+	struct {
+		/* Osmux usage policy: */
+		enum osmux_usage usage;
+		/* addr to bind the server to */
+		char *local_addr_v4;
+		char *local_addr_v6;
+		/* osmux port */
+		uint16_t local_port;
+		/* The osmux socket is allocated on demand (1st time used).
+		* This tells us if the osmux socket is already initialized.  */
+		bool initialized;
+		/* osmux batch factor: from 1 to 4 maximum */
+		int batch_factor;
+		/* osmux batch size (in bytes) */
+		int batch_size;
+		/* Pad circuit with dummy AMR frames if no payload to transmit is available */
+		bool dummy_padding;
+		/* Whether peer is behind NAT (Retrieve remote addr from 1st received Osmux packet) */
+		bool peer_behind_nat;
+	} osmux;
 	/* domain name of the media gateway */
 	char domain[255+1];
 

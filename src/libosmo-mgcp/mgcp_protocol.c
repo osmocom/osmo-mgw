@@ -745,7 +745,7 @@ uint32_t mgcp_rtp_packet_duration(const struct mgcp_endpoint *endp,
  */
 static int mgcp_osmux_setup(struct mgcp_endpoint *endp, const char *line)
 {
-	if (!endp->trunk->cfg->osmux_initialized) {
+	if (!endp->trunk->cfg->osmux.initialized) {
 		if (osmux_init(endp->trunk) < 0) {
 			LOGPENDP(endp, DOSMUX, LOGL_ERROR, "Cannot init OSMUX\n");
 			return -3;
@@ -898,7 +898,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		case 'X':
 			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
 				/* If osmux is disabled, just skip setting it up */
-				if (rq->endp->trunk->cfg->osmux_use == OSMUX_USAGE_OFF)
+				if (rq->endp->trunk->cfg->osmux.usage == OSMUX_USAGE_OFF)
 					break;
 				remote_osmux_cid = mgcp_osmux_setup(endp, line);
 				break;
@@ -1013,7 +1013,7 @@ mgcp_header_done:
 			conn->osmux.remote_cid_present = true;
 			conn->osmux.remote_cid = remote_osmux_cid;
 		}
-	} else if (endp->trunk->cfg->osmux_use == OSMUX_USAGE_ONLY) {
+	} else if (endp->trunk->cfg->osmux.usage == OSMUX_USAGE_ONLY) {
 		LOGPCONN(_conn, DLMGCP, LOGL_ERROR,
 			 "CRCX: osmux only and no osmux offered\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
@@ -1190,7 +1190,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		case 'X':
 			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
 				/* If osmux is disabled, just skip setting it up */
-				if (endp->trunk->cfg->osmux_use == OSMUX_USAGE_OFF)
+				if (endp->trunk->cfg->osmux.usage == OSMUX_USAGE_OFF)
 					break;
 				remote_osmux_cid = mgcp_osmux_setup(endp, line);
 				break;

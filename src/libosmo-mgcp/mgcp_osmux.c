@@ -169,9 +169,9 @@ osmux_handle_alloc(const struct mgcp_trunk *trunk, const struct osmo_sockaddr *r
 	}
 	/* sequence number to start OSMUX message from */
 	osmux_xfrm_input_set_initial_seqnum(h->in, 0);
-	osmux_xfrm_input_set_batch_factor(h->in, cfg->osmux_batch);
+	osmux_xfrm_input_set_batch_factor(h->in, cfg->osmux.batch_factor);
 	/* If batch size is zero, the library defaults to 1472 bytes. */
-	osmux_xfrm_input_set_batch_size(h->in, cfg->osmux_batch_size);
+	osmux_xfrm_input_set_batch_size(h->in, cfg->osmux.batch_size);
 	osmux_xfrm_input_set_deliver_cb(h->in, osmux_deliver_cb, h);
 
 	llist_add(&h->head, &osmux_handle_list);
@@ -287,7 +287,7 @@ osmux_conn_lookup(const struct mgcp_trunk *trunk, uint8_t local_cid, const struc
 				h = osmux_xfrm_input_get_deliver_cb_data(conn_rtp->osmux.in);
 				if (osmo_sockaddr_cmp(&h->rem_addr, rem_addr) != 0)
 					continue;
-			} else if (!trunk->cfg->osmux_peer_behind_nat) {
+			} else if (!trunk->cfg->osmux.peer_behind_nat) {
 				LOGPCONN(conn, DOSMUX, LOGL_DEBUG, "osmux_conn_lookup(rem_addr=%s local_cid=%d): Skipping because not (yet) ENABLED\n",
 					 osmo_sockaddr_to_str(rem_addr), local_cid);
 				continue; /* skip, read above */
@@ -353,7 +353,7 @@ static int conn_osmux_event_data_received(struct mgcp_conn_rtp *conn, const stru
 		 * conn_osmux_rx_mdcx() whenever a CRCX/MDCX with the remote address is received.
 		 */
 		cfg = conn->conn->endp->trunk->cfg;
-		if (!cfg->osmux_peer_behind_nat) {
+		if (!cfg->osmux.peer_behind_nat) {
 			/* osmux_conn_lookup() should never provide us with an
 			 * ACTIVATING conn without NAT in first place. This should never happen. */
 			LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
@@ -392,7 +392,7 @@ int conn_osmux_event_rx_crcx_mdcx(struct mgcp_conn_rtp *conn)
 		/* If peer is behind NAT, we have to wait until 1st osmux frame is received
 		* to discover peer's real remote address */
 		cfg = conn->conn->endp->trunk->cfg;
-		if (cfg->osmux_peer_behind_nat)
+		if (cfg->osmux.peer_behind_nat)
 			return 0;
 		/* Keep waiting to receive remote CID through CRCX/MDCX */
 		if (!conn->osmux.remote_cid_present)
@@ -454,7 +454,7 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 	rate_ctr_inc(rate_ctr_group_get_ctr(all_rtp_stats, OSMUX_PACKETS_RX_CTR));
 	osmo_sockaddr_to_str_buf(addr_str, sizeof(addr_str), &rem_addr);
 
-	if (trunk->cfg->osmux_use == OSMUX_USAGE_OFF) {
+	if (trunk->cfg->osmux.usage == OSMUX_USAGE_OFF) {
 		LOGP(DOSMUX, LOGL_ERROR,
 		     "Peer %s wants to use Osmux but MGCP Client did not request it\n",
 		     addr_str);
@@ -505,12 +505,12 @@ int osmux_init(struct mgcp_trunk *trunk)
 	osmo_fd_setup(&osmux_fd_v4, -1, OSMO_FD_READ, osmux_read_fd_cb, trunk, 0);
 	osmo_fd_setup(&osmux_fd_v6, -1, OSMO_FD_READ, osmux_read_fd_cb, trunk, 0);
 
-	if (cfg->osmux_addr_v4) {
-		ret = mgcp_create_bind(cfg->osmux_addr_v4, &osmux_fd_v4, cfg->osmux_port,
+	if (cfg->osmux.local_addr_v4) {
+		ret = mgcp_create_bind(cfg->osmux.local_addr_v4, &osmux_fd_v4, cfg->osmux.local_port,
 					cfg->endp_dscp, cfg->endp_priority);
 		if (ret < 0) {
 			LOGP(DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv4 socket to %s:%u\n",
-			     cfg->osmux_addr_v4, cfg->osmux_port);
+			     cfg->osmux.local_addr_v4, cfg->osmux.local_port);
 			return ret;
 		}
 
@@ -523,12 +523,12 @@ int osmux_init(struct mgcp_trunk *trunk)
 		LOGP(DOSMUX, LOGL_INFO, "OSMUX IPv4 socket listening on %s\n",
 		     osmo_sock_get_name2(osmux_fd_v4.fd));
 	}
-	if (cfg->osmux_addr_v6) {
-		ret = mgcp_create_bind(cfg->osmux_addr_v6, &osmux_fd_v6, cfg->osmux_port,
+	if (cfg->osmux.local_addr_v6) {
+		ret = mgcp_create_bind(cfg->osmux.local_addr_v6, &osmux_fd_v6, cfg->osmux.local_port,
 					cfg->endp_dscp, cfg->endp_priority);
 		if (ret < 0) {
 			LOGP(DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv6 socket to [%s]:%u\n",
-			     cfg->osmux_addr_v6, cfg->osmux_port);
+			     cfg->osmux.local_addr_v6, cfg->osmux.local_port);
 			return ret;
 		}
 
@@ -541,7 +541,7 @@ int osmux_init(struct mgcp_trunk *trunk)
 		LOGP(DOSMUX, LOGL_INFO, "OSMUX IPv6 socket listening on %s\n",
 		     osmo_sock_get_name2(osmux_fd_v6.fd));
 	}
-	cfg->osmux_initialized = true;
+	cfg->osmux.initialized = true;
 	return 0;
 }
 
@@ -608,7 +608,7 @@ int conn_osmux_enable(struct mgcp_conn_rtp *conn)
 	 */
 	const struct mgcp_trunk *trunk = conn->conn->endp->trunk;
 	static const uint32_t rtp_ssrc_winlen = UINT32_MAX / (OSMUX_CID_MAX + 1);
-	bool osmux_dummy = trunk->cfg->osmux_dummy;
+	bool osmux_dummy = trunk->cfg->osmux.dummy_padding;
 
 	/* Wait until we have the remote connection information, be it from MDCX (peer not behind NAT)
 	 * or later learned from first received remote osmux packet (peer behind NAT) */

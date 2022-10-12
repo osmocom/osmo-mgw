@@ -102,19 +102,19 @@ int mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn)
 		if (rem_addr_set) {
 			/* Match IP version with what was requested from remote: */
 			bind_addr = conn->end.addr.u.sa.sa_family == AF_INET6 ?
-				    cfg->osmux_addr_v6 :
-				    cfg->osmux_addr_v4;
+				    cfg->osmux.local_addr_v6 :
+				    cfg->osmux.local_addr_v4;
 		} else {
 			/* Choose any of the bind addresses, preferring v6 over v4 if available: */
-			bind_addr = cfg->osmux_addr_v6;
+			bind_addr = cfg->osmux.local_addr_v6;
 			if (!bind_addr)
-				bind_addr = cfg->osmux_addr_v4;
+				bind_addr = cfg->osmux.local_addr_v4;
 		}
 		if (!bind_addr) {
 			LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 				"Unable to locate local Osmux address, check your configuration! v4=%u v6=%u remote_known=%s\n",
-				!!cfg->osmux_addr_v4,
-				!!cfg->osmux_addr_v6,
+				!!cfg->osmux.local_addr_v4,
+				!!cfg->osmux.local_addr_v6,
 				rem_addr_set ? osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf) : "no");
 			return -1;
 		}
