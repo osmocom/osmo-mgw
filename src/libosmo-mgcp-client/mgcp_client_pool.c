@@ -124,17 +124,18 @@ static struct mgcp_client_pool_member *mgcp_client_pool_pick(struct mgcp_client_
 {
 	struct mgcp_client_pool_member *pool_member;
 	struct mgcp_client_pool_member *pool_member_picked = NULL;
-	unsigned int n_pool_members = llist_count(&pool->pool);
+	unsigned int n_pool_members = 0;
 
 	llist_for_each_entry(pool_member, &pool->pool, list) {
+		n_pool_members++;
 		if (pool_member->blocked == false && pool_member->client) {
 			if (!pool_member_picked)
 				pool_member_picked = pool_member;
 			else if (pool_member_picked->refcount > pool_member->refcount)
 				pool_member_picked = pool_member;
 		} else {
-			LOGPPMGW(pool_member, LOGL_DEBUG, "MGW pool has %u members -- MGW %u is unusable\n", n_pool_members,
-				 pool_member->nr);
+			LOGPPMGW(pool_member, LOGL_DEBUG, "%s -- MGW %u is unusable (blocked=%u, cli=%u)\n",
+				 __func__, pool_member->nr, pool_member->blocked, !!pool_member->client);
 		}
 	}
 
