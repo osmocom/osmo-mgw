@@ -32,6 +32,7 @@
 #include <osmocom/mgcp_client/mgcp_client.h>
 #include <osmocom/mgcp_client/mgcp_client_internal.h>
 #include <osmocom/mgcp_client/mgcp_client_pool_internal.h>
+#include <osmocom/mgcp_client/mgcp_client_pool.h>
 
 #define MGW_STR MGCP_CLIENT_MGW_STR
 

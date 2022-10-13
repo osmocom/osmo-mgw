@@ -148,12 +148,10 @@ struct mgcp_client *mgcp_client_pool_get(struct mgcp_client_pool *pool)
 
 	/* Pick a suitable pool member */
 	pool_member = mgcp_client_pool_pick(pool);
-	if (pool_member) {
-		pool_member->refcount++;
-		return pool_member->client;
-	}
+	if (!pool_member)
+		return NULL;
 
-	return NULL;
+	return mgcp_client_pool_member_get(pool_member);
 }
 
 /*! put an MGCP client back into the pool (decrement reference counter).
@@ -272,4 +270,23 @@ const char *mgcp_client_pool_member_name(const struct mgcp_client_pool_member *p
 	snprintf(name, sizeof(name), "%d:%s", pool_member->nr, description);
 
 	return name;
+}
+
+/*! Get the MGCP client associated with the pool reference from the pool (increment reference counter).
+ *  \param[in] pool_member MGCP client pool descriptor.
+ *  \returns MGCP client descriptor, NULL if no member was not ready.
+ */
+struct mgcp_client *mgcp_client_pool_member_get(struct mgcp_client_pool_member *pool_member)
+{
+	pool_member->refcount++;
+	return pool_member->client;
+}
+
+/*! Get whether the MGCP client associated with the pool reference is blocked by policy.
+ *  \param[in] pool_member MGCP client pool descriptor.
+ *  \returns true if blocked, false otherwise
+ */
+bool mgcp_client_pool_member_is_blocked(const struct mgcp_client_pool_member *pool_member)
+{
+	return pool_member->blocked;
 }
