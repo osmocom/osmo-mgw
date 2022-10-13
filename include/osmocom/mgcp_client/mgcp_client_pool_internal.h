@@ -45,4 +45,6 @@ struct mgcp_client_pool {
 
 struct mgcp_client_pool_member *mgcp_client_pool_find_member_by_nr(struct mgcp_client_pool *pool, unsigned int nr);
 
+struct mgcp_client_pool_member *mgcp_client_pool_member_alloc(struct mgcp_client_pool *pool, unsigned int nr);
+void mgcp_client_pool_member_free(struct mgcp_client_pool_member *pool_member);
 const char *mgcp_client_pool_member_name(const struct mgcp_client_pool_member *pool_member);

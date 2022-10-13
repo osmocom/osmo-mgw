@@ -345,11 +345,8 @@ DEFUN_ATTR(cfg_mgw,
 
 	pool_member = mgcp_client_pool_find_member_by_nr(global_mgcp_client_pool, nr);
 	if (!pool_member) {
-		pool_member = talloc_zero(global_mgcp_client_pool, struct mgcp_client_pool_member);
+		pool_member = mgcp_client_pool_member_alloc(global_mgcp_client_pool, nr);
 		OSMO_ASSERT(pool_member);
-		mgcp_client_conf_init(&pool_member->conf);
-		pool_member->nr = nr;
-		llist_add_tail(&pool_member->list, &global_mgcp_client_pool->member_list);
 	}
 
 	vty->index = &pool_member->conf;
@@ -379,12 +376,7 @@ DEFUN_ATTR(cfg_no_mgw,
 		return CMD_WARNING;
 	}
 
-	llist_del(&pool_member->list);
-	if (pool_member->client) {
-		mgcp_client_disconnect(pool_member->client);
-		talloc_free(pool_member->client);
-	}
-	talloc_free(pool_member);
+	mgcp_client_pool_member_free(pool_member);
 
 	return CMD_SUCCESS;
 }

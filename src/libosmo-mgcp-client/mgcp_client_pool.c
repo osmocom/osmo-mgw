@@ -228,3 +228,38 @@ void mgcp_client_pool_put(struct mgcp_client *mgcp_client)
 		}
 	}
 }
+
+/***************************
+ * mgcp_client_pool_member:
+ ***************************/
+
+/*! Allocate an mgcp_client_pool_member.
+ *  \param[in] pool MGCP client pool descriptor.
+ *  \param[in] nr Reference number of the pool member.
+ */
+struct mgcp_client_pool_member *mgcp_client_pool_member_alloc(struct mgcp_client_pool *pool, unsigned int nr)
+{
+	struct mgcp_client_pool_member *pool_member;
+
+	pool_member = talloc_zero(pool, struct mgcp_client_pool_member);
+	OSMO_ASSERT(pool_member);
+	mgcp_client_conf_init(&pool_member->conf);
+	pool_member->nr = nr;
+	llist_add_tail(&pool_member->list, &pool->member_list);
+	return pool_member;
+}
+
+/*! Free an mgcp_client_pool_member allocated through mgcp_client_pool_member_alloc().
+ *  \param[in] pool_member MGCP client pool descriptor.
+ *
+ * It also frees the associated MGCP client if present.
+ */
+void mgcp_client_pool_member_free(struct mgcp_client_pool_member *pool_member)
+{
+	llist_del(&pool_member->list);
+	if (pool_member->client) {
+		mgcp_client_disconnect(pool_member->client);
+		talloc_free(pool_member->client);
+	}
+	talloc_free(pool_member);
+}
