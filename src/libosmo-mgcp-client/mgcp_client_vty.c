@@ -401,32 +401,10 @@ DEFUN_ATTR(mgw_reconnect, mgw_reconnect_cmd,
 		return CMD_WARNING;
 	}
 
-	/* Get rid of a possibly existing old MGCP client instance first */
-	if (pool_member->client) {
-		mgcp_client_disconnect(pool_member->client);
-		talloc_free(pool_member->client);
-	}
-
-	/* Create a new MGCP client instance with the current config */
-	pool_member->client = mgcp_client_init(pool_member, &pool_member->conf);
-	if (!pool_member->client) {
-		LOGP(DLMGCP, LOGL_ERROR, "(manual) MGW %s initalization failed\n",
-		     mgcp_client_pool_member_name(pool_member));
-		vty_out(vty, "%% MGCP client (MGW %s) initalization failed ('%s')%s",
-			mgcp_client_pool_member_name(pool_member), argv[0], VTY_NEWLINE);
-		return CMD_WARNING;
-	}
-
-	/* Set backpointer so that we can detect later that this MGCP client is managed by this pool. */
-	pool_member->client->pool = global_mgcp_client_pool;
-
-	/* Connect client */
-	if (mgcp_client_connect(pool_member->client)) {
+	if (mgcp_client_pool_member_reinit_client(pool_member, global_mgcp_client_pool) < 0) {
 		LOGP(DLMGCP, LOGL_ERROR, "(manual) MGW %s connect failed at (%s:%u)\n",
 		     mgcp_client_pool_member_name(pool_member), pool_member->conf.remote_addr,
 		     pool_member->conf.remote_port);
-		talloc_free(pool_member->client);
-		pool_member->client = NULL;
 		vty_out(vty, "%% MGCP client (MGW %s) initalization failed ('%s')%s",
 			mgcp_client_pool_member_name(pool_member), argv[0], VTY_NEWLINE);
 		return CMD_WARNING;

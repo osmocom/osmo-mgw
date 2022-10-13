@@ -18,6 +18,7 @@
  *
  */
 
+#include <asm-generic/errno.h>
 #include <osmocom/mgcp_client/mgcp_client.h>
 #include <osmocom/mgcp_client/mgcp_client_internal.h>
 #include <osmocom/mgcp_client/mgcp_client_pool_internal.h>
@@ -54,26 +55,8 @@ unsigned int mgcp_client_pool_connect(struct mgcp_client_pool *pool)
 	llist_for_each_entry(pool_member, &pool->member_list, list) {
 
 		/* Initialize client */
-		pool_member->client = mgcp_client_init(pool_member, &pool_member->conf);
-		if (!pool_member->client) {
-			LOGPPMGW(pool_member, LOGL_ERROR, "MGCP client initialization failed\n");
-			continue;
-		}
-
-		/* Set backpointer so that we can detect later that this MGCP client is managed
-		 * by this pool. */
-		pool_member->client->pool = pool;
-
-		/* Connect client */
-		if (mgcp_client_connect2(pool_member->client, 0)) {
-			LOGPPMGW(pool_member, LOGL_ERROR, "MGCP client connect failed at (%s:%u)\n",
-				 pool_member->conf.remote_addr, pool_member->conf.remote_port);
-			talloc_free(pool_member->client);
-			pool_member->client = NULL;
-			continue;
-		}
-
-		pool_members_initialized++;
+		if (mgcp_client_pool_member_reinit_client(pool_member, pool) == 0)
+			pool_members_initialized++;
 	}
 
 	return pool_members_initialized;
@@ -236,6 +219,38 @@ void mgcp_client_pool_member_free(struct mgcp_client_pool_member *pool_member)
 		talloc_free(pool_member->client);
 	}
 	talloc_free(pool_member);
+}
+
+/*! Recreate and reconnect the MGCP client associated to the pool descriptor.
+ *  \param[in] pool_member MGCP client pool descriptor.
+ */
+int mgcp_client_pool_member_reinit_client(struct mgcp_client_pool_member *pool_member, struct mgcp_client_pool *pool)
+{
+	/* Get rid of a possibly existing old MGCP client instance first */
+	if (pool_member->client) {
+		mgcp_client_disconnect(pool_member->client);
+		talloc_free(pool_member->client);
+	}
+
+	/* Initialize client */
+	pool_member->client = mgcp_client_init(pool_member, &pool_member->conf);
+	if (!pool_member->client) {
+		LOGPPMGW(pool_member, LOGL_ERROR, "MGCP client initialization failed\n");
+		return -EINVAL;
+	}
+
+	/* Set backpointer so that we can detect later that this MGCP client is managed by this pool. */
+	pool_member->client->pool = pool;
+
+	/* Connect client */
+	if (mgcp_client_connect2(pool_member->client, 0)) {
+		LOGPPMGW(pool_member, LOGL_ERROR, "MGCP client connect failed at (%s:%u)\n",
+				pool_member->conf.remote_addr, pool_member->conf.remote_port);
+		talloc_free(pool_member->client);
+		pool_member->client = NULL;
+		return -ECONNABORTED;
+	}
+	return 0;
 }
 
 /* Get a human readable name for a given pool member. */
