@@ -55,7 +55,7 @@ unsigned int mgcp_client_pool_connect(struct mgcp_client_pool *pool)
 	llist_for_each_entry(pool_member, &pool->member_list, list) {
 
 		/* Initialize client */
-		if (mgcp_client_pool_member_reinit_client(pool_member, pool) == 0)
+		if (mgcp_client_pool_member_reinit_client(pool_member) == 0)
 			pool_members_initialized++;
 	}
 
@@ -165,25 +165,19 @@ struct mgcp_client *mgcp_client_pool_get(struct mgcp_client_pool *pool)
 void mgcp_client_pool_put(struct mgcp_client *mgcp_client)
 {
 	struct mgcp_client_pool_member *pool_member;
-	struct mgcp_client_pool *pool;
 
 	if (!mgcp_client)
 		return;
 
-	if (mgcp_client->pool)
-		pool = mgcp_client->pool;
-	else
+	if (!mgcp_client->pool_member)
 		return;
+	pool_member = mgcp_client->pool_member;
 
-	llist_for_each_entry(pool_member, &pool->member_list, list) {
-		if (pool_member->client == mgcp_client) {
-			if (pool_member->refcount == 0) {
-				LOGPPMGW(pool_member, LOGL_ERROR, "MGW pool member has invalid refcount\n");
-				return;
-			}
-			pool_member->refcount--;
-		}
+	if (pool_member->refcount == 0) {
+		LOGPPMGW(pool_member, LOGL_ERROR, "MGW pool member has invalid refcount\n");
+		return;
 	}
+	pool_member->refcount--;
 }
 
 /***************************
@@ -201,6 +195,7 @@ struct mgcp_client_pool_member *mgcp_client_pool_member_alloc(struct mgcp_client
 	pool_member = talloc_zero(pool, struct mgcp_client_pool_member);
 	OSMO_ASSERT(pool_member);
 	mgcp_client_conf_init(&pool_member->conf);
+	pool_member->pool = pool;
 	pool_member->nr = nr;
 	llist_add_tail(&pool_member->list, &pool->member_list);
 	return pool_member;
@@ -224,7 +219,7 @@ void mgcp_client_pool_member_free(struct mgcp_client_pool_member *pool_member)
 /*! Recreate and reconnect the MGCP client associated to the pool descriptor.
  *  \param[in] pool_member MGCP client pool descriptor.
  */
-int mgcp_client_pool_member_reinit_client(struct mgcp_client_pool_member *pool_member, struct mgcp_client_pool *pool)
+int mgcp_client_pool_member_reinit_client(struct mgcp_client_pool_member *pool_member)
 {
 	/* Get rid of a possibly existing old MGCP client instance first */
 	if (pool_member->client) {
@@ -240,7 +235,7 @@ int mgcp_client_pool_member_reinit_client(struct mgcp_client_pool_member *pool_m
 	}
 
 	/* Set backpointer so that we can detect later that this MGCP client is managed by this pool. */
-	pool_member->client->pool = pool;
+	pool_member->client->pool_member = pool_member;
 
 	/* Connect client */
 	if (mgcp_client_connect2(pool_member->client, 0)) {

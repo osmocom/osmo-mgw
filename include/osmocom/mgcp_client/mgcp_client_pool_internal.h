@@ -26,6 +26,9 @@ struct mgcp_client_pool_member {
 	/* Entry in llist mgcp_client_pool->pool. */
 	struct llist_head list;
 
+	/* The pool managing this object: */
+	struct mgcp_client_pool *pool;
+
 	/* Reference number assinged by VTY. This number is used to manage the pool from the VTY and to identify it in
 	 * the log. */
 	unsigned int nr;
@@ -48,5 +51,5 @@ struct mgcp_client_pool_member {
 
 struct mgcp_client_pool_member *mgcp_client_pool_member_alloc(struct mgcp_client_pool *pool, unsigned int nr);
 void mgcp_client_pool_member_free(struct mgcp_client_pool_member *pool_member);
-int mgcp_client_pool_member_reinit_client(struct mgcp_client_pool_member *pool_member, struct mgcp_client_pool *pool);
+int mgcp_client_pool_member_reinit_client(struct mgcp_client_pool_member *pool_member);
 const char *mgcp_client_pool_member_name(const struct mgcp_client_pool_member *pool_member);

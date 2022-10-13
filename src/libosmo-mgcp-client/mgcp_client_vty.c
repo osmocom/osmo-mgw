@@ -401,7 +401,7 @@ DEFUN_ATTR(mgw_reconnect, mgw_reconnect_cmd,
 		return CMD_WARNING;
 	}
 
-	if (mgcp_client_pool_member_reinit_client(pool_member, global_mgcp_client_pool) < 0) {
+	if (mgcp_client_pool_member_reinit_client(pool_member) < 0) {
 		LOGP(DLMGCP, LOGL_ERROR, "(manual) MGW %s connect failed at (%s:%u)\n",
 		     mgcp_client_pool_member_name(pool_member), pool_member->conf.remote_addr,
 		     pool_member->conf.remote_port);
