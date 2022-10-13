@@ -35,7 +35,7 @@
 
 #define MGW_STR MGCP_CLIENT_MGW_STR
 
-/* Only common (non-pooled) VTY connands will use this talloc context. All
+/* Only common (non-pooled) VTY commands will use this talloc context. All
  * pooled VTY commands will use the pool (global_mgcp_client_pool) as
  * talloc context. */
 static void *global_mgcp_client_ctx = NULL;
