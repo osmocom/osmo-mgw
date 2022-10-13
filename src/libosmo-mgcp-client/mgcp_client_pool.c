@@ -64,7 +64,7 @@ struct mgcp_client_pool *mgcp_client_pool_alloc(void *talloc_ctx)
 	if (!pool)
 		return NULL;
 
-	INIT_LLIST_HEAD(&pool->pool);
+	INIT_LLIST_HEAD(&pool->member_list);
 
 	return pool;
 }
@@ -77,7 +77,7 @@ unsigned int mgcp_client_pool_connect(struct mgcp_client_pool *pool)
 	struct mgcp_client_pool_member *pool_member;
 	unsigned int pool_members_initialized = 0;
 
-	llist_for_each_entry(pool_member, &pool->pool, list) {
+	llist_for_each_entry(pool_member, &pool->member_list, list) {
 
 		/* Initialize client */
 		pool_member->client = mgcp_client_init(pool_member, &pool_member->conf);
@@ -126,7 +126,7 @@ static struct mgcp_client_pool_member *mgcp_client_pool_pick(struct mgcp_client_
 	struct mgcp_client_pool_member *pool_member_picked = NULL;
 	unsigned int n_pool_members = 0;
 
-	llist_for_each_entry(pool_member, &pool->pool, list) {
+	llist_for_each_entry(pool_member, &pool->member_list, list) {
 		n_pool_members++;
 		if (pool_member->blocked == false && pool_member->client) {
 			if (!pool_member_picked)
@@ -164,14 +164,14 @@ struct mgcp_client *mgcp_client_pool_get(struct mgcp_client_pool *pool)
 	 *  by the application code. */
 
 	/* When the pool is empty, return a single MGCP client if it is registered. */
-	if (llist_empty(&pool->pool) && pool->mgcp_client_single) {
+	if (llist_empty(&pool->member_list) && pool->mgcp_client_single) {
 		LOGP(DLMGCP, LOGL_DEBUG, "MGW pool is empty -- using (single) MGW %s\n",
 		     mgcp_client_name(pool->mgcp_client_single));
 		return pool->mgcp_client_single;
 	}
 
 	/* Abort when the pool is empty */
-	if (llist_empty(&pool->pool)) {
+	if (llist_empty(&pool->member_list)) {
 		LOGP(DLMGCP, LOGL_ERROR, "MGW pool is empty -- no MGW available!\n");
 		return NULL;
 	}
@@ -205,7 +205,7 @@ void mgcp_client_pool_put(struct mgcp_client *mgcp_client)
 	else
 		return;
 
-	llist_for_each_entry(pool_member, &pool->pool, list) {
+	llist_for_each_entry(pool_member, &pool->member_list, list) {
 		if (pool_member->client == mgcp_client) {
 			if (pool_member->refcount == 0) {
 				LOGPPMGW(pool_member, LOGL_ERROR, "MGW pool member has invalid refcount\n");

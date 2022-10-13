@@ -33,7 +33,7 @@ struct mgcp_client_pool {
 	struct mgcp_client *mgcp_client_single;
 
 	/* A list that manages the pool members (see mgcp_client_pool_member->list above) */
-	struct llist_head pool;
+	struct llist_head member_list;
 
 	/* String to use for indentation when writing the configuration file to the VTY. This field is populated by
 	 * mgcp_client_pool_vty_init() */

@@ -328,7 +328,7 @@ static int config_write_pool(struct vty *vty)
 
 	snprintf(indent, indent_buf_len, "%s ", pool->vty_indent);
 
-	llist_for_each_entry(pool_member, &pool->pool, list) {
+	llist_for_each_entry(pool_member, &pool->member_list, list) {
 		vty_out(vty, "%smgw %u%s", pool->vty_indent, pool_member->nr, VTY_NEWLINE);
 		config_write(vty, indent, &pool_member->conf);
 	}
@@ -343,7 +343,7 @@ static struct mgcp_client_pool_member *pool_member_by_nr(unsigned int nr)
 	struct mgcp_client_pool_member *pool_member = NULL;
 	struct mgcp_client_pool_member *pool_member_tmp;
 
-	llist_for_each_entry(pool_member_tmp, &global_mgcp_client_pool->pool, list) {
+	llist_for_each_entry(pool_member_tmp, &global_mgcp_client_pool->member_list, list) {
 		if (pool_member_tmp->nr == nr) {
 			pool_member = pool_member_tmp;
 			break;
@@ -365,7 +365,7 @@ DEFUN_ATTR(cfg_mgw,
 		OSMO_ASSERT(pool_member);
 		mgcp_client_conf_init(&pool_member->conf);
 		pool_member->nr = nr;
-		llist_add_tail(&pool_member->list, &global_mgcp_client_pool->pool);
+		llist_add_tail(&pool_member->list, &global_mgcp_client_pool->member_list);
 	}
 
 	vty->index = &pool_member->conf;
@@ -498,15 +498,15 @@ DEFUN(mgw_show, mgw_show_cmd, "show mgw-pool", SHOW_STR "Display information abo
 	vty_out(vty, "%% MGW-Pool:%s", VTY_NEWLINE);
 	struct mgcp_client_pool_member *pool_member;
 
-	if (llist_empty(&global_mgcp_client_pool->pool) && global_mgcp_client_pool->mgcp_client_single) {
+	if (llist_empty(&global_mgcp_client_pool->member_list) && global_mgcp_client_pool->mgcp_client_single) {
 		vty_out(vty, "%%  (pool is empty, single MGCP client will be used)%s", VTY_NEWLINE);
 		return CMD_SUCCESS;
-	} else if (llist_empty(&global_mgcp_client_pool->pool)) {
+	} else if (llist_empty(&global_mgcp_client_pool->member_list)) {
 		vty_out(vty, "%%  (pool is empty)%s", VTY_NEWLINE);
 		return CMD_SUCCESS;
 	}
 
-	llist_for_each_entry(pool_member, &global_mgcp_client_pool->pool, list) {
+	llist_for_each_entry(pool_member, &global_mgcp_client_pool->member_list, list) {
 		vty_out(vty, "%%  MGW %s%s", mgcp_client_pool_member_name(pool_member), VTY_NEWLINE);
 		vty_out(vty, "%%   mgcp-client:   %s%s", pool_member->client ? "connected" : "disconnected",
 			VTY_NEWLINE);
