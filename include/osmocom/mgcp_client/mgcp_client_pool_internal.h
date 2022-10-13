@@ -1,5 +1,26 @@
 #pragma once
 
+/* Struct to handle a pool of MGWs. (Use _pool functions) */
+struct mgcp_client_pool {
+
+	/* A pointer to a 'single' mgcp client. This is a non-pooled MGCP client that is configured using
+	 * mgcp_client_vty_init() and actively registered by the API user using mgcp_client_pool_register_single() */
+	struct mgcp_client *mgcp_client_single;
+
+	/* A list that manages the pool members (see mgcp_client_pool_member->list above) */
+	struct llist_head member_list;
+
+	/* String to use for indentation when writing the configuration file to the VTY. This field is populated by
+	 * mgcp_client_pool_vty_init() */
+	char *vty_indent;
+
+	/* VTY node specification used with this pool. This field is populated by mgcp_client_pool_vty_init() */
+	struct cmd_node *vty_node;
+};
+
+struct mgcp_client_pool_member *mgcp_client_pool_find_member_by_nr(struct mgcp_client_pool *pool, unsigned int nr);
+
+
 /* Struct to handle a member of a pool of MGWs. */
 struct mgcp_client_pool_member {
 	/* Entry in llist mgcp_client_pool->pool. */
@@ -24,26 +45,6 @@ struct mgcp_client_pool_member {
 	/* Reference counter to count how often this pool member is currently picked. */
 	unsigned int refcount;
 };
-
-/* Struct to handle a pool of MGWs. (Use _pool functions) */
-struct mgcp_client_pool {
-
-	/* A pointer to a 'single' mgcp client. This is a non-pooled MGCP client that is configured using
-	 * mgcp_client_vty_init() and actively registered by the API user using mgcp_client_pool_register_single() */
-	struct mgcp_client *mgcp_client_single;
-
-	/* A list that manages the pool members (see mgcp_client_pool_member->list above) */
-	struct llist_head member_list;
-
-	/* String to use for indentation when writing the configuration file to the VTY. This field is populated by
-	 * mgcp_client_pool_vty_init() */
-	char *vty_indent;
-
-	/* VTY node specification used with this pool. This field is populated by mgcp_client_pool_vty_init() */
-	struct cmd_node *vty_node;
-};
-
-struct mgcp_client_pool_member *mgcp_client_pool_find_member_by_nr(struct mgcp_client_pool *pool, unsigned int nr);
 
 struct mgcp_client_pool_member *mgcp_client_pool_member_alloc(struct mgcp_client_pool *pool, unsigned int nr);
 void mgcp_client_pool_member_free(struct mgcp_client_pool_member *pool_member);
