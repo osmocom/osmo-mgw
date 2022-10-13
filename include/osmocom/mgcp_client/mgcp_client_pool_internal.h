@@ -2,6 +2,7 @@
 
 /* Struct to handle a member of a pool of MGWs. */
 struct mgcp_client_pool_member {
+	/* Entry in llist mgcp_client_pool->pool. */
 	struct llist_head list;
 
 	/* Reference number assinged by VTY. This number is used to manage the pool from the VTY and to identify it in
@@ -31,7 +32,7 @@ struct mgcp_client_pool {
 	 * mgcp_client_vty_init() and actively registered by the API user using mgcp_client_pool_register_single() */
 	struct mgcp_client *mgcp_client_single;
 
-	/* A list that manages the pool members (see above) */
+	/* A list that manages the pool members (see mgcp_client_pool_member->list above) */
 	struct llist_head pool;
 
 	/* String to use for indentation when writing the configuration file to the VTY. This field is populated by
