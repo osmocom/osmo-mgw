@@ -493,7 +493,7 @@ DEFUN_ATTR(mgw_unblock, mgw_unblock_cmd,
 	return CMD_SUCCESS;
 }
 
-DEFUN(mgw_show, mgw_snow_cmd, "show mgw-pool", SHOW_STR "Display information about the MGW-Pool\n")
+DEFUN(mgw_show, mgw_show_cmd, "show mgw-pool", SHOW_STR "Display information about the MGW-Pool\n")
 {
 	vty_out(vty, "%% MGW-Pool:%s", VTY_NEWLINE);
 	struct mgcp_client_pool_member *pool_member;
@@ -551,7 +551,7 @@ void mgcp_client_pool_vty_init(int parent_node, int mgw_node, const char *indent
 	install_lib_element(ENABLE_NODE, &mgw_block_cmd);
 	install_lib_element(ENABLE_NODE, &mgw_unblock_cmd);
 
-	install_lib_element_ve(&mgw_snow_cmd);
+	install_lib_element_ve(&mgw_show_cmd);
 
 	global_mgcp_client_pool = pool;
 }
