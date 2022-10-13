@@ -27,32 +27,6 @@
 #define LOGPPMGW(pool_member, level, fmt, args...) \
 LOGP(DLMGCP, level, "MGW-pool(%s) " fmt, mgcp_client_pool_member_name(pool_member), ## args)
 
-/* Get a human readable name for a given pool member. */
-const char *mgcp_client_pool_member_name(const struct mgcp_client_pool_member *pool_member)
-{
-	const struct mgcp_client *mpcp_client;
-	struct mgcp_client mpcp_client_dummy;
-	static char name[512];
-	const char *description;
-
-	if (!pool_member)
-		return "(null)";
-
-	/* It is not guranteed that a pool_member has an MGCP client. The client may not yet be initialized or the
-	 * initalization may have been failed. In this case we will generate a dummy MGCP client to work with. */
-	if (!pool_member->client) {
-		memcpy(&mpcp_client_dummy.actual, &pool_member->conf, sizeof(mpcp_client_dummy.actual));
-		mpcp_client = &mpcp_client_dummy;
-	} else {
-		mpcp_client = pool_member->client;
-	}
-
-	description = mgcp_client_name(mpcp_client);
-	snprintf(name, sizeof(name), "%d:%s", pool_member->nr, description);
-
-	return name;
-}
-
 /*! Allocate MGCP client pool. This is called once on startup and before the pool is used with
  *  mgcp_client_pool_vty_init(). Since the pool is linked with the VTY it must exist througout the entire runtime.
  *  \param[in] talloc_ctx talloc context. */
@@ -262,4 +236,30 @@ void mgcp_client_pool_member_free(struct mgcp_client_pool_member *pool_member)
 		talloc_free(pool_member->client);
 	}
 	talloc_free(pool_member);
+}
+
+/* Get a human readable name for a given pool member. */
+const char *mgcp_client_pool_member_name(const struct mgcp_client_pool_member *pool_member)
+{
+	const struct mgcp_client *mpcp_client;
+	struct mgcp_client mpcp_client_dummy;
+	static char name[512];
+	const char *description;
+
+	if (!pool_member)
+		return "(null)";
+
+	/* It is not guranteed that a pool_member has an MGCP client. The client may not yet be initialized or the
+	 * initalization may have been failed. In this case we will generate a dummy MGCP client to work with. */
+	if (!pool_member->client) {
+		memcpy(&mpcp_client_dummy.actual, &pool_member->conf, sizeof(mpcp_client_dummy.actual));
+		mpcp_client = &mpcp_client_dummy;
+	} else {
+		mpcp_client = pool_member->client;
+	}
+
+	description = mgcp_client_name(mpcp_client);
+	snprintf(name, sizeof(name), "%d:%s", pool_member->nr, description);
+
+	return name;
 }
