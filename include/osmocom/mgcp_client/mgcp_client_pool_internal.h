@@ -43,4 +43,6 @@ struct mgcp_client_pool {
 	struct cmd_node *vty_node;
 };
 
+struct mgcp_client_pool_member *mgcp_client_pool_find_member_by_nr(struct mgcp_client_pool *pool, unsigned int nr);
+
 const char *mgcp_client_pool_member_name(const struct mgcp_client_pool_member *pool_member);

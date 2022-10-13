@@ -118,6 +118,19 @@ void mgcp_client_pool_register_single(struct mgcp_client_pool *pool, struct mgcp
 	pool->mgcp_client_single = mgcp_client;
 }
 
+/*! Lookup the selected MGCP client config by its reference number */
+struct mgcp_client_pool_member *mgcp_client_pool_find_member_by_nr(struct mgcp_client_pool *pool, unsigned int nr)
+{
+	struct mgcp_client_pool_member *pool_member;
+
+	llist_for_each_entry(pool_member, &pool->member_list, list) {
+		if (pool_member->nr == nr)
+			return pool_member;
+	}
+
+	return NULL;
+}
+
 /* Not every pool member may have a functional MGCP client, we will run through the pool once until we meet a
  * pool member that is suitable (has a client, is not blocked, has a low load). */
 static struct mgcp_client_pool_member *mgcp_client_pool_pick(struct mgcp_client_pool *pool)

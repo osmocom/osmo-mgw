@@ -337,29 +337,13 @@ static int config_write_pool(struct vty *vty)
 	return CMD_SUCCESS;
 }
 
-/* Lookup the selected MGCP client config by its reference number */
-static struct mgcp_client_pool_member *pool_member_by_nr(unsigned int nr)
-{
-	struct mgcp_client_pool_member *pool_member = NULL;
-	struct mgcp_client_pool_member *pool_member_tmp;
-
-	llist_for_each_entry(pool_member_tmp, &global_mgcp_client_pool->member_list, list) {
-		if (pool_member_tmp->nr == nr) {
-			pool_member = pool_member_tmp;
-			break;
-		}
-	}
-
-	return pool_member;
-}
-
 DEFUN_ATTR(cfg_mgw,
 	   cfg_mgw_cmd, "mgw <0-255>", "Select a MGCP client config to setup\n" "reference number\n", CMD_ATTR_IMMEDIATE)
 {
 	int nr = atoi(argv[0]);
 	struct mgcp_client_pool_member *pool_member;
 
-	pool_member = pool_member_by_nr(nr);
+	pool_member = mgcp_client_pool_find_member_by_nr(global_mgcp_client_pool, nr);
 	if (!pool_member) {
 		pool_member = talloc_zero(global_mgcp_client_pool, struct mgcp_client_pool_member);
 		OSMO_ASSERT(pool_member);
@@ -382,7 +366,7 @@ DEFUN_ATTR(cfg_no_mgw,
 	int nr = atoi(argv[0]);
 	struct mgcp_client_pool_member *pool_member;
 
-	pool_member = pool_member_by_nr(nr);
+	pool_member = mgcp_client_pool_find_member_by_nr(global_mgcp_client_pool, nr);
 	if (!pool_member) {
 		vty_out(vty, "%% no such MGCP client configured ('%s')%s", argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
@@ -412,7 +396,7 @@ DEFUN_ATTR(mgw_reconnect, mgw_reconnect_cmd,
 	int nr = atoi(argv[0]);
 	struct mgcp_client_pool_member *pool_member = NULL;
 
-	pool_member = pool_member_by_nr(nr);
+	pool_member = mgcp_client_pool_find_member_by_nr(global_mgcp_client_pool, nr);
 	if (!pool_member) {
 		vty_out(vty, "%% no such MGCP client configured ('%s')%s", argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
@@ -466,7 +450,7 @@ DEFUN_ATTR(mgw_block, mgw_block_cmd,
 	int nr = atoi(argv[0]);
 	struct mgcp_client_pool_member *pool_member = NULL;
 
-	pool_member = pool_member_by_nr(nr);
+	pool_member = mgcp_client_pool_find_member_by_nr(global_mgcp_client_pool, nr);
 	if (!pool_member) {
 		vty_out(vty, "%% no such MGCP client configured ('%s')%s", argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
@@ -483,7 +467,7 @@ DEFUN_ATTR(mgw_unblock, mgw_unblock_cmd,
 	int nr = atoi(argv[0]);
 	struct mgcp_client_pool_member *pool_member = NULL;
 
-	pool_member = pool_member_by_nr(nr);
+	pool_member = mgcp_client_pool_find_member_by_nr(global_mgcp_client_pool, nr);
 	if (!pool_member) {
 		vty_out(vty, "%% no such MGCP client configured ('%s')%s", argv[0], VTY_NEWLINE);
 		return CMD_WARNING;
