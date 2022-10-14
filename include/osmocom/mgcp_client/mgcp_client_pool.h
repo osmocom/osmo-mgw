@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 struct mgcp_client;
 struct mgcp_client_pool;
 struct mgcp_client_pool_member;
