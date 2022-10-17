@@ -52,8 +52,13 @@ struct mgcp_client_conf *get_mgcp_client_config(struct vty *vty)
 {
 	if (global_mgcp_client_pool && vty->node == global_mgcp_client_pool->vty_node->node)
 		return vty->index;
-	else
-		return global_mgcp_client_conf;
+
+	/* Global single MGCP config, deprecated: */
+	vty_out(vty, "%% MGCP commands outside of 'mgw' nodes are deprecated. "
+		"You should consider reading User Manual and migrating to 'mgw' node.%s",
+		VTY_NEWLINE);
+
+	return global_mgcp_client_conf;
 }
 
 DEFUN(cfg_mgw_local_ip, cfg_mgw_local_ip_cmd,
