@@ -7,7 +7,7 @@
 
 /* See also: RFC 3435, chapter 3.5 Transmission over UDP */
 #define MGCP_CLIENT_LOCAL_ADDR_DEFAULT NULL /* INADDR(6)_ANY */
-#define MGCP_CLIENT_LOCAL_PORT_DEFAULT 2727
+#define MGCP_CLIENT_LOCAL_PORT_DEFAULT 0
 #define MGCP_CLIENT_REMOTE_ADDR_DEFAULT "127.0.0.1"
 #define MGCP_CLIENT_REMOTE_PORT_DEFAULT 2427
 
@@ -140,7 +140,7 @@ struct mgcp_client_conf *mgcp_client_conf_actual(struct mgcp_client *mgcp);
 struct mgcp_client *mgcp_client_init(void *ctx,
 				     struct mgcp_client_conf *conf);
 int mgcp_client_connect(struct mgcp_client *mgcp);
-int mgcp_client_connect2(struct mgcp_client *mgcp, unsigned int retry_n_ports);
+int mgcp_client_connect2(struct mgcp_client *mgcp, unsigned int retry_n_ports) OSMO_DEPRECATED("Use mgcp_client_connect() instead");
 void mgcp_client_disconnect(struct mgcp_client *mgcp);
 
 const char *mgcp_client_remote_addr_str(struct mgcp_client *mgcp);

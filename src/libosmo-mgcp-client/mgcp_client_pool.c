@@ -236,7 +236,7 @@ int mgcp_client_pool_member_reinit_client(struct mgcp_client_pool_member *pool_m
 	pool_member->client->pool_member = pool_member;
 
 	/* Connect client */
-	if (mgcp_client_connect2(pool_member->client, 0)) {
+	if (mgcp_client_connect(pool_member->client)) {
 		LOGPPMGW(pool_member, LOGL_ERROR, "MGCP client connect failed at (%s:%u)\n",
 				pool_member->conf.remote_addr, pool_member->conf.remote_port);
 		talloc_free(pool_member->client);
