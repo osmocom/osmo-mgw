@@ -330,18 +330,46 @@ void mgcp_client_vty_init(void *talloc_ctx, int node, struct mgcp_client_conf *c
 	vty_init_common(talloc_ctx, node);
 }
 
+/* Deprecated, used for backward compatibility with older users which didn't call
+ * mgcp_client_pool_config_write(): */
+static bool mgcp_client_pool_config_write_called = false;
 static int config_write_pool(struct vty *vty)
+{
+	int rc;
+	if (mgcp_client_pool_config_write_called)
+		return CMD_SUCCESS;
+
+	rc = mgcp_client_pool_config_write(vty, NULL);
+	/* mgcp_client_pool_config_write sets this to true, let's reset it */
+	mgcp_client_pool_config_write_called = false;
+	return rc;
+}
+
+/*! Write out MGCP client config to VTY.
+ *  \param[in] vty VTY to which we should print.
+ *  \param[in] indent string used for indentation (e.g. " ").
+	       If NULL, indentation passed during mgcp_client_pool_vty_init() will be used.
+ *  \returns CMD_SUCCESS on success, CMD_WARNING on error */
+int mgcp_client_pool_config_write(struct vty *vty, const char *indent)
 {
 	struct mgcp_client_pool *pool = global_mgcp_client_pool;
 	struct mgcp_client_pool_member *pool_member;
-	unsigned int indent_buf_len = strlen(pool->vty_indent) + 1 + 1;
-	char *indent = talloc_zero_size(vty, indent_buf_len);
+	unsigned int subindent_buf_len;
+	char *subindent;
 
-	snprintf(indent, indent_buf_len, "%s ", pool->vty_indent);
+	/* Tell internal node write function that the user supports calling proper API: */
+	mgcp_client_pool_config_write_called = true;
+
+	if (!indent)
+		indent = pool->vty_indent ? : "";
+	subindent_buf_len = strlen(indent) + 1 + 1;
+	subindent = talloc_zero_size(vty, subindent_buf_len);
+
+	snprintf(subindent, subindent_buf_len, "%s ", indent);
 
 	llist_for_each_entry(pool_member, &pool->member_list, list) {
-		vty_out(vty, "%smgw %u%s", pool->vty_indent, pool_member->nr, VTY_NEWLINE);
-		config_write(vty, indent, &pool_member->conf);
+		vty_out(vty, "%smgw %u%s", indent, pool_member->nr, VTY_NEWLINE);
+		config_write(vty, subindent, &pool_member->conf);
 	}
 
 	/* MGW pool API is supported by user (global_mgcp_client_pool is set
@@ -350,11 +378,11 @@ static int config_write_pool(struct vty *vty)
 	 * replacing it, then output the single MGW converted to the new MGW
 	 * pool VTY. */
 	if (llist_empty(&pool->member_list) && pool->mgcp_client_single) {
-		vty_out(vty, "%smgw 0%s", pool->vty_indent, VTY_NEWLINE);
-		config_write(vty, indent, global_mgcp_client_conf);
+		vty_out(vty, "%smgw 0%s", indent, VTY_NEWLINE);
+		config_write(vty, subindent, global_mgcp_client_conf);
 	}
 
-	talloc_free(indent);
+	talloc_free(subindent);
 	return CMD_SUCCESS;
 }
 
@@ -495,7 +523,8 @@ DEFUN(mgw_show, mgw_show_cmd, "show mgw-pool", SHOW_STR "Display information abo
  *  (called once at startup by the application process).
  *  \param[in] parent_node identifier of the parent node on which the mgw node appears.
  *  \param[in] mgw_node identifier that should be used with the newly installed MGW node.
- *  \param[in] indent indentation string to match the indentation in the VTY config
+ *  \param[in] indent indentation string to match the indentation in the VTY config.
+	       If NULL, it must be passed explicitly each time mgcp_client_pool_config_write() is called.
  *  \param[in] pool user provided memory to store the configured MGCP client (MGW) pool. */
 void mgcp_client_pool_vty_init(int parent_node, int mgw_node, const char *indent, struct mgcp_client_pool *pool)
 {
@@ -503,11 +532,12 @@ void mgcp_client_pool_vty_init(int parent_node, int mgw_node, const char *indent
 	OSMO_ASSERT(pool);
 
 	/* Never allow this function to be called twice on the same pool */
-	OSMO_ASSERT(!pool->vty_indent);
 	OSMO_ASSERT(!pool->vty_node);
 
-	pool->vty_indent = talloc_strdup(pool, indent);
-	OSMO_ASSERT(pool->vty_indent);
+	if (indent) {
+		pool->vty_indent = talloc_strdup(pool, indent);
+		OSMO_ASSERT(pool->vty_indent);
+	}
 	pool->vty_node = talloc_zero(pool, struct cmd_node);
 	OSMO_ASSERT(pool->vty_node);
 	pool->vty_node->node = mgw_node;
@@ -517,6 +547,9 @@ void mgcp_client_pool_vty_init(int parent_node, int mgw_node, const char *indent
 	install_lib_element(parent_node, &cfg_mgw_cmd);
 	install_lib_element(parent_node, &cfg_no_mgw_cmd);
 
+	/* Note: config_write_pool is deprecated and user is expected to
+	 * manually call mgcp_client_pool_config_write() when printing the VTY
+	 * config */
 	install_node(pool->vty_node, config_write_pool);
 	vty_init_common(pool, mgw_node);
 
