@@ -285,6 +285,11 @@ static int config_write(struct vty *vty, const char *indent, struct mgcp_client_
  *  \returns CMD_SUCCESS on success, CMD_WARNING on error */
 int mgcp_client_config_write(struct vty *vty, const char *indent)
 {
+	/* If caller supports MGW pool API (mgcp_client_pool_vty_init was
+	 * called), then skip printing any config in this node and print it when
+	 * the whole 'mgw' node is printed. */
+	if (global_mgcp_client_pool)
+		return CMD_SUCCESS;
 	return config_write(vty, indent, global_mgcp_client_conf);
 }
 
@@ -337,6 +342,16 @@ static int config_write_pool(struct vty *vty)
 	llist_for_each_entry(pool_member, &pool->member_list, list) {
 		vty_out(vty, "%smgw %u%s", pool->vty_indent, pool_member->nr, VTY_NEWLINE);
 		config_write(vty, indent, &pool_member->conf);
+	}
+
+	/* MGW pool API is supported by user (global_mgcp_client_pool is set
+	 * because mgcp_client_pool_vty_init was called). If single MGW was
+	 * configured through old VTY and no mgw in the new MGW pool VTY is
+	 * replacing it, then output the single MGW converted to the new MGW
+	 * pool VTY. */
+	if (llist_empty(&pool->member_list) && pool->mgcp_client_single) {
+		vty_out(vty, "%smgw 0%s", pool->vty_indent, VTY_NEWLINE);
+		config_write(vty, indent, global_mgcp_client_conf);
 	}
 
 	talloc_free(indent);
