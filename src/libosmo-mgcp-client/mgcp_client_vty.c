@@ -368,35 +368,15 @@ void mgcp_client_vty_init(void *talloc_ctx, int node, struct mgcp_client_conf *c
 	vty_init_common(talloc_ctx, node);
 }
 
-/* Deprecated, used for backward compatibility with older users which didn't call
- * mgcp_client_pool_config_write(): */
+/* Mark whether user called mgcp_client_pool_config_write() and hence support new API */
 static bool mgcp_client_pool_config_write_called = false;
-static int config_write_pool(struct vty *vty)
-{
-	int rc;
-	if (mgcp_client_pool_config_write_called)
-		return CMD_SUCCESS;
 
-	rc = mgcp_client_pool_config_write(vty, NULL);
-	/* mgcp_client_pool_config_write sets this to true, let's reset it */
-	mgcp_client_pool_config_write_called = false;
-	return rc;
-}
-
-/*! Write out MGCP client config to VTY.
- *  \param[in] vty VTY to which we should print.
- *  \param[in] indent string used for indentation (e.g. " ").
-	       If NULL, indentation passed during mgcp_client_pool_vty_init() will be used.
- *  \returns CMD_SUCCESS on success, CMD_WARNING on error */
-int mgcp_client_pool_config_write(struct vty *vty, const char *indent)
+static int _mgcp_client_pool_config_write(struct vty *vty, const char *indent)
 {
 	struct mgcp_client_pool *pool = global_mgcp_client_pool;
 	struct mgcp_client_pool_member *pool_member;
 	unsigned int subindent_buf_len;
 	char *subindent;
-
-	/* Tell internal node write function that the user supports calling proper API: */
-	mgcp_client_pool_config_write_called = true;
 
 	if (!indent)
 		indent = pool->vty_indent ? : "";
@@ -422,6 +402,28 @@ int mgcp_client_pool_config_write(struct vty *vty, const char *indent)
 
 	talloc_free(subindent);
 	return CMD_SUCCESS;
+}
+
+/* Deprecated, used for backward compatibility with older users which didn't call
+ * mgcp_client_pool_config_write(): */
+static int config_write_pool(struct vty *vty)
+{
+	if (mgcp_client_pool_config_write_called)
+		return CMD_SUCCESS;
+
+	return _mgcp_client_pool_config_write(vty, NULL);
+}
+
+/*! Write out MGCP client config to VTY.
+ *  \param[in] vty VTY to which we should print.
+ *  \param[in] indent string used for indentation (e.g. " ").
+	       If NULL, indentation passed during mgcp_client_pool_vty_init() will be used.
+ *  \returns CMD_SUCCESS on success, CMD_WARNING on error */
+int mgcp_client_pool_config_write(struct vty *vty, const char *indent)
+{
+	/* Tell internal node write function that the user supports calling proper API: */
+	mgcp_client_pool_config_write_called = true;
+	return _mgcp_client_pool_config_write(vty, indent);
 }
 
 DEFUN_ATTR(cfg_mgw,
