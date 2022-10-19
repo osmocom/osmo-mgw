@@ -691,7 +691,7 @@ static int rfc5993_hr_convert(struct mgcp_endpoint *endp, struct msgb *msg)
 {
 	struct rtp_hdr *rtp_hdr;
 	if (msgb_length(msg) < sizeof(struct rtp_hdr)) {
-		LOGPENDP(endp, DRTP, LOGL_ERROR, "AMR RTP packet too short (%d < %zu)\n",
+		LOGPENDP(endp, DRTP, LOGL_ERROR, "RTP packet too short (%d < %zu)\n",
 			 msgb_length(msg), sizeof(struct rtp_hdr));
 		return -EINVAL;
 	}
