@@ -1168,7 +1168,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 	 * course unable to patch the payload type. A situation like this
 	 * should not occur if transcoding is consequently avoided. Until
 	 * we have transcoding support in osmo-mgw we can not resolve this. */
-	if (is_rtp && conn_dst->type != MGCP_RTP_IUUP) {
+	if (is_rtp && !mgcp_conn_rtp_is_iuup(conn_dst)) {
 		rc = mgcp_patch_pt(conn_src, conn_dst, msg);
 		if (rc < 0) {
 			LOGPENDP(endp, DRTP, LOGL_DEBUG,
