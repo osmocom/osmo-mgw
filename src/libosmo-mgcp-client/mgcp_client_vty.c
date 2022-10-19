@@ -62,8 +62,8 @@ struct mgcp_client_conf *get_mgcp_client_config(struct vty *vty)
 }
 
 DEFUN(cfg_mgw_local_ip, cfg_mgw_local_ip_cmd,
-      "mgw local-ip " VTY_IPV46_CMD,
-      MGW_STR "local bind to connect to MGW from\n"
+      "local-ip " VTY_IPV46_CMD,
+      "local bind to connect to MGW from\n"
       "local bind IPv4 address\n"
       "local bind IPv6 address\n")
 {
@@ -78,10 +78,16 @@ ALIAS_DEPRECATED(cfg_mgw_local_ip, cfg_mgcpgw_local_ip_cmd,
 		 "mgcpgw local-ip A.B.C.D",
 		 MGW_STR "local bind to connect to MGCP gateway with\n"
 		 "local bind IP address\n")
+ALIAS_DEPRECATED(cfg_mgw_local_ip,
+		 cfg_mgw_mgw_local_ip_cmd,
+		 "mgw local-ip " VTY_IPV46_CMD,
+		 MGW_STR "local bind to connect to MGW from\n"
+		 "local bind IPv4 address\n"
+		 "local bind IPv6 address\n")
 
 DEFUN(cfg_mgw_local_port, cfg_mgw_local_port_cmd,
-      "mgw local-port <0-65535>",
-      MGW_STR "local port to connect to MGW from\n"
+      "local-port <0-65535>",
+      "local port to connect to MGW from\n"
       "local bind port\n")
 {
 	struct mgcp_client_conf *conf = get_mgcp_client_config(vty);
@@ -93,10 +99,15 @@ ALIAS_DEPRECATED(cfg_mgw_local_port, cfg_mgcpgw_local_port_cmd,
 		 "mgcpgw local-port <0-65535>",
 		 MGW_STR "local bind to connect to MGCP gateway with\n"
 		 "local bind port\n")
+ALIAS_DEPRECATED(cfg_mgw_local_port,
+		 cfg_mgw_mgw_local_port_cmd,
+		 "mgw local-port <0-65535>",
+		 MGW_STR "local port to connect to MGW from\n"
+		 "local bind port\n")
 
 DEFUN(cfg_mgw_remote_ip, cfg_mgw_remote_ip_cmd,
-      "mgw remote-ip " VTY_IPV46_CMD,
-      MGW_STR "remote IP address to reach the MGW at\n"
+      "remote-ip " VTY_IPV46_CMD,
+      "remote IP address to reach the MGW at\n"
       "remote IPv4 address\n"
       "remote IPv6 address\n")
 {
@@ -110,10 +121,16 @@ ALIAS_DEPRECATED(cfg_mgw_remote_ip, cfg_mgcpgw_remote_ip_cmd,
 		 "mgcpgw remote-ip A.B.C.D",
 		 MGW_STR "remote bind to connect to MGCP gateway with\n"
 		 "remote bind IP address\n")
+ALIAS_DEPRECATED(cfg_mgw_remote_ip,
+		 cfg_mgw_mgw_remote_ip_cmd,
+		 "mgw remote-ip " VTY_IPV46_CMD,
+		 MGW_STR "remote IP address to reach the MGW at\n"
+		 "remote IPv4 address\n"
+		 "remote IPv6 address\n")
 
 DEFUN(cfg_mgw_remote_port, cfg_mgw_remote_port_cmd,
-      "mgw remote-port <0-65535>",
-      MGW_STR "remote port to reach the MGW at\n"
+      "remote-port <0-65535>",
+      "remote port to reach the MGW at\n"
       "remote port\n")
 {
 	struct mgcp_client_conf *conf = get_mgcp_client_config(vty);
@@ -125,6 +142,11 @@ ALIAS_DEPRECATED(cfg_mgw_remote_port, cfg_mgcpgw_remote_port_cmd,
 		 "mgcpgw remote-port <0-65535>",
 		 MGW_STR "remote bind to connect to MGCP gateway with\n"
 		 "remote bind port\n")
+ALIAS_DEPRECATED(cfg_mgw_remote_port,
+		 cfg_mgw_mgw_remote_port_cmd,
+		 "mgw remote-port <0-65535>",
+		 MGW_STR "remote port to reach the MGW at\n"
+		 "remote port\n")
 
 DEFUN_DEPRECATED(cfg_mgw_endpoint_range, cfg_mgw_endpoint_range_cmd,
       "mgw endpoint-range <1-65534> <1-65534>",
@@ -164,8 +186,8 @@ ALIAS_DEPRECATED(cfg_mgw_rtp_bts_base_port,
 
 DEFUN(cfg_mgw_endpoint_domain_name,
       cfg_mgw_endpoint_domain_name_cmd,
-      "mgw endpoint-domain NAME",
-      MGW_STR "Set the domain name to send in MGCP messages, e.g. the part 'foo' in 'rtpbridge/*@foo'.\n"
+      "endpoint-domain NAME",
+      "Set the domain name to send in MGCP messages, e.g. the part 'foo' in 'rtpbridge/*@foo'.\n"
       "Domain name, should be alphanumeric.\n")
 {
 	struct mgcp_client_conf *conf = get_mgcp_client_config(vty);
@@ -178,11 +200,16 @@ DEFUN(cfg_mgw_endpoint_domain_name,
 	}
 	return CMD_SUCCESS;
 }
+ALIAS_DEPRECATED(cfg_mgw_endpoint_domain_name,
+      cfg_mgw_mgw_endpoint_domain_name_cmd,
+      "mgw endpoint-domain NAME",
+      MGW_STR "Set the domain name to send in MGCP messages, e.g. the part 'foo' in 'rtpbridge/*@foo'.\n"
+      "Domain name, should be alphanumeric.\n")
 
 DEFUN(cfg_mgw_reset_ep_name,
       cfg_mgw_reset_ep_name_cmd,
-      "mgw reset-endpoint NAME",
-      MGW_STR "Add an endpoint name that should be reset (DLCX) on connect to the reset-endpoint list,"
+      "reset-endpoint NAME",
+      "Add an endpoint name that should be reset (DLCX) on connect to the reset-endpoint list,"
       "e.g. 'rtpbridge/*'\n"
       "Endpoint name, e.g. 'rtpbridge/*' or 'ds/e1-0/s-3/su16-4'.\n")
 {
@@ -220,11 +247,17 @@ DEFUN(cfg_mgw_reset_ep_name,
 
 	return CMD_SUCCESS;
 }
+ALIAS_DEPRECATED(cfg_mgw_reset_ep_name,
+      cfg_mgw_mgw_reset_ep_name_cmd,
+      "mgw reset-endpoint NAME",
+      MGW_STR "Add an endpoint name that should be reset (DLCX) on connect to the reset-endpoint list,"
+      "e.g. 'rtpbridge/*'\n"
+      "Endpoint name, e.g. 'rtpbridge/*' or 'ds/e1-0/s-3/su16-4'.\n")
 
 DEFUN(cfg_mgw_no_reset_ep_name,
       cfg_mgw_no_reset_ep_name_cmd,
-      "no mgw reset-endpoint NAME",
-      NO_STR MGW_STR "remove an endpoint name from the reset-endpoint list, e.g. 'rtpbridge/*'\n"
+      "no reset-endpoint NAME",
+      NO_STR "remove an endpoint name from the reset-endpoint list, e.g. 'rtpbridge/*'\n"
       "Endpoint name, e.g. 'rtpbridge/*' or 'ds/e1-0/s-3/su16-4'.\n")
 {
 	struct reset_ep *reset_ep;
@@ -241,6 +274,11 @@ DEFUN(cfg_mgw_no_reset_ep_name,
 	vty_out(vty, "%% no such endpoint name configured ('%s')%s", argv[0], VTY_NEWLINE);
 	return CMD_WARNING;
 }
+ALIAS_DEPRECATED(cfg_mgw_no_reset_ep_name,
+      cfg_mgw_mgw_no_reset_ep_name_cmd,
+      "no mgw reset-endpoint NAME",
+      NO_STR MGW_STR "remove an endpoint name from the reset-endpoint list, e.g. 'rtpbridge/*'\n"
+      "Endpoint name, e.g. 'rtpbridge/*' or 'ds/e1-0/s-3/su16-4'.\n")
 
 static int config_write(struct vty *vty, const char *indent, struct mgcp_client_conf *conf)
 {
@@ -253,28 +291,28 @@ static int config_write(struct vty *vty, const char *indent, struct mgcp_client_
 
 	addr = conf->local_addr;
 	if (addr)
-		vty_out(vty, "%smgw local-ip %s%s", indent, addr,
+		vty_out(vty, "%slocal-ip %s%s", indent, addr,
 			VTY_NEWLINE);
 	port = conf->local_port;
 	if (port >= 0)
-		vty_out(vty, "%smgw local-port %u%s", indent,
+		vty_out(vty, "%slocal-port %u%s", indent,
 			(uint16_t)port, VTY_NEWLINE);
 
 	addr = conf->remote_addr;
 	if (addr)
-		vty_out(vty, "%smgw remote-ip %s%s", indent, addr,
+		vty_out(vty, "%sremote-ip %s%s", indent, addr,
 			VTY_NEWLINE);
 	port = conf->remote_port;
 	if (port >= 0)
-		vty_out(vty, "%smgw remote-port %u%s", indent,
+		vty_out(vty, "%sremote-port %u%s", indent,
 			(uint16_t)port, VTY_NEWLINE);
 
 	if (conf->endpoint_domain_name[0])
-		vty_out(vty, "%smgw endpoint-domain %s%s", indent,
+		vty_out(vty, "%sendpoint-domain %s%s", indent,
 			conf->endpoint_domain_name, VTY_NEWLINE);
 
 	llist_for_each_entry(reset_ep, &conf->reset_epnames, list)
-		vty_out(vty, "%smgw reset-endpoint %s%s", indent, reset_ep->name, VTY_NEWLINE);
+		vty_out(vty, "%sreset-endpoint %s%s", indent, reset_ep->name, VTY_NEWLINE);
 
 	return CMD_SUCCESS;
 }
@@ -297,15 +335,14 @@ static void vty_init_common(void *talloc_ctx, int node)
 {
 	global_mgcp_client_ctx = talloc_ctx;
 
-	install_lib_element(node, &cfg_mgw_local_ip_cmd);
-	install_lib_element(node, &cfg_mgw_local_port_cmd);
-	install_lib_element(node, &cfg_mgw_remote_ip_cmd);
-	install_lib_element(node, &cfg_mgw_remote_port_cmd);
-	install_lib_element(node, &cfg_mgw_endpoint_range_cmd);
-	install_lib_element(node, &cfg_mgw_rtp_bts_base_port_cmd);
-	install_lib_element(node, &cfg_mgw_endpoint_domain_name_cmd);
-	install_lib_element(node, &cfg_mgw_reset_ep_name_cmd);
-	install_lib_element(node, &cfg_mgw_no_reset_ep_name_cmd);
+	/* deprecated 'mgw' commands ('mgw' prepended as first arg) */
+	install_lib_element(node, &cfg_mgw_mgw_local_ip_cmd);
+	install_lib_element(node, &cfg_mgw_mgw_local_port_cmd);
+	install_lib_element(node, &cfg_mgw_mgw_remote_ip_cmd);
+	install_lib_element(node, &cfg_mgw_mgw_remote_port_cmd);
+	install_lib_element(node, &cfg_mgw_mgw_endpoint_domain_name_cmd);
+	install_lib_element(node, &cfg_mgw_mgw_reset_ep_name_cmd);
+	install_lib_element(node, &cfg_mgw_mgw_no_reset_ep_name_cmd);
 
 	osmo_fsm_vty_add_cmds();
 }
@@ -552,6 +589,15 @@ void mgcp_client_pool_vty_init(int parent_node, int mgw_node, const char *indent
 	 * config */
 	install_node(pool->vty_node, config_write_pool);
 	vty_init_common(pool, mgw_node);
+	install_lib_element(mgw_node, &cfg_mgw_local_ip_cmd);
+	install_lib_element(mgw_node, &cfg_mgw_local_port_cmd);
+	install_lib_element(mgw_node, &cfg_mgw_remote_ip_cmd);
+	install_lib_element(mgw_node, &cfg_mgw_remote_port_cmd);
+	install_lib_element(mgw_node, &cfg_mgw_endpoint_range_cmd);
+	install_lib_element(mgw_node, &cfg_mgw_rtp_bts_base_port_cmd);
+	install_lib_element(mgw_node, &cfg_mgw_endpoint_domain_name_cmd);
+	install_lib_element(mgw_node, &cfg_mgw_reset_ep_name_cmd);
+	install_lib_element(mgw_node, &cfg_mgw_no_reset_ep_name_cmd);
 
 	install_element(mgw_node, &cfg_description_cmd);
 
