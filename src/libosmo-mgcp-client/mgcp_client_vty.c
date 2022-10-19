@@ -148,7 +148,7 @@ ALIAS_DEPRECATED(cfg_mgw_remote_port,
 		 MGW_STR "remote port to reach the MGW at\n"
 		 "remote port\n")
 
-DEFUN_DEPRECATED(cfg_mgw_endpoint_range, cfg_mgw_endpoint_range_cmd,
+DEFUN_DEPRECATED(cfg_mgw_mgw_endpoint_range, cfg_mgw_mgw_endpoint_range_cmd,
       "mgw endpoint-range <1-65534> <1-65534>",
       MGW_STR "DEPRECATED: the endpoint range cannot be defined by the client\n"
       "-\n" "-\n")
@@ -158,7 +158,7 @@ DEFUN_DEPRECATED(cfg_mgw_endpoint_range, cfg_mgw_endpoint_range_cmd,
 		VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
-ALIAS_DEPRECATED(cfg_mgw_endpoint_range, cfg_mgcpgw_endpoint_range_cmd,
+ALIAS_DEPRECATED(cfg_mgw_mgw_endpoint_range, cfg_mgcpgw_endpoint_range_cmd,
       "mgcpgw endpoint-range <1-65534> <1-65534>",
       MGW_STR "usable range of endpoint identifiers\n"
       "set first useable endpoint identifier\n"
@@ -340,6 +340,7 @@ static void vty_init_common(void *talloc_ctx, int node)
 	install_lib_element(node, &cfg_mgw_mgw_local_port_cmd);
 	install_lib_element(node, &cfg_mgw_mgw_remote_ip_cmd);
 	install_lib_element(node, &cfg_mgw_mgw_remote_port_cmd);
+	install_lib_element(node, &cfg_mgw_mgw_endpoint_range_cmd);
 	install_lib_element(node, &cfg_mgw_mgw_endpoint_domain_name_cmd);
 	install_lib_element(node, &cfg_mgw_mgw_reset_ep_name_cmd);
 	install_lib_element(node, &cfg_mgw_mgw_no_reset_ep_name_cmd);
@@ -593,7 +594,6 @@ void mgcp_client_pool_vty_init(int parent_node, int mgw_node, const char *indent
 	install_lib_element(mgw_node, &cfg_mgw_local_port_cmd);
 	install_lib_element(mgw_node, &cfg_mgw_remote_ip_cmd);
 	install_lib_element(mgw_node, &cfg_mgw_remote_port_cmd);
-	install_lib_element(mgw_node, &cfg_mgw_endpoint_range_cmd);
 	install_lib_element(mgw_node, &cfg_mgw_rtp_bts_base_port_cmd);
 	install_lib_element(mgw_node, &cfg_mgw_endpoint_domain_name_cmd);
 	install_lib_element(mgw_node, &cfg_mgw_reset_ep_name_cmd);
