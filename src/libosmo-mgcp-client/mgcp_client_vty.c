@@ -286,33 +286,36 @@ static int config_write(struct vty *vty, const char *indent, struct mgcp_client_
 	int port;
 	struct reset_ep *reset_ep;
 
-	if (conf->description)
+	/* If caller doesn't the MGW pool API (mgcp_client_pool_vty_init was never called),
+	 * then the "mgw" cmd prefix must be added since the old node always contained it.
+	 */
+	const char *mgw_prefix = global_mgcp_client_pool ? "" : "mgw ";
+
+	if (conf->description) /* description never had "mgw" prefix even on old node: */
 		vty_out(vty, "%sdescription %s%s", indent, conf->description, VTY_NEWLINE);
 
 	addr = conf->local_addr;
 	if (addr)
-		vty_out(vty, "%slocal-ip %s%s", indent, addr,
-			VTY_NEWLINE);
+		vty_out(vty, "%s%slocal-ip %s%s", indent, mgw_prefix, addr, VTY_NEWLINE);
 	port = conf->local_port;
 	if (port >= 0)
-		vty_out(vty, "%slocal-port %u%s", indent,
+		vty_out(vty, "%s%slocal-port %u%s", indent, mgw_prefix,
 			(uint16_t)port, VTY_NEWLINE);
 
 	addr = conf->remote_addr;
 	if (addr)
-		vty_out(vty, "%sremote-ip %s%s", indent, addr,
-			VTY_NEWLINE);
+		vty_out(vty, "%s%sremote-ip %s%s", indent, mgw_prefix, addr, VTY_NEWLINE);
 	port = conf->remote_port;
 	if (port >= 0)
-		vty_out(vty, "%sremote-port %u%s", indent,
+		vty_out(vty, "%s%sremote-port %u%s", indent, mgw_prefix,
 			(uint16_t)port, VTY_NEWLINE);
 
 	if (conf->endpoint_domain_name[0])
-		vty_out(vty, "%sendpoint-domain %s%s", indent,
+		vty_out(vty, "%s%sendpoint-domain %s%s", indent, mgw_prefix,
 			conf->endpoint_domain_name, VTY_NEWLINE);
 
 	llist_for_each_entry(reset_ep, &conf->reset_epnames, list)
-		vty_out(vty, "%sreset-endpoint %s%s", indent, reset_ep->name, VTY_NEWLINE);
+		vty_out(vty, "%s%sreset-endpoint %s%s", indent, mgw_prefix, reset_ep->name, VTY_NEWLINE);
 
 	return CMD_SUCCESS;
 }
