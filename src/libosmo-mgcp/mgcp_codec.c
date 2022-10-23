@@ -459,7 +459,6 @@ struct mgcp_rtp_codec *mgcp_codec_find_convertible(struct mgcp_conn_rtp *conn, s
 			}
 		}
 	}
-
 	return codec_convertible;
 }
 

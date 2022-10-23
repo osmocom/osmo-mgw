@@ -508,14 +508,40 @@ static int mgcp_patch_pt(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *c
 
 	/* Find the codec information that is used on the source side */
 	codec_src = mgcp_codec_from_pt(conn_src, rtp_hdr->payload_type);
-	if (!codec_src)
+	if (!codec_src) {
+		LOG_CONN_RTP(conn_src, LOGL_ERROR,
+			     "Cannot translate payload type nr %d: src has no such payload type defined\n",
+			     rtp_hdr->payload_type);
+		if (log_check_level(DLMGCP, LOGL_DEBUG)) {
+			int i;
+			for (i = 0; i < conn_src->end.codecs_assigned; i++) {
+				struct mgcp_rtp_codec *src_codec_i = &conn_src->end.codecs[i];
+				LOGP(DLMGCP, LOGL_DEBUG, "Cannot translate PT %d: mismatches %d %s\n",
+				     rtp_hdr->payload_type, src_codec_i->payload_type, src_codec_i->audio_name);
+			}
+		}
 		return -EINVAL;
+	}
 
 	/* Lookup a suitable codec in the destination connection. (The codec must be of the same type or at least
 	 * convertible) */
 	codec_dst = mgcp_codec_find_convertible(conn_dst, codec_src);
-	if (!codec_dst)
+	if (!codec_dst) {
+		LOG_CONN_RTP(conn_src, LOGL_ERROR,
+			     "Cannot translate payload type number %d = %s: dst has no such codec\n",
+			     rtp_hdr->payload_type, codec_src->audio_name);
+		if (log_check_level(DLMGCP, LOGL_DEBUG)) {
+			int i;
+			for (i = 0; i < conn_dst->end.codecs_assigned; i++) {
+				struct mgcp_rtp_codec *dst_codec_i = &conn_dst->end.codecs[i];
+				LOGP(DLMGCP, LOGL_DEBUG,
+				     "Cannot translate payload type nr %d = %s: mismatches %d = %s\n",
+				     rtp_hdr->payload_type, codec_src->audio_name,
+				     dst_codec_i->payload_type, dst_codec_i->audio_name);
+			}
+		}
 		return -EINVAL;
+	}
 
 	rtp_hdr->payload_type = (uint8_t) codec_dst->payload_type;
 	return 0;
