@@ -679,12 +679,13 @@ int mgcp_conn_iuup_send_rtp(struct mgcp_conn_rtp *conn_src_rtp, struct mgcp_conn
 			LOG_CONN_RTP(conn_dest_rtp, LOGL_NOTICE, "Bridge RTP=>IuUP: No RFCI found for AMR OA ft=%u\n", amr_hdr->ft);
 			goto free_ret;
 		}
-		irp->u.data.fqc = amr_hdr->q;
+		irp->u.data.fqc = amr_hdr->q ? IUUP_FQC_FRAME_GOOD : IUUP_FQC_FRAME_BAD;
 		irp->u.data.rfci = rfci;
 		msgb_pull(msg, 2);
 	} else {
 		uint8_t *amr_bwe_hdr = (uint8_t *) msgb_data(msg);
 		int8_t ft;
+		uint8_t q;
 		if (msgb_length(msg) < 2) {
 			LOG_CONN_RTP(conn_src_rtp, LOGL_NOTICE,
 				     "Bridge RTP=>IuUP: too short for AMR BE hdr (%u)\n", msgb_length(msg));
@@ -699,7 +700,8 @@ int mgcp_conn_iuup_send_rtp(struct mgcp_conn_rtp *conn_src_rtp, struct mgcp_conn
 			LOG_CONN_RTP(conn_dest_rtp, LOGL_NOTICE, "Bridge RTP=>IuUP: No RFCI found for AMR BE ft=%u\n", ft);
 			goto free_ret;
 		}
-		irp->u.data.fqc = ((amr_bwe_hdr[1] & 0x40) >> 6);
+		q = amr_bwe_hdr[1] & 0x40;
+		irp->u.data.fqc = q ? IUUP_FQC_FRAME_GOOD : IUUP_FQC_FRAME_BAD;
 		irp->u.data.rfci = rfci;
 		rc = iuup_length = osmo_amr_bwe_to_iuup(msgb_data(msg), msgb_length(msg));
 		if (rc < 0) {
