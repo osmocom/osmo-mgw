@@ -98,7 +98,11 @@ static int8_t _conn_iuup_amr_ft_2_rfci(struct mgcp_conn_rtp *conn_rtp, uint8_t f
 	uint8_t rfci_cnt = 0;
 	unsigned match_bytes = (unsigned)osmo_amr_bytes(ft);
 	struct osmo_iuup_rnl_prim *irp = conn_rtp->iuup.init_ind;
-	OSMO_ASSERT(irp);
+	if (!irp) {
+		/* No IuUP Initialization has occured on the IuUP side yet. Return error and drop the RTP data, until
+		 * the IuUP Initialization has configured the link. */
+		return -1;
+	}
 
 	/* TODO: cache this somehow */
 	for (i = 0; i < ARRAY_SIZE(irp->u.status.u.initialization.rfci); i++) {
