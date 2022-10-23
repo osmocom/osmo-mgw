@@ -274,9 +274,9 @@ static int bridge_iuup_to_rtp_peer(struct mgcp_conn_rtp *conn_rtp_src, struct mg
 		return ft;
 	}
 	msgb_pull_to_l3(msg);
-	LOGP(DLMGCP, LOGL_DEBUG, "Convert IuUP -> AMR: ft %d, len %d\n", ft, msgb_l3len(msg));
 
 	if (mgcp_codec_amr_is_octet_aligned(conn_rtp_dst->end.codec)) {
+		LOGP(DLMGCP, LOGL_DEBUG, "Convert IuUP -> AMR OA: ft %d, len %d\n", ft, msgb_length(msg));
 		amr_hdr = (struct amr_hdr *) msgb_push(msg, sizeof(struct amr_hdr));
 		amr_hdr->cmr = 15; /* no change */
 		amr_hdr->f = 0;
@@ -295,6 +295,7 @@ static int bridge_iuup_to_rtp_peer(struct mgcp_conn_rtp *conn_rtp_src, struct mg
 		amr_data[1] |= ((ft & 0x1) << 7) | (((!fqc) & 0x1) << 6);
 		amr_length = (osmo_amr_bits(ft) + 10 + 7) / 8;
 		msgb_trim(msg, amr_length);
+		LOGP(DLMGCP, LOGL_DEBUG, "Convert IuUP -> AMR BE: ft %d, len %zd\n", ft, amr_length);
 	}
 	rtp_hdr = (struct rtp_hdr *) msgb_push(msg, sizeof(*rtp_hdr));
 	*rtp_hdr = (struct rtp_hdr){
