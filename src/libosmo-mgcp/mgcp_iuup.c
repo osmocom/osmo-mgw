@@ -683,6 +683,8 @@ int mgcp_conn_iuup_send_rtp(struct mgcp_conn_rtp *conn_src_rtp, struct mgcp_conn
 		irp->u.data.fqc = amr_hdr->q ? IUUP_FQC_FRAME_GOOD : IUUP_FQC_FRAME_BAD;
 		irp->u.data.rfci = rfci;
 		msgb_pull(msg, 2);
+		LOGP(DLMGCP, LOGL_DEBUG, "Convert AMR OA -> IuUP: ft %d -> rfci %d len %d\n",
+		     amr_hdr->ft, rfci, msgb_length(msg));
 	} else {
 		uint8_t *amr_bwe_hdr = (uint8_t *) msgb_data(msg);
 		int8_t ft;
@@ -710,6 +712,8 @@ int mgcp_conn_iuup_send_rtp(struct mgcp_conn_rtp *conn_src_rtp, struct mgcp_conn
 			return rc;
 		}
 		msgb_trim(msg, iuup_length);
+		LOGP(DLMGCP, LOGL_DEBUG, "Convert AMR BE -> IuUP: ft %d -> rfci %d len %d\n",
+		     ft, rfci, msgb_length(msg));
 	}
 
 	irp->oph.msg->l3h = msgb_put(irp->oph.msg, msgb_length(msg));
