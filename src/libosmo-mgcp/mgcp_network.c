@@ -1514,7 +1514,9 @@ static int rx_rtp(struct msgb *msg)
 
 	LOG_CONN_RTP(conn_src, LOGL_DEBUG, "rx_rtp(%u bytes)\n", msgb_length(msg));
 
-	mgcp_conn_watchdog_kick(conn_src->conn);
+	/* Check if the origin of the RTP packet seems plausible */
+	if (!trunk->rtp_accept_all && check_rtp_origin(conn_src, from_addr))
+		return -1;
 
 	/* If AMR is configured for the ingress connection and conversion of the
 	 * framing mode (octet-aligned vs. bandwith-efficient) is explicitly
@@ -1534,9 +1536,7 @@ static int rx_rtp(struct msgb *msg)
 		}
 	}
 
-	/* Check if the origin of the RTP packet seems plausible */
-	if (!trunk->rtp_accept_all && check_rtp_origin(conn_src, from_addr))
-		return -1;
+	mgcp_conn_watchdog_kick(conn_src->conn);
 
 	/* Execute endpoint specific implementation that handles the
 	 * dispatching of the RTP data */
