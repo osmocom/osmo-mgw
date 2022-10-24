@@ -1539,8 +1539,13 @@ static int rx_rtp(struct msgb *msg)
 		int oa = amr_oa_check((char*)msgb_data(msg), msgb_length(msg));
 		if (oa < 0)
 			return -1;
-		if (((bool)oa) != conn_src->end.codec->param.amr_octet_aligned)
+		if (((bool)oa) != conn_src->end.codec->param.amr_octet_aligned) {
+			LOG_CONN_RTP(conn_src, LOGL_NOTICE,
+				     "rx_rtp(%u bytes): Expected RTP AMR octet-aligned=%u but got octet-aligned=%u."
+				     " check the config of your call-agent!\n",
+				     msgb_length(msg), conn_src->end.codec->param.amr_octet_aligned, oa);
 			return -1;
+		}
 	}
 
 	/* Check if the origin of the RTP packet seems plausible */
