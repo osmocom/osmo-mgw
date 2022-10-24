@@ -982,9 +982,16 @@ static int check_rtp(struct mgcp_conn_rtp *conn_src, struct msgb *msg)
 	return 0;
 }
 
-/* Send RTP data. Possible options are standard RTP packet
- * transmission or trsmission via an osmux connection */
-static int mgcp_send_rtp(struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
+/*! Dispatch msg bridged from the sister conn in the endpoint.
+ *  \param[in] conn_dst The destination conn that should handle and transmit the content to
+ *			its peer outside MGW.
+ *  \param[in] msg msgb containing an RTP pkt received by the sister conn in the endpoint,
+ *  \returns bytes sent, -1 on error.
+ *
+ * Possible options are standard RTP packet transmission, transmission
+ * via IuUP or transmission via an osmux connection.
+ */
+static int mgcp_conn_rtp_dispatch_rtp(struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
 {
 	struct osmo_rtp_msg_ctx *mc = OSMO_RTP_MSG_CTX(msg);
 	enum rtp_proto proto = mc->proto;
@@ -1315,7 +1322,7 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 				     osmo_sockaddr_ntop(&from_addr->u.sa, ipbuf),
 				     osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa));
 		}
-		return mgcp_send_rtp(conn_src, msg);
+		return mgcp_conn_rtp_dispatch_rtp(conn_src, msg);
 	}
 
 	/* Find a destination connection. */
@@ -1347,7 +1354,7 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 	}
 
 	/* Dispatch RTP packet to destination RTP connection */
-	return mgcp_send_rtp(&conn_dst->u.rtp, msg);
+	return mgcp_conn_rtp_dispatch_rtp(&conn_dst->u.rtp, msg);
 }
 
 /*! dispatch incoming RTP packet to E1 subslot, handle RTCP packets locally.
@@ -1380,7 +1387,7 @@ int mgcp_dispatch_e1_bridge_cb(struct msgb *msg)
 				     osmo_sockaddr_ntop(&from_addr->u.sa, ipbuf),
 				     osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa));
 		}
-		return mgcp_send_rtp(conn_src, msg);
+		return mgcp_conn_rtp_dispatch_rtp(conn_src, msg);
 	}
 
 	/* Forward to E1 */
