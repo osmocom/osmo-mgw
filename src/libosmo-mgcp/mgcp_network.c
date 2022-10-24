@@ -1530,9 +1530,9 @@ static int rx_rtp(struct msgb *msg)
 
 	mgcp_conn_watchdog_kick(conn_src->conn);
 
-	/* If AMR is configured for the ingress connection a conversion of the
-	 * framing mode (octet-aligned vs. bandwith-efficient is explicitly
-	 * define, then we check if the incoming payload matches that
+	/* If AMR is configured for the ingress connection and conversion of the
+	 * framing mode (octet-aligned vs. bandwith-efficient) is explicitly
+	 * defined, then we check if the incoming payload matches that
 	 * expectation. */
 	if (mc->proto == MGCP_PROTO_RTP &&
 	    amr_oa_bwe_convert_indicated(conn_src->end.codec)) {
