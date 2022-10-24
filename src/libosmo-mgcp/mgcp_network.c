@@ -769,20 +769,6 @@ static int amr_oa_bwe_convert(struct mgcp_endpoint *endp, struct msgb *msg,
 	return msgb_trim(msg, rc + sizeof(struct rtp_hdr));
 }
 
-/* Check if a conversion between octet-aligned and bandwith-efficient mode is
- * indicated. */
-static bool amr_oa_bwe_convert_indicated(struct mgcp_rtp_codec *codec)
-{
-	if (codec->param_present == false)
-		return false;
-	if (!codec->param.amr_octet_aligned_present)
-		return false;
-	if (strcmp(codec->subtype_name, "AMR") != 0)
-		return false;
-	return true;
-}
-
-
 /* Return whether an RTP packet with AMR payload is in octet-aligned mode.
  * Return 0 if in bandwidth-efficient mode, 1 for octet-aligned mode, and negative if the RTP data is invalid. */
 static int amr_oa_check(char *data, int len)
@@ -1221,7 +1207,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 
 			if (mgcp_conn_rtp_is_iuup(conn_dst) || mgcp_conn_rtp_is_iuup(conn_src)) {
 				/* the iuup code will correctly transform to the correct AMR mode */
-			} else if (amr_oa_bwe_convert_indicated(conn_dst->end.codec)) {
+			} else if (mgcp_codec_amr_align_mode_is_indicated(conn_dst->end.codec)) {
 				rc = amr_oa_bwe_convert(endp, msg,
 							conn_dst->end.codec->param.amr_octet_aligned);
 				if (rc < 0) {
@@ -1535,7 +1521,7 @@ static int rx_rtp(struct msgb *msg)
 	 * defined, then we check if the incoming payload matches that
 	 * expectation. */
 	if (mc->proto == MGCP_PROTO_RTP &&
-	    amr_oa_bwe_convert_indicated(conn_src->end.codec)) {
+	    mgcp_codec_amr_align_mode_is_indicated(conn_src->end.codec)) {
 		int oa = amr_oa_check((char*)msgb_data(msg), msgb_length(msg));
 		if (oa < 0)
 			return -1;

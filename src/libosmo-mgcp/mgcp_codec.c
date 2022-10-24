@@ -345,6 +345,18 @@ int mgcp_codec_decide(struct mgcp_conn_rtp *conn)
 	return -EINVAL;
 }
 
+/* Check if the codec has a specific AMR mode (octet-aligned or bandwith-efficient) set. */
+bool mgcp_codec_amr_align_mode_is_indicated(const struct mgcp_rtp_codec *codec)
+{
+	if (codec->param_present == false)
+		return false;
+	if (!codec->param.amr_octet_aligned_present)
+		return false;
+	if (strcmp(codec->subtype_name, "AMR") != 0)
+		return false;
+	return true;
+}
+
 /* Return true if octet-aligned is set in the given codec. Default to octet-aligned=0, i.e. bandwidth-efficient mode.
  * See RFC4867 "RTP Payload Format for AMR and AMR-WB" sections "8.1. AMR Media Type Registration" and "8.2. AMR-WB
  * Media Type Registration":
