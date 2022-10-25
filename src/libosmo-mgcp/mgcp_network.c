@@ -717,11 +717,18 @@ static int rfc5993_hr_convert(struct mgcp_endpoint *endp, struct msgb *msg)
 	return 0;
 }
 
-/* For AMR RTP two framing modes are defined RFC3267. There is a bandwith
+/*! Convert msg to AMR RTP framing mode specified by target_is_oa.
+ *  \param[in] endp MGCP Endpoint where this message belongs to (used for logging purposes)
+ *  \param[in] msg Message containing an AMR RTP payload (in octet-aligned or bandwidth-efficient format).
+ *  \param[in] target_is_oa the target framing mode that msg will contain after this function succeeds.
+ *  \returns The size of the new RTP AMR content on success, negative on error.
+ *
+ * For AMR RTP two framing modes are defined RFC3267. There is a bandwidth
  * efficient encoding scheme where all fields are packed together one after
  * another and an octet aligned mode where all fields are aligned to octet
- * boundaries. This function is used to convert between the two modes */
-static int amr_oa_bwe_convert(struct mgcp_endpoint *endp, struct msgb *msg,
+ * boundaries. This function is used to convert between the two modes.
+ */
+int amr_oa_bwe_convert(struct mgcp_endpoint *endp, struct msgb *msg,
 			      bool target_is_oa)
 {
 	/* NOTE: the msgb has an allocated length of RTP_BUF_SIZE, so there is

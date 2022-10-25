@@ -183,3 +183,5 @@ void rtpconn_rate_ctr_inc(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *
 				 int id);
 void forward_data_tap(int fd, struct mgcp_rtp_tap *tap, struct msgb *msg);
 uint32_t mgcp_get_current_ts(unsigned codec_rate);
+
+int amr_oa_bwe_convert(struct mgcp_endpoint *endp, struct msgb *msg, bool target_is_oa);

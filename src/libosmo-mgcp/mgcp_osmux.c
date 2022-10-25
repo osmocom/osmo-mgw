@@ -226,6 +226,12 @@ int conn_osmux_send_rtp(struct mgcp_conn_rtp *conn, struct msgb *msg)
 	if (!msg2)
 		return -1;
 
+	/* Osmux implementation works with AMR OA only, make sure we convert to it if needed: */
+	if (amr_oa_bwe_convert(conn->conn->endp, msg2, true) < 0) {
+		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
+			 "Error converting to AMR octet-aligned mode\n");
+		return -1;
+	}
 
 	while ((ret = osmux_xfrm_input(conn->osmux.in, msg2, conn->osmux.remote_cid)) > 0) {
 		/* batch full, build and deliver it */
