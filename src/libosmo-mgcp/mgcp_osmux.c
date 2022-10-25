@@ -201,14 +201,13 @@ osmux_handle_find_or_create(const struct mgcp_trunk *trunk, const struct osmo_so
 }
 
 /*! send RTP packet through OSMUX connection.
- *  \param[in] buf rtp data
- *  \param[in] buf_len length of rtp data
  *  \param[in] conn associated RTP connection
+ *  \param[in] msg msgb containing an RTP AMR packet
  *  \returns 0 on success, -1 on ERROR */
-int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
+int conn_osmux_send_rtp(struct mgcp_conn_rtp *conn, struct msgb *msg)
 {
 	int ret;
-	struct msgb *msg;
+	struct msgb *msg2;
 
 	if (!conn->end.output_enabled) {
 		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_DROPPED_CTR);
@@ -222,14 +221,13 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 		return -1;
 	}
 
-	msg = msgb_alloc(4096, "RTP");
-	if (!msg)
+	/* msg is not owned by us and will be freed by the caller stack upon return: */
+	msg2 = msgb_copy_c(conn->conn, msg, "osmux-rtp-send");
+	if (!msg2)
 		return -1;
 
-	memcpy(msg->data, buf, buf_len);
-	msgb_put(msg, buf_len);
 
-	while ((ret = osmux_xfrm_input(conn->osmux.in, msg, conn->osmux.remote_cid)) > 0) {
+	while ((ret = osmux_xfrm_input(conn->osmux.in, msg2, conn->osmux.remote_cid)) > 0) {
 		/* batch full, build and deliver it */
 		osmux_xfrm_input_deliver(conn->osmux.in);
 	}
@@ -237,7 +235,7 @@ int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn)
 		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_DROPPED_CTR);
 	} else {
 		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_CTR);
-		rtpconn_osmux_rate_ctr_add(conn, OSMUX_AMR_OCTETS_TX_CTR, buf_len - sizeof(struct rtp_hdr));
+		rtpconn_osmux_rate_ctr_add(conn, OSMUX_AMR_OCTETS_TX_CTR, msgb_length(msg2) - sizeof(struct rtp_hdr));
 	}
 	return 0;
 }

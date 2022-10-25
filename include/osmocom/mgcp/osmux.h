@@ -15,7 +15,7 @@ int osmux_init_conn(struct mgcp_conn_rtp *conn);
 int conn_osmux_enable(struct mgcp_conn_rtp *conn);
 void conn_osmux_disable(struct mgcp_conn_rtp *conn);
 int conn_osmux_event_rx_crcx_mdcx(struct mgcp_conn_rtp *conn);
-int osmux_xfrm_to_osmux(char *buf, int buf_len, struct mgcp_conn_rtp *conn);
+int conn_osmux_send_rtp(struct mgcp_conn_rtp *conn, struct msgb *msg);
 int osmux_send_dummy(struct mgcp_conn_rtp *conn);
 
 void osmux_cid_pool_get(uint8_t osmux_cid);

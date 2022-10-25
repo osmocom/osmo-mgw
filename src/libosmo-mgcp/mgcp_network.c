@@ -1020,7 +1020,7 @@ static int mgcp_conn_rtp_dispatch_rtp(struct mgcp_conn_rtp *conn_dst, struct msg
 		LOGPENDP(endp, DRTP, LOGL_DEBUG,
 			 "endpoint type is MGCP_RTP_OSMUX, "
 			 "using osmux_xfrm_to_osmux() to forward data through OSMUX\n");
-		return osmux_xfrm_to_osmux((char*)msgb_data(msg), msgb_length(msg), conn_dst);
+		return conn_osmux_send_rtp(conn_dst, msg);
 	case MGCP_RTP_IUUP:
 		if (proto == MGCP_PROTO_RTP) {
 			LOGPENDP(endp, DRTP, LOGL_DEBUG,
