@@ -737,6 +737,7 @@ int amr_oa_bwe_convert(struct mgcp_endpoint *endp, struct msgb *msg,
 	struct rtp_hdr *rtp_hdr;
 	unsigned int payload_len;
 	int rc;
+	bool orig_is_oa;
 
 	if (msgb_length(msg) < sizeof(struct rtp_hdr)) {
 		LOGPENDP(endp, DRTP, LOGL_ERROR, "AMR RTP packet too short (%d < %zu)\n", msgb_length(msg), sizeof(struct rtp_hdr));
@@ -744,10 +745,10 @@ int amr_oa_bwe_convert(struct mgcp_endpoint *endp, struct msgb *msg,
 	}
 
 	rtp_hdr = (struct rtp_hdr *)msgb_data(msg);
-
 	payload_len = msgb_length(msg) - sizeof(struct rtp_hdr);
+	orig_is_oa = osmo_amr_is_oa(rtp_hdr->data, payload_len);
 
-	if (osmo_amr_is_oa(rtp_hdr->data, payload_len)) {
+	if (orig_is_oa) {
 		if (!target_is_oa)
 			/* Input data is oa an target format is bwe
 			 * ==> convert */
@@ -769,7 +770,10 @@ int amr_oa_bwe_convert(struct mgcp_endpoint *endp, struct msgb *msg,
 	}
 	if (rc < 0) {
 		LOGPENDP(endp, DRTP, LOGL_ERROR,
-			 "AMR RTP packet conversion failed\n");
+			 "RTP AMR packet conversion %s->%s failed: %s\n",
+			 orig_is_oa ? "OA" : "BWE",
+			 target_is_oa ? "OA" : "BWE",
+			 osmo_hexdump(rtp_hdr->data, payload_len));
 		return -EINVAL;
 	}
 
@@ -1226,7 +1230,8 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 							conn_dst->end.codec->param.amr_octet_aligned);
 				if (rc < 0) {
 					LOGPENDP(endp, DRTP, LOGL_ERROR,
-						 "Error in AMR octet-aligned <-> bandwidth-efficient mode conversion\n");
+						 "Error in AMR octet-aligned <-> bandwidth-efficient mode conversion (target=%s)\n",
+						 conn_dst->end.codec->param.amr_octet_aligned ? "octet-aligned" : "bandwidth-efficient");
 					break;
 				}
 			} else if (rtp_end->rfc5993_hr_convert &&
