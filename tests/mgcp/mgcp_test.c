@@ -2078,7 +2078,7 @@ static void test_mgcp_codec_pt_translate(void)
 	OSMO_ASSERT(ok);
 }
 
-void test_conn_id_matching()
+void test_conn_id_matching(void)
 {
 	struct mgcp_endpoint endp = {};
 	struct mgcp_conn *conn;
@@ -2118,7 +2118,7 @@ void test_conn_id_matching()
 	talloc_free(conn);
 }
 
-void test_e1_trunk_nr_from_epname()
+void test_e1_trunk_nr_from_epname(void)
 {
 	unsigned int trunk_nr;
 	int rc;
@@ -2168,7 +2168,7 @@ void test_e1_trunk_nr_from_epname()
 	return;
 }
 
-void test_mgcp_is_rtp_dummy_payload()
+void test_mgcp_is_rtp_dummy_payload(void)
 {
 	/* realistic rtp packet */
 	static const char rtp_payload[] =

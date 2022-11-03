@@ -315,7 +315,7 @@ void test_mgcp_msg(void)
 	msgb_free(msg);
 }
 
-void test_mgcp_client_cancel()
+void test_mgcp_client_cancel(void)
 {
 	mgcp_trans_id_t trans_id;
 	struct msgb *msg;
@@ -487,7 +487,7 @@ static struct sdp_section_start_test sdp_section_start_tests[] = {
 	},
 };
 
-void test_sdp_section_start()
+void test_sdp_section_start(void)
 {
 	int i;
 	int failures = 0;

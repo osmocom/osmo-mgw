@@ -95,7 +95,7 @@ static char *config_file = "osmo-mgw.cfg";
 /* used by msgb and mgcp */
 void *tall_mgw_ctx = NULL;
 
-static void print_help()
+static void print_help(void)
 {
 	printf("Some useful options:\n");
 	printf(" -h --help is printing this text.\n");

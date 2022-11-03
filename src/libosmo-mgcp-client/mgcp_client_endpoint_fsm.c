@@ -227,7 +227,7 @@ static struct value_string osmo_mgcpc_ep_fsm_event_names[33] = {};
 
 static char osmo_mgcpc_ep_fsm_event_name_bufs[32][32] = {};
 
-static void fill_event_names()
+static void fill_event_names(void)
 {
 	int i;
 	for (i = 0; i < (ARRAY_SIZE(osmo_mgcpc_ep_fsm_event_names) - 1); i++) {
@@ -243,7 +243,7 @@ static void fill_event_names()
 	}
 }
 
-static __attribute__((constructor)) void osmo_mgcpc_ep_fsm_init()
+static __attribute__((constructor)) void osmo_mgcpc_ep_fsm_init(void)
 {
 	OSMO_ASSERT(osmo_fsm_register(&osmo_mgcpc_ep_fsm) == 0);
 	fill_event_names();

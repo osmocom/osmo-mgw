@@ -760,7 +760,7 @@ const char *osmo_mgcpc_conn_peer_name(const struct mgcp_conn_peer *info)
 	return buf;
 }
 
-static __attribute__((constructor)) void osmo_mgcp_client_fsm_init()
+static __attribute__((constructor)) void osmo_mgcp_client_fsm_init(void)
 {
 	OSMO_ASSERT(osmo_fsm_register(&fsm_mgcp_client) == 0);
 }
