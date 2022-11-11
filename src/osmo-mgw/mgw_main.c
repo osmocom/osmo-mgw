@@ -82,7 +82,7 @@ static int daemonize = 0;
 
 const char *osmomgw_copyright =
 	"Copyright (C) 2009-2010 Holger Freyther and On-Waves\r\n"
-	"Copyright (C) 2017 by sysmocom s.f.m.c. GmbH <info@sysmocom.de>\r\n"
+	"Copyright (C) 2017-2022 by sysmocom s.f.m.c. GmbH\r\n"
 	"Contributions by Pablo Neira Ayuso, Jacob Erlbeck, Neels Hofmeyr\r\n"
 	"Philipp Maier\r\n\r\n"
 	"License AGPLv3+: GNU AGPL version 3 or later <http://gnu.org/licenses/agpl-3.0.html>\r\n"
