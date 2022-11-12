@@ -37,6 +37,7 @@ BuildRequires:  pkgconfig(libosmovty) >= 1.7.0
 BuildRequires:  pkgconfig(libosmocoding) >= 1.7.0
 BuildRequires:  pkgconfig(libosmoabis) >= 1.3.0
 BuildRequires:  pkgconfig(libosmotrau) >= 1.3.0
+Requires(pre):  shadow
 %{?systemd_requires}
 
 %description
@@ -101,10 +102,17 @@ make %{?_smp_mflags} check || (find . -name testsuite.log -exec cat {} +)
 %service_del_postun osmo-mgw.service
 
 %pre
+getent group osmocom >/dev/null || groupadd --system osmocom
+getent passwd osmocom >/dev/null || useradd --system --gid osmocom --home-dir /var/lib/osmocom \
+                                            --shell /sbin/nologin --comment "Open Source Mobile Communications" osmocom
 %service_add_pre osmo-mgw.service
 
 %post
 %service_add_post osmo-mgw.service
+chown osmocom:osmocom /etc/osmocom/osmo-mgw.cfg
+chmod 0660 /etc/osmocom/osmo-mgw.cfg
+chown root:osmocom /etc/osmocom
+chmod 2775 /etc/osmocom
 %endif
 
 %files
