@@ -1632,7 +1632,8 @@ static void test_osmux_cid(void)
 
 	for (i = 0; i < 256; ++i) {
 		id = osmux_cid_pool_get_next();
-		OSMO_ASSERT(id == i);
+		/* We called osmux_cid_pool_get_next() above, so next CID is i+1. */
+		OSMO_ASSERT(id == ((i + 1) & 0xff));
 		OSMO_ASSERT(osmux_cid_pool_count_used() == i + 1);
 	}
 
