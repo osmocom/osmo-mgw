@@ -155,6 +155,7 @@ osmux_handle_alloc(const struct mgcp_trunk *trunk, const struct osmo_sockaddr *r
 {
 	struct osmux_handle *h;
 	const struct mgcp_config *cfg = trunk->cfg;
+	char name[128] = "r=";
 
 	h = talloc_zero(trunk, struct osmux_handle);
 	if (!h)
@@ -167,6 +168,9 @@ osmux_handle_alloc(const struct mgcp_trunk *trunk, const struct osmo_sockaddr *r
 		talloc_free(h);
 		return NULL;
 	}
+
+	osmo_sockaddr_to_str_buf(name + 2, sizeof(name) - 2, rem_addr);
+	osmux_xfrm_input_set_name(h->in, name);
 	/* sequence number to start OSMUX message from */
 	osmux_xfrm_input_set_initial_seqnum(h->in, 0);
 	osmux_xfrm_input_set_batch_factor(h->in, cfg->osmux.batch_factor);
