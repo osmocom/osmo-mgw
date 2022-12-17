@@ -41,7 +41,6 @@
 #include <osmocom/mgcp/debug.h>
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
-#include <osmocom/mgcp/mgcp_ctrl.h>
 
 #include <osmocom/core/application.h>
 #include <osmocom/core/msgb.h>
@@ -51,7 +50,7 @@
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/logging.h>
 #include <osmocom/core/socket.h>
-
+#include <osmocom/ctrl/control_if.h>
 #include <osmocom/ctrl/control_vty.h>
 
 #include <osmocom/vty/telnet_interface.h>
@@ -366,7 +365,7 @@ int main(int argc, char **argv)
 	if (rc < 0)
 		return rc;
 
-	cfg->ctrl = mgw_ctrl_interface_setup(cfg, ctrl_vty_get_bind_addr(), OSMO_CTRL_PORT_MGW);
+	cfg->ctrl = ctrl_interface_setup(cfg, OSMO_CTRL_PORT_MGW, NULL);
 	if (!cfg->ctrl) {
 		fprintf(stderr, "Failed to init the control interface on %s:%u. Exiting\n",
 			ctrl_vty_get_bind_addr(), OSMO_CTRL_PORT_MGW);
