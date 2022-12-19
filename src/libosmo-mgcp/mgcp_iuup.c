@@ -672,7 +672,7 @@ int mgcp_conn_iuup_send_rtp(struct mgcp_conn_rtp *conn_src_rtp, struct mgcp_conn
 				     "Bridge RTP=>IuUP: too short for AMR OA hdr (%u)\n", msgb_length(msg));
 			goto free_ret;
 		}
-		if (amr_hdr->ft >= AMR_FT_MAX) {
+		if (!osmo_amr_ft_valid(amr_hdr->ft)) {
 			LOG_CONN_RTP(conn_src_rtp, LOGL_NOTICE, "Bridge RTP=>IuUP: wrong AMR OA ft=%u\n", amr_hdr->ft);
 			goto free_ret;
 		}
@@ -695,7 +695,7 @@ int mgcp_conn_iuup_send_rtp(struct mgcp_conn_rtp *conn_src_rtp, struct mgcp_conn
 			goto free_ret;
 		}
 		ft = ((amr_bwe_hdr[0] & 0x07) << 1) | ((amr_bwe_hdr[1] & 0x80) >> 7);
-		if (ft >= AMR_FT_MAX) {
+		if (!osmo_amr_ft_valid(ft)) {
 			LOG_CONN_RTP(conn_src_rtp, LOGL_NOTICE, "Bridge RTP=>IuUP: wrong AMR BE ft=%u\n", ft);
 			goto free_ret;
 		}
