@@ -55,7 +55,7 @@ struct mgcp_client_conf *get_mgcp_client_config(struct vty *vty)
 
 	/* Global single MGCP config, deprecated: */
 	vty_out(vty, "%% MGCP commands outside of 'mgw' nodes are deprecated. "
-		"You should consider reading User Manual and migrating to 'mgw' node.%s",
+		"You should consider reading the User Manual and migrating to 'mgw' node.%s",
 		VTY_NEWLINE);
 
 	return global_mgcp_client_conf;
