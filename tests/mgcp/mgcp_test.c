@@ -838,7 +838,7 @@ static void test_messages(void)
 				if (endp->local_options.pkt_period_min ||
 				    endp->local_options.pkt_period_max)
 					printf
-					    ("Requested packetetization period: "
+					    ("Requested packetization period: "
 					     "%d-%d\n",
 					     endp->local_options.pkt_period_min,
 					     endp->

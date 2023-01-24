@@ -1026,7 +1026,7 @@ mgcp_header_done:
 					  &endp->local_options, local_options);
 		if (rc != 0) {
 			LOGPCONN(_conn, DLMGCP, LOGL_ERROR,
-				 "CRCX: inavlid local connection options!\n");
+				 "CRCX: invalid local connection options!\n");
 			error_code = rc;
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_INVALID_CONN_OPTIONS));
 			goto error2;
