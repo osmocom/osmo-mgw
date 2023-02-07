@@ -239,7 +239,7 @@ static int fmtp_from_sdp(void *ctx, struct sdp_fmtp_param *fmtp_param, char *sdp
 		if (delimiter == ';' || delimiter == ',')
 			str_ptr[strlen(str_ptr) - 1] = '\0';
 
-		/* AMR octet aligned parameter */
+		/* AMR octet aligned parameter (see also RFC 3267, section 8.3) */
 		if (sscanf(param_str, "octet-align=%d", &amr_octet_aligned) == 1) {
 			fmtp_param->param.amr_octet_aligned_present = true;
 			fmtp_param->param.amr_octet_aligned = false;
