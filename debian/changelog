@@ -1,3 +1,138 @@
+osmo-mgw (1.11.0) unstable; urgency=medium
+
+  [ Pau Espin Pedrol ]
+  * mgcp-client: Remove impossible code path
+  * mgcp_osmux: Drop duplicated conn_osmux_release_cid() in code path
+  * Use Osmux default port define from libosmo-netif
+  * osmux: Use new osmux APIs to let libosmo-netif alloc struct osmux_out_handle
+  * mgw: Fix osmux conn local IP selection
+  * cosmetic: osmux: Fix wrong indentation
+  * mgw: Use X-Osmux string define
+  * Add Osmux log category
+  * cosmetic: main: Properly format log_info_cat
+  * osmux: Use better name for function which may allocate a new struct
+  * osmux: Use osmo_sockaddr wherever possible
+  * osmux: Log refcounting of osmux_handle_list
+  * osmux: Fix memleak on error code path
+  * osmux: don't store conn ptr inside shared osmux_handle
+  * osmux: set log level of expected code path to INFO
+  * cosmetic: vty: Fix indentation whitespace
+  * osmux: Log sendto() error
+  * cosmetic: mgcp_conn.h: fix indentation whitespace
+  * osmux: Attach osmux to virtual trunk
+  * osmux: Clean up helper macro osmux_chunk_length()
+  * osmux: Get rid of static NULL talloc context
+  * Fix typo in ratectr description
+  * mgcp_conn: rename field s/rate_ctr_group/ctrg/g
+  * Use 'static const' instead of 'const static' everywhere
+  * osmux: Add connection and global rate counters
+  * cosmetic: osmux: Fix formatting of if-else brackets
+  * osmux: Rename field osmux usage policy and define it with proper type
+  * Use bool type instead of int in config field
+  * osmux: Support local CID != remote CID
+  * osmux: Fix incorrect rate_ctr_group used in mgcp_osmux.c
+  * osmux: Improve per-conn tx rate counters
+  * vty: show per-connection Osmux VTY stats
+  * osmux: Rename field s/init/initialized
+  * osmux: Allocate rate counters during initialization of osmux conn
+  * cosmetic: osmux: Drop extra empty line
+  * osmux: Drop unneeded comment block
+  * osmux: Lower log level when osmux batch received for unknown CID
+  * osmux: Keep decoding osmux pkt if a batch contains an unknown CID
+  * Allocate struct osmux_in_handle through new libosmo-netif APIs
+  * osmux: Drop logging of osmux internal counters
+  * osmux: cleanup misleading code calling rtp_bridge_cb
+  * osmux: Unify rtp_conn osmux type into a single type
+  * osmux: Match remote address in osmux_conn_lookup()
+  * osmux: Fill in from_addr in struct osmo_rtp_msg_ctx
+  * osmux: Log remote address upon rx of osmux pkt
+  * send_dummy: Use proper condition to test if conn is osmux
+  * Fix regression in detection of legacy dummy packets
+  * Use new libosmocore API osmo_sockaddr_is_any()
+  * Get rid of separate rtp_port field
+  * osmux: Use available API to check if remote end is known
+  * Add Osmux IPv6 support
+  * Clean up local var pointers in mgcp_get_local_addr()
+  * osmux: Change couple log lines to OSMUX category
+  * osmux: Add square brackets around IPv6 address to distinguish port in log line
+  * osmux: Drop unused role parameter
+  * osmux: cosmetic: Fix indentation
+  * Check once if remote addr is available when sending dummy packet
+  * osmux: Simplify and constify param passing
+  * osmux: Set conn->type during osmux_init_conn()
+  * osmux: Make conn_osmux_{allocate,release}_local_cid() APIs static
+  * osmux: Define osmux_dummy cfg as boolean
+  * osmux: Move setting OSMUX_STATE_DISABLED to initializer function
+  * osmux: Erase references to bsc-nat
+  * mgcp_conn_dump(): Separate dump for osmux and iuup connections
+  * osmux: Introduce osmux peer-behind-nat (on|off) and rework conn activation
+  * osmux: Clean up mgcp_config osmux fields
+  * cosmetic: Fix typo in comment
+  * mgcp-client: pool: Improve documentation of some internal fields
+  * mgcp-client: Avoid double iteration picking client from pool
+  * mgcp-client: Fix typo in internal function name
+  * mgcp-client: Rename internal field in mgcp_client_pool
+  * mgcp-client: Move & rename helper function outside of vty code
+  * mgcp-client: Create alloc() and free() internal APIs for mgcp_client_pool_member
+  * mgcp-client: Move internal API acting on mgcp_client_pool to the correct file section
+  * mgcp-client: Refactor reinit of mgcp clients
+  * mgcp-client: Rearrange order of structs and APIs in header
+  * mgcp-client: Rearrange internal backpointers
+  * mgcp-client: Introduce APIs to manually select mgcp_client from pool
+  * mgcp-client: vty: Write deprecation warning using non-mgw nodes
+  * mgcp-client: Use random free local port by default
+  * mgcp-client: Convert users supporting new MGW Pool VTY node during write-config
+  * mgcp-client: Introduce API mgcp_client_pool_config_write
+  * mgcp-client: Add new VTY commands under mgw node without mgw prefix
+  * mgcp-client: Fix 'mgw endpoint-range' command dropped from old VTY node
+  * mgcp-client: Refactor system keeping old users not calling mgcp_client_pool_config_write() working
+  * mgcp-client: Fix no 'mgw ' prefix written in old VTY node
+  * Fix misleading error log
+  * mgcp_send: Use mgcp_conn_rtp_is_iuup() helper
+  * cosmetic: Clarify and fix typos in comment
+  * mgw: Log unexpected RTP AMR OA-vs-BE payload
+  * Rename and move func checking if amr mode is explicitly configured
+  * mgw: rx_rtp(): reorder checks and handlings
+  * mgw: Rename s/mgcp_send_rtp/mgcp_conn_rtp_dispatch_rtp/
+  * osmux: Rename function and pass msgb directly to it
+  * osmux: Make sure RTP AMR feed to osmux is in octet-aligned mode
+  * Improve logging on AMR OA<->BWE conversion failure
+  * osmux: Rotate over available Osmux CID when allocating a new one
+  * osmux: Use new osmux_xfrm_input API to set name on each link
+  * iuup: Use osmo_amr_ft_valid() API
+
+  [ Vadim Yanitskiy ]
+  * libosmo-mgcp-client: add -no-undefined to *_la_LDFLAGS
+
+  [ Philipp Maier ]
+  * mgcp_e1: fix apidoc
+  * mgcp_network: improve coment
+
+  [ Max ]
+  * Set working directory in systemd service file
+  * Add realtime scheduling and set priority in service file
+  * ctrl: take both address and port from vty config
+
+  [ Harald Welte ]
+  * Make osmo_mgcpc_ep_fsm_pre_term() static
+  * Support building with -Werror=strict-prototypes / -Werror=old-style-definition
+  * Add -Werror=implicit-int -Werror=int-conversion -Werror=old-style-definition
+  * update outdated vty copyright statement
+
+  [ Oliver Smith ]
+  * mgcp_client_pool.h: add missing stdbool include
+  * Fix various typos
+  * mgcp_client: add new clearmode codec
+
+  [ Neels Hofmeyr ]
+  * AMR->IuUP: do not crash on AMR data before IuUP Init
+  * AMR->IuUP: properly translate Q -> FQC
+  * IuUP->AMR: do not patch payload type a second time
+  * IuUP->AMR: log whether converting to AMR OA or BE
+  * AMR->IuUP: log conversion, like for the flipside
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Tue, 07 Feb 2023 16:58:41 +0100
+
 osmo-mgw (1.10.0) unstable; urgency=medium
 
   [ Eric ]
