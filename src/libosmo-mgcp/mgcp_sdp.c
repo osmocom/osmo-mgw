@@ -245,7 +245,6 @@ static int fmtp_from_sdp(void *ctx, struct sdp_fmtp_param *fmtp_param, char *sdp
 			fmtp_param->param.amr_octet_aligned = false;
 			if (amr_octet_aligned == 1)
 				fmtp_param->param.amr_octet_aligned = true;
-
 		}
 
 		param_str = strtok(NULL, " ");
