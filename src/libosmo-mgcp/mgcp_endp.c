@@ -110,36 +110,6 @@ struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk,
 	return endp;
 }
 
-/*! release endpoint, all open connections are closed.
- *  \param[in] endp endpoint to release */
-void mgcp_endp_release(struct mgcp_endpoint *endp)
-{
-	LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "Releasing endpoint\n");
-
-	/* Normally this function should only be called when
-	 * all connections have been removed already. In case
-	 * that there are still connections open (e.g. when
-	 * RSIP is executed), free them all at once. */
-	mgcp_conn_free_all(endp);
-
-	/* We must only decrement the stat item when the endpoint as actually
-	 * claimed. An endpoint is claimed when a call-id is set */
-	if (endp->callid)
-		osmo_stat_item_dec(osmo_stat_item_group_get_item(endp->trunk->stats.common,
-								 TRUNK_STAT_ENDPOINTS_USED), 1);
-
-	/* Reset endpoint parameters and states */
-	talloc_free(endp->callid);
-	endp->callid = NULL;
-	talloc_free(endp->local_options.string);
-	endp->local_options.string = NULL;
-	talloc_free(endp->local_options.codec);
-	endp->local_options.codec = NULL;
-
-	if (endp->trunk->trunk_type == MGCP_TRUNK_E1)
-		mgcp_e1_endp_release(endp);
-}
-
 /* Check if the endpoint name contains the prefix (e.g. "rtpbridge/" or
  * "ds/e1-") and write the epname without the prefix back to the memory
  * pointed at by epname. (per trunk the prefix is the same for all endpoints,
@@ -675,3 +645,34 @@ void mgcp_endp_remove_conn(struct mgcp_endpoint *endp, struct mgcp_conn *conn)
 	if (llist_empty(&endp->conns))
 		mgcp_endp_release(endp);
 }
+
+/*! release endpoint, all open connections are closed.
+ *  \param[in] endp endpoint to release */
+void mgcp_endp_release(struct mgcp_endpoint *endp)
+{
+	LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "Releasing endpoint\n");
+
+	/* Normally this function should only be called when
+	 * all connections have been removed already. In case
+	 * that there are still connections open (e.g. when
+	 * RSIP is executed), free them all at once. */
+	mgcp_conn_free_all(endp);
+
+	/* We must only decrement the stat item when the endpoint as actually
+	 * claimed. An endpoint is claimed when a call-id is set */
+	if (endp->callid)
+		osmo_stat_item_dec(osmo_stat_item_group_get_item(endp->trunk->stats.common,
+								 TRUNK_STAT_ENDPOINTS_USED), 1);
+
+	/* Reset endpoint parameters and states */
+	talloc_free(endp->callid);
+	endp->callid = NULL;
+	talloc_free(endp->local_options.string);
+	endp->local_options.string = NULL;
+	talloc_free(endp->local_options.codec);
+	endp->local_options.codec = NULL;
+
+	if (endp->trunk->trunk_type == MGCP_TRUNK_E1)
+		mgcp_e1_endp_release(endp);
+}
+
