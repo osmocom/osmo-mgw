@@ -365,13 +365,11 @@ static void e1_recv_cb(struct e1inp_ts *ts, struct msgb *msg)
 	msgb_free(msg);
 }
 
-static int e1_init(struct mgcp_trunk *trunk, uint8_t ts_nr)
+static int e1_open(struct mgcp_trunk *trunk, uint8_t ts_nr)
 {
-	/*! Each timeslot needs only to be configured once. The Timeslot then
-	 *  stays open and permanently receives data. It is then up to the
-	 *  I.460 demultiplexer to add/remove subchannels as needed. It is
-	 *  allowed to call this function multiple times since we check if the
-	 *  timeslot is already configured. */
+	/*! One E1 timeslot may serve multiple I.460 subslots. The timeslot is opened as soon as an I.460 subslot is
+	 *  opened and will stay open until the last I.460 subslot is closed (see e1_close below). This function must
+	 *  be called any time a new I.460 subslot is opened in order to maintain constancy of the ts_usecount counter. */
 
 	struct e1inp_line *e1_line;
 	int rc;
@@ -379,12 +377,14 @@ static int e1_init(struct mgcp_trunk *trunk, uint8_t ts_nr)
 	OSMO_ASSERT(ts_nr > 0 || ts_nr < NUM_E1_TS);
 	cfg = trunk->cfg;
 
-	if (trunk->e1.ts_in_use[ts_nr - 1]) {
-		LOGPTRUNK(trunk, DE1, LOGL_INFO, "E1 timeslot %u already set up, skipping...\n", ts_nr);
+	if (trunk->e1.ts_usecount[ts_nr - 1] > 0) {
+		LOGPTRUNK(trunk, DE1, LOGL_INFO, "E1 timeslot %u already set up and in use by %u subslot(s), using it as it is...\n",
+			  ts_nr, trunk->e1.ts_usecount[ts_nr - 1]);
+		trunk->e1.ts_usecount[ts_nr - 1]++;
 		return 0;
 	}
 
-	/* Get E1 line */
+	/* Find E1 line */
 	e1_line = e1inp_line_find(trunk->e1.vty_line_nr);
 	if (!e1_line) {
 		LOGPTRUNK(trunk, DE1, LOGL_ERROR, "no such E1 line %u - check VTY config!\n",
@@ -406,7 +406,56 @@ static int e1_init(struct mgcp_trunk *trunk, uint8_t ts_nr)
 	}
 
 	LOGPTRUNK(trunk, DE1, LOGL_INFO, "E1 timeslot %u set up successfully.\n", ts_nr);
-	trunk->e1.ts_in_use[ts_nr - 1] = true;
+	trunk->e1.ts_usecount[ts_nr - 1]++;
+	OSMO_ASSERT(trunk->e1.ts_usecount[ts_nr - 1] == 1);
+
+	return 0;
+}
+
+static int e1_close(struct mgcp_trunk *trunk, uint8_t ts_nr)
+{
+	/* See also comment above (e1_open). This function must be called any time an I.460 subslot is closed */
+
+	struct e1inp_line *e1_line;
+	int rc;
+
+	OSMO_ASSERT(ts_nr > 0 || ts_nr < NUM_E1_TS);
+	cfg = trunk->cfg;
+
+	if (trunk->e1.ts_usecount[ts_nr - 1] > 1) {
+		trunk->e1.ts_usecount[ts_nr - 1]--;
+		LOGPTRUNK(trunk, DE1, LOGL_INFO, "E1 timeslot %u still in use by %u other subslot(s), leaving it open...\n",
+			  ts_nr, trunk->e1.ts_usecount[ts_nr - 1]);
+		return 0;
+	} else if (trunk->e1.ts_usecount[ts_nr - 1] == 0) {
+		/* This should not be as it means we close the timeslot too often. */
+		LOGPTRUNK(trunk, DE1, LOGL_ERROR, "E1 timeslot %u already closed, leaving it as it is...\n", ts_nr);
+		return -EINVAL;
+	}
+
+	/* Find E1 line */
+	e1_line = e1inp_line_find(trunk->e1.vty_line_nr);
+	if (!e1_line) {
+		LOGPTRUNK(trunk, DE1, LOGL_ERROR, "no such E1 line %u - check VTY config!\n",
+			  trunk->e1.vty_line_nr);
+		return -EINVAL;
+	}
+
+	/* Release E1 timeslot */
+	rc = e1inp_ts_config_none(&e1_line->ts[ts_nr - 1], e1_line);
+	if (rc < 0) {
+		LOGPTRUNK(trunk, DE1, LOGL_ERROR, "failed to disable E1 timeslot %u.\n", ts_nr);
+		return -EINVAL;
+	}
+	rc = e1inp_line_update(e1_line);
+	if (rc < 0) {
+		LOGPTRUNK(trunk, DE1, LOGL_ERROR, "failed to update E1 line %u.\n", trunk->e1.vty_line_nr);
+		return -EINVAL;
+	}
+
+	LOGPTRUNK(trunk, DE1, LOGL_INFO, "E1 timeslot %u closed.\n", ts_nr);
+	trunk->e1.ts_usecount[ts_nr - 1]--;
+	OSMO_ASSERT(trunk->e1.ts_usecount[ts_nr - 1] == 0);
 
 	return 0;
 }
@@ -496,7 +545,7 @@ static bool tf_type_is_amr(enum osmo_trau_frame_type ft)
 	}
 }
 
-/*! Equip E1 endpoint with I.460 mux resources.
+/*! Equip E1 endpoint with I.460 mux and E1 timeslot resources.
  *  \param[in] endp endpoint to equip
  *  \param[in] ts E1 timeslot number.
  *  \param[in] ss E1 subslot number.
@@ -517,7 +566,7 @@ int mgcp_e1_endp_equip(struct mgcp_endpoint *endp, uint8_t ts, uint8_t ss, uint8
 	endp->e1.last_amr_ft = AMR_4_75;
 
 	/* Set up E1 line / timeslot */
-	rc = e1_init(endp->trunk, ts);
+	rc = e1_open(endp->trunk, ts);
 	if (rc != 0)
 		return -EINVAL;
 
@@ -604,9 +653,15 @@ void mgcp_e1_endp_update(struct mgcp_endpoint *endp)
 }
 
 /*! Remove E1 resources from endpoint
- *  \param[in] endp endpoint to release. */
-void mgcp_e1_endp_release(struct mgcp_endpoint *endp)
+ *  \param[in] endp endpoint to release.
+ *  \param[in] ts E1 timeslot number. */
+void mgcp_e1_endp_release(struct mgcp_endpoint *endp, uint8_t ts)
 {
+	/* Guard against multiple calls. In case we don't see a subchannel anymore we can safely assume that all work
+	 * is done. */
+	if (!(endp->e1.schan || endp->e1.trau_rtp_st || endp->e1.trau_sync_fi))
+		return;
+
 	LOGPENDP(endp, DE1, LOGL_DEBUG, "removing I.460 subchannel and sync...\n");
 
 	if (endp->e1.schan)
@@ -615,8 +670,10 @@ void mgcp_e1_endp_release(struct mgcp_endpoint *endp)
 		talloc_free(endp->e1.trau_rtp_st);
 	if (endp->e1.trau_sync_fi)
 		osmo_fsm_inst_term(endp->e1.trau_sync_fi, OSMO_FSM_TERM_REGULAR, NULL);
-
 	memset(&endp->e1, 0, sizeof(endp->e1));
+
+	/* Close E1 timeslot */
+	e1_close(endp->trunk, ts);
 }
 
 /*! Accept RTP message buffer with RTP data and enqueue voice data for E1 transmit.

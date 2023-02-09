@@ -671,7 +671,9 @@ void mgcp_endp_release(struct mgcp_endpoint *endp)
 	talloc_free(endp->local_options.codec);
 	endp->local_options.codec = NULL;
 
-	if (endp->trunk->trunk_type == MGCP_TRUNK_E1)
-		mgcp_e1_endp_release(endp);
+	if (endp->trunk->trunk_type == MGCP_TRUNK_E1) {
+		uint8_t ts = e1_ts_nr_from_epname(endp->name);
+		mgcp_e1_endp_release(endp, ts);
+	}
 }
 

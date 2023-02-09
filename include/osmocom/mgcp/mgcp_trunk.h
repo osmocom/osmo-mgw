@@ -66,7 +66,7 @@ struct mgcp_trunk {
 		/* E1 specific */
 		struct {
 			unsigned int vty_line_nr;
-			bool ts_in_use[NUM_E1_TS-1];
+			uint8_t ts_usecount[NUM_E1_TS-1];
 			struct osmo_i460_timeslot i460_ts[NUM_E1_TS-1];
 			/* Note: on an E1 line TS 0 is devoted to framing and
 			 * alignment and therefore only NUM_E1_TS-1 timeslots

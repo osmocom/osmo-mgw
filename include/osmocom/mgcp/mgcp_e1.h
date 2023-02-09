@@ -23,5 +23,5 @@ static const uint8_t e1_offsets[] = { 0, 0, 4, 0, 2, 4, 6, 0, 1, 2, 3, 4, 5, 6, 
 
 int mgcp_e1_endp_equip(struct mgcp_endpoint *endp, uint8_t ts, uint8_t ss, uint8_t offs);
 void mgcp_e1_endp_update(struct mgcp_endpoint *endp);
-void mgcp_e1_endp_release(struct mgcp_endpoint *endp);
+void mgcp_e1_endp_release(struct mgcp_endpoint *endp, uint8_t ts);
 int mgcp_e1_send_rtp(struct mgcp_endpoint *endp, struct mgcp_rtp_codec *codec, struct msgb *msg);
