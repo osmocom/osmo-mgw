@@ -157,7 +157,6 @@ static void chop_epname_suffix(char *epname, const struct mgcp_trunk *trunk)
 	}
 }
 
-
  /*! Convert all characters in epname to lowercase and strip trunk prefix and
  * endpoint name suffix (domain name) from epname. The result is written to
  * to the memory pointed at by epname_stripped. The expected size of the
