@@ -401,7 +401,7 @@ static int e1_init(struct mgcp_trunk *trunk, uint8_t ts_nr)
 	}
 	rc = e1inp_line_update(e1_line);
 	if (rc < 0) {
-		LOGPTRUNK(trunk, DE1, LOGL_ERROR, "failed to update E1 timeslot %u.\n", ts_nr);
+		LOGPTRUNK(trunk, DE1, LOGL_ERROR, "failed to update E1 line %u.\n", ts_nr);
 		return -EINVAL;
 	}
 
