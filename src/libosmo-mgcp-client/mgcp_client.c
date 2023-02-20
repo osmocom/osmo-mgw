@@ -1006,11 +1006,8 @@ const char *mgcp_client_e1_epname(void *ctx, const struct mgcp_client *mgcp, uin
 	return epname;
 }
 
-struct mgcp_response_pending * mgcp_client_pending_add(
-					struct mgcp_client *mgcp,
-					mgcp_trans_id_t trans_id,
-					mgcp_response_cb_t response_cb,
-					void *priv)
+struct mgcp_response_pending *mgcp_client_pending_add(struct mgcp_client *mgcp, mgcp_trans_id_t trans_id,
+						      mgcp_response_cb_t response_cb, void *priv)
 {
 	struct mgcp_response_pending *pending;
 
