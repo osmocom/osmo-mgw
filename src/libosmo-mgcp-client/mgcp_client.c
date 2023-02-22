@@ -1392,8 +1392,10 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	if (!use_sdp
 	    && (mgcp_msg->verb == MGCP_VERB_CRCX
 		|| mgcp_msg->verb == MGCP_VERB_MDCX)) {
-	        if (add_lco(msg, mgcp_msg) < 0)
+		if (add_lco(msg, mgcp_msg) < 0) {
+			LOGPMGW(mgcp, LOGL_ERROR, "Failed to add LCO, can not generate MGCP message\n");
 			return NULL;
+		}
 	}
 
 	/* Add mode */
@@ -1428,8 +1430,10 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	if (use_sdp
 	    && (mgcp_msg->verb == MGCP_VERB_CRCX
 		|| mgcp_msg->verb == MGCP_VERB_MDCX)) {
-	        if (add_sdp(msg, mgcp_msg, mgcp) < 0)
+		if (add_sdp(msg, mgcp_msg, mgcp) < 0) {
+			LOGPMGW(mgcp, LOGL_ERROR, "Failed to add SDP, can not generate MGCP message\n");
 			return NULL;
+		}
 	}
 
 	if (rc != 0) {
