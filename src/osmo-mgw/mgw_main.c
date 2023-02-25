@@ -360,8 +360,7 @@ int main(int argc, char **argv)
 		return rc;
 
 	/* start telnet after reading config for vty_get_bind_addr() */
-	rc = telnet_init_dynif(tall_mgw_ctx, NULL,
-			       vty_get_bind_addr(), OSMO_VTY_PORT_MGW);
+	rc = telnet_init_default(tall_mgw_ctx, NULL, OSMO_VTY_PORT_MGW);
 	if (rc < 0)
 		return rc;
 
