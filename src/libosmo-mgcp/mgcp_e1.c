@@ -222,7 +222,7 @@ static void e1_i460_mux_empty_cb(struct osmo_i460_subchan *schan, void *user_dat
 	osmo_i460_mux_enqueue(endp->e1.schan, msg);
 }
 
-/* called by I.460 de-multeiplexer; feed output of I.460 demux into TRAU frame sync */
+/* called by I.460 de-multiplexer; feed output of I.460 demux into TRAU frame sync */
 static void e1_i460_demux_bits_cb(struct osmo_i460_subchan *schan, void *user_data, const ubit_t *bits,
 				  unsigned int num_bits)
 {
