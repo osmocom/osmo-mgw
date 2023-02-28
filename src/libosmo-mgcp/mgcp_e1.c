@@ -309,7 +309,7 @@ skip:
 	return;
 }
 
-/* Function to handle outgoing E1 traffic */
+/* handle outgoing E1 traffic */
 static void e1_send(struct e1inp_ts *ts, struct mgcp_trunk *trunk)
 {
 	struct msgb *msg = msgb_alloc_c(trunk, E1_TS_BYTES, "E1-TX-timeslot-bytes");
