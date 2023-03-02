@@ -310,7 +310,7 @@ skip:
 }
 
 /* handle outgoing E1 traffic */
-static void e1_send(struct e1inp_ts *ts, struct mgcp_trunk *trunk)
+static void e1_send_ts_frame(struct e1inp_ts *ts, struct mgcp_trunk *trunk)
 {
 	struct msgb *msg = msgb_alloc_c(trunk, E1_TS_BYTES, "E1-TX-timeslot-bytes");
 	uint8_t *ptr;
@@ -359,7 +359,7 @@ static void e1_recv_cb(struct e1inp_ts *ts, struct msgb *msg)
 	osmo_i460_demux_in(&trunk->e1.i460_ts[ts->num - 1], msgb_data(msg), msgb_length(msg));
 
 	/* Trigger sending of pending E1 traffic */
-	e1_send(ts, trunk);
+	e1_send_ts_frame(ts, trunk);
 
 	/* e1inp_rx_ts() does not free() msgb */
 	msgb_free(msg);
