@@ -361,7 +361,7 @@ static void e1_recv_cb(struct e1inp_ts *ts, struct msgb *msg)
 	/* Trigger sending of pending E1 traffic */
 	e1_send_ts_frame(ts, trunk);
 
-	/* e1inp_rx_ts() does not free() msgb */
+	/* e1inp_rx_ts(), the caller of this callback does not free() msgb. */
 	msgb_free(msg);
 }
 
