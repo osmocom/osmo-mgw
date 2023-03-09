@@ -1668,14 +1668,14 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 void mgcp_free_rtp_port(struct mgcp_rtp_end *end)
 {
 	if (end->rtp.fd != -1) {
+		osmo_fd_unregister(&end->rtp);
 		close(end->rtp.fd);
 		end->rtp.fd = -1;
-		osmo_fd_unregister(&end->rtp);
 	}
 
 	if (end->rtcp.fd != -1) {
+		osmo_fd_unregister(&end->rtcp);
 		close(end->rtcp.fd);
 		end->rtcp.fd = -1;
-		osmo_fd_unregister(&end->rtcp);
 	}
 }
