@@ -14,8 +14,6 @@ AM_CFLAGS = \
 	$(NULL)
 
 AM_LDFLAGS = \
-	$(LIBOSMOCORE_LIBS) \
-	$(LIBOSMOVTY_LIBS) \
 	$(COVERAGE_LDFLAGS) \
 	$(NULL)
 
@@ -39,4 +37,9 @@ libosmo_mgcp_client_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	-version-info $(MGCP_CLIENT_LIBVERSION) \
 	-no-undefined \
+	$(NULL)
+
+libosmo_mgcp_client_la_LIBADD = \
+	$(LIBOSMOCORE_LIBS) \
+	$(LIBOSMOVTY_LIBS) \
 	$(NULL)
