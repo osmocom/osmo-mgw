@@ -907,10 +907,10 @@ void mgcp_client_disconnect(struct mgcp_client *mgcp)
 	wq = &mgcp->wq;
 	osmo_wqueue_clear(wq);
 	LOGPMGW(mgcp, LOGL_INFO, "MGCP association: %s -- closed!\n", osmo_sock_get_name2(wq->bfd.fd));
-	close(wq->bfd.fd);
-	wq->bfd.fd = -1;
 	if (osmo_fd_is_registered(&wq->bfd))
 		osmo_fd_unregister(&wq->bfd);
+	close(wq->bfd.fd);
+	wq->bfd.fd = -1;
 }
 
 /*! Get the IP-Aaddress of the associated MGW as string.
