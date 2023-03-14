@@ -626,6 +626,11 @@ void osmo_mgcpc_ep_ci_request(struct osmo_mgcpc_ep_ci *ci,
 		LOGP(DLMGCP, LOGL_ERROR, "Invalid MGW endpoint request: no ci\n");
 		goto dispatch_error;
 	}
+	if (ci->pending) {
+		LOG_CI(ci, LOGL_ERROR, "verb %s is already pending, wait for notify event before requesting %s\n",
+		       osmo_mgcp_verb_name(ci->verb), osmo_mgcp_verb_name(verb));
+		goto dispatch_error;
+	}
 	if (!verb_info && verb != MGCP_VERB_DLCX) {
 		LOG_CI(ci, LOGL_ERROR, "Invalid MGW endpoint request: missing verb details for %s\n",
 		       osmo_mgcp_verb_name(verb));
