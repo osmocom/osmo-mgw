@@ -1324,6 +1324,7 @@ Testing mgcp_codec_pt_translate()
  - mgcp_codec_pt_translate(conn1, conn0, 96) -> 97
  - mgcp_codec_pt_translate(conn0, conn1, 0) -> 0
  - mgcp_codec_pt_translate(conn1, conn0, 0) -> 0
+ - mgcp_codec_pt_translate(conn0, conn1, 123) -> -22
 #3: conn0 has no codecs
  - add codecs on conn0:
     (none)
@@ -1355,25 +1356,40 @@ Testing mgcp_codec_pt_translate()
  - mgcp_codec_pt_translate(conn1, conn0, 121) -> 111
  - mgcp_codec_pt_translate(conn0, conn1, 112) -> 122
  - mgcp_codec_pt_translate(conn1, conn0, 122) -> 112
-#6: test AMR with missing octet-aligned settings (defaults to 0)
+ - mgcp_codec_pt_translate(conn0, conn1, 123) -> -22
+#6: test AMR with missing octet-aligned settings (oa <-> unset)
  - add codecs on conn0:
     0: 111 AMR/8000 octet-aligned=1  -> rc=0
-    1: 112 AMR/8000 octet-aligned=0  -> rc=0
  - add codecs on conn1:
     0: 122 AMR/8000 octet-aligned=unset  -> rc=0
- - mgcp_codec_pt_translate(conn0, conn1, 111) -> -22
- - mgcp_codec_pt_translate(conn0, conn1, 112) -> 122
- - mgcp_codec_pt_translate(conn1, conn0, 122) -> 112
-#7: test AMR with NULL param (defaults to 0)
+ - mgcp_codec_pt_translate(conn0, conn1, 111) -> 122
+ - mgcp_codec_pt_translate(conn1, conn0, 122) -> 111
+ - mgcp_codec_pt_translate(conn0, conn1, 55) -> -22
+#7: test AMR with missing octet-aligned settings (bwe <-> unset)
  - add codecs on conn0:
-    0: 111 AMR/8000 octet-aligned=1  -> rc=0
-    1: 112 AMR/8000 octet-aligned=0  -> rc=0
+    0: 111 AMR/8000 octet-aligned=0  -> rc=0
+ - add codecs on conn1:
+    0: 122 AMR/8000 octet-aligned=unset  -> rc=0
+ - mgcp_codec_pt_translate(conn0, conn1, 111) -> 122
+ - mgcp_codec_pt_translate(conn1, conn0, 122) -> 111
+ - mgcp_codec_pt_translate(conn0, conn1, 55) -> -22
+#8: test AMR with NULL param (oa <-> null)
+ - add codecs on conn0:
+    0: 112 AMR/8000 octet-aligned=1  -> rc=0
  - add codecs on conn1:
     0: 122 AMR/8000  -> rc=0
- - mgcp_codec_pt_translate(conn0, conn1, 111) -> -22
  - mgcp_codec_pt_translate(conn0, conn1, 112) -> 122
  - mgcp_codec_pt_translate(conn1, conn0, 122) -> 112
-#8: match FOO/8000/1 and FOO/8000 as identical, single channel is implicit
+ - mgcp_codec_pt_translate(conn0, conn1, 55) -> -22
+#9: test AMR with NULL param (bwe <-> null)
+ - add codecs on conn0:
+    0: 112 AMR/8000 octet-aligned=0  -> rc=0
+ - add codecs on conn1:
+    0: 122 AMR/8000  -> rc=0
+ - mgcp_codec_pt_translate(conn0, conn1, 112) -> 122
+ - mgcp_codec_pt_translate(conn1, conn0, 122) -> 112
+ - mgcp_codec_pt_translate(conn0, conn1, 55) -> -22
+#10: match FOO/8000/1 and FOO/8000 as identical, single channel is implicit
  - add codecs on conn0:
     0:   0 PCMU/8000/1  -> rc=0
     1: 111 GSM-HR-08/8000/1  -> rc=0
@@ -1389,7 +1405,7 @@ Testing mgcp_codec_pt_translate()
  - mgcp_codec_pt_translate(conn0, conn1, 111) -> 97
  - mgcp_codec_pt_translate(conn1, conn0, 97) -> 111
  - mgcp_codec_pt_translate(conn0, conn1, 123) -> -22
-#9: match FOO/8000/1 and FOO as identical, 8k and single channel are implicit
+#11: match FOO/8000/1 and FOO as identical, 8k and single channel are implicit
  - add codecs on conn0:
     0:   0 PCMU/8000/1  -> rc=0
     1: 111 GSM-HR-08/8000/1  -> rc=0
@@ -1405,7 +1421,7 @@ Testing mgcp_codec_pt_translate()
  - mgcp_codec_pt_translate(conn0, conn1, 111) -> 97
  - mgcp_codec_pt_translate(conn1, conn0, 97) -> 111
  - mgcp_codec_pt_translate(conn0, conn1, 123) -> -22
-#10: test whether channel number matching is waterproof
+#12: test whether channel number matching is waterproof
  - add codecs on conn0:
     0: 111 GSM-HR-08/8000  -> rc=0
     1: 112 GSM-HR-08/8000/2  -> rc=-22

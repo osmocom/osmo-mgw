@@ -376,10 +376,15 @@ bool mgcp_codec_amr_is_octet_aligned(const struct mgcp_rtp_codec *codec)
 	return codec->param.amr_octet_aligned;
 }
 
-/* Compare two codecs, all parameters must match up, except for the payload type
- * number. */
+/* Compare two codecs, all parameters must match up */
 static bool codecs_same(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_codec *codec_b)
 {
+	/* All codec properties must match up, except the payload type number. Even though standardisd payload numbers
+	 * exist for certain situations, the call agent may still assign them freely. Hence we must not insist on equal
+	 * payload type numbers. Also the audio_name is not checked since it is already parsed into subtype_name, rate,
+	 * and channels, which are checked. */
+	if (strcmp(codec_a->subtype_name, codec_b->subtype_name))
+		return false;
 	if (codec_a->rate != codec_b->rate)
 		return false;
 	if (codec_a->channels != codec_b->channels)
@@ -388,12 +393,34 @@ static bool codecs_same(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_codec *c
 		return false;
 	if (codec_a->frame_duration_den != codec_b->frame_duration_den)
 		return false;
-	if (strcmp(codec_a->subtype_name, codec_b->subtype_name))
-		return false;
-	if (!strcmp(codec_a->subtype_name, "AMR")) {
+
+	/* AMR payload may be formatted in two different payload formats, it is still the same codec but since the
+	 * formatting of the payload is different, conversation is required, so we must treat it as a different
+	 * codec here. */
+	if (strcmp(codec_a->subtype_name, "AMR") == 0) {
 		if (mgcp_codec_amr_is_octet_aligned(codec_a) != mgcp_codec_amr_is_octet_aligned(codec_b))
 			return false;
 	}
+
+	return true;
+}
+
+/* Compare two codecs, all parameters must match up, except parameters related to payload formatting (not checked). */
+static bool codecs_convertible(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_codec *codec_b)
+{
+	/* OsmoMGW currently has no ability to transcode from one codec to another. However OsmoMGW is still able to
+	 * translate between different payload formats as long as the encoded voice data itself does not change.
+	 * Therefore we must insist on equal codecs but still allow different payload formatting. */
+	if (strcmp(codec_a->subtype_name, codec_b->subtype_name))
+		return false;
+	if (codec_a->rate != codec_b->rate)
+		return false;
+	if (codec_a->channels != codec_b->channels)
+		return false;
+	if (codec_a->frame_duration_num != codec_b->frame_duration_num)
+		return false;
+	if (codec_a->frame_duration_den != codec_b->frame_duration_den)
+		return false;
 
 	return true;
 }
@@ -429,8 +456,8 @@ int mgcp_codec_pt_translate(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp
 	if (!codec_src)
 		return -EINVAL;
 
-	/* Use the codec information from the source and try to find the
-	 * equivalent of it on the destination side */
+	/* Use the codec information from the source and try to find the equivalent of it on the destination side. In
+	 * the first run we will look for an exact match. */
 	codecs_assigned = rtp_dst->codecs_assigned;
 	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
 	for (i = 0; i < codecs_assigned; i++) {
@@ -439,6 +466,18 @@ int mgcp_codec_pt_translate(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp
 			break;
 		}
 	}
+
+	/* In case we weren't able to find an exact match, we will try to find a match that is the same codec, but the
+	 * payload format may be different. This alternative will require a frame format conversion (i.e. AMR bwe->oe) */
+	if (!codec_dst) {
+		for (i = 0; i < codecs_assigned; i++) {
+			if (codecs_convertible(codec_src, &rtp_dst->codecs[i])) {
+				codec_dst = &rtp_dst->codecs[i];
+				break;
+			}
+		}
+	}
+
 	if (!codec_dst)
 		return -EINVAL;
 

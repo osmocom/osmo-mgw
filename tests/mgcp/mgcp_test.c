@@ -1851,6 +1851,7 @@ static const struct testcase_mgcp_codec_pt_translate test_mgcp_codec_pt_translat
 			{ .payload_type_map = {96, 97}, },
 			{ .payload_type_map = {97, 96}, },
 			{ .payload_type_map = {0, 0}, },
+			{ .payload_type_map = {123, -EINVAL} },
 			{ .end = true },
 		},
 	},
@@ -1907,31 +1908,63 @@ static const struct testcase_mgcp_codec_pt_translate test_mgcp_codec_pt_translat
 		.expect = {
 			{ .payload_type_map = {111, 121}, },
 			{ .payload_type_map = {112, 122} },
+			{ .payload_type_map = {123, -EINVAL} },
 			{ .end = true },
 		},
 	},
 	{
-		.descr = "test AMR with missing octet-aligned settings (defaults to 0)",
+		.descr = "test AMR with missing octet-aligned settings (oa <-> unset)",
 		.codecs = {
 			{
 				{ 111, "AMR/8000", &amr_param_octet_aligned_true, },
-				{ 112, "AMR/8000", &amr_param_octet_aligned_false, },
 			},
 			{
 				{ 122, "AMR/8000", &amr_param_octet_aligned_unset, },
 			},
 		},
 		.expect = {
-			{ .payload_type_map = {111, -EINVAL}, },
-			{ .payload_type_map = {112, 122} },
+			{ .payload_type_map = {111, 122}, },
+			{ .payload_type_map = {55, -EINVAL}, },
 			{ .end = true },
 		},
 	},
 	{
-		.descr = "test AMR with NULL param (defaults to 0)",
+		.descr = "test AMR with missing octet-aligned settings (bwe <-> unset)",
 		.codecs = {
 			{
-				{ 111, "AMR/8000", &amr_param_octet_aligned_true, },
+				{ 111, "AMR/8000", &amr_param_octet_aligned_false, },
+			},
+			{
+				{ 122, "AMR/8000", &amr_param_octet_aligned_unset, },
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {111, 122}, },
+			{ .payload_type_map = {55, -EINVAL}, },
+			{ .end = true },
+		},
+	},
+	{
+		.descr = "test AMR with NULL param (oa <-> null)",
+		.codecs = {
+			{
+				{ 112, "AMR/8000", &amr_param_octet_aligned_true, },
+			},
+			{
+				{ 122, "AMR/8000", NULL, },
+			},
+		},
+		.expect = {
+			/* Note: Both 111, anbd 112 will translate to 122. The translation from 112 */
+			{ .payload_type_map = {112, 122} },
+			{ .payload_type_map = {55, -EINVAL}, },
+			{ .end = true },
+		},
+	},
+	{
+		.descr = "test AMR with NULL param (bwe <-> null)",
+		.codecs = {
+			{
 				{ 112, "AMR/8000", &amr_param_octet_aligned_false, },
 			},
 			{
@@ -1939,8 +1972,9 @@ static const struct testcase_mgcp_codec_pt_translate test_mgcp_codec_pt_translat
 			},
 		},
 		.expect = {
-			{ .payload_type_map = {111, -EINVAL}, },
+			/* Note: Both 111, anbd 112 will translate to 122. The translation from 112 */
 			{ .payload_type_map = {112, 122} },
+			{ .payload_type_map = {55, -EINVAL}, },
 			{ .end = true },
 		},
 	},
