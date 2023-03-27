@@ -470,8 +470,7 @@ struct mgcp_rtp_codec *mgcp_codec_find_convertible(struct mgcp_conn_rtp *conn, s
  * \param subtype_name  SDP codec name without parameters (e.g. "AMR").
  * \param match_nr  Index for the match found, first being match_nr == 0. Iterate all matches by calling multiple times
  *                  with incrementing match_nr.
- * \return codec definition for that conn matching the subtype_name, or NULL if no such match_nr is found.
- */
+ * \return codec definition for that conn matching the subtype_name, or NULL if no such match_nr is found. */
 const struct mgcp_rtp_codec *mgcp_codec_pt_find_by_subtype_name(struct mgcp_conn_rtp *conn,
 								const char *subtype_name, unsigned int match_nr)
 {
