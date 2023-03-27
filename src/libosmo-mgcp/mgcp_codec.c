@@ -425,63 +425,42 @@ static bool codecs_convertible(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_c
 	return true;
 }
 
-/*! Translate a given payload type number that belongs to the packet of a
- *  source connection to the equivalent payload type number that matches the
- *  configuration of a destination connection.
- *  \param[in] conn_src related source rtp-connection.
- *  \param[in] conn_dst related destination rtp-connection.
- *  \param[in] payload_type number from the source packet or source connection.
- *  \returns translated payload type number on success, -EINVAL on failure. */
-int mgcp_codec_pt_translate(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn_dst, int payload_type)
+/*! For a given codec, find a convertible codec in the given connection.
+ *  \param[in] conn connection to search for a convertible codec
+ *  \param[in] codec for which a convertible codec shall be found.
+ *  \returns codec on success, -NULL on failure. */
+struct mgcp_rtp_codec *mgcp_codec_find_convertible(struct mgcp_conn_rtp *conn, struct mgcp_rtp_codec *codec)
 {
-	struct mgcp_rtp_end *rtp_src;
-	struct mgcp_rtp_end *rtp_dst;
-	struct mgcp_rtp_codec *codec_src = NULL;
-	struct mgcp_rtp_codec *codec_dst = NULL;
+	struct mgcp_rtp_end *rtp_end;
 	unsigned int i;
 	unsigned int codecs_assigned;
+	struct mgcp_rtp_codec *codec_convertible = NULL;
 
-	rtp_src = &conn_src->end;
-	rtp_dst = &conn_dst->end;
-
-	/* Find the codec information that is used on the source side */
-	codecs_assigned = rtp_src->codecs_assigned;
-	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
-	for (i = 0; i < codecs_assigned; i++) {
-		if (payload_type == rtp_src->codecs[i].payload_type) {
-			codec_src = &rtp_src->codecs[i];
-			break;
-		}
-	}
-	if (!codec_src)
-		return -EINVAL;
+	rtp_end = &conn->end;
 
 	/* Use the codec information from the source and try to find the equivalent of it on the destination side. In
 	 * the first run we will look for an exact match. */
-	codecs_assigned = rtp_dst->codecs_assigned;
+	codecs_assigned = rtp_end->codecs_assigned;
 	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
 	for (i = 0; i < codecs_assigned; i++) {
-		if (codecs_same(codec_src, &rtp_dst->codecs[i])) {
-			codec_dst = &rtp_dst->codecs[i];
+		if (codecs_same(codec, &rtp_end->codecs[i])) {
+			codec_convertible = &rtp_end->codecs[i];
 			break;
 		}
 	}
 
 	/* In case we weren't able to find an exact match, we will try to find a match that is the same codec, but the
 	 * payload format may be different. This alternative will require a frame format conversion (i.e. AMR bwe->oe) */
-	if (!codec_dst) {
+	if (!codec_convertible) {
 		for (i = 0; i < codecs_assigned; i++) {
-			if (codecs_convertible(codec_src, &rtp_dst->codecs[i])) {
-				codec_dst = &rtp_dst->codecs[i];
+			if (codecs_convertible(codec, &rtp_end->codecs[i])) {
+				codec_convertible = &rtp_end->codecs[i];
 				break;
 			}
 		}
 	}
 
-	if (!codec_dst)
-		return -EINVAL;
-
-	return codec_dst->payload_type;
+	return codec_convertible;
 }
 
 /* Find the payload type number configured for a specific codec by SDP.
@@ -507,4 +486,27 @@ const struct mgcp_rtp_codec *mgcp_codec_pt_find_by_subtype_name(struct mgcp_conn
 		}
 	}
 	return NULL;
+}
+
+/*! Lookup a codec that is assigned to a connection by its payload type number.
+ *  \param[in] conn related rtp-connection.
+ *  \param[in] payload_type number of the codec to look up.
+ *  \returns pointer to codec struct on success, NULL on failure. */
+struct mgcp_rtp_codec *mgcp_codec_from_pt(struct mgcp_conn_rtp *conn, int payload_type)
+{
+	struct mgcp_rtp_end *rtp_end = &conn->end;
+	unsigned int codecs_assigned = rtp_end->codecs_assigned;
+	struct mgcp_rtp_codec *codec = NULL;
+	size_t i;
+
+	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
+
+	for (i = 0; i < codecs_assigned; i++) {
+		if (payload_type == rtp_end->codecs[i].payload_type) {
+			codec = &rtp_end->codecs[i];
+			break;
+		}
+	}
+
+	return codec;
 }

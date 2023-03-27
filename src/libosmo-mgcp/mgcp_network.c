@@ -493,27 +493,31 @@ void mgcp_rtp_annex_count(const struct mgcp_endpoint *endp,
 /* There may be different payload type numbers negotiated for two connections.
  * Patch the payload type of an RTP packet so that it uses the payload type
  * that is valid for the destination connection (conn_dst) */
-static int mgcp_patch_pt(struct mgcp_conn_rtp *conn_src,
-			 struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
+static int mgcp_patch_pt(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
 {
 	struct rtp_hdr *rtp_hdr;
-	uint8_t pt_in;
-	int pt_out;
+	struct mgcp_rtp_codec *codec_src;
+	struct mgcp_rtp_codec *codec_dst;
 
 	if (msgb_length(msg) < sizeof(struct rtp_hdr)) {
 		LOG_CONN_RTP(conn_src, LOGL_ERROR, "RTP packet too short (%u < %zu)\n",
 			     msgb_length(msg), sizeof(struct rtp_hdr));
 		return -EINVAL;
 	}
-
 	rtp_hdr = (struct rtp_hdr *)msgb_data(msg);
 
-	pt_in = rtp_hdr->payload_type;
-	pt_out = mgcp_codec_pt_translate(conn_src, conn_dst, pt_in);
-	if (pt_out < 0)
+	/* Find the codec information that is used on the source side */
+	codec_src = mgcp_codec_from_pt(conn_src, rtp_hdr->payload_type);
+	if (!codec_src)
 		return -EINVAL;
 
-	rtp_hdr->payload_type = (uint8_t) pt_out;
+	/* Lookup a suitable codec in the destination connection. (The codec must be of the same type or at least
+	 * convertible) */
+	codec_dst = mgcp_codec_find_convertible(conn_dst, codec_src);
+	if (!codec_dst)
+		return -EINVAL;
+
+	rtp_hdr->payload_type = (uint8_t) codec_dst->payload_type;
 	return 0;
 }
 

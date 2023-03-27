@@ -1769,26 +1769,26 @@ static const struct mgcp_codec_param amr_param_octet_aligned_unset = {
 	.amr_octet_aligned_present = false,
 };
 
-struct testcase_mgcp_codec_pt_translate_codec {
+struct testcase_mgcp_codec_find_convertible_codec {
 	int payload_type;
 	const char *audio_name;
 	const struct mgcp_codec_param *param;
 	int expect_rc;
 };
 
-struct testcase_mgcp_codec_pt_translate_expect {
+struct testcase_mgcp_codec_find_convertible_expect {
 	bool end;
 	int payload_type_map[2];
 };
 
-struct testcase_mgcp_codec_pt_translate {
+struct testcase_mgcp_codec_find_convertible {
 	const char *descr;
 	/* two conns on an endpoint, each with N configured codecs */
-	struct testcase_mgcp_codec_pt_translate_codec codecs[2][10];
-	struct testcase_mgcp_codec_pt_translate_expect expect[32];
+	struct testcase_mgcp_codec_find_convertible_codec codecs[2][10];
+	struct testcase_mgcp_codec_find_convertible_expect expect[32];
 };
 
-static const struct testcase_mgcp_codec_pt_translate test_mgcp_codec_pt_translate_cases[] = {
+static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_convertible_cases[] = {
 	{
 		.descr = "same order, but differing payload type numbers",
 		.codecs = {
@@ -2044,14 +2044,39 @@ static const struct testcase_mgcp_codec_pt_translate test_mgcp_codec_pt_translat
 	},
 };
 
-static void test_mgcp_codec_pt_translate(void)
+static int pt_translate(struct mgcp_conn_rtp *conn, unsigned int index_src, unsigned int index_dst, int payload_type)
+{
+	struct mgcp_rtp_codec *codec_src = NULL;
+	struct mgcp_rtp_codec *codec_dst = NULL;
+	struct mgcp_conn_rtp *conn_src = &conn[index_src];
+	struct mgcp_conn_rtp *conn_dst = &conn[index_dst];
+
+	/* Find the codec information that is used on the source side */
+	codec_src = mgcp_codec_from_pt(conn_src, payload_type);
+	if (!codec_src) {
+		printf(" - mgcp_codec_from_pt(conn%u, %d) -> NO RESULT\n", index_src, payload_type);
+		return -EINVAL;
+	}
+	printf(" - mgcp_codec_from_pt(conn%u, %d) -> %s\n", index_src, payload_type, codec_src->subtype_name);
+
+	codec_dst = mgcp_codec_find_convertible(conn_dst, codec_src);
+	if (!codec_dst) {
+		printf(" - mgcp_codec_find_convertible(conn%u, %s) -> NO RESULT\n", index_dst, codec_src->subtype_name);
+		return -EINVAL;
+	}
+	printf(" - mgcp_codec_find_convertible(conn%u, %s) -> %s -> %u\n",
+	       index_dst, codec_src->subtype_name, codec_dst->subtype_name, codec_dst->payload_type);
+	return codec_dst->payload_type;
+}
+
+static void test_mgcp_codec_find_convertible(void)
 {
 	int i;
 	bool ok = true;
-	printf("\nTesting mgcp_codec_pt_translate()\n");
+	printf("\nTesting mgcp_codec_find_convertible()\n");
 
-	for (i = 0; i < ARRAY_SIZE(test_mgcp_codec_pt_translate_cases); i++) {
-		const struct testcase_mgcp_codec_pt_translate *t = &test_mgcp_codec_pt_translate_cases[i];
+	for (i = 0; i < ARRAY_SIZE(test_mgcp_codec_find_convertible_cases); i++) {
+		const struct testcase_mgcp_codec_find_convertible *t = &test_mgcp_codec_find_convertible_cases[i];
 		struct mgcp_conn_rtp conn[2] = {};
 		int rc;
 		int conn_i;
@@ -2062,7 +2087,7 @@ static void test_mgcp_codec_pt_translate(void)
 		for (conn_i = 0; conn_i < 2; conn_i++) {
 			printf(" - add codecs on conn%d:\n", conn_i);
 			for (c = 0; c < ARRAY_SIZE(t->codecs[conn_i]); c++) {
-				const struct testcase_mgcp_codec_pt_translate_codec *codec = &t->codecs[conn_i][c];
+				const struct testcase_mgcp_codec_find_convertible_codec *codec = &t->codecs[conn_i][c];
 				if (!codec->audio_name)
 					break;
 
@@ -2086,15 +2111,13 @@ static void test_mgcp_codec_pt_translate(void)
 		}
 
 		for (c = 0; c < ARRAY_SIZE(t->expect); c++) {
-			const struct testcase_mgcp_codec_pt_translate_expect *expect = &t->expect[c];
+			const struct testcase_mgcp_codec_find_convertible_expect *expect = &t->expect[c];
 			int result;
 
 			if (expect->end)
 				break;
 
-			result = mgcp_codec_pt_translate(&conn[0], &conn[1], expect->payload_type_map[0]);
-			printf(" - mgcp_codec_pt_translate(conn0, conn1, %d) -> %d\n",
-			       expect->payload_type_map[0], result);
+			result = pt_translate(conn, 0, 1, expect->payload_type_map[0]);
 			if (result != expect->payload_type_map[1]) {
 				printf("     ERROR: expected -> %d\n", expect->payload_type_map[1]);
 				ok = false;
@@ -2104,9 +2127,7 @@ static void test_mgcp_codec_pt_translate(void)
 			if (expect->payload_type_map[1] < 0)
 				continue;
 
-			result = mgcp_codec_pt_translate(&conn[1], &conn[0], expect->payload_type_map[1]);
-			printf(" - mgcp_codec_pt_translate(conn1, conn0, %d) -> %d\n",
-			       expect->payload_type_map[1], result);
+			result = pt_translate(conn, 1, 0, expect->payload_type_map[1]);
 			if (result != expect->payload_type_map[0]) {
 				printf("     ERROR: expected -> %d\n", expect->payload_type_map[0]);
 				ok = false;
@@ -2274,7 +2295,7 @@ int main(int argc, char **argv)
 	test_osmux_cid();
 	test_get_lco_identifier();
 	test_check_local_cx_options(ctx);
-	test_mgcp_codec_pt_translate();
+	test_mgcp_codec_find_convertible();
 	test_conn_id_matching();
 	test_e1_trunk_nr_from_epname();
 	test_mgcp_is_rtp_dummy_payload();
