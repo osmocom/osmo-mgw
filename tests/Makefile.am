@@ -34,11 +34,11 @@ DISTCLEANFILES = \
 	$(NULL)
 
 if ENABLE_EXT_TESTS
-python-tests: $(BUILT_SOURCES)
+python-tests: $(top_builddir)/src/osmo-mgw/osmo-mgw
 	osmotestvty.py -p $(abs_top_srcdir) -w $(abs_top_builddir) -v
 	osmotestconfig.py -p $(abs_top_srcdir) -w $(abs_top_builddir) -v
 else
-python-tests: $(BUILT_SOURCES)
+python-tests:
 	echo "Not running python-based tests (determined at configure-time)"
 endif
 
