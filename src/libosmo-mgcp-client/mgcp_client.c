@@ -456,15 +456,15 @@ static char *mgcp_find_section_end(char *string)
 
 	rc = strstr(string, "\n\n");
 	if (rc)
-		return rc;
+		return rc + 2;
 
 	rc = strstr(string, "\n\r\n\r");
 	if (rc)
-		return rc;
+		return rc + 4;
 
 	rc = strstr(string, "\r\n\r\n");
 	if (rc)
-		return rc;
+		return rc + 4;
 
 	return NULL;
 }
