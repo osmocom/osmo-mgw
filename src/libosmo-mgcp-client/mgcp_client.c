@@ -1135,87 +1135,87 @@ static mgcp_trans_id_t mgcp_client_next_trans_id(struct mgcp_client *mgcp)
 static int add_lco(struct msgb *msg, struct mgcp_msg *mgcp_msg)
 {
 	unsigned int i;
-	int rc = 0;
 	const char *codec;
 	unsigned int pt;
 
-	rc |= msgb_printf(msg, "L:");
+#define MSGB_PRINTF_OR_RET(FMT, ARGS...) do { \
+		if (msgb_printf(msg, FMT, ##ARGS) != 0) { \
+			LOGP(DLMGCP, LOGL_ERROR, "Message buffer too small, can not generate MGCP/SDP message\n"); \
+			return -ENOBUFS; \
+		} \
+	} while (0)
+
+	MSGB_PRINTF_OR_RET("L:");
 
 	if (mgcp_msg->ptime)
-		rc |= msgb_printf(msg, " p:%u,", mgcp_msg->ptime);
+		MSGB_PRINTF_OR_RET(" p:%u,", mgcp_msg->ptime);
 
 	if (mgcp_msg->codecs_len) {
-		rc |= msgb_printf(msg, " a:");
+		MSGB_PRINTF_OR_RET(" a:");
 		for (i = 0; i < mgcp_msg->codecs_len; i++) {
 			pt = mgcp_msg->codecs[i];
 			codec = get_value_string_or_null(osmo_mgcpc_codec_names, pt);
 
 			/* Note: Use codec descriptors from enum mgcp_codecs
 			 * in mgcp_client only! */
-			if (!codec) {
-				msgb_free(msg);
+			if (!codec)
 				return -EINVAL;
-			}
 
-			rc |= msgb_printf(msg, "%s", extract_codec_name(codec));
+			MSGB_PRINTF_OR_RET("%s", extract_codec_name(codec));
 			if (i < mgcp_msg->codecs_len - 1)
-				rc |= msgb_printf(msg, ";");
+				MSGB_PRINTF_OR_RET(";");
 		}
-		rc |= msgb_printf(msg, ",");
+		MSGB_PRINTF_OR_RET(",");
 	}
 
-	rc |= msgb_printf(msg, " nt:IN\r\n");
-
-	if (rc != 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "message buffer to small, can not generate MGCP message (LCO)\n");
-		msgb_free(msg);
-		return -ENOBUFS;
-	}
+	MSGB_PRINTF_OR_RET(" nt:IN\r\n");
 	return 0;
+
+#undef MSGB_PRINTF_OR_RET
 }
 
 /* Helper function for mgcp_msg_gen(): Add SDP information to MGCP message */
 static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_client *mgcp)
 {
 	unsigned int i;
-	int rc = 0;
 	char local_ip[INET6_ADDRSTRLEN];
 	int local_ip_family, audio_ip_family;
 	const char *codec;
 	unsigned int pt;
 
+#define MSGB_PRINTF_OR_RET(FMT, ARGS...) do { \
+		if (msgb_printf(msg, FMT, ##ARGS) != 0) { \
+			LOGPMGW(mgcp, LOGL_ERROR, "Message buffer too small, can not generate MGCP message (SDP)\n"); \
+			return -ENOBUFS; \
+		} \
+	} while (0)
+
 	/* Add separator to mark the beginning of the SDP block */
-	rc |= msgb_printf(msg, "\r\n");
+	MSGB_PRINTF_OR_RET("\r\n");
 
 	/* Add SDP protocol version */
-	rc |= msgb_printf(msg, "v=0\r\n");
+	MSGB_PRINTF_OR_RET("v=0\r\n");
 
 	/* Determine local IP-Address */
 	if (osmo_sock_local_ip(local_ip, mgcp->actual.remote_addr) < 0) {
 		LOGPMGW(mgcp, LOGL_ERROR,
 			"Could not determine local IP-Address!\n");
-		msgb_free(msg);
 		return -EINVAL;
 	}
 	local_ip_family = osmo_ip_str_type(local_ip);
-	if (local_ip_family == AF_UNSPEC) {
-		msgb_free(msg);
+	if (local_ip_family == AF_UNSPEC)
 		return -EINVAL;
-	}
 	audio_ip_family = osmo_ip_str_type(mgcp_msg->audio_ip);
-	if (audio_ip_family == AF_UNSPEC) {
-		msgb_free(msg);
+	if (audio_ip_family == AF_UNSPEC)
 		return -EINVAL;
-	}
 
 	/* Add owner/creator (SDP) */
-	rc |= msgb_printf(msg, "o=- %x 23 IN IP%c %s\r\n", mgcp_msg->call_id,
+	MSGB_PRINTF_OR_RET("o=- %x 23 IN IP%c %s\r\n", mgcp_msg->call_id,
 			  local_ip_family == AF_INET6 ? '6' : '4',
 			  local_ip);
 
 	/* Add session name (none) */
-	rc |= msgb_printf(msg, "s=-\r\n");
+	MSGB_PRINTF_OR_RET("s=-\r\n");
 
 	/* Add RTP address and port */
 	if (mgcp_msg->audio_port == 0) {
@@ -1230,20 +1230,20 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 		msgb_free(msg);
 		return -EINVAL;
 	}
-	rc |= msgb_printf(msg, "c=IN IP%c %s\r\n",
+	MSGB_PRINTF_OR_RET("c=IN IP%c %s\r\n",
 			  audio_ip_family == AF_INET6 ? '6' : '4',
 			  mgcp_msg->audio_ip);
 
 	/* Add time description, active time (SDP) */
-	rc |= msgb_printf(msg, "t=0 0\r\n");
+	MSGB_PRINTF_OR_RET("t=0 0\r\n");
 
-	rc |= msgb_printf(msg, "m=audio %u RTP/AVP", mgcp_msg->audio_port);
+	MSGB_PRINTF_OR_RET("m=audio %u RTP/AVP", mgcp_msg->audio_port);
 	for (i = 0; i < mgcp_msg->codecs_len; i++) {
 		pt = map_codec_to_pt(mgcp_msg->ptmap, mgcp_msg->ptmap_len, mgcp_msg->codecs[i]);
-		rc |= msgb_printf(msg, " %u", pt);
+		MSGB_PRINTF_OR_RET(" %u", pt);
 
 	}
-	rc |= msgb_printf(msg, "\r\n");
+	MSGB_PRINTF_OR_RET("\r\n");
 
 	/* Add optional codec parameters (fmtp) */
 	if (mgcp_msg->param_present) {
@@ -1253,9 +1253,9 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 				   continue;
 			pt = map_codec_to_pt(mgcp_msg->ptmap, mgcp_msg->ptmap_len, mgcp_msg->codecs[i]);
 			if (mgcp_msg->param.amr_octet_aligned_present && mgcp_msg->param.amr_octet_aligned)
-				rc |= msgb_printf(msg, "a=fmtp:%u octet-align=1\r\n", pt);
+				MSGB_PRINTF_OR_RET("a=fmtp:%u octet-align=1\r\n", pt);
 			else if (mgcp_msg->param.amr_octet_aligned_present && !mgcp_msg->param.amr_octet_aligned)
-				rc |= msgb_printf(msg, "a=fmtp:%u octet-align=0\r\n", pt);
+				MSGB_PRINTF_OR_RET("a=fmtp:%u octet-align=0\r\n", pt);
 		}
 	}
 
@@ -1270,25 +1270,18 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 
 			/* Note: Use codec descriptors from enum mgcp_codecs
 			 * in mgcp_client only! */
-			if (!codec) {
-				msgb_free(msg);
+			if (!codec)
 				return -EINVAL;
-			}
 
-			rc |= msgb_printf(msg, "a=rtpmap:%u %s\r\n", pt, codec);
+			MSGB_PRINTF_OR_RET("a=rtpmap:%u %s\r\n", pt, codec);
 		}
 	}
 
 	if (mgcp_msg->ptime)
-		rc |= msgb_printf(msg, "a=ptime:%u\r\n", mgcp_msg->ptime);
-
-	if (rc != 0) {
-		LOGPMGW(mgcp, LOGL_ERROR, "Message buffer to small, can not generate MGCP message (SDP)\n");
-		msgb_free(msg);
-		return -ENOBUFS;
-	}
+		MSGB_PRINTF_OR_RET("a=ptime:%u\r\n", mgcp_msg->ptime);
 
 	return 0;
+#undef MSGB_PRINTF_OR_RET
 }
 
 /*! Generate an MGCP message
@@ -1300,9 +1293,15 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	mgcp_trans_id_t trans_id = mgcp_client_next_trans_id(mgcp);
 	uint32_t mandatory_mask;
 	struct msgb *msg = msgb_alloc_headroom(4096, 128, "MGCP tx");
-	int rc = 0;
 	bool use_sdp = false;
 	char buf[32];
+
+#define MSGB_PRINTF_OR_RET(FMT, ARGS...) do { \
+		if (msgb_printf(msg, FMT, ##ARGS) != 0) { \
+			LOGPMGW(mgcp, LOGL_ERROR, "Message buffer too small, can not generate MGCP/SDP message\n"); \
+			goto exit_error; \
+		} \
+	} while (0)
 
 	msg->l2h = msg->data;
 	msg->cb[MSGB_CB_MGCP_TRANS_ID] = trans_id;
@@ -1311,72 +1310,67 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	switch (mgcp_msg->verb) {
 	case MGCP_VERB_CRCX:
 		mandatory_mask = MGCP_CRCX_MANDATORY;
-		rc |= msgb_printf(msg, "CRCX %u", trans_id);
+		MSGB_PRINTF_OR_RET("CRCX %u", trans_id);
 		break;
 	case MGCP_VERB_MDCX:
 		mandatory_mask = MGCP_MDCX_MANDATORY;
-		rc |= msgb_printf(msg, "MDCX %u", trans_id);
+		MSGB_PRINTF_OR_RET("MDCX %u", trans_id);
 		break;
 	case MGCP_VERB_DLCX:
 		mandatory_mask = MGCP_DLCX_MANDATORY;
-		rc |= msgb_printf(msg, "DLCX %u", trans_id);
+		MSGB_PRINTF_OR_RET("DLCX %u", trans_id);
 		break;
 	case MGCP_VERB_AUEP:
 		mandatory_mask = MGCP_AUEP_MANDATORY;
-		rc |= msgb_printf(msg, "AUEP %u", trans_id);
+		MSGB_PRINTF_OR_RET("AUEP %u", trans_id);
 		break;
 	case MGCP_VERB_RSIP:
 		mandatory_mask = MGCP_RSIP_MANDATORY;
-		rc |= msgb_printf(msg, "RSIP %u", trans_id);
+		MSGB_PRINTF_OR_RET("RSIP %u", trans_id);
 		break;
 	default:
 		LOGPMGW(mgcp, LOGL_ERROR, "Invalid command verb, can not generate MGCP message\n");
-		msgb_free(msg);
-		return NULL;
+		goto exit_error;
 	}
 
 	/* Check if mandatory fields are missing */
 	if (!((mgcp_msg->presence & mandatory_mask) == mandatory_mask)) {
 		LOGPMGW(mgcp, LOGL_ERROR,
 			"One or more missing mandatory fields, can not generate MGCP message\n");
-		msgb_free(msg);
-		return NULL;
+		goto exit_error;
 	}
 
 	/* Add endpoint name */
 	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_ENDPOINT) {
 		if (strlen(mgcp_msg->endpoint) <= 0) {
 			LOGPMGW(mgcp, LOGL_ERROR, "Empty endpoint name, can not generate MGCP message\n");
-			msgb_free(msg);
-			return NULL;
+			goto exit_error;
 		}
 
 		if (strstr(mgcp_msg->endpoint, "@") == NULL) {
 			LOGPMGW(mgcp, LOGL_ERROR,
 				"Endpoint name (%s) lacks separator (@), can not generate MGCP message\n",
 				mgcp_msg->endpoint);
-			msgb_free(msg);
-			return NULL;
+			goto exit_error;
 		}
 
-		rc |= msgb_printf(msg, " %s", mgcp_msg->endpoint);
+		MSGB_PRINTF_OR_RET(" %s", mgcp_msg->endpoint);
 	}
 
 	/* Add protocol version */
-	rc |= msgb_printf(msg, " MGCP 1.0\r\n");
+	MSGB_PRINTF_OR_RET(" MGCP 1.0\r\n");
 
 	/* Add call id */
 	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CALL_ID)
-		rc |= msgb_printf(msg, "C: %x\r\n", mgcp_msg->call_id);
+		MSGB_PRINTF_OR_RET("C: %x\r\n", mgcp_msg->call_id);
 
 	/* Add connection id */
 	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CONN_ID) {
 		if (strlen(mgcp_msg->conn_id) <= 0) {
 			LOGPMGW(mgcp, LOGL_ERROR, "Empty connection id, can not generate MGCP message\n");
-			msgb_free(msg);
-			return NULL;
+			goto exit_error;
 		}
-		rc |= msgb_printf(msg, "I: %s\r\n", mgcp_msg->conn_id);
+		MSGB_PRINTF_OR_RET("I: %s\r\n", mgcp_msg->conn_id);
 	}
 
 	/* Using SDP makes sense when a valid IP/Port combination is specifiec,
@@ -1391,35 +1385,30 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		|| mgcp_msg->verb == MGCP_VERB_MDCX)) {
 		if (add_lco(msg, mgcp_msg) < 0) {
 			LOGPMGW(mgcp, LOGL_ERROR, "Failed to add LCO, can not generate MGCP message\n");
-			return NULL;
+			goto exit_error;
 		}
 	}
 
 	/* Add mode */
 	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CONN_MODE)
-		rc |=
-		    msgb_printf(msg, "M: %s\r\n",
-				mgcp_client_cmode_name(mgcp_msg->conn_mode));
+		MSGB_PRINTF_OR_RET("M: %s\r\n", mgcp_client_cmode_name(mgcp_msg->conn_mode));
 
 	/* Add X-Osmo-IGN */
 	if ((mgcp_msg->presence & MGCP_MSG_PRESENCE_X_OSMO_IGN)
 	    && (mgcp_msg->x_osmo_ign != 0))
-		rc |=
-		    msgb_printf(msg, MGCP_X_OSMO_IGN_HEADER "%s\r\n",
-				mgcp_msg->x_osmo_ign & MGCP_X_OSMO_IGN_CALLID ? " C": "");
+		MSGB_PRINTF_OR_RET(MGCP_X_OSMO_IGN_HEADER "%s\r\n",
+				   mgcp_msg->x_osmo_ign & MGCP_X_OSMO_IGN_CALLID ? " C" : "");
 
 	/* Add X-Osmo-Osmux */
 	if ((mgcp_msg->presence & MGCP_MSG_PRESENCE_X_OSMO_OSMUX_CID)) {
 		if (mgcp_msg->x_osmo_osmux_cid < -1 || mgcp_msg->x_osmo_osmux_cid > OSMUX_CID_MAX) {
 			LOGPMGW(mgcp, LOGL_ERROR, "Wrong Osmux CID %d, can not generate MGCP message\n",
 				mgcp_msg->x_osmo_osmux_cid);
-			msgb_free(msg);
-			return NULL;
+			goto exit_error;
 		}
 		snprintf(buf, sizeof(buf), " %d", mgcp_msg->x_osmo_osmux_cid);
-		rc |=
-		    msgb_printf(msg, MGCP_X_OSMO_OSMUX_HEADER "%s\r\n",
-				mgcp_msg->x_osmo_osmux_cid == -1 ? " *": buf);
+		MSGB_PRINTF_OR_RET(MGCP_X_OSMO_OSMUX_HEADER "%s\r\n",
+				   mgcp_msg->x_osmo_osmux_cid == -1 ? " *" : buf);
 	}
 
 
@@ -1429,17 +1418,16 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		|| mgcp_msg->verb == MGCP_VERB_MDCX)) {
 		if (add_sdp(msg, mgcp_msg, mgcp) < 0) {
 			LOGPMGW(mgcp, LOGL_ERROR, "Failed to add SDP, can not generate MGCP message\n");
-			return NULL;
+			goto exit_error;
 		}
 	}
 
-	if (rc != 0) {
-		LOGPMGW(mgcp, LOGL_ERROR, "Message buffer to small, can not generate MGCP message\n");
-		msgb_free(msg);
-		msg = NULL;
-	}
-
 	return msg;
+
+exit_error:
+	msgb_free(msg);
+	return NULL;
+#undef MSGB_PRINTF_OR_RET
 }
 
 /*! Retrieve the MGCP transaction ID from a msgb generated by mgcp_msg_gen()
