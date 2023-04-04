@@ -75,6 +75,11 @@ void mgcp_client_pool_register_single(struct mgcp_client_pool *pool, struct mgcp
 	pool->mgcp_client_single = mgcp_client;
 }
 
+bool mgcp_client_pool_empty(const struct mgcp_client_pool *pool)
+{
+	return llist_empty(&pool->member_list);
+}
+
 /*! Lookup the selected MGCP client config by its reference number */
 struct mgcp_client_pool_member *mgcp_client_pool_find_member_by_nr(struct mgcp_client_pool *pool, unsigned int nr)
 {

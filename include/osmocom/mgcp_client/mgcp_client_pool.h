@@ -12,6 +12,7 @@ void mgcp_client_pool_vty_init(int parent_node, int mgw_node, const char *indent
 int mgcp_client_pool_config_write(struct vty *vty, const char *indent);
 unsigned int mgcp_client_pool_connect(struct mgcp_client_pool *pool);
 void mgcp_client_pool_register_single(struct mgcp_client_pool *pool, struct mgcp_client *mgcp_client);
+bool mgcp_client_pool_empty(const struct mgcp_client_pool *pool);
 
 struct mgcp_client *mgcp_client_pool_get(struct mgcp_client_pool *pool);
 void mgcp_client_pool_put(struct mgcp_client *mgcp_client);
