@@ -1138,12 +1138,11 @@ failed:
 /*! Send RTP/RTCP data to a specified destination connection.
  *  \param[in] endp associated endpoint (for configuration, logging).
  *  \param[in] is_rtp flag to specify if the packet is of type RTP or RTCP.
- *  \param[in] spoofed source address (set to NULL to disable).
- *  \param[in] buf buffer that contains the RTP/RTCP data.
- *  \param[in] len length of the buffer that contains the RTP/RTCP data.
+ *  \param[in] addr spoofed source address (set to NULL to disable).
+ *  \param[in] msg message buffer that contains the RTP/RTCP data.
  *  \param[in] conn_src associated source connection.
  *  \param[in] conn_dst associated destination connection.
- *  \returns 0 on success, -1 on ERROR. */
+ *  \returns 0 on success, negative on ERROR. */
 int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr,
 	      struct msgb *msg, struct mgcp_conn_rtp *conn_src,
 	      struct mgcp_conn_rtp *conn_dst)
