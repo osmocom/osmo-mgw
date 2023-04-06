@@ -513,6 +513,7 @@ DEFUN_DEPRECATED(cfg_mgcp_bind_early,
 		 BIND_STR
 		 "Bind local ports on start up\n" "Bind on demand\n" "Bind on startup\n")
 {
+	vty_out(vty, "%% Deprecated 'bind early (0|1)' config no longer has any effect%s", VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 
@@ -729,6 +730,7 @@ DEFUN_DEPRECATED(cfg_mgcp_sdp_payload_number,
       "sdp audio-payload number <0-255>",
       SDP_STR AUDIO_STR "Number\n" "Payload number\n")
 {
+	vty_out(vty, "%% Deprecated 'sdp audio-payload number <0-255>' config no longer has any effect%s", VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 
@@ -742,6 +744,7 @@ DEFUN_DEPRECATED(cfg_mgcp_sdp_payload_name,
       "sdp audio-payload name NAME",
       SDP_STR AUDIO_STR "Name\n" "Payload name\n")
 {
+	vty_out(vty, "%% Deprecated 'sdp audio-payload name NAME' config no longer has any effect%s", VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 
@@ -802,6 +805,7 @@ DEFUN_DEPRECATED(cfg_mgcp_loop,
 		 "loop (0|1)",
 		 "Loop audio for all endpoints on main trunk\n" "Don't Loop\n" "Loop\n")
 {
+	vty_out(vty, "%% Deprecated 'loop (0|1)' config no longer has any effect%s", VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 
@@ -1098,6 +1102,7 @@ DEFUN_DEPRECATED(cfg_trunk_payload_number,
       "sdp audio-payload number <0-255>",
       SDP_STR AUDIO_STR "Number\n" "Payload Number\n")
 {
+	vty_out(vty, "%% Deprecated 'sdp audio-payload number <0-255>' config no longer has any effect%s", VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 
@@ -1110,6 +1115,7 @@ DEFUN_DEPRECATED(cfg_trunk_payload_name,
       "sdp audio-payload name NAME",
       SDP_STR AUDIO_STR "Payload\n" "Payload Name\n")
 {
+	vty_out(vty, "%% Deprecated 'sdp audio-payload name NAME' config no longer has any effect%s", VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 
@@ -1122,6 +1128,7 @@ DEFUN_DEPRECATED(cfg_trunk_loop,
 		 "loop (0|1)",
 		 "Loop audio for all endpoints on this trunk\n" "Don't Loop\n" "Loop\n")
 {
+	vty_out(vty, "%% Deprecated 'loop (0|1)' config no longer has any effect%s", VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 
