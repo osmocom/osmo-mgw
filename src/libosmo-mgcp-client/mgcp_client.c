@@ -1373,7 +1373,7 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		MSGB_PRINTF_OR_RET("I: %s\r\n", mgcp_msg->conn_id);
 	}
 
-	/* Using SDP makes sense when a valid IP/Port combination is specifiec,
+	/* Using SDP makes sense when a valid IP/Port combination is specified,
 	 * if we do not know this information yet, we fall back to LCO */
 	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_IP
 	    && mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_PORT)
