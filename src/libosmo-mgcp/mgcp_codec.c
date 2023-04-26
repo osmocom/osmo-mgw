@@ -276,87 +276,6 @@ error:
 	return -EINVAL;
 }
 
-/* Check if the given codec is applicable on the specified endpoint
- * Helper function for mgcp_codec_decide() */
-static bool is_codec_compatible(const struct mgcp_endpoint *endp, const struct mgcp_rtp_codec *codec)
-{
-	/* A codec name must be set, if not, this might mean that the codec
-	 * (payload type) that was assigned is unknown to us so we must stop
-	 * here. */
-	if (!strlen(codec->subtype_name))
-		return false;
-
-	/* FIXME: implement meaningful checks to make sure that the given codec
-	 * is compatible with the given endpoint */
-
-	return true;
-}
-
-/*! Decide for one suitable codec
- *  \param[in] conn related rtp-connection.
- *  \returns 0 on success, -EINVAL on failure. */
-int mgcp_codec_decide(struct mgcp_conn_rtp *conn)
-{
-	struct mgcp_rtp_end *rtp;
-	unsigned int i;
-	struct mgcp_endpoint *endp;
-	bool codec_assigned = false;
-
-	endp = conn->conn->endp;
-	rtp = &conn->end;
-
-	/* This function works on the results the SDP/LCO parser has extracted
-	 * from the MGCP message. The goal is to select a suitable codec for
-	 * the given connection. When transcoding is available, the first codec
-	 * from the codec list is taken without further checking. When
-	 * transcoding is not available, then the choice must be made more
-	 * carefully. Each codec in the list is checked until one is found that
-	 * is rated compatible. The rating is done by the helper function
-	 * is_codec_compatible(), which does the actual checking. */
-	for (i = 0; i < rtp->codecs_assigned; i++) {
-		/* When no transcoding is available, avoid codecs that would
-		 * require transcoding. */
-		if (endp->trunk->no_audio_transcoding && !is_codec_compatible(endp, &rtp->codecs[i])) {
-			LOGP(DLMGCP, LOGL_NOTICE, "transcoding not available, skipping codec: %d/%s\n",
-			     rtp->codecs[i].payload_type, rtp->codecs[i].subtype_name);
-			continue;
-		}
-
-		rtp->codec = &rtp->codecs[i];
-		codec_assigned = true;
-		break;
-	}
-
-	/* FIXME: To the reviewes: This is problematic. I do not get why we
-	 * need to reset the packet_duration_ms depending on the codec
-	 * selection. I thought it were all 20ms? Is this to address some
-	 * cornercase. (This piece of code was in the code path before,
-	 * together with the note: "TODO/XXX: Store this per codec and derive
-	 * it on use" */
-	if (codec_assigned) {
-		if (rtp->maximum_packet_time >= 0
-		    && rtp->maximum_packet_time * rtp->codec->frame_duration_den >
-		    rtp->codec->frame_duration_num * 1500)
-			rtp->packet_duration_ms = 0;
-
-		return 0;
-	}
-
-	return -EINVAL;
-}
-
-/* Check if the codec has a specific AMR mode (octet-aligned or bandwith-efficient) set. */
-bool mgcp_codec_amr_align_mode_is_indicated(const struct mgcp_rtp_codec *codec)
-{
-	if (codec->param_present == false)
-		return false;
-	if (!codec->param.amr_octet_aligned_present)
-		return false;
-	if (strcmp(codec->subtype_name, "AMR") != 0)
-		return false;
-	return true;
-}
-
 /* Return true if octet-aligned is set in the given codec. Default to octet-aligned=0, i.e. bandwidth-efficient mode.
  * See RFC4867 "RTP Payload Format for AMR and AMR-WB" sections "8.1. AMR Media Type Registration" and "8.2. AMR-WB
  * Media Type Registration":
@@ -461,6 +380,87 @@ struct mgcp_rtp_codec *mgcp_codec_find_convertible(struct mgcp_conn_rtp *conn, s
 	}
 
 	return codec_convertible;
+}
+
+/* Check if the given codec is applicable on the specified endpoint
+ * Helper function for mgcp_codec_decide() */
+static bool is_codec_compatible(const struct mgcp_endpoint *endp, const struct mgcp_rtp_codec *codec)
+{
+	/* A codec name must be set, if not, this might mean that the codec
+	 * (payload type) that was assigned is unknown to us so we must stop
+	 * here. */
+	if (!strlen(codec->subtype_name))
+		return false;
+
+	/* FIXME: implement meaningful checks to make sure that the given codec
+	 * is compatible with the given endpoint */
+
+	return true;
+}
+
+/*! Decide for one suitable codec
+ *  \param[in] conn related rtp-connection.
+ *  \returns 0 on success, -EINVAL on failure. */
+int mgcp_codec_decide(struct mgcp_conn_rtp *conn)
+{
+	struct mgcp_rtp_end *rtp;
+	unsigned int i;
+	struct mgcp_endpoint *endp;
+	bool codec_assigned = false;
+
+	endp = conn->conn->endp;
+	rtp = &conn->end;
+
+	/* This function works on the results the SDP/LCO parser has extracted
+	 * from the MGCP message. The goal is to select a suitable codec for
+	 * the given connection. When transcoding is available, the first codec
+	 * from the codec list is taken without further checking. When
+	 * transcoding is not available, then the choice must be made more
+	 * carefully. Each codec in the list is checked until one is found that
+	 * is rated compatible. The rating is done by the helper function
+	 * is_codec_compatible(), which does the actual checking. */
+	for (i = 0; i < rtp->codecs_assigned; i++) {
+		/* When no transcoding is available, avoid codecs that would
+		 * require transcoding. */
+		if (endp->trunk->no_audio_transcoding && !is_codec_compatible(endp, &rtp->codecs[i])) {
+			LOGP(DLMGCP, LOGL_NOTICE, "transcoding not available, skipping codec: %d/%s\n",
+			     rtp->codecs[i].payload_type, rtp->codecs[i].subtype_name);
+			continue;
+		}
+
+		rtp->codec = &rtp->codecs[i];
+		codec_assigned = true;
+		break;
+	}
+
+	/* FIXME: To the reviewes: This is problematic. I do not get why we
+	 * need to reset the packet_duration_ms depending on the codec
+	 * selection. I thought it were all 20ms? Is this to address some
+	 * cornercase. (This piece of code was in the code path before,
+	 * together with the note: "TODO/XXX: Store this per codec and derive
+	 * it on use" */
+	if (codec_assigned) {
+		if (rtp->maximum_packet_time >= 0
+		    && rtp->maximum_packet_time * rtp->codec->frame_duration_den >
+		    rtp->codec->frame_duration_num * 1500)
+			rtp->packet_duration_ms = 0;
+
+		return 0;
+	}
+
+	return -EINVAL;
+}
+
+/* Check if the codec has a specific AMR mode (octet-aligned or bandwith-efficient) set. */
+bool mgcp_codec_amr_align_mode_is_indicated(const struct mgcp_rtp_codec *codec)
+{
+	if (codec->param_present == false)
+		return false;
+	if (!codec->param.amr_octet_aligned_present)
+		return false;
+	if (strcmp(codec->subtype_name, "AMR") != 0)
+		return false;
+	return true;
 }
 
 /* Find the payload type number configured for a specific codec by SDP.
