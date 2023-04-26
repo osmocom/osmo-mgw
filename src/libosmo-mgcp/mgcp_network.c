@@ -1164,18 +1164,9 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 	 * IuUP -> AMR: calls this function, skip patching if conn_src is IuUP.
 	 * {AMR or IuUP} -> IuUP: calls mgcp_udp_send() directly, skipping this function: No need to examine dst. */
 	if (is_rtp && !mgcp_conn_rtp_is_iuup(conn_src)) {
-		rc = mgcp_patch_pt(conn_dst, msg);
-		if (rc < 0) {
-			/* FIXME: It is legal that the payload type on the egress connection is
-			 * different from the payload type that has been negotiated on the
-			 * ingress connection. Essentially the codecs are the same so we can
-			 * match them and patch the payload type. However, if we can not find
-			 * the codec pendant (everything ist equal except the PT), we are of
-			 * course unable to patch the payload type. A situation like this
-			 * should not occur if transcoding is consequently avoided. Until
-			 * we have transcoding support in osmo-mgw we can not resolve this. */
-			LOGPENDP(endp, DRTP, LOGL_DEBUG,
-				 "can not patch PT because no suitable egress codec was found.\n");
+		if (mgcp_patch_pt(conn_dst, msg) < 0) {
+			LOGPENDP(endp, DRTP, LOGL_NOTICE, "unable to patch payload type RTP packet, discarding...\n");
+			return -EINVAL;
 		}
 	}
 
