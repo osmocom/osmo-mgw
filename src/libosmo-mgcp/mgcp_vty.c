@@ -120,8 +120,6 @@ static int config_write_mgcp(struct vty *vty)
 		trunk->audio_send_name ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " number endpoints %u%s",
 		trunk->v.vty_number_endpoints, VTY_NEWLINE);
-	vty_out(vty, " %sallow-transcoding%s",
-		trunk->no_audio_transcoding ? "no " : "", VTY_NEWLINE);
 	if (strlen(g_cfg->call_agent_addr))
 		vty_out(vty, " call-agent ip %s%s", g_cfg->call_agent_addr,
 			VTY_NEWLINE);
@@ -701,25 +699,19 @@ DEFUN_USRATTR(cfg_mgcp_sdp_fmtp_extra,
 	return CMD_SUCCESS;
 }
 
-DEFUN_USRATTR(cfg_mgcp_allow_transcoding,
-	      cfg_mgcp_allow_transcoding_cmd,
-	      X(MGW_CMD_ATTR_NEWCONN),
-	      "allow-transcoding", "Allow transcoding\n")
+DEFUN_DEPRECATED(cfg_mgcp_allow_transcoding,
+		  cfg_mgcp_allow_transcoding_cmd,
+		  "allow-transcoding", "Allow transcoding\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
-	OSMO_ASSERT(trunk);
-	trunk->no_audio_transcoding = 0;
+	vty_out(vty, "%% Deprecated 'allow-transcoding' config no longer has any effect%s", VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 
-DEFUN_USRATTR(cfg_mgcp_no_allow_transcoding,
-	      cfg_mgcp_no_allow_transcoding_cmd,
-	      X(MGW_CMD_ATTR_NEWCONN),
-	      "no allow-transcoding", NO_STR "Allow transcoding\n")
+DEFUN_DEPRECATED(cfg_mgcp_no_allow_transcoding,
+		 cfg_mgcp_no_allow_transcoding_cmd,
+		 "no allow-transcoding", NO_STR "Allow transcoding\n")
 {
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
-	OSMO_ASSERT(trunk);
-	trunk->no_audio_transcoding = 1;
+	vty_out(vty, "%% Deprecated 'no allow-transcoding' config no longer has any effect%s", VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 
@@ -1073,8 +1065,6 @@ static int config_write_trunk(struct vty *vty)
 		if (trunk->audio_fmtp_extra)
 			vty_out(vty, "   sdp audio fmtp-extra %s%s",
 				trunk->audio_fmtp_extra, VTY_NEWLINE);
-		vty_out(vty, "  %sallow-transcoding%s",
-			trunk->no_audio_transcoding ? "no " : "", VTY_NEWLINE);
 	}
 
 	return CMD_SUCCESS;
@@ -1326,23 +1316,19 @@ DEFUN_ATTR(cfg_trunk_no_rtp_keepalive,
 	return CMD_SUCCESS;
 }
 
-DEFUN_USRATTR(cfg_trunk_allow_transcoding,
-	      cfg_trunk_allow_transcoding_cmd,
-	      X(MGW_CMD_ATTR_NEWCONN),
-	      "allow-transcoding", "Allow transcoding\n")
+DEFUN_DEPRECATED(cfg_trunk_allow_transcoding,
+		 cfg_trunk_allow_transcoding_cmd,
+		 "allow-transcoding", "Allow transcoding\n")
 {
-	struct mgcp_trunk *trunk = vty->index;
-	trunk->no_audio_transcoding = 0;
+	vty_out(vty, "%% Deprecated 'allow-transcoding' config no longer has any effect%s", VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 
-DEFUN_USRATTR(cfg_trunk_no_allow_transcoding,
-	      cfg_trunk_no_allow_transcoding_cmd,
-	      X(MGW_CMD_ATTR_NEWCONN),
-	      "no allow-transcoding", NO_STR "Allow transcoding\n")
+DEFUN_DEPRECATED(cfg_trunk_no_allow_transcoding,
+		 cfg_trunk_no_allow_transcoding_cmd,
+		 "no allow-transcoding", NO_STR "Allow transcoding\n")
 {
-	struct mgcp_trunk *trunk = vty->index;
-	trunk->no_audio_transcoding = 1;
+	vty_out(vty, "%% Deprecated 'no allow-transcoding' config no longer has any effect%s", VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 

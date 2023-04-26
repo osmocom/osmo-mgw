@@ -1467,7 +1467,6 @@ static void test_multilple_codec(void)
 	/* Allocate 5@mgw and let osmo-mgw pick a codec from the list */
 	last_endpoint[0] = '\0';
 	inp = create_msg(CRCX_MULT_GSM_EXACT, NULL);
-	trunk->no_audio_transcoding = 1;
 	resp = mgcp_handle_message(cfg, inp);
 	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
 					      sizeof(conn_id)) == 0);
@@ -1511,7 +1510,6 @@ static void test_multilple_codec(void)
 
 	last_endpoint[0] = '\0';
 	inp = create_msg(CRCX_MULT_GSM_EXACT, NULL);
-	trunk->no_audio_transcoding = 0;
 	resp = mgcp_handle_message(cfg, inp);
 	OSMO_ASSERT(get_conn_id_from_response(resp->data, conn_id,
 					      sizeof(conn_id)) == 0);
@@ -1769,26 +1767,25 @@ static const struct mgcp_codec_param amr_param_octet_aligned_unset = {
 	.amr_octet_aligned_present = false,
 };
 
-struct testcase_mgcp_codec_find_convertible_codec {
+struct testcase_mgcp_codec_decide_codec {
 	int payload_type;
 	const char *audio_name;
 	const struct mgcp_codec_param *param;
 	int expect_rc;
 };
 
-struct testcase_mgcp_codec_find_convertible_expect {
-	bool end;
+struct testcase_mgcp_codec_decide_expect {
 	int payload_type_map[2];
 };
 
-struct testcase_mgcp_codec_find_convertible {
+struct testcase_mgcp_codec_decide {
 	const char *descr;
 	/* two conns on an endpoint, each with N configured codecs */
-	struct testcase_mgcp_codec_find_convertible_codec codecs[2][10];
-	struct testcase_mgcp_codec_find_convertible_expect expect[32];
+	struct testcase_mgcp_codec_decide_codec codecs[2][10];
+	struct testcase_mgcp_codec_decide_expect expect[2];
 };
 
-static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_convertible_cases[] = {
+static const struct testcase_mgcp_codec_decide test_mgcp_codec_find_convertible_cases[] = {
 	{
 		.descr = "same order, but differing payload type numbers",
 		.codecs = {
@@ -1805,10 +1802,7 @@ static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_co
 		},
 		.expect = {
 			{ .payload_type_map = {112, 96}, },
-			{ .payload_type_map = {0, 0}, },
-			{ .payload_type_map = {111, 97} },
-			{ .payload_type_map = {123, -EINVAL} },
-			{ .end = true },
+			{ .payload_type_map = {112, 96}, },
 		},
 	},
 	{
@@ -1826,11 +1820,8 @@ static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_co
 			},
 		},
 		.expect = {
-			{ .payload_type_map = {112, 96}, },
 			{ .payload_type_map = {0, 0}, },
-			{ .payload_type_map = {111, 97} },
-			{ .payload_type_map = {123, -EINVAL} },
-			{ .end = true },
+			{ .payload_type_map = {111, 97}, },
 		},
 	},
 	{
@@ -1848,11 +1839,8 @@ static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_co
 			},
 		},
 		.expect = {
-			{ .payload_type_map = {96, 97}, },
-			{ .payload_type_map = {97, 96}, },
 			{ .payload_type_map = {0, 0}, },
-			{ .payload_type_map = {123, -EINVAL} },
-			{ .end = true },
+			{ .payload_type_map = {96, 97}, },
 		},
 	},
 	{
@@ -1868,10 +1856,8 @@ static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_co
 			},
 		},
 		.expect = {
-			{ .payload_type_map = {112, -EINVAL}, },
-			{ .payload_type_map = {0, -EINVAL}, },
-			{ .payload_type_map = {111, -EINVAL} },
-			{ .end = true },
+			{ .payload_type_map = {-EINVAL, -EINVAL}, },
+			{ .payload_type_map = {-EINVAL, 96}, },
 		},
 	},
 	{
@@ -1888,13 +1874,11 @@ static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_co
 		},
 		.expect = {
 			{ .payload_type_map = {112, -EINVAL}, },
-			{ .payload_type_map = {0, -EINVAL}, },
-			{ .payload_type_map = {111, -EINVAL} },
-			{ .end = true },
+			{ .payload_type_map = {-EINVAL, -EINVAL}, },
 		},
 	},
 	{
-		.descr = "test AMR with differing octet-aligned settings",
+		.descr = "test AMR with differing octet-aligned settings (both <-> both)",
 		.codecs = {
 			{
 				{ 111, "AMR/8000", &amr_param_octet_aligned_true, },
@@ -1908,8 +1892,38 @@ static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_co
 		.expect = {
 			{ .payload_type_map = {111, 121}, },
 			{ .payload_type_map = {112, 122} },
-			{ .payload_type_map = {123, -EINVAL} },
-			{ .end = true },
+		},
+	},
+	{
+		.descr = "test AMR with differing octet-aligned settings (oa <-> both)",
+		.codecs = {
+			{
+				{ 111, "AMR/8000", &amr_param_octet_aligned_true, },
+			},
+			{
+				{ 122, "AMR/8000", &amr_param_octet_aligned_false, },
+				{ 121, "AMR/8000", &amr_param_octet_aligned_true, },
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {111, 121}, },
+			{ .payload_type_map = {111, 121}, },
+		},
+	},
+	{
+		.descr = "test AMR with differing octet-aligned settings (bwe <-> both)",
+		.codecs = {
+			{
+				{ 112, "AMR/8000", &amr_param_octet_aligned_false, },
+			},
+			{
+				{ 122, "AMR/8000", &amr_param_octet_aligned_false, },
+				{ 121, "AMR/8000", &amr_param_octet_aligned_true, },
+			},
+		},
+		.expect = {
+			{ .payload_type_map = {112, 122}, },
+			{ .payload_type_map = {112, 122}, },
 		},
 	},
 	{
@@ -1924,8 +1938,7 @@ static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_co
 		},
 		.expect = {
 			{ .payload_type_map = {111, 122}, },
-			{ .payload_type_map = {55, -EINVAL}, },
-			{ .end = true },
+			{ .payload_type_map = {111, 122}, },
 		},
 	},
 	{
@@ -1940,8 +1953,7 @@ static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_co
 		},
 		.expect = {
 			{ .payload_type_map = {111, 122}, },
-			{ .payload_type_map = {55, -EINVAL}, },
-			{ .end = true },
+			{ .payload_type_map = {111, 122}, },
 		},
 	},
 	{
@@ -1957,8 +1969,7 @@ static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_co
 		.expect = {
 			/* Note: Both 111, anbd 112 will translate to 122. The translation from 112 */
 			{ .payload_type_map = {112, 122} },
-			{ .payload_type_map = {55, -EINVAL}, },
-			{ .end = true },
+			{ .payload_type_map = {112, 122}, },
 		},
 	},
 	{
@@ -1974,8 +1985,7 @@ static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_co
 		.expect = {
 			/* Note: Both 111, anbd 112 will translate to 122. The translation from 112 */
 			{ .payload_type_map = {112, 122} },
-			{ .payload_type_map = {55, -EINVAL}, },
-			{ .end = true },
+			{ .payload_type_map = {112, 122}, },
 		},
 	},
 	{
@@ -1993,11 +2003,8 @@ static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_co
 			},
 		},
 		.expect = {
-			{ .payload_type_map = {112, 96}, },
 			{ .payload_type_map = {0, 0}, },
-			{ .payload_type_map = {111, 97} },
-			{ .payload_type_map = {123, -EINVAL} },
-			{ .end = true },
+			{ .payload_type_map = {111, 97}, },
 		},
 	},
 	{
@@ -2015,11 +2022,8 @@ static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_co
 			},
 		},
 		.expect = {
-			{ .payload_type_map = {112, 96}, },
 			{ .payload_type_map = {0, 0}, },
-			{ .payload_type_map = {111, 97} },
-			{ .payload_type_map = {123, -EINVAL} },
-			{ .end = true },
+			{ .payload_type_map = {111, 97}, },
 		},
 	},
 	{
@@ -2037,70 +2041,97 @@ static const struct testcase_mgcp_codec_find_convertible test_mgcp_codec_find_co
 		},
 		.expect = {
 			{ .payload_type_map = {111, 121}, },
-			{ .payload_type_map = {112, -EINVAL} },
-			{ .payload_type_map = {113, -EINVAL} },
-			{ .end = true },
+			{ .payload_type_map = {111, 121} },
 		},
 	},
 };
 
-static int pt_translate(struct mgcp_conn_rtp *conn, unsigned int index_src, unsigned int index_dst, int payload_type)
+static bool codec_decision(struct mgcp_conn_rtp *conn, unsigned int index_conn_src, unsigned int index_conn_dst,
+			   const struct testcase_mgcp_codec_decide_expect *expect)
 {
-	struct mgcp_rtp_codec *codec_src = NULL;
-	struct mgcp_rtp_codec *codec_dst = NULL;
-	struct mgcp_conn_rtp *conn_src = &conn[index_src];
-	struct mgcp_conn_rtp *conn_dst = &conn[index_dst];
+	bool ok = true;
+	int payload_type_conn_src;
+	int payload_type_conn_dst;
 
-	/* Find the codec information that is used on the source side */
-	codec_src = mgcp_codec_from_pt(conn_src, payload_type);
-	if (!codec_src) {
-		printf(" - mgcp_codec_from_pt(conn%u, %d) -> NO RESULT\n", index_src, payload_type);
-		return -EINVAL;
-	}
-	printf(" - mgcp_codec_from_pt(conn%u, %d) -> %s\n", index_src, payload_type, codec_src->subtype_name);
+	printf(" - mgcp_codec_decide(&conn[%u], &conn[%u]):\n", index_conn_src, index_conn_dst);
+	if (mgcp_codec_decide(&conn[index_conn_src], &conn[index_conn_dst]) != 0) {
+		if (expect->payload_type_map[index_conn_src] == -EINVAL
+		    && expect->payload_type_map[index_conn_dst] == -EINVAL)
+			printf("    codec decision failed (expected)!\n");
+		else {
+			printf("    ERROR: codec decision failed!\n");
+			ok = false;
+		}
+	} else {
+		printf("    Codec decision result:\n");
+		if (conn[index_conn_src].end.codec) {
+			payload_type_conn_src = conn[index_conn_src].end.codec->payload_type;
+			printf("    conn[%u]: codec:%s, pt:%d\n",
+			       index_conn_src, conn[index_conn_src].end.codec->subtype_name, payload_type_conn_src);
+		} else {
+			payload_type_conn_src = -EINVAL;
+			printf("    conn[%u]: codec:none, pt:none\n", index_conn_src);
+		}
 
-	codec_dst = mgcp_codec_find_convertible(conn_dst, codec_src);
-	if (!codec_dst) {
-		printf(" - mgcp_codec_find_convertible(conn%u, %s) -> NO RESULT\n", index_dst, codec_src->subtype_name);
-		return -EINVAL;
+		if (conn[index_conn_dst].end.codec) {
+			payload_type_conn_dst = conn[index_conn_dst].end.codec->payload_type;
+			printf("    conn[%u]: codec:%s, pt:%d\n",
+			       index_conn_dst, conn[index_conn_dst].end.codec->subtype_name,
+			       payload_type_conn_dst);
+		} else {
+			payload_type_conn_dst = -EINVAL;
+			printf("    conn[%u]: codec:none, pt:none\n", index_conn_dst);
+		}
+
+		if (payload_type_conn_src != expect->payload_type_map[index_conn_src]) {
+			printf("    ERROR: conn[%u] unexpected codec decision, expected pt=%d, got pt=%d\n",
+			       index_conn_src, expect->payload_type_map[index_conn_src], payload_type_conn_src);
+			ok = false;
+		}
+
+		if (payload_type_conn_dst != expect->payload_type_map[index_conn_dst]) {
+			printf("    ERROR: conn[%u] unexpected codec decision, expected pt=%d, got pt=%d\n",
+			       index_conn_dst, expect->payload_type_map[index_conn_dst],
+			       payload_type_conn_dst);
+			ok = false;
+		}
 	}
-	printf(" - mgcp_codec_find_convertible(conn%u, %s) -> %s -> %u\n",
-	       index_dst, codec_src->subtype_name, codec_dst->subtype_name, codec_dst->payload_type);
-	return codec_dst->payload_type;
+
+	return ok;
 }
 
-static void test_mgcp_codec_find_convertible(void)
+static void test_mgcp_codec_decide(void)
 {
 	int i;
 	bool ok = true;
 	printf("\nTesting mgcp_codec_find_convertible()\n");
 
 	for (i = 0; i < ARRAY_SIZE(test_mgcp_codec_find_convertible_cases); i++) {
-		const struct testcase_mgcp_codec_find_convertible *t = &test_mgcp_codec_find_convertible_cases[i];
-		struct mgcp_conn_rtp conn[2] = {};
+		const struct testcase_mgcp_codec_decide *t = &test_mgcp_codec_find_convertible_cases[i];
+		struct mgcp_conn_rtp conn[2] = { };
 		int rc;
 		int conn_i;
 		int c;
 
 		printf("#%d: %s\n", i, t->descr);
 
+		/* Build testvector (add codecs to conn, set properties etc... */
 		for (conn_i = 0; conn_i < 2; conn_i++) {
 			printf(" - add codecs on conn%d:\n", conn_i);
 			for (c = 0; c < ARRAY_SIZE(t->codecs[conn_i]); c++) {
-				const struct testcase_mgcp_codec_find_convertible_codec *codec = &t->codecs[conn_i][c];
+				const struct testcase_mgcp_codec_decide_codec *codec = &t->codecs[conn_i][c];
 				if (!codec->audio_name)
 					break;
 
-				rc = mgcp_codec_add(&conn[conn_i], codec->payload_type, codec->audio_name, codec->param);
+				rc = mgcp_codec_add(&conn[conn_i], codec->payload_type, codec->audio_name,
+						    codec->param);
 
 				printf("   %2d: %3d %s%s  -> rc=%d\n", c, codec->payload_type, codec->audio_name,
 				       codec->param ?
-					       (codec->param->amr_octet_aligned_present?
-							(codec->param->amr_octet_aligned ?
-								" octet-aligned=1" : " octet-aligned=0")
-							: " octet-aligned=unset")
-						: "",
-						rc);
+				       (codec->param->amr_octet_aligned_present ?
+					(codec->param->amr_octet_aligned ? " octet-aligned=1" : " octet-aligned=0")
+					: " octet-aligned=unset")
+				       : "", rc);
 				if (rc != codec->expect_rc) {
 					printf("     ERROR: expected rc=%d\n", codec->expect_rc);
 					ok = false;
@@ -2110,32 +2141,17 @@ static void test_mgcp_codec_find_convertible(void)
 				printf("    (none)\n");
 		}
 
-		for (c = 0; c < ARRAY_SIZE(t->expect); c++) {
-			const struct testcase_mgcp_codec_find_convertible_expect *expect = &t->expect[c];
-			int result;
+		/* Run codec decision and check expectation */
+		if (!codec_decision(conn, 0, 1, &t->expect[0]))
+			ok = false;
 
-			if (expect->end)
-				break;
+		if (!codec_decision(conn, 1, 0, &t->expect[1]))
+			ok = false;
 
-			result = pt_translate(conn, 0, 1, expect->payload_type_map[0]);
-			if (result != expect->payload_type_map[1]) {
-				printf("     ERROR: expected -> %d\n", expect->payload_type_map[1]);
-				ok = false;
-			}
-
-			/* If the expected result is an error, don't do reverse map test */
-			if (expect->payload_type_map[1] < 0)
-				continue;
-
-			result = pt_translate(conn, 1, 0, expect->payload_type_map[1]);
-			if (result != expect->payload_type_map[0]) {
-				printf("     ERROR: expected -> %d\n", expect->payload_type_map[0]);
-				ok = false;
-			}
-		}
-
-		for (conn_i = 0; conn_i < 2; conn_i++)
-			mgcp_codec_reset_all(&conn[conn_i]);
+		if (ok)
+			printf(" ===> SUCCESS: codec decision as expected!\n");
+		else
+			printf(" ===> FAIL: unexpected codec decision!\n");
 	}
 
 	OSMO_ASSERT(ok);
@@ -2295,7 +2311,7 @@ int main(int argc, char **argv)
 	test_osmux_cid();
 	test_get_lco_identifier();
 	test_check_local_cx_options(ctx);
-	test_mgcp_codec_find_convertible();
+	test_mgcp_codec_decide();
 	test_conn_id_matching();
 	test_e1_trunk_nr_from_epname();
 	test_mgcp_is_rtp_dummy_payload();

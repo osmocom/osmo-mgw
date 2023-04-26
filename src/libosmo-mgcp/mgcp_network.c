@@ -492,32 +492,24 @@ void mgcp_rtp_annex_count(const struct mgcp_endpoint *endp,
 
 /* There may be different payload type numbers negotiated for two connections.
  * Patch the payload type of an RTP packet so that it uses the payload type
- * that is valid for the destination connection (conn_dst) */
-static int mgcp_patch_pt(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
+ * of the codec that is set for the destination connection (conn_dst) */
+static int mgcp_patch_pt(struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
 {
 	struct rtp_hdr *rtp_hdr;
-	struct mgcp_rtp_codec *codec_src;
-	struct mgcp_rtp_codec *codec_dst;
 
 	if (msgb_length(msg) < sizeof(struct rtp_hdr)) {
-		LOG_CONN_RTP(conn_src, LOGL_ERROR, "RTP packet too short (%u < %zu)\n",
+		LOG_CONN_RTP(conn_dst, LOGL_NOTICE, "RTP packet too short (%u < %zu)\n",
 			     msgb_length(msg), sizeof(struct rtp_hdr));
 		return -EINVAL;
 	}
 	rtp_hdr = (struct rtp_hdr *)msgb_data(msg);
 
-	/* Find the codec information that is used on the source side */
-	codec_src = mgcp_codec_from_pt(conn_src, rtp_hdr->payload_type);
-	if (!codec_src)
+	if (!conn_dst->end.codec) {
+		LOG_CONN_RTP(conn_dst, LOGL_NOTICE, "no codec set on destination connection!\n");
 		return -EINVAL;
+	}
+	rtp_hdr->payload_type = (uint8_t) conn_dst->end.codec->payload_type;
 
-	/* Lookup a suitable codec in the destination connection. (The codec must be of the same type or at least
-	 * convertible) */
-	codec_dst = mgcp_codec_find_convertible(conn_dst, codec_src);
-	if (!codec_dst)
-		return -EINVAL;
-
-	rtp_hdr->payload_type = (uint8_t) codec_dst->payload_type;
 	return 0;
 }
 
@@ -1172,7 +1164,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 	 * IuUP -> AMR: calls this function, skip patching if conn_src is IuUP.
 	 * {AMR or IuUP} -> IuUP: calls mgcp_udp_send() directly, skipping this function: No need to examine dst. */
 	if (is_rtp && !mgcp_conn_rtp_is_iuup(conn_src)) {
-		rc = mgcp_patch_pt(conn_src, conn_dst, msg);
+		rc = mgcp_patch_pt(conn_dst, msg);
 		if (rc < 0) {
 			/* FIXME: It is legal that the payload type on the egress connection is
 			 * different from the payload type that has been negotiated on the

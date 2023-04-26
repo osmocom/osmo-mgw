@@ -1286,19 +1286,15 @@ Testing mgcp_codec_find_convertible()
     0:  96 AMR/8000/1 octet-aligned=1  -> rc=0
     1:   0 PCMU/8000/1  -> rc=0
     2:  97 GSM-HR-08/8000/1  -> rc=0
- - mgcp_codec_from_pt(conn0, 112) -> AMR
- - mgcp_codec_find_convertible(conn1, AMR) -> AMR -> 96
- - mgcp_codec_from_pt(conn1, 96) -> AMR
- - mgcp_codec_find_convertible(conn0, AMR) -> AMR -> 112
- - mgcp_codec_from_pt(conn0, 0) -> PCMU
- - mgcp_codec_find_convertible(conn1, PCMU) -> PCMU -> 0
- - mgcp_codec_from_pt(conn1, 0) -> PCMU
- - mgcp_codec_find_convertible(conn0, PCMU) -> PCMU -> 0
- - mgcp_codec_from_pt(conn0, 111) -> GSM-HR-08
- - mgcp_codec_find_convertible(conn1, GSM-HR-08) -> GSM-HR-08 -> 97
- - mgcp_codec_from_pt(conn1, 97) -> GSM-HR-08
- - mgcp_codec_find_convertible(conn0, GSM-HR-08) -> GSM-HR-08 -> 111
- - mgcp_codec_from_pt(conn0, 123) -> NO RESULT
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:AMR, pt:112
+    conn[1]: codec:AMR, pt:96
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:AMR, pt:96
+    conn[0]: codec:AMR, pt:112
+ ===> SUCCESS: codec decision as expected!
 #1: different order and different payload type numbers
  - add codecs on conn0:
     0:   0 PCMU/8000/1  -> rc=0
@@ -1308,19 +1304,15 @@ Testing mgcp_codec_find_convertible()
     0:  97 GSM-HR-08/8000/1  -> rc=0
     1:   0 PCMU/8000/1  -> rc=0
     2:  96 AMR/8000/1 octet-aligned=1  -> rc=0
- - mgcp_codec_from_pt(conn0, 112) -> AMR
- - mgcp_codec_find_convertible(conn1, AMR) -> AMR -> 96
- - mgcp_codec_from_pt(conn1, 96) -> AMR
- - mgcp_codec_find_convertible(conn0, AMR) -> AMR -> 112
- - mgcp_codec_from_pt(conn0, 0) -> PCMU
- - mgcp_codec_find_convertible(conn1, PCMU) -> PCMU -> 0
- - mgcp_codec_from_pt(conn1, 0) -> PCMU
- - mgcp_codec_find_convertible(conn0, PCMU) -> PCMU -> 0
- - mgcp_codec_from_pt(conn0, 111) -> GSM-HR-08
- - mgcp_codec_find_convertible(conn1, GSM-HR-08) -> GSM-HR-08 -> 97
- - mgcp_codec_from_pt(conn1, 97) -> GSM-HR-08
- - mgcp_codec_find_convertible(conn0, GSM-HR-08) -> GSM-HR-08 -> 111
- - mgcp_codec_from_pt(conn0, 123) -> NO RESULT
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:PCMU, pt:0
+    conn[1]: codec:PCMU, pt:0
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:GSM-HR-08, pt:97
+    conn[0]: codec:GSM-HR-08, pt:111
+ ===> SUCCESS: codec decision as expected!
 #2: both sides have the same payload_type numbers assigned to differing codecs
  - add codecs on conn0:
     0:   0 PCMU/8000/1  -> rc=0
@@ -1330,19 +1322,15 @@ Testing mgcp_codec_find_convertible()
     0:  97 GSM-HR-08/8000/1  -> rc=0
     1:   0 PCMU/8000/1  -> rc=0
     2:  96 AMR/8000/1 octet-aligned=1  -> rc=0
- - mgcp_codec_from_pt(conn0, 96) -> GSM-HR-08
- - mgcp_codec_find_convertible(conn1, GSM-HR-08) -> GSM-HR-08 -> 97
- - mgcp_codec_from_pt(conn1, 97) -> GSM-HR-08
- - mgcp_codec_find_convertible(conn0, GSM-HR-08) -> GSM-HR-08 -> 96
- - mgcp_codec_from_pt(conn0, 97) -> AMR
- - mgcp_codec_find_convertible(conn1, AMR) -> AMR -> 96
- - mgcp_codec_from_pt(conn1, 96) -> AMR
- - mgcp_codec_find_convertible(conn0, AMR) -> AMR -> 97
- - mgcp_codec_from_pt(conn0, 0) -> PCMU
- - mgcp_codec_find_convertible(conn1, PCMU) -> PCMU -> 0
- - mgcp_codec_from_pt(conn1, 0) -> PCMU
- - mgcp_codec_find_convertible(conn0, PCMU) -> PCMU -> 0
- - mgcp_codec_from_pt(conn0, 123) -> NO RESULT
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:PCMU, pt:0
+    conn[1]: codec:PCMU, pt:0
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:GSM-HR-08, pt:97
+    conn[0]: codec:GSM-HR-08, pt:96
+ ===> SUCCESS: codec decision as expected!
 #3: conn0 has no codecs
  - add codecs on conn0:
     (none)
@@ -1350,9 +1338,13 @@ Testing mgcp_codec_find_convertible()
     0:  96 AMR/8000/1 octet-aligned=1  -> rc=0
     1:   0 PCMU/8000/1  -> rc=0
     2:  97 GSM-HR-08/8000/1  -> rc=0
- - mgcp_codec_from_pt(conn0, 112) -> NO RESULT
- - mgcp_codec_from_pt(conn0, 0) -> NO RESULT
- - mgcp_codec_from_pt(conn0, 111) -> NO RESULT
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    codec decision failed (expected)!
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:AMR, pt:96
+    conn[0]: codec:none, pt:none
+ ===> SUCCESS: codec decision as expected!
 #4: conn1 has no codecs
  - add codecs on conn0:
     0: 112 AMR/8000/1 octet-aligned=1  -> rc=0
@@ -1360,69 +1352,116 @@ Testing mgcp_codec_find_convertible()
     2: 111 GSM-HR-08/8000/1  -> rc=0
  - add codecs on conn1:
     (none)
- - mgcp_codec_from_pt(conn0, 112) -> AMR
- - mgcp_codec_find_convertible(conn1, AMR) -> NO RESULT
- - mgcp_codec_from_pt(conn0, 0) -> PCMU
- - mgcp_codec_find_convertible(conn1, PCMU) -> NO RESULT
- - mgcp_codec_from_pt(conn0, 111) -> GSM-HR-08
- - mgcp_codec_find_convertible(conn1, GSM-HR-08) -> NO RESULT
-#5: test AMR with differing octet-aligned settings
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:AMR, pt:112
+    conn[1]: codec:none, pt:none
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    codec decision failed (expected)!
+ ===> SUCCESS: codec decision as expected!
+#5: test AMR with differing octet-aligned settings (both <-> both)
  - add codecs on conn0:
     0: 111 AMR/8000 octet-aligned=1  -> rc=0
     1: 112 AMR/8000 octet-aligned=0  -> rc=0
  - add codecs on conn1:
     0: 122 AMR/8000 octet-aligned=0  -> rc=0
     1: 121 AMR/8000 octet-aligned=1  -> rc=0
- - mgcp_codec_from_pt(conn0, 111) -> AMR
- - mgcp_codec_find_convertible(conn1, AMR) -> AMR -> 121
- - mgcp_codec_from_pt(conn1, 121) -> AMR
- - mgcp_codec_find_convertible(conn0, AMR) -> AMR -> 111
- - mgcp_codec_from_pt(conn0, 112) -> AMR
- - mgcp_codec_find_convertible(conn1, AMR) -> AMR -> 122
- - mgcp_codec_from_pt(conn1, 122) -> AMR
- - mgcp_codec_find_convertible(conn0, AMR) -> AMR -> 112
- - mgcp_codec_from_pt(conn0, 123) -> NO RESULT
-#6: test AMR with missing octet-aligned settings (oa <-> unset)
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:AMR, pt:111
+    conn[1]: codec:AMR, pt:121
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:AMR, pt:122
+    conn[0]: codec:AMR, pt:112
+ ===> SUCCESS: codec decision as expected!
+#6: test AMR with differing octet-aligned settings (oa <-> both)
+ - add codecs on conn0:
+    0: 111 AMR/8000 octet-aligned=1  -> rc=0
+ - add codecs on conn1:
+    0: 122 AMR/8000 octet-aligned=0  -> rc=0
+    1: 121 AMR/8000 octet-aligned=1  -> rc=0
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:AMR, pt:111
+    conn[1]: codec:AMR, pt:121
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:AMR, pt:121
+    conn[0]: codec:AMR, pt:111
+ ===> SUCCESS: codec decision as expected!
+#7: test AMR with differing octet-aligned settings (bwe <-> both)
+ - add codecs on conn0:
+    0: 112 AMR/8000 octet-aligned=0  -> rc=0
+ - add codecs on conn1:
+    0: 122 AMR/8000 octet-aligned=0  -> rc=0
+    1: 121 AMR/8000 octet-aligned=1  -> rc=0
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:AMR, pt:112
+    conn[1]: codec:AMR, pt:122
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:AMR, pt:122
+    conn[0]: codec:AMR, pt:112
+ ===> SUCCESS: codec decision as expected!
+#8: test AMR with missing octet-aligned settings (oa <-> unset)
  - add codecs on conn0:
     0: 111 AMR/8000 octet-aligned=1  -> rc=0
  - add codecs on conn1:
     0: 122 AMR/8000 octet-aligned=unset  -> rc=0
- - mgcp_codec_from_pt(conn0, 111) -> AMR
- - mgcp_codec_find_convertible(conn1, AMR) -> AMR -> 122
- - mgcp_codec_from_pt(conn1, 122) -> AMR
- - mgcp_codec_find_convertible(conn0, AMR) -> AMR -> 111
- - mgcp_codec_from_pt(conn0, 55) -> NO RESULT
-#7: test AMR with missing octet-aligned settings (bwe <-> unset)
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:AMR, pt:111
+    conn[1]: codec:AMR, pt:122
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:AMR, pt:122
+    conn[0]: codec:AMR, pt:111
+ ===> SUCCESS: codec decision as expected!
+#9: test AMR with missing octet-aligned settings (bwe <-> unset)
  - add codecs on conn0:
     0: 111 AMR/8000 octet-aligned=0  -> rc=0
  - add codecs on conn1:
     0: 122 AMR/8000 octet-aligned=unset  -> rc=0
- - mgcp_codec_from_pt(conn0, 111) -> AMR
- - mgcp_codec_find_convertible(conn1, AMR) -> AMR -> 122
- - mgcp_codec_from_pt(conn1, 122) -> AMR
- - mgcp_codec_find_convertible(conn0, AMR) -> AMR -> 111
- - mgcp_codec_from_pt(conn0, 55) -> NO RESULT
-#8: test AMR with NULL param (oa <-> null)
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:AMR, pt:111
+    conn[1]: codec:AMR, pt:122
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:AMR, pt:122
+    conn[0]: codec:AMR, pt:111
+ ===> SUCCESS: codec decision as expected!
+#10: test AMR with NULL param (oa <-> null)
  - add codecs on conn0:
     0: 112 AMR/8000 octet-aligned=1  -> rc=0
  - add codecs on conn1:
     0: 122 AMR/8000  -> rc=0
- - mgcp_codec_from_pt(conn0, 112) -> AMR
- - mgcp_codec_find_convertible(conn1, AMR) -> AMR -> 122
- - mgcp_codec_from_pt(conn1, 122) -> AMR
- - mgcp_codec_find_convertible(conn0, AMR) -> AMR -> 112
- - mgcp_codec_from_pt(conn0, 55) -> NO RESULT
-#9: test AMR with NULL param (bwe <-> null)
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:AMR, pt:112
+    conn[1]: codec:AMR, pt:122
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:AMR, pt:122
+    conn[0]: codec:AMR, pt:112
+ ===> SUCCESS: codec decision as expected!
+#11: test AMR with NULL param (bwe <-> null)
  - add codecs on conn0:
     0: 112 AMR/8000 octet-aligned=0  -> rc=0
  - add codecs on conn1:
     0: 122 AMR/8000  -> rc=0
- - mgcp_codec_from_pt(conn0, 112) -> AMR
- - mgcp_codec_find_convertible(conn1, AMR) -> AMR -> 122
- - mgcp_codec_from_pt(conn1, 122) -> AMR
- - mgcp_codec_find_convertible(conn0, AMR) -> AMR -> 112
- - mgcp_codec_from_pt(conn0, 55) -> NO RESULT
-#10: match FOO/8000/1 and FOO/8000 as identical, single channel is implicit
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:AMR, pt:112
+    conn[1]: codec:AMR, pt:122
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:AMR, pt:122
+    conn[0]: codec:AMR, pt:112
+ ===> SUCCESS: codec decision as expected!
+#12: match FOO/8000/1 and FOO/8000 as identical, single channel is implicit
  - add codecs on conn0:
     0:   0 PCMU/8000/1  -> rc=0
     1: 111 GSM-HR-08/8000/1  -> rc=0
@@ -1431,20 +1470,16 @@ Testing mgcp_codec_find_convertible()
     0:  97 GSM-HR-08/8000  -> rc=0
     1:   0 PCMU/8000  -> rc=0
     2:  96 AMR/8000 octet-aligned=1  -> rc=0
- - mgcp_codec_from_pt(conn0, 112) -> AMR
- - mgcp_codec_find_convertible(conn1, AMR) -> AMR -> 96
- - mgcp_codec_from_pt(conn1, 96) -> AMR
- - mgcp_codec_find_convertible(conn0, AMR) -> AMR -> 112
- - mgcp_codec_from_pt(conn0, 0) -> PCMU
- - mgcp_codec_find_convertible(conn1, PCMU) -> PCMU -> 0
- - mgcp_codec_from_pt(conn1, 0) -> PCMU
- - mgcp_codec_find_convertible(conn0, PCMU) -> PCMU -> 0
- - mgcp_codec_from_pt(conn0, 111) -> GSM-HR-08
- - mgcp_codec_find_convertible(conn1, GSM-HR-08) -> GSM-HR-08 -> 97
- - mgcp_codec_from_pt(conn1, 97) -> GSM-HR-08
- - mgcp_codec_find_convertible(conn0, GSM-HR-08) -> GSM-HR-08 -> 111
- - mgcp_codec_from_pt(conn0, 123) -> NO RESULT
-#11: match FOO/8000/1 and FOO as identical, 8k and single channel are implicit
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:PCMU, pt:0
+    conn[1]: codec:PCMU, pt:0
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:GSM-HR-08, pt:97
+    conn[0]: codec:GSM-HR-08, pt:111
+ ===> SUCCESS: codec decision as expected!
+#13: match FOO/8000/1 and FOO as identical, 8k and single channel are implicit
  - add codecs on conn0:
     0:   0 PCMU/8000/1  -> rc=0
     1: 111 GSM-HR-08/8000/1  -> rc=0
@@ -1453,20 +1488,16 @@ Testing mgcp_codec_find_convertible()
     0:  97 GSM-HR-08  -> rc=0
     1:   0 PCMU  -> rc=0
     2:  96 AMR octet-aligned=1  -> rc=0
- - mgcp_codec_from_pt(conn0, 112) -> AMR
- - mgcp_codec_find_convertible(conn1, AMR) -> AMR -> 96
- - mgcp_codec_from_pt(conn1, 96) -> AMR
- - mgcp_codec_find_convertible(conn0, AMR) -> AMR -> 112
- - mgcp_codec_from_pt(conn0, 0) -> PCMU
- - mgcp_codec_find_convertible(conn1, PCMU) -> PCMU -> 0
- - mgcp_codec_from_pt(conn1, 0) -> PCMU
- - mgcp_codec_find_convertible(conn0, PCMU) -> PCMU -> 0
- - mgcp_codec_from_pt(conn0, 111) -> GSM-HR-08
- - mgcp_codec_find_convertible(conn1, GSM-HR-08) -> GSM-HR-08 -> 97
- - mgcp_codec_from_pt(conn1, 97) -> GSM-HR-08
- - mgcp_codec_find_convertible(conn0, GSM-HR-08) -> GSM-HR-08 -> 111
- - mgcp_codec_from_pt(conn0, 123) -> NO RESULT
-#12: test whether channel number matching is waterproof
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:PCMU, pt:0
+    conn[1]: codec:PCMU, pt:0
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:GSM-HR-08, pt:97
+    conn[0]: codec:GSM-HR-08, pt:111
+ ===> SUCCESS: codec decision as expected!
+#14: test whether channel number matching is waterproof
  - add codecs on conn0:
     0: 111 GSM-HR-08/8000  -> rc=0
     1: 112 GSM-HR-08/8000/2  -> rc=-22
@@ -1474,12 +1505,15 @@ Testing mgcp_codec_find_convertible()
  - add codecs on conn1:
     0: 122 GSM-HR-08/8000/2  -> rc=-22
     1: 121 GSM-HR-08/8000/1  -> rc=0
- - mgcp_codec_from_pt(conn0, 111) -> GSM-HR-08
- - mgcp_codec_find_convertible(conn1, GSM-HR-08) -> GSM-HR-08 -> 121
- - mgcp_codec_from_pt(conn1, 121) -> GSM-HR-08
- - mgcp_codec_find_convertible(conn0, GSM-HR-08) -> GSM-HR-08 -> 111
- - mgcp_codec_from_pt(conn0, 112) -> NO RESULT
- - mgcp_codec_from_pt(conn0, 113) -> NO RESULT
+ - mgcp_codec_decide(&conn[0], &conn[1]):
+    Codec decision result:
+    conn[0]: codec:GSM-HR-08, pt:111
+    conn[1]: codec:GSM-HR-08, pt:121
+ - mgcp_codec_decide(&conn[1], &conn[0]):
+    Codec decision result:
+    conn[1]: codec:GSM-HR-08, pt:121
+    conn[0]: codec:GSM-HR-08, pt:111
+ ===> SUCCESS: codec decision as expected!
 
 Testing test_conn_id_matching
 needle='23AB' found '000023AB'

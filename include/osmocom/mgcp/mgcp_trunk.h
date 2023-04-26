@@ -31,8 +31,6 @@ struct mgcp_trunk {
 	int audio_send_ptime;
 	int audio_send_name;
 
-	int no_audio_transcoding;
-
 	int omit_rtcp;
 	int keepalive_interval;
 

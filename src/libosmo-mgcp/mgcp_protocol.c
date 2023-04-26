@@ -761,6 +761,9 @@ static int handle_codec_info(struct mgcp_conn_rtp *conn,
 			     struct mgcp_request_data *rq, int have_sdp, bool crcx)
 {
 	struct mgcp_endpoint *endp = rq->endp;
+	struct mgcp_conn *conn_dst;
+	struct mgcp_conn_rtp *conn_dst_rtp;
+
 	int rc;
 	char *cmd;
 
@@ -802,8 +805,15 @@ static int handle_codec_info(struct mgcp_conn_rtp *conn,
 			goto error;
 	}
 
+	/* Try to find an destination RTP connection that we can include in the codec decision. */
+	conn_dst = mgcp_find_dst_conn(conn->conn);
+	if (conn_dst && conn_dst->type == MGCP_CONN_TYPE_RTP)
+		conn_dst_rtp = &conn_dst->u.rtp;
+	else
+		conn_dst_rtp = NULL;
+
 	/* Make codec decision */
-	if (mgcp_codec_decide(conn) != 0)
+	if (mgcp_codec_decide(conn, conn_dst_rtp) != 0)
 		goto error;
 
 	return 0;

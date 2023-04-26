@@ -344,11 +344,30 @@ static bool codecs_convertible(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_c
 	return true;
 }
 
-/*! For a given codec, find a convertible codec in the given connection.
- *  \param[in] conn connection to search for a convertible codec
- *  \param[in] codec for which a convertible codec shall be found.
- *  \returns codec on success, -NULL on failure. */
-struct mgcp_rtp_codec *mgcp_codec_find_convertible(struct mgcp_conn_rtp *conn, struct mgcp_rtp_codec *codec)
+struct mgcp_rtp_codec *mgcp_codec_find_same(struct mgcp_conn_rtp *conn, struct mgcp_rtp_codec *codec)
+{
+	struct mgcp_rtp_end *rtp_end;
+	unsigned int i;
+	unsigned int codecs_assigned;
+
+	rtp_end = &conn->end;
+
+	/* Use the codec information from the source and try to find the equivalent of it on the destination side. In
+	 * the first run we will look for an exact match. */
+	codecs_assigned = rtp_end->codecs_assigned;
+	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
+	for (i = 0; i < codecs_assigned; i++) {
+		if (codecs_same(codec, &rtp_end->codecs[i])) {
+			return &rtp_end->codecs[i];
+			break;
+		}
+	}
+
+	return NULL;
+}
+
+/* For a given codec, find a convertible codec in the given connection. */
+static struct mgcp_rtp_codec *codec_find_convertible(struct mgcp_conn_rtp *conn, struct mgcp_rtp_codec *codec)
 {
 	struct mgcp_rtp_end *rtp_end;
 	unsigned int i;
@@ -359,93 +378,72 @@ struct mgcp_rtp_codec *mgcp_codec_find_convertible(struct mgcp_conn_rtp *conn, s
 
 	/* Use the codec information from the source and try to find the equivalent of it on the destination side. In
 	 * the first run we will look for an exact match. */
-	codecs_assigned = rtp_end->codecs_assigned;
-	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
-	for (i = 0; i < codecs_assigned; i++) {
-		if (codecs_same(codec, &rtp_end->codecs[i])) {
-			codec_convertible = &rtp_end->codecs[i];
-			break;
-		}
-	}
+	codec_convertible = mgcp_codec_find_same(conn, codec);
+	if (codec_convertible)
+		return codec_convertible;
 
 	/* In case we weren't able to find an exact match, we will try to find a match that is the same codec, but the
 	 * payload format may be different. This alternative will require a frame format conversion (i.e. AMR bwe->oe) */
-	if (!codec_convertible) {
-		for (i = 0; i < codecs_assigned; i++) {
-			if (codecs_convertible(codec, &rtp_end->codecs[i])) {
-				codec_convertible = &rtp_end->codecs[i];
-				break;
-			}
+	codecs_assigned = rtp_end->codecs_assigned;
+	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
+	for (i = 0; i < codecs_assigned; i++) {
+		if (codecs_convertible(codec, &rtp_end->codecs[i])) {
+			codec_convertible = &rtp_end->codecs[i];
+			break;
 		}
 	}
 
 	return codec_convertible;
 }
 
-/* Check if the given codec is applicable on the specified endpoint
- * Helper function for mgcp_codec_decide() */
-static bool is_codec_compatible(const struct mgcp_endpoint *endp, const struct mgcp_rtp_codec *codec)
-{
-	/* A codec name must be set, if not, this might mean that the codec
-	 * (payload type) that was assigned is unknown to us so we must stop
-	 * here. */
-	if (!strlen(codec->subtype_name))
-		return false;
-
-	/* FIXME: implement meaningful checks to make sure that the given codec
-	 * is compatible with the given endpoint */
-
-	return true;
-}
-
-/*! Decide for one suitable codec
- *  \param[in] conn related rtp-connection.
+/*! Decide for one suitable codec on both of the given connections. In case a destination connection is not available,
+ *  a tentative decision is made.
+ *  \param[inout] conn_src related rtp-connection.
+ *  \param[inout] conn_dst related destination rtp-connection (NULL if not present).
  *  \returns 0 on success, -EINVAL on failure. */
-int mgcp_codec_decide(struct mgcp_conn_rtp *conn)
+int mgcp_codec_decide(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn_dst)
 {
-	struct mgcp_rtp_end *rtp;
 	unsigned int i;
-	struct mgcp_endpoint *endp;
-	bool codec_assigned = false;
 
-	endp = conn->conn->endp;
-	rtp = &conn->end;
-
-	/* This function works on the results the SDP/LCO parser has extracted
-	 * from the MGCP message. The goal is to select a suitable codec for
-	 * the given connection. When transcoding is available, the first codec
-	 * from the codec list is taken without further checking. When
-	 * transcoding is not available, then the choice must be made more
-	 * carefully. Each codec in the list is checked until one is found that
-	 * is rated compatible. The rating is done by the helper function
-	 * is_codec_compatible(), which does the actual checking. */
-	for (i = 0; i < rtp->codecs_assigned; i++) {
-		/* When no transcoding is available, avoid codecs that would
-		 * require transcoding. */
-		if (endp->trunk->no_audio_transcoding && !is_codec_compatible(endp, &rtp->codecs[i])) {
-			LOGP(DLMGCP, LOGL_NOTICE, "transcoding not available, skipping codec: %d/%s\n",
-			     rtp->codecs[i].payload_type, rtp->codecs[i].subtype_name);
-			continue;
-		}
-
-		rtp->codec = &rtp->codecs[i];
-		codec_assigned = true;
-		break;
+	/* In case no destination connection is available (yet), or in case the destination connection exists but has
+	 * no codecs assigned, we are forced to make a simple tentative decision:
+	 * We just use the first codec of the source connection (conn_src) */
+	OSMO_ASSERT(conn_src->end.codecs_assigned <= MGCP_MAX_CODECS);
+	if (!conn_dst || conn_dst->end.codecs_assigned == 0) {
+		if (conn_src->end.codecs_assigned >= 1) {
+			conn_src->end.codec = &conn_src->end.codecs[0];
+			return 0;
+		} else
+			return -EINVAL;
 	}
 
-	/* FIXME: To the reviewes: This is problematic. I do not get why we
-	 * need to reset the packet_duration_ms depending on the codec
-	 * selection. I thought it were all 20ms? Is this to address some
-	 * cornercase. (This piece of code was in the code path before,
-	 * together with the note: "TODO/XXX: Store this per codec and derive
-	 * it on use" */
-	if (codec_assigned) {
-		if (rtp->maximum_packet_time >= 0
-		    && rtp->maximum_packet_time * rtp->codec->frame_duration_den >
-		    rtp->codec->frame_duration_num * 1500)
-			rtp->packet_duration_ms = 0;
+	/* Compare all codecs of the source connection (conn_src) to the codecs of the destination connection (conn_dst). In case
+	 * of a match set this codec on both connections. This would be an ideal selection since no codec conversion would be
+	 * required. */
+	for (i = 0; i < conn_src->end.codecs_assigned; i++) {
+		struct mgcp_rtp_codec *codec_conn_dst = mgcp_codec_find_same(conn_dst, &conn_src->end.codecs[i]);
+		if (codec_conn_dst) {
+			/* We found the a codec that is exactly the same (same codec, same payload format etc.) on both
+			 * sides. We now set this codec on both connections. */
+			conn_dst->end.codec = codec_conn_dst;
+			conn_src->end.codec = mgcp_codec_find_same(conn_src, codec_conn_dst);
+			OSMO_ASSERT(conn_src->end.codec);
+			return 0;
+		}
+	}
 
-		return 0;
+	/* In case we could not find a codec that is exactly the same, let's at least try to find a codec that we are able
+	 * to convert. */
+	for (i = 0; i < conn_src->end.codecs_assigned; i++) {
+		struct mgcp_rtp_codec *codec_conn_dst = codec_find_convertible(conn_dst, &conn_src->end.codecs[i]);
+		if (codec_conn_dst) {
+			/* We found the a codec that we are able to convert on both sides. We now set this codec on both
+			 * connections. */
+			conn_dst->end.codec = codec_conn_dst;
+			conn_src->end.codec = codec_find_convertible(conn_src, codec_conn_dst);
+			OSMO_ASSERT(conn_src->end.codec);
+			return 0;
+		}
 	}
 
 	return -EINVAL;
