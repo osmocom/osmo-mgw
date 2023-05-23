@@ -330,10 +330,20 @@ static bool codecs_convertible(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_c
 	/* OsmoMGW currently has no ability to transcode from one codec to another. However OsmoMGW is still able to
 	 * translate between different payload formats as long as the encoded voice data itself does not change.
 	 * Therefore we must insist on equal codecs but still allow different payload formatting. */
+
+	/* In 3G IuUP, AMR may be encapsulated in IuFP, this means even though the codec name and negotiated rate is
+	 * different, the formatting can still be converted by OsmoMGW. Therefore we won't insist on equal
+	 * subtype_name and rate if we detect IuFP and AMR is used on the same tandem. */
+	if (strcmp(codec_a->subtype_name, "AMR") == 0 && strcmp(codec_b->subtype_name, "VND.3GPP.IUFP") == 0)
+		goto iufp;
+	if (strcmp(codec_a->subtype_name, "VND.3GPP.IUFP") == 0 && strcmp(codec_b->subtype_name, "AMR") == 0)
+		goto iufp;
+
 	if (strcmp(codec_a->subtype_name, codec_b->subtype_name))
 		return false;
 	if (codec_a->rate != codec_b->rate)
 		return false;
+iufp:
 	if (codec_a->channels != codec_b->channels)
 		return false;
 	if (codec_a->frame_duration_num != codec_b->frame_duration_num)
