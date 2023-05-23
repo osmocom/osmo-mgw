@@ -45,12 +45,12 @@ enum mgcp_codecs {
 	CODEC_GSM_8000_1 = 3,
 	CODEC_PCMA_8000_1 = 8,
 	CODEC_G729_8000_1 = 18,
-	CODEC_GSMEFR_8000_1 = 110,
-	CODEC_GSMHR_8000_1 = 111,
-	CODEC_AMR_8000_1 = 112,
-	CODEC_AMRWB_16000_1 = 113,
+	CODEC_GSMEFR_8000_1 = 110,	/* 3GPP TS 48.103 table 5.4.2.2.1 */
+	CODEC_GSMHR_8000_1 = 111,	/* 3GPP TS 48.103 table 5.4.2.2.1 */
+	CODEC_AMR_8000_1 = 112,		/* 3GPP TS 48.103 table 5.4.2.2.1 */
+	CODEC_AMRWB_16000_1 = 113,	/* 3GPP TS 48.103 table 5.4.2.2.1 */
 	CODEC_IUFP = 96,
-	CODEC_CLEARMODE = 120, /* 3GPP TS 48.103 table 5.4.2.2.1 */
+	CODEC_CLEARMODE = 120,		/* 3GPP TS 48.103 table 5.4.2.2.1 */
 };
 /* Note: when new codec types are added, the corresponding value strings
  * in mgcp_client.c (codec_table) must be updated as well. Enumerations
