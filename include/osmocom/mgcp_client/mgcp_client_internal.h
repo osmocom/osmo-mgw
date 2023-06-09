@@ -15,13 +15,7 @@ struct mgcp_client {
 	struct osmo_wqueue wq;
 	mgcp_trans_id_t next_trans_id;
 	struct llist_head responses_pending;
-	struct llist_head inuse_endpoints;
 	struct mgcp_client_pool_member *pool_member;
-};
-
-struct mgcp_inuse_endpoint {
-	struct llist_head entry;
-	uint16_t id;
 };
 
 struct mgcp_response_pending {

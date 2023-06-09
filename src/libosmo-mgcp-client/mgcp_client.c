@@ -764,7 +764,6 @@ struct mgcp_client *mgcp_client_init(void *ctx,
 		return NULL;
 
 	INIT_LLIST_HEAD(&mgcp->responses_pending);
-	INIT_LLIST_HEAD(&mgcp->inuse_endpoints);
 
 	mgcp->next_trans_id = 1;
 
