@@ -194,9 +194,7 @@ enum mgcp_codecs map_pt_to_codec(struct ptmap *ptmap, unsigned int ptmap_len,
 	return pt;
 }
 
-/*! Initialize MGCP client configuration struct with default values.
- *  \param[out] conf Client configuration.*/
-void mgcp_client_conf_init(struct mgcp_client_conf *conf)
+static void _mgcp_client_conf_init(struct mgcp_client_conf *conf)
 {
 	/* NULL and -1 default to MGCP_CLIENT_*_DEFAULT values */
 	*conf = (struct mgcp_client_conf){
@@ -207,6 +205,29 @@ void mgcp_client_conf_init(struct mgcp_client_conf *conf)
 	};
 
 	INIT_LLIST_HEAD(&conf->reset_epnames);
+}
+
+/*! Allocate and initialize MGCP client configuration struct with default values.
+ *  \param[in] ctx talloc context to use as a parent during allocation.
+ *
+ * The returned struct can be freed using talloc_free().
+ */
+struct mgcp_client_conf *mgcp_client_conf_alloc(void *ctx)
+{
+	struct mgcp_client_conf *conf = talloc(ctx, struct mgcp_client_conf);
+	_mgcp_client_conf_init(conf);
+	return conf;
+}
+
+/*! Initialize MGCP client configuration struct with default values.
+ *  \param[out] conf Client configuration.
+ *
+ * This function is deprecated and should not be used, as it may break if size
+ * of struct mgcp_client_conf changes in the future!
+ */
+void mgcp_client_conf_init(struct mgcp_client_conf *conf)
+{
+	_mgcp_client_conf_init(conf);
 }
 
 static void mgcp_client_handle_response(struct mgcp_client *mgcp,

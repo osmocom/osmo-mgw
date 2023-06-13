@@ -73,7 +73,7 @@ static struct msgb *from_str(const char *str)
 	return msg;
 }
 
-static struct mgcp_client_conf conf;
+static struct mgcp_client_conf *conf;
 struct mgcp_client *mgcp = NULL;
 
 static int reply_to(mgcp_trans_id_t trans_id, int code, const char *comment,
@@ -162,7 +162,7 @@ void test_mgcp_msg(void)
 
 	if (mgcp)
 		talloc_free(mgcp);
-	mgcp = mgcp_client_init(ctx, &conf);
+	mgcp = mgcp_client_init(ctx, conf);
 
 	printf("\n");
 
@@ -339,7 +339,7 @@ void test_mgcp_client_cancel(void)
 
 	if (mgcp)
 		talloc_free(mgcp);
-	mgcp = mgcp_client_init(ctx, &conf);
+	mgcp = mgcp_client_init(ctx, conf);
 
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
 	trans_id = mgcp_msg_trans_id(msg);
@@ -630,7 +630,7 @@ void test_mgcp_client_e1_epname(void)
 
 	if (mgcp)
 		talloc_free(mgcp);
-	mgcp = mgcp_client_init(ctx, &conf);
+	mgcp = mgcp_client_init(ctx, conf);
 
 	/* Valid endpoint names */
 	epname = (char *)mgcp_client_e1_epname(ctx, mgcp, 1, 15, 64, 0);
@@ -697,7 +697,7 @@ int main(int argc, char **argv)
 
 	log_set_category_filter(osmo_stderr_target, DLMGCP, 1, LOGL_DEBUG);
 
-	mgcp_client_conf_init(&conf);
+	conf = mgcp_client_conf_alloc(ctx);
 
 	test_mgcp_msg();
 	test_mgcp_client_cancel();

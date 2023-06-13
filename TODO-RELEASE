@@ -24,3 +24,5 @@
 # If any interfaces have been removed or changed since the last public release, a=0.
 #
 #library		what		description / commit summary line
+libosmo-mgcp-client     NEW API         mgcp_client_conf_alloc()
+libosmo-mgcp-client     DEPRECATED      mgcp_client_conf_init()

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 
+#include <osmocom/mgcp_client/defs.h>
 #include <osmocom/mgcp_client/mgcp_common.h>
 
 /* See also: RFC 3435, chapter 3.5 Transmission over UDP */
@@ -133,7 +134,8 @@ struct mgcp_msg {
 	struct mgcp_codec_param param;
 };
 
-void mgcp_client_conf_init(struct mgcp_client_conf *conf);
+struct mgcp_client_conf *mgcp_client_conf_alloc(void *ctx);
+void mgcp_client_conf_init(struct mgcp_client_conf *conf) OSMO_DEPRECATED_OUTSIDE_LIBOSMOMGCPCLIENT("use mgcp_client_conf_alloc() (or even better, switch to the mgcp_client_pool API!)");
 void mgcp_client_vty_init(void *talloc_ctx, int node, struct mgcp_client_conf *conf);
 int mgcp_client_config_write(struct vty *vty, const char *indent);
 struct mgcp_client_conf *mgcp_client_conf_actual(struct mgcp_client *mgcp);
