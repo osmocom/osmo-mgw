@@ -94,7 +94,7 @@ struct mgcp_client_pool_member *mgcp_client_pool_find_member_by_nr(struct mgcp_c
 }
 
 /* Not every pool member may have a functional MGCP client, we will run through the pool once until we meet a
- * pool member that is suitable (has a client, is not blocked, has a low load). */
+ * pool member that is suitable (is not blocked, has a client with a working link, has a low load). */
 static struct mgcp_client_pool_member *mgcp_client_pool_pick(struct mgcp_client_pool *pool)
 {
 	struct mgcp_client_pool_member *pool_member;
@@ -103,14 +103,15 @@ static struct mgcp_client_pool_member *mgcp_client_pool_pick(struct mgcp_client_
 
 	llist_for_each_entry(pool_member, &pool->member_list, list) {
 		n_pool_members++;
-		if (pool_member->blocked == false && pool_member->client) {
+		bool conn_up = pool_member->client && pool_member->client->conn_up;
+		if (pool_member->blocked == false && conn_up) {
 			if (!pool_member_picked)
 				pool_member_picked = pool_member;
 			else if (pool_member_picked->refcount > pool_member->refcount)
 				pool_member_picked = pool_member;
 		} else {
-			LOGPPMGW(pool_member, LOGL_DEBUG, "%s -- MGW %u is unusable (blocked=%u, cli=%u)\n",
-				 __func__, pool_member->nr, pool_member->blocked, !!pool_member->client);
+			LOGPPMGW(pool_member, LOGL_DEBUG, "%s -- MGW %u is unusable (blocked=%u, cli=%u, link=%u)\n",
+				 __func__, pool_member->nr, pool_member->blocked, !!pool_member->client, conn_up);
 		}
 	}
 
