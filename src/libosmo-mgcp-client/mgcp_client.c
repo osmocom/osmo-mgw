@@ -773,6 +773,40 @@ static int mgcp_do_write(struct osmo_fd *fd, struct msgb *msg)
 	return ret;
 }
 
+static const char *_mgcp_client_name_append_domain(const struct mgcp_client *mgcp, const char *name)
+{
+	static char endpoint[MGCP_ENDPOINT_MAXLEN];
+	int rc;
+
+	rc = snprintf(endpoint, sizeof(endpoint), "%s@%s", name, mgcp_client_endpoint_domain(mgcp));
+	if (rc > sizeof(endpoint) - 1) {
+		LOGPMGW(mgcp, LOGL_ERROR, "MGCP endpoint exceeds maximum length of %zu: '%s@%s'\n",
+			sizeof(endpoint) - 1, name, mgcp_client_endpoint_domain(mgcp));
+		return NULL;
+	}
+	if (rc < 1) {
+		LOGPMGW(mgcp, LOGL_ERROR, "Cannot compose MGCP endpoint name\n");
+		return NULL;
+	}
+	return endpoint;
+}
+
+/* Safely ignore the MGCP response to the DLCX sent via _mgcp_client_send_dlcx() */
+static void _ignore_mgcp_response(struct mgcp_response *response, void *priv) { }
+
+/* Format DLCX message (fire and forget) and send it off to the MGW */
+static void _mgcp_client_send_dlcx(struct mgcp_client *mgcp, const char *epname)
+{
+	struct msgb *msgb_dlcx;
+	struct mgcp_msg mgcp_msg_dlcx = {
+		.verb = MGCP_VERB_DLCX,
+		.presence = MGCP_MSG_PRESENCE_ENDPOINT,
+	};
+	osmo_strlcpy(mgcp_msg_dlcx.endpoint, epname, sizeof(mgcp_msg_dlcx.endpoint));
+	msgb_dlcx = mgcp_msg_gen(mgcp, &mgcp_msg_dlcx);
+	mgcp_client_tx(mgcp, msgb_dlcx, &_ignore_mgcp_response, NULL);
+}
+
 struct mgcp_client *mgcp_client_init(void *ctx,
 				     struct mgcp_client_conf *conf)
 {
@@ -818,40 +852,6 @@ struct mgcp_client *mgcp_client_init(void *ctx,
 		mgcp->actual.description = talloc_strdup(mgcp, conf->description);
 
 	return mgcp;
-}
-
-/* Safely ignore the MGCP response to the DLCX sent via _mgcp_client_send_dlcx() */
-static void _ignore_mgcp_response(struct mgcp_response *response, void *priv) { }
-
-/* Format DLCX message (fire and forget) and send it off to the MGW */
-static void _mgcp_client_send_dlcx(struct mgcp_client *mgcp, const char *epname)
-{
-	struct msgb *msgb_dlcx;
-	struct mgcp_msg mgcp_msg_dlcx = {
-		.verb = MGCP_VERB_DLCX,
-		.presence = MGCP_MSG_PRESENCE_ENDPOINT,
-	};
-	osmo_strlcpy(mgcp_msg_dlcx.endpoint, epname, sizeof(mgcp_msg_dlcx.endpoint));
-	msgb_dlcx = mgcp_msg_gen(mgcp, &mgcp_msg_dlcx);
-	mgcp_client_tx(mgcp, msgb_dlcx, &_ignore_mgcp_response, NULL);
-}
-
-static const char *_mgcp_client_name_append_domain(const struct mgcp_client *mgcp, const char *name)
-{
-	static char endpoint[MGCP_ENDPOINT_MAXLEN];
-	int rc;
-
-	rc = snprintf(endpoint, sizeof(endpoint), "%s@%s", name, mgcp_client_endpoint_domain(mgcp));
-	if (rc > sizeof(endpoint) - 1) {
-		LOGPMGW(mgcp, LOGL_ERROR, "MGCP endpoint exceeds maximum length of %zu: '%s@%s'\n",
-			sizeof(endpoint) - 1, name, mgcp_client_endpoint_domain(mgcp));
-		return NULL;
-	}
-	if (rc < 1) {
-		LOGPMGW(mgcp, LOGL_ERROR, "Cannot compose MGCP endpoint name\n");
-		return NULL;
-	}
-	return endpoint;
 }
 
 /*! Initialize client connection (opens socket)
