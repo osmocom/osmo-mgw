@@ -229,6 +229,17 @@ bool mgcp_endp_is_wildcarded(const char *epname)
 	return false;
 }
 
+/*! Check if the given epname refers to a "null" endpoint.
+ *  \param[in] epname endpoint name to check
+ *  \returns true if epname refers to "null"" endpoint, else false. */
+bool mgcp_endp_is_null(const char *epname)
+{
+	if (strncasecmp(epname, "null@", 5) == 0)
+		return true;
+
+	return false;
+}
+
 /*! Find an endpoint by its name on a specified trunk.
  *  \param[out] cause pointer to store cause code, can be NULL.
  *  \param[in] epname endpoint name to lookup.

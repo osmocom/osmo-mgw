@@ -77,6 +77,8 @@ static void test_strline(void)
 #define AUEP1_RET "500 158663169 FAIL\r\n"
 #define AUEP2	"AUEP 18983213 ds/e1-2/1@mgw MGCP 1.0\r\n"
 #define AUEP2_RET "500 18983213 FAIL\r\n"
+#define AUEP_NULL "AUEP 18983215 null@mgw MGCP 1.0\r\n"
+#define AUEP_NULL_RET "200 18983215 OK\r\n"
 #define EMPTY	"\r\n"
 #define EMPTY_RET NULL
 #define SHORT	"CRCX \r\n"
@@ -274,6 +276,12 @@ static void test_strline(void)
 
 #define MDCX_TOO_LONG_CI_RET "510 18983224 FAIL\r\n"
 
+#define MDCX_NULL \
+	"MDCX 9 null@mgw MGCP 1.0\r\n" \
+	"I: %s\n"
+
+#define MDCX_NULL_RET "502 9 FAIL\r\n"
+
 #define SHORT2	"CRCX 1"
 #define SHORT2_RET "510 000000 FAIL\r\n"
 #define SHORT3	"CRCX 1 1@mgw"
@@ -392,6 +400,13 @@ static void test_strline(void)
  #define DLCX_RET_OSMUX DLCX_RET \
 	"X-Osmo-CP: EC TI=0, TO=0\r\n"
 
+#define DLCX_NULL \
+	"DLCX 8 null@mgw MGCP 1.0\r\n" \
+	"I: %s\r\n" \
+	"C: 2\r\n"
+
+#define DLCX_NULL_RET "502 8 FAIL\r\n"
+
 #define RQNT \
 	"RQNT 186908780 1@mgw MGCP 1.0\r\n" \
 	"X: B244F267488\r\n" \
@@ -404,6 +419,13 @@ static void test_strline(void)
 
 #define RQNT1_RET "200 186908780 OK\r\n"
 #define RQNT2_RET "200 186908781 OK\r\n"
+
+#define RQNT_NULL \
+	"RQNT 186908782 null@mgw MGCP 1.0\r\n" \
+	"X: B244F267488\r\n" \
+	"S: D/9\r\n"
+
+#define RQNT_NULL_RET "502 186908782 FAIL\r\n"
 
 #define PTYPE_IGNORE 0		/* == default initializer */
 #define PTYPE_NONE 128
@@ -545,6 +567,20 @@ static void test_strline(void)
 	"m=audio 16008 RTP/AVP 0\r\n" \
 	"a=ptime:20\r\n"
 
+#define CRCX_NULL \
+	"CRCX 2 null@mgw MGCP 1.0\r\n" \
+	"m: recvonly\r\n" \
+	"C: 2\r\n" \
+	"L: p:20\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"c=IN IP4 123.12.12.123\r\n" \
+	"m=audio 5904 RTP/AVP 97\r\n" \
+	"a=rtpmap:97 GSM-EFR/8000\r\n" \
+	"a=ptime:40\r\n"
+
+#define CRCX_NULL_RET "502 2 FAIL\r\n"
+
 struct mgcp_test {
 	const char *name;
 	const char *req;
@@ -586,6 +622,11 @@ static const struct mgcp_test tests[] = {
 	{"CRCX", CRCX_X_OSMO_IGN, CRCX_X_OSMO_IGN_RET, 97},
 	{"MDCX_TOO_LONG_CI", MDCX_TOO_LONG_CI, MDCX_TOO_LONG_CI_RET},
 	{"CRCX", CRCX_AMR_WITH_FMTP, CRCX_AMR_WITH_FMTP_RET},
+	{"AUEP_NULL", AUEP_NULL, AUEP_NULL_RET},
+	{"CRCX_NULL", CRCX_NULL, CRCX_NULL_RET},
+	{"MDCX_NULL", MDCX_NULL, MDCX_NULL_RET},
+	{"DLCX_NULL", DLCX_NULL, DLCX_NULL_RET},
+	{"RQNT_NULL", RQNT_NULL, RQNT_NULL_RET},
 };
 
 static const struct mgcp_test retransmit[] = {

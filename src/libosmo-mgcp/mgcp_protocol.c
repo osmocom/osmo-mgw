@@ -86,6 +86,9 @@ struct mgcp_request_data {
 	/* set to true when the request has been classified as wildcarded */
 	bool wildcarded;
 
+	/* Set to true when the request is targeted at the "null" endpoint */
+	bool null_endp;
+
 	/* contains cause code in case of problems during endp/trunk resolution */
 	int mgcp_cause;
 };
@@ -390,7 +393,10 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 	/* Locate endpoint and trunk, if no endpoint can be located try at least to identify the trunk. */
 	rq.pdata = &pdata;
 	rq.wildcarded = mgcp_endp_is_wildcarded(pdata.epname);
-	rq.endp = mgcp_endp_by_name(&rc, pdata.epname, pdata.cfg);
+	if (!rq.wildcarded)
+		rq.null_endp = mgcp_endp_is_null(pdata.epname);
+	if (!rq.null_endp)
+		rq.endp = mgcp_endp_by_name(&rc, pdata.epname, pdata.cfg);
 	rq.mgcp_cause = rc;
 	if (!rq.endp) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_FAIL_NO_ENDPOINT));
@@ -407,14 +413,14 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 				     rq.name, pdata.epname);
 				return create_err_response(cfg, NULL, -rq.mgcp_cause, rq.name, pdata.trans);
 			}
-		} else {
+		} else if (!rq.null_endp) {
 			/* If the endpoint name suggests that the request refers to a specific endpoint, then the
 			 * request cannot be handled and we must stop early. */
 			LOGP(DLMGCP, LOGL_NOTICE,
 			     "%s: cannot find endpoint \"%s\", cause=%d -- abort\n", rq.name,
 			     pdata.epname, -rq.mgcp_cause);
 			return create_err_response(cfg, NULL, -rq.mgcp_cause, rq.name, pdata.trans);
-		}
+		} /* else: Handle special "null" endpoint below (with rq.endp=NULL, rq.trunk=NULL) */
 	} else {
 		osmo_strlcpy(debug_last_endpoint_name, rq.endp->name, sizeof(debug_last_endpoint_name));
 		rq.trunk = rq.endp->trunk;
@@ -460,6 +466,11 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 static struct msgb *handle_audit_endpoint(struct mgcp_request_data *rq)
 {
 	LOGPENDP(rq->endp, DLMGCP, LOGL_NOTICE, "AUEP: auditing endpoint ...\n");
+
+	/* Auditing "null" endpoint is allowed for keepalive purposes. There's no rq->endp nor rq->trunk in this case. */
+	if (rq->null_endp)
+		return create_ok_response(rq->pdata->cfg, NULL, 200, "AUEP", rq->pdata->trans);
+
 	if (!rq->endp || !mgcp_endp_avail(rq->endp)) {
 		LOGPENDP(rq->endp, DLMGCP, LOGL_ERROR, "AUEP: selected endpoint not available!\n");
 		return create_err_response(rq->trunk, NULL, 501, "AUEP", rq->pdata->trans);
@@ -855,7 +866,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 	struct mgcp_parse_data *pdata = rq->pdata;
 	struct mgcp_trunk *trunk = rq->trunk;
 	struct mgcp_endpoint *endp = rq->endp;
-	struct rate_ctr_group *rate_ctrs = trunk->ratectr.mgcp_crcx_ctr_group;
+	struct rate_ctr_group *rate_ctrs;
 	int error_code = 400;
 	const char *local_options = NULL;
 	const char *callid = NULL;
@@ -868,6 +879,14 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 	int rc;
 
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "CRCX: creating new connection ...\n");
+
+	if (rq->null_endp) {
+		/* trunk not available so rate_ctr aren't available either. */
+		LOGP(DLMGCP, LOGL_ERROR, "CRCX: Not allowed in 'null' endpoint!\n");
+		return create_err_response(pdata->cfg, NULL, 502, "CRCX", pdata->trans);
+	}
+
+	rate_ctrs = trunk->ratectr.mgcp_crcx_ctr_group;
 
 	/* we must have a free ep */
 	if (!endp) {
@@ -1134,7 +1153,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	struct mgcp_parse_data *pdata = rq->pdata;
 	struct mgcp_trunk *trunk = rq->trunk;
 	struct mgcp_endpoint *endp = rq->endp;
-	struct rate_ctr_group *rate_ctrs = trunk->ratectr.mgcp_mdcx_ctr_group;
+	struct rate_ctr_group *rate_ctrs;
 	char new_local_addr[INET6_ADDRSTRLEN];
 	int error_code = 500;
 	int silent = 0;
@@ -1148,6 +1167,14 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	int rc;
 
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "MDCX: modifying existing connection ...\n");
+
+	if (rq->null_endp) {
+		/* trunk not available so rate_ctr aren't available either. */
+		LOGP(DLMGCP, LOGL_ERROR, "MDCX: Not allowed in 'null' endpoint!\n");
+		return create_err_response(pdata->cfg, NULL, 502, "MDCX", pdata->trans);
+	}
+
+	rate_ctrs = trunk->ratectr.mgcp_mdcx_ctr_group;
 
 	/* Prohibit wildcarded requests */
 	if (rq->wildcarded) {
@@ -1360,7 +1387,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	struct mgcp_parse_data *pdata = rq->pdata;
 	struct mgcp_trunk *trunk = rq->trunk;
 	struct mgcp_endpoint *endp = rq->endp;
-	struct rate_ctr_group *rate_ctrs = trunk->ratectr.mgcp_dlcx_ctr_group;
+	struct rate_ctr_group *rate_ctrs;
 	int error_code = 400;
 	int silent = 0;
 	char *line;
@@ -1370,10 +1397,18 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	unsigned int i;
 
 	/* NOTE: In this handler we can not take it for granted that the endp
-	 * pointer will be populated, however a trunk is always guaranteed. */
+	 * pointer will be populated, however a trunk is always guaranteed (except for 'null' endp).
+	 */
 
 	LOGPEPTR(endp, trunk, DLMGCP, LOGL_NOTICE, "DLCX: deleting connection(s) ...\n");
 
+	if (rq->null_endp) {
+		/* trunk not available so rate_ctr aren't available either. */
+		LOGP(DLMGCP, LOGL_ERROR, "DLCX: Not allowed in 'null' endpoint!\n");
+		return create_err_response(pdata->cfg, NULL, 502, "DLCX", pdata->trans);
+	}
+
+	rate_ctrs = trunk->ratectr.mgcp_dlcx_ctr_group;
 	if (endp && !mgcp_endp_avail(endp)) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_AVAIL));
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
@@ -1524,6 +1559,12 @@ static struct msgb *handle_rsip(struct mgcp_request_data *rq)
 
 	LOGP(DLMGCP, LOGL_NOTICE, "RSIP: resetting all endpoints ...\n");
 
+	if (rq->null_endp) {
+		/* trunk not available so rate_ctr aren't available either. */
+		LOGP(DLMGCP, LOGL_ERROR, "RSIP: Not allowed in 'null' endpoint!\n");
+		return create_err_response(rq->pdata->cfg, NULL, 502, "RSIP", rq->pdata->trans);
+	}
+
 	if (rq->pdata->cfg->reset_cb)
 		rq->pdata->cfg->reset_cb(rq->endp->trunk);
 	return NULL;
@@ -1548,6 +1589,12 @@ static struct msgb *handle_noti_req(struct mgcp_request_data *rq)
 	char tone = CHAR_MAX;
 
 	LOGP(DLMGCP, LOGL_NOTICE, "RQNT: processing request for notification ...\n");
+
+	if (rq->null_endp) {
+		/* trunk not available so rate_ctr aren't available either. */
+		LOGP(DLMGCP, LOGL_ERROR, "RQNT: Not allowed in 'null' endpoint!\n");
+		return create_err_response(rq->pdata->cfg, NULL, 502, "RQNT", rq->pdata->trans);
+	}
 
 	for_each_line(line, rq->pdata->save) {
 		switch (toupper(line[0])) {

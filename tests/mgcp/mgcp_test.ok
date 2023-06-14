@@ -526,6 +526,80 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
+Testing AUEP_NULL
+creating message from statically defined input:
+---------8<---------
+AUEP 18983215 null@mgw MGCP 1.0
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+(response does not contain a connection id)
+
+================================================
+Testing CRCX_NULL
+creating message from statically defined input:
+---------8<---------
+CRCX 2 null@mgw MGCP 1.0
+m: recvonly
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP 97
+a=rtpmap:97 GSM-EFR/8000
+a=ptime:40
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+(response does not contain a connection id)
+
+================================================
+Testing MDCX_NULL
+creating message from statically defined input:
+---------8<---------
+MDCX 9 null@mgw MGCP 1.0
+I: %s
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+(response does not contain a connection id)
+
+================================================
+Testing DLCX_NULL
+creating message from statically defined input:
+---------8<---------
+DLCX 8 null@mgw MGCP 1.0
+I: %s
+C: 2
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+(response does not contain a connection id)
+
+================================================
+Testing RQNT_NULL
+creating message from statically defined input:
+---------8<---------
+RQNT 186908782 null@mgw MGCP 1.0
+X: B244F267488
+S: D/9
+
+---------8<---------
+checking response:
+using message as statically defined for comparison
+Response matches our expectations.
+(response does not contain a connection id)
+
+================================================
 Testing CRCX
 creating message from statically defined input:
 ---------8<---------

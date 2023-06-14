@@ -133,6 +133,7 @@ struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk, unsigned int ind
 int mgcp_endp_claim(struct mgcp_endpoint *endp, const char *callid);
 void mgcp_endp_update(struct mgcp_endpoint *endp);
 bool mgcp_endp_is_wildcarded(const char *epname);
+bool mgcp_endp_is_null(const char *epname);
 struct mgcp_endpoint *mgcp_endp_by_name_trunk(int *cause, const char *epname,
 					      const struct mgcp_trunk *trunk);
 struct mgcp_endpoint *mgcp_endp_by_name(int *cause, const char *epname,

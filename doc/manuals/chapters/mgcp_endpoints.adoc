@@ -92,3 +92,9 @@ not yet useable.
 
 NOTE: the VTY command "show mgcp" can be used to get a list of all available
 endpoints (including identifiers)
+
+=== The `null` endpoint
+
+OsmoMGW offers a special `null@<domain>` endpoint which can be audited at all times.
+This is useful for MGCP clients who wish to submit requests to OsmoMGW
+periodically to find out whether it is still reachable and in a working state.
