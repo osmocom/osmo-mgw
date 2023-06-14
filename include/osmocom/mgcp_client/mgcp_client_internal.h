@@ -1,6 +1,7 @@
 #pragma once
 
 #include <osmocom/core/write_queue.h>
+#include <osmocom/core/timer.h>
 
 #define MSGB_CB_MGCP_TRANS_ID 0
 
@@ -16,6 +17,9 @@ struct mgcp_client {
 	mgcp_trans_id_t next_trans_id;
 	struct llist_head responses_pending;
 	struct mgcp_client_pool_member *pool_member;
+	struct osmo_timer_list keepalive_tx_timer;
+	struct osmo_timer_list keepalive_rx_timer;
+	bool conn_up;
 };
 
 struct mgcp_response_pending {

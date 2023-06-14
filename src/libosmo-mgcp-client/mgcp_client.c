@@ -202,6 +202,11 @@ static void _mgcp_client_conf_init(struct mgcp_client_conf *conf)
 		.local_port = -1,
 		.remote_addr = NULL,
 		.remote_port = -1,
+		.keepalive = {
+			.timeout_sec = 0, /* disabled */
+			.req_interval_sec = 0, /* disabled */
+			.req_endpoint_name = MGCP_CLIENT_KEEPALIVE_DEFAULT_ENDP,
+		},
 	};
 
 	INIT_LLIST_HEAD(&conf->reset_epnames);
@@ -696,6 +701,14 @@ int mgcp_client_rx(struct mgcp_client *mgcp, struct msgb *msg)
 	r = talloc_zero(mgcp, struct mgcp_response);
 	OSMO_ASSERT(r);
 
+	/* Re-arm keepalive timer if enabled */
+	if (OSMO_UNLIKELY(mgcp->conn_up == false)) {
+		LOGPMGW(mgcp, LOGL_NOTICE, "MGCP link to MGW now considered UP\n");
+		mgcp->conn_up = true;
+	}
+	if (mgcp->actual.keepalive.timeout_sec > 0)
+		osmo_timer_schedule(&mgcp->keepalive_rx_timer, mgcp->actual.keepalive.timeout_sec, 0);
+
 	rc = mgcp_response_parse_head(r, msg);
 	if (rc) {
 		LOGPMGW(mgcp, LOGL_ERROR, "Cannot parse MGCP response (head)\n");
@@ -766,10 +779,14 @@ static int mgcp_do_write(struct osmo_fd *fd, struct msgb *msg)
 		osmo_escape_str((const char *)msg->data, OSMO_MIN(42, msg->len)));
 
 	ret = write(fd->fd, msg->data, msg->len);
-	if (ret != msg->len)
+	if (OSMO_UNLIKELY(ret != msg->len))
 		LOGPMGW(mgcp, LOGL_ERROR, "Failed to Tx MGCP: %s: %d='%s'; msg: len=%u '%s'...\n",
 			osmo_sock_get_name2(fd->fd), errno, strerror(errno),
 			msg->len, osmo_escape_str((const char *)msg->data, OSMO_MIN(42, msg->len)));
+
+	/* Re-arm the keepalive Tx timer: */
+	if (mgcp->actual.keepalive.req_interval_sec > 0)
+		osmo_timer_schedule(&mgcp->keepalive_tx_timer, mgcp->actual.keepalive.req_interval_sec, 0);
 	return ret;
 }
 
@@ -805,6 +822,39 @@ static void _mgcp_client_send_dlcx(struct mgcp_client *mgcp, const char *epname)
 	osmo_strlcpy(mgcp_msg_dlcx.endpoint, epname, sizeof(mgcp_msg_dlcx.endpoint));
 	msgb_dlcx = mgcp_msg_gen(mgcp, &mgcp_msg_dlcx);
 	mgcp_client_tx(mgcp, msgb_dlcx, &_ignore_mgcp_response, NULL);
+}
+
+/* Format AuditEndpoint message (fire and forget) and send it off to the MGW */
+static void _mgcp_client_send_auep(struct mgcp_client *mgcp, const char *epname)
+{
+	struct msgb *msgb_auep;
+	struct mgcp_msg mgcp_msg_auep = {
+		.verb = MGCP_VERB_AUEP,
+		.presence = MGCP_MSG_PRESENCE_ENDPOINT,
+	};
+	OSMO_STRLCPY_ARRAY(mgcp_msg_auep.endpoint, epname);
+	msgb_auep = mgcp_msg_gen(mgcp, &mgcp_msg_auep);
+	mgcp_client_tx(mgcp, msgb_auep, &_ignore_mgcp_response, NULL);
+}
+
+static void mgcp_client_keepalive_tx_timer_cb(void *data)
+{
+	struct mgcp_client *mgcp = (struct mgcp_client *)data;
+	LOGPMGW(mgcp, LOGL_INFO, "Triggering keepalive MGCP request\n");
+	const char *epname = _mgcp_client_name_append_domain(mgcp, mgcp->actual.keepalive.req_endpoint_name);
+	_mgcp_client_send_auep(mgcp, epname);
+
+	/* Re-arm the timer: */
+	osmo_timer_schedule(&mgcp->keepalive_tx_timer, mgcp->actual.keepalive.req_interval_sec, 0);
+}
+
+static void mgcp_client_keepalive_rx_timer_cb(void *data)
+{
+	struct mgcp_client *mgcp = (struct mgcp_client *)data;
+	LOGPMGW(mgcp, LOGL_ERROR, "MGCP link to MGW now considered DOWN (keepalive timeout, more than %u seconds with no answer from MGW)\n",
+		mgcp->actual.keepalive.timeout_sec);
+	mgcp->conn_up = false;
+	/* TODO: Potentially time out all ongoing transactions for that MGW. Maybe based on VTY cfg? */
 }
 
 struct mgcp_client *mgcp_client_init(void *ctx,
@@ -851,6 +901,15 @@ struct mgcp_client *mgcp_client_init(void *ctx,
 	if (conf->description)
 		mgcp->actual.description = talloc_strdup(mgcp, conf->description);
 
+	osmo_wqueue_init(&mgcp->wq, 1024);
+	mgcp->wq.read_cb = mgcp_do_read;
+	mgcp->wq.write_cb = mgcp_do_write;
+	osmo_fd_setup(&mgcp->wq.bfd, -1, OSMO_FD_READ, osmo_wqueue_bfd_cb, mgcp, 0);
+
+	memcpy(&mgcp->actual.keepalive, &conf->keepalive, sizeof(conf->keepalive));
+	osmo_timer_setup(&mgcp->keepalive_tx_timer, mgcp_client_keepalive_tx_timer_cb, mgcp);
+	osmo_timer_setup(&mgcp->keepalive_rx_timer, mgcp_client_keepalive_rx_timer_cb, mgcp);
+
 	return mgcp;
 }
 
@@ -859,24 +918,17 @@ struct mgcp_client *mgcp_client_init(void *ctx,
  *  \returns 0 on success, -EINVAL on error. */
 int mgcp_client_connect(struct mgcp_client *mgcp)
 {
-	struct osmo_wqueue *wq;
 	int rc;
 	struct reset_ep *reset_ep;
 	const char *epname;
+	bool some_dlcx_sent = false;
 
 	if (!mgcp) {
 		LOGPMGW(mgcp, LOGL_FATAL, "Client not initialized properly\n");
 		return -EINVAL;
 	}
 
-	wq = &mgcp->wq;
-	osmo_wqueue_init(wq, 1024);
-	wq->read_cb = mgcp_do_read;
-	wq->write_cb = mgcp_do_write;
-
-	osmo_fd_setup(&wq->bfd, -1, OSMO_FD_READ, osmo_wqueue_bfd_cb, mgcp, 0);
-
-	rc = osmo_sock_init2_ofd(&wq->bfd, AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP, mgcp->actual.local_addr,
+	rc = osmo_sock_init2_ofd(&mgcp->wq.bfd, AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP, mgcp->actual.local_addr,
 				 mgcp->actual.local_port, mgcp->actual.remote_addr, mgcp->actual.remote_port,
 				 OSMO_SOCK_F_BIND | OSMO_SOCK_F_CONNECT);
 	if (rc < 0) {
@@ -888,7 +940,7 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 		goto error_close_fd;
 	}
 
-	LOGPMGW(mgcp, LOGL_INFO, "MGW connection: %s\n", osmo_sock_get_name2(wq->bfd.fd));
+	LOGPMGW(mgcp, LOGL_INFO, "MGW connection: %s\n", osmo_sock_get_name2(mgcp->wq.bfd.fd));
 
 	/* If configured, send a DLCX message to the endpoints that are configured to
 	 * be reset on startup. Usually this is a wildcarded endpoint. */
@@ -896,11 +948,27 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 		epname = _mgcp_client_name_append_domain(mgcp, reset_ep->name);
 		LOGPMGW(mgcp, LOGL_INFO, "Sending DLCX to: %s\n", epname);
 		_mgcp_client_send_dlcx(mgcp, epname);
+		some_dlcx_sent = true;
 	}
+
+	if (!some_dlcx_sent) {
+		if (mgcp->actual.keepalive.req_interval_sec > 0) {
+			/* Attempt an immediate probe to find out if link is UP or DOWN: */
+			osmo_timer_schedule(&mgcp->keepalive_tx_timer, 0, 0);
+		} else {
+			/* Assume link is UP by default, so that this MGW can be selected: */
+			mgcp->conn_up = true;
+		}
+	}
+	/* else: keepalive_tx_timer was already scheduled (if needed) down in the stack during Tx DLCX above */
+
+	if (mgcp->actual.keepalive.timeout_sec > 0)
+		osmo_timer_schedule(&mgcp->keepalive_rx_timer, mgcp->actual.keepalive.timeout_sec, 0);
+
 	return 0;
 error_close_fd:
-	close(wq->bfd.fd);
-	wq->bfd.fd = -1;
+	close(mgcp->wq.bfd.fd);
+	mgcp->wq.bfd.fd = -1;
 	return rc;
 }
 
@@ -923,6 +991,11 @@ void mgcp_client_disconnect(struct mgcp_client *mgcp)
 		LOGP(DLMGCP, LOGL_FATAL, "MGCP client not initialized properly\n");
 		return;
 	}
+
+	/* Disarm keepalive Tx/Rx timer until next connect() */
+	osmo_timer_del(&mgcp->keepalive_rx_timer);
+	osmo_timer_del(&mgcp->keepalive_tx_timer);
+	mgcp->conn_up = false;
 
 	wq = &mgcp->wq;
 	osmo_wqueue_clear(wq);

@@ -11,7 +11,7 @@
 #define MGCP_CLIENT_LOCAL_PORT_DEFAULT 0
 #define MGCP_CLIENT_REMOTE_ADDR_DEFAULT "127.0.0.1"
 #define MGCP_CLIENT_REMOTE_PORT_DEFAULT 2427
-
+#define MGCP_CLIENT_KEEPALIVE_DEFAULT_ENDP "null"
 #define MGCP_CLIENT_MGW_STR "Configure MGCP connection to Media Gateway\n"
 
 struct msgb;
@@ -36,6 +36,12 @@ struct mgcp_client_conf {
 
 	/* human readable name / description */
 	char *description;
+
+	struct {
+		uint32_t timeout_sec;
+		uint32_t req_interval_sec;
+		char req_endpoint_name[MGCP_ENDPOINT_MAXLEN];
+	} keepalive;
 };
 
 typedef unsigned int mgcp_trans_id_t;

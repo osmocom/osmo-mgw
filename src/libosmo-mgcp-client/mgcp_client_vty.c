@@ -28,6 +28,7 @@
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/misc.h>
 #include <osmocom/core/utils.h>
+#include <osmocom/core/timer.h>
 
 #include <osmocom/mgcp_client/mgcp_client.h>
 #include <osmocom/mgcp_client/mgcp_client_internal.h>
@@ -48,7 +49,7 @@ static struct mgcp_client_conf *global_mgcp_client_conf = NULL;
 /* Pointer to the MGCP pool that is managed by mgcp_client_pool_vty_init() */
 static struct mgcp_client_pool *global_mgcp_client_pool = NULL;
 
-struct mgcp_client_conf *get_mgcp_client_config(struct vty *vty)
+static struct mgcp_client_conf *get_mgcp_client_config(struct vty *vty)
 {
 	if (global_mgcp_client_pool && vty->node == global_mgcp_client_pool->vty_node->node)
 		return vty->index;
@@ -60,6 +61,30 @@ struct mgcp_client_conf *get_mgcp_client_config(struct vty *vty)
 
 	return global_mgcp_client_conf;
 }
+
+static struct mgcp_client *get_mgcp_client(struct vty *vty)
+{
+	struct mgcp_client_conf *conf = get_mgcp_client_config(vty);
+	struct mgcp_client_pool_member *pool_member;
+
+	if (global_mgcp_client_pool && vty->node == global_mgcp_client_pool->vty_node->node) {
+		llist_for_each_entry(pool_member, &global_mgcp_client_pool->member_list, list) {
+			/* Find matching the conf pointer: */
+			if (&pool_member->conf != conf)
+				continue;
+			return pool_member->client;
+		}
+	}
+
+	/* Global single MGCP config, deprecated: */
+	vty_out(vty, "%% MGCP commands outside of 'mgw' nodes are deprecated. "
+		"You should consider reading the User Manual and migrating to 'mgw' node.%s",
+		VTY_NEWLINE);
+
+	/* There's no way to obtain the struct mgcp_client in old interface, but anyway it's deprecated. */
+	return NULL;
+}
+
 
 DEFUN(cfg_mgw_local_ip, cfg_mgw_local_ip_cmd,
       "local-ip " VTY_IPV46_CMD,
@@ -280,6 +305,81 @@ ALIAS_DEPRECATED(cfg_mgw_no_reset_ep_name,
       NO_STR MGW_STR "remove an endpoint name from the reset-endpoint list, e.g. 'rtpbridge/*'\n"
       "Endpoint name, e.g. 'rtpbridge/*' or 'ds/e1-0/s-3/su16-4'.\n")
 
+DEFUN(cfg_mgw_mgw_keepalive_req_interval,
+      cfg_mgw_mgw_keepalive_req_interval_cmd,
+      "keepalive request-interval <0-4294967295>",
+      "Monitor if the MGCP link against MGW is still usable\n"
+      "Send an MGCP command to the MGW at given interval if no other commands are sent\n"
+      "The interval at which send MGCP commands (s), 0 to disable\n")
+{
+	struct mgcp_client_conf *conf = get_mgcp_client_config(vty);
+	struct mgcp_client *mgcp = get_mgcp_client(vty);
+
+	conf->keepalive.req_interval_sec = atoi(argv[0]);
+
+	if (!mgcp)
+		return CMD_SUCCESS;
+
+	/* If client already exists, apply the change immediately if possible: */
+	mgcp->actual.keepalive.req_interval_sec = atoi(argv[0]);
+	if (mgcp->wq.bfd.fd != -1) { /* UDP MGCP socket connected */
+		if (mgcp->actual.keepalive.req_interval_sec > 0) /* Re-schedule: */
+			osmo_timer_schedule(&mgcp->keepalive_tx_timer, mgcp->actual.keepalive.req_interval_sec, 0);
+		else if (osmo_timer_pending(&mgcp->keepalive_tx_timer))
+			osmo_timer_del(&mgcp->keepalive_tx_timer);
+	} /* else: wait until connect() to do first scheduling */
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_mgw_mgw_keepalive_req_endpoint,
+      cfg_mgw_mgw_keepalive_req_endpoint_cmd,
+      "keepalive request-endpoint NAME",
+      "Monitor if the MGCP link against MGW is still usable\n"
+      "Use a given endpoint name when sending an MGCP command to the MGW for keepalive purposes\n"
+      "The name of the endpoint to use\n")
+{
+	struct mgcp_client_conf *conf = get_mgcp_client_config(vty);
+	struct mgcp_client *mgcp = get_mgcp_client(vty);
+
+	OSMO_STRLCPY_ARRAY(conf->keepalive.req_endpoint_name, argv[0]);
+
+	if (!mgcp)
+		return CMD_SUCCESS;
+
+	/* If client already exists, apply the change immediately if possible: */
+	OSMO_STRLCPY_ARRAY(mgcp->actual.keepalive.req_endpoint_name, argv[0]);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_mgw_mgw_keepalive_timeout,
+      cfg_mgw_mgw_keepalive_timeout_cmd,
+      "keepalive timeout <0-4294967295>",
+      "Monitor if the MGCP link against MGW is still usable\n"
+      "Consider the link to the MGW to be down after time without receiving any message from it\n"
+      "The timeout (s), 0 to disable\n")
+{
+	struct mgcp_client_conf *conf = get_mgcp_client_config(vty);
+	struct mgcp_client *mgcp = get_mgcp_client(vty);
+
+	conf->keepalive.timeout_sec = atoi(argv[0]);
+
+	if (!mgcp)
+		return CMD_SUCCESS;
+
+	/* If client already exists, apply the change immediately if possible: */
+	mgcp->actual.keepalive.timeout_sec = atoi(argv[0]);
+	if (mgcp->wq.bfd.fd != -1) { /* UDP MGCP socket connected */
+		if (mgcp->actual.keepalive.timeout_sec > 0) /* Re-schedule: */
+			osmo_timer_schedule(&mgcp->keepalive_rx_timer, mgcp->actual.keepalive.timeout_sec, 0);
+		else if (osmo_timer_pending(&mgcp->keepalive_rx_timer))
+			osmo_timer_del(&mgcp->keepalive_rx_timer);
+	} /* else: wait until connect() to do first scheduling */
+
+	return CMD_SUCCESS;
+}
+
 static int config_write(struct vty *vty, const char *indent, struct mgcp_client_conf *conf)
 {
 	const char *addr;
@@ -317,6 +417,17 @@ static int config_write(struct vty *vty, const char *indent, struct mgcp_client_
 	llist_for_each_entry(reset_ep, &conf->reset_epnames, list)
 		vty_out(vty, "%s%sreset-endpoint %s%s", indent, mgw_prefix, reset_ep->name, VTY_NEWLINE);
 
+	if (conf->keepalive.req_interval_sec != 0)
+		vty_out(vty, "%s%skeepalive request-interval %u%s", indent, mgw_prefix,
+			conf->keepalive.req_interval_sec, VTY_NEWLINE);
+	if (strncmp(conf->keepalive.req_endpoint_name, MGCP_CLIENT_KEEPALIVE_DEFAULT_ENDP,
+		    sizeof(conf->keepalive.req_endpoint_name)) != 0)
+		vty_out(vty, "%s%skeepalive request-endpoint %s%s", indent,  mgw_prefix,
+			conf->keepalive.req_endpoint_name, VTY_NEWLINE);
+	if (conf->keepalive.timeout_sec != 0)
+		vty_out(vty, "%s%skeepalive timeout %u%s", indent,  mgw_prefix,
+			conf->keepalive.timeout_sec, VTY_NEWLINE);
+
 	return CMD_SUCCESS;
 }
 
@@ -347,6 +458,9 @@ static void vty_init_common(void *talloc_ctx, int node)
 	install_lib_element(node, &cfg_mgw_mgw_endpoint_domain_name_cmd);
 	install_lib_element(node, &cfg_mgw_mgw_reset_ep_name_cmd);
 	install_lib_element(node, &cfg_mgw_mgw_no_reset_ep_name_cmd);
+	install_lib_element(node, &cfg_mgw_mgw_keepalive_req_interval_cmd);
+	install_lib_element(node, &cfg_mgw_mgw_keepalive_req_endpoint_cmd);
+	install_lib_element(node, &cfg_mgw_mgw_keepalive_timeout_cmd);
 
 	osmo_fsm_vty_add_cmds();
 }
@@ -553,8 +667,13 @@ DEFUN(mgw_show, mgw_show_cmd, "show mgw-pool", SHOW_STR "Display information abo
 	}
 
 	llist_for_each_entry(pool_member, &global_mgcp_client_pool->member_list, list) {
+		const struct mgcp_client *cli = pool_member->client;
 		vty_out(vty, "%%  MGW %s%s", mgcp_client_pool_member_name(pool_member), VTY_NEWLINE);
-		vty_out(vty, "%%   mgcp-client:   %s%s", pool_member->client ? "connected" : "disconnected",
+		vty_out(vty, "%%   MGCP link:     %s,%s%s",
+			cli && cli->wq.bfd.fd != -1 ? "connected" : "disconnected",
+			cli && cli->conn_up ?
+				((cli->actual.keepalive.timeout_sec > 0) ? "UP" : "MAYBE") :
+				"DOWN",
 			VTY_NEWLINE);
 		vty_out(vty, "%%   service:       %s%s", pool_member->blocked ? "blocked" : "unblocked", VTY_NEWLINE);
 		vty_out(vty, "%%   ongoing calls: %u%s", pool_member->refcount, VTY_NEWLINE);
