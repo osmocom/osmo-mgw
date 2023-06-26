@@ -951,16 +951,16 @@ int mgcp_client_connect(struct mgcp_client *mgcp)
 		some_dlcx_sent = true;
 	}
 
-	if (!some_dlcx_sent) {
-		if (mgcp->actual.keepalive.req_interval_sec > 0) {
+	if (mgcp->actual.keepalive.req_interval_sec > 0) {
+		if (!some_dlcx_sent) {
 			/* Attempt an immediate probe to find out if link is UP or DOWN: */
 			osmo_timer_schedule(&mgcp->keepalive_tx_timer, 0, 0);
-		} else {
-			/* Assume link is UP by default, so that this MGW can be selected: */
-			mgcp->conn_up = true;
 		}
+		/* else: keepalive_tx_timer was already scheduled (if needed) down in the stack during Tx DLCX above */
+	} else {
+		/* Assume link is UP by default, so that this MGW can be selected: */
+		mgcp->conn_up = true;
 	}
-	/* else: keepalive_tx_timer was already scheduled (if needed) down in the stack during Tx DLCX above */
 
 	if (mgcp->actual.keepalive.timeout_sec > 0)
 		osmo_timer_schedule(&mgcp->keepalive_rx_timer, mgcp->actual.keepalive.timeout_sec, 0);
