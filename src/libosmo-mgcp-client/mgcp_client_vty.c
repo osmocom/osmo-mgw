@@ -323,10 +323,15 @@ DEFUN(cfg_mgw_mgw_keepalive_req_interval,
 	/* If client already exists, apply the change immediately if possible: */
 	mgcp->actual.keepalive.req_interval_sec = atoi(argv[0]);
 	if (mgcp->wq.bfd.fd != -1) { /* UDP MGCP socket connected */
-		if (mgcp->actual.keepalive.req_interval_sec > 0) /* Re-schedule: */
+		if (mgcp->actual.keepalive.req_interval_sec > 0) {
+			/* Re-schedule: */
 			osmo_timer_schedule(&mgcp->keepalive_tx_timer, mgcp->actual.keepalive.req_interval_sec, 0);
-		else if (osmo_timer_pending(&mgcp->keepalive_tx_timer))
-			osmo_timer_del(&mgcp->keepalive_tx_timer);
+		} else {
+			if (osmo_timer_pending(&mgcp->keepalive_tx_timer))
+				osmo_timer_del(&mgcp->keepalive_tx_timer);
+			/* Assume link is UP by default, so that this MGW can be selected: */
+			mgcp->conn_up = true;
+		}
 	} /* else: wait until connect() to do first scheduling */
 
 	return CMD_SUCCESS;
@@ -371,10 +376,15 @@ DEFUN(cfg_mgw_mgw_keepalive_timeout,
 	/* If client already exists, apply the change immediately if possible: */
 	mgcp->actual.keepalive.timeout_sec = atoi(argv[0]);
 	if (mgcp->wq.bfd.fd != -1) { /* UDP MGCP socket connected */
-		if (mgcp->actual.keepalive.timeout_sec > 0) /* Re-schedule: */
+		if (mgcp->actual.keepalive.timeout_sec > 0) {
+			/* Re-schedule: */
 			osmo_timer_schedule(&mgcp->keepalive_rx_timer, mgcp->actual.keepalive.timeout_sec, 0);
-		else if (osmo_timer_pending(&mgcp->keepalive_rx_timer))
-			osmo_timer_del(&mgcp->keepalive_rx_timer);
+		} else {
+			if (osmo_timer_pending(&mgcp->keepalive_rx_timer))
+				osmo_timer_del(&mgcp->keepalive_rx_timer);
+			/* Assume link is UP by default, so that this MGW can be selected: */
+			mgcp->conn_up = true;
+		}
 	} /* else: wait until connect() to do first scheduling */
 
 	return CMD_SUCCESS;
