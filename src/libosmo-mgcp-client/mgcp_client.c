@@ -148,7 +148,7 @@ unsigned int map_codec_to_pt(const struct ptmap *ptmap, unsigned int ptmap_len,
 	 *  is also ignored and a 1:1 mapping is performed instead. */
 
 	/* we may return the codec directly since enum mgcp_codecs directly
-	 * corresponds to the statićally assigned payload types */
+	 * corresponds to the statically assigned payload types */
 	if (codec < 96 || codec > 127)
 		return codec;
 
