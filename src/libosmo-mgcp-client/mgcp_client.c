@@ -371,7 +371,7 @@ static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *li
 {
 	unsigned int pt;
 	char codec_resp[64];
-	enum mgcp_codecs codec;
+	int rc;
 
 #define A_PTIME "a=ptime:"
 #define A_RTPMAP "a=rtpmap:"
@@ -392,9 +392,14 @@ static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *li
 			LOGP(DLMGCP, LOGL_ERROR, "No more space in ptmap array (len=%u)\n", r->ptmap_len);
 			return -ENOSPC;
 		}
-		codec = map_str_to_codec(codec_resp);
+		rc = map_str_to_codec(codec_resp);
+		if (rc < 0) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "Failed to parse SDP parameter, can't parse codec in rtpmap: %s\n", osmo_quote_str(line, -1));
+			return -EINVAL;
+		}
 		r->ptmap[r->ptmap_len].pt = pt;
-		r->ptmap[r->ptmap_len].codec = codec;
+		r->ptmap[r->ptmap_len].codec = rc;
 		r->ptmap_len++;
 	}
 
