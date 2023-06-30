@@ -69,17 +69,16 @@ const struct value_string osmo_mgcpc_codec_names[] = {
 static char *extract_codec_name(const char *str)
 {
 	static char buf[64];
-	unsigned int i;
+	char *pos;
 
 	if (!str)
 		return NULL;
 
 	osmo_strlcpy(buf, str, sizeof(buf));
 
-	for (i = 0; i < strlen(buf); i++) {
-		if (buf[i] == '/')
-			buf[i] = '\0';
-	}
+	pos = strchr(buf, '/');
+	if (pos)
+		*pos = '\0';
 
 	return buf;
 }
