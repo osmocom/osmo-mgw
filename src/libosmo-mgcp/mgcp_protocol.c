@@ -672,8 +672,8 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 		case 'a':
 			/* FIXME: LCO also supports the negotiation of more than one codec.
 			 * (e.g. a:PCMU;G726-32) But this implementation only supports a single
-			 * codec only. */
-			if (sscanf(lco_id + 1, ":%16[^,]", codec) == 1) {
+			 * codec only. Ignoring all but the first codec. */
+			if (sscanf(lco_id + 1, ":%16[^,;]", codec) == 1) {
 				talloc_free(lco->codec);
 				/* MGCP header is case insensive, and we'll need
 				   codec in uppercase when using it later: */
