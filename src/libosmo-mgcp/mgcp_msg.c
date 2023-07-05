@@ -75,7 +75,7 @@ void mgcp_disp_msg(unsigned char *message, unsigned int len, char *preamble)
 }
 
 /*! Parse connection mode.
- *  \param[in] mode as string (recvonly, sendrecv, sendonly or loopback)
+ *  \param[in] mode as string (recvonly, sendrecv, sendonly confecho or loopback)
  *  \param[in] endp pointer to endpoint (only used for log output)
  *  \param[out] associated connection to be modified accordingly
  *  \returns 0 on success, -1 on error */
@@ -100,6 +100,8 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 		conn->mode = MGCP_CONN_RECV_SEND;
 	else if (strcasecmp(mode, "sendonly") == 0)
 		conn->mode = MGCP_CONN_SEND_ONLY;
+	else if (strcasecmp(mode, "confecho") == 0)
+		conn->mode = MGCP_CONN_CONFECHO;
 	else if (strcasecmp(mode, "loopback") == 0)
 		conn->mode = MGCP_CONN_LOOPBACK;
 	else {
