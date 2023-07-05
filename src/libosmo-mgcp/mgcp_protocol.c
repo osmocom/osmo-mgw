@@ -967,7 +967,7 @@ mgcp_header_done:
 	}
 
 	/* Check if we are able to accept the creation of another connection */
-	if (llist_count(&endp->conns) >= endp->type->max_conns) {
+	if (endp->type->max_conns > 0 && llist_count(&endp->conns) >= endp->type->max_conns) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			"CRCX: endpoint full, max. %i connections allowed!\n",
 			endp->type->max_conns);
