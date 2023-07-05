@@ -1548,6 +1548,7 @@ const struct value_string mgcp_client_connection_mode_strs[] = {
 	{ MGCP_CONN_RECV_SEND, "sendrecv" },
 	{ MGCP_CONN_SEND_ONLY, "sendonly" },
 	{ MGCP_CONN_RECV_ONLY, "recvonly" },
+	{ MGCP_CONN_CONFECHO, "confecho" },
 	{ MGCP_CONN_LOOPBACK, "loopback" },
 	{ 0, NULL }
 };
