@@ -1290,8 +1290,10 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 	struct mgcp_conn_rtp *conn_src = mc->conn_src;
 	struct mgcp_conn *conn = conn_src->conn;
 	struct mgcp_conn *conn_dst;
+	struct mgcp_endpoint *endp = conn->endp;
 	struct osmo_sockaddr *from_addr = mc->from_addr;
 	char ipbuf[INET6_ADDRSTRLEN];
+	int rc = 0;
 
 	/*! NOTE: This callback function implements the endpoint specific
 	 *  dispatch behaviour of an rtp bridge/proxy endpoint. It is assumed
@@ -1323,36 +1325,26 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 		return mgcp_conn_rtp_dispatch_rtp(conn_src, msg);
 	}
 
-	/* Find a destination connection. */
-	/* NOTE: This code path runs every time an RTP packet is received. The
-	 * function mgcp_find_dst_conn() we use to determine the detination
-	 * connection will iterate the connection list inside the endpoint.
-	 * Since list iterations are quite costly, we will figure out the
-	 * destination only once and use the optional private data pointer of
-	 * the connection to cache the destination connection pointer. */
-	if (!conn->priv) {
-		conn_dst = mgcp_find_dst_conn(conn);
-		conn->priv = conn_dst;
-	} else {
-		conn_dst = (struct mgcp_conn *)conn->priv;
-	}
+	/* If the mode does not allow receiving RTP, we are done. */
+	if (conn->mode != MGCP_CONN_RECV_ONLY &&
+	    conn->mode != MGCP_CONN_RECV_SEND &&
+	    conn->mode != MGCP_CONN_CONFECHO)
+		return rc;
 
-	/* There is no destination conn, stop here */
-	if (!conn_dst) {
-		LOGPCONN(conn, DRTP, LOGL_DEBUG,
-			 "no connection to forward an incoming RTP packet to\n");
-		return -1;
-	}
+	/* If the mode is "confecho", send RTP back to the sender. */
+	if (conn->mode == MGCP_CONN_CONFECHO)
+		rc = mgcp_conn_rtp_dispatch_rtp(conn_src, msg);
 
-	/* The destination conn is not an RTP connection */
-	if (conn_dst->type != MGCP_CONN_TYPE_RTP) {
-		LOGPCONN(conn, DRTP, LOGL_ERROR,
-			 "unable to find suitable destination conn\n");
-		return -1;
+	/* Dispatch RTP packet to all other connection(s) that send audio. */
+	llist_for_each_entry(conn_dst, &endp->conns, entry) {
+		if (conn_dst == conn)
+			continue;
+		if (conn_dst->mode == MGCP_CONN_SEND_ONLY ||
+		    conn_dst->mode == MGCP_CONN_RECV_SEND ||
+		    conn_dst->mode == MGCP_CONN_CONFECHO)
+		rc = mgcp_conn_rtp_dispatch_rtp(&conn_dst->u.rtp, msg);
 	}
-
-	/* Dispatch RTP packet to destination RTP connection */
-	return mgcp_conn_rtp_dispatch_rtp(&conn_dst->u.rtp, msg);
+	return rc;
 }
 
 /*! dispatch incoming RTP packet to E1 subslot, handle RTCP packets locally.

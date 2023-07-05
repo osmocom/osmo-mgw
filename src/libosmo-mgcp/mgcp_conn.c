@@ -173,8 +173,8 @@ struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 	struct mgcp_conn *conn;
 	int rc;
 
-	/* Do not allow more then two connections */
-	if (llist_count(&endp->conns) >= endp->type->max_conns)
+	/* Do not allow more then the maximum number of connections */
+	if (endp->type->max_conns && llist_count(&endp->conns) >= endp->type->max_conns)
 		return NULL;
 
 	/* Create new connection and add it to the list */
