@@ -358,53 +358,37 @@ char *mgcp_conn_dump(struct mgcp_conn *conn)
 {
 	static char str[sizeof(conn->name)+sizeof(conn->id)+256];
 	char ipbuf[INET6_ADDRSTRLEN];
+	struct osmo_strbuf sb = { .buf = str, .len = sizeof(str) };
 
-	if (!conn) {
-		snprintf(str, sizeof(str), "(null connection)");
-		return str;
-	}
+	if (!conn)
+		return "NULL";
 
 	switch (conn->type) {
 	case MGCP_CONN_TYPE_RTP:
+		OSMO_STRBUF_PRINTF(sb, "(%s/%s C:%s r=%s:%u<->l=%s:%u",
+				   conn->name,
+				   mgcp_conn_rtp_type_name(conn->type),
+				   conn->id,
+				   osmo_sockaddr_ntop(&conn->u.rtp.end.addr.u.sa, ipbuf) ? : "NULL",
+				   osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa),
+				   conn->u.rtp.end.local_addr ? : "NULL",
+				   conn->u.rtp.end.local_port);
+
 		switch (conn->u.rtp.type) {
-		case MGCP_RTP_DEFAULT:
-			/* Dump RTP connection */
-			snprintf(str, sizeof(str), "(%s/rtp, id:0x%s, ip:%s, "
-				"rtp:%u rtcp:%u)",
-				conn->name, conn->id,
-				osmo_sockaddr_ntop(&conn->u.rtp.end.addr.u.sa, ipbuf),
-				osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa),
-				ntohs(conn->u.rtp.end.rtcp_port));
-			break;
 		case MGCP_RTP_OSMUX:
-			snprintf(str, sizeof(str), "(%s/osmux, id:0x%s, ip:%s, "
-				"port:%u CID:%u)",
-				conn->name, conn->id,
-				osmo_sockaddr_ntop(&conn->u.rtp.end.addr.u.sa, ipbuf),
-				osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa),
-				conn->u.rtp.osmux.local_cid);
-			break;
-		case MGCP_RTP_IUUP:
-			snprintf(str, sizeof(str), "(%s/iuup, id:0x%s, ip:%s, "
-				"port:%u)",
-				conn->name, conn->id,
-				osmo_sockaddr_ntop(&conn->u.rtp.end.addr.u.sa, ipbuf),
-				osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa));
+			OSMO_STRBUF_PRINTF(sb, " CID=%u", conn->u.rtp.osmux.local_cid);
 			break;
 		default:
-			/* Should not happen, we should be able to dump
-			 * every possible connection type. */
-			snprintf(str, sizeof(str), "(unknown conn_rtp connection type %u)",
-				 conn->u.rtp.type);
 			break;
 		}
+
+		OSMO_STRBUF_PRINTF(sb, ")");
 		break;
 
 	default:
 		/* Should not happen, we should be able to dump
 		 * every possible connection type. */
-		snprintf(str, sizeof(str), "(unknown connection type)");
-		break;
+		return "(unknown connection type)";
 	}
 
 	return str;
