@@ -61,8 +61,8 @@ struct mgcp_conn_peer {
 	 * address is set. If != MGCP_CONN_NONE, force this conn mode. */
 	enum mgcp_connection_mode conn_mode;
 
-	/*! If the codec requires additional format parameters (fmtp), those cann be set here, see also
-	 * mgcp_common.h */
+	/*! Global codec params. In case the codec requires additional format parameters (fmtp), those can be set
+	 * here, see also mgcp_common.h. The format parameters will be applied on all codecs where applicable. */
 	bool param_present;
 	struct mgcp_codec_param param;
 };
