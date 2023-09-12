@@ -1,3 +1,74 @@
+osmo-mgw (1.12.0) unstable; urgency=medium
+
+  [ Philipp Maier ]
+  * mgcp_sdp: add spec reference
+  * mgcp_sdp: cosmetic: remove newline
+  * mgcp_endp: cosmetic move mgcp_endp_release to the end
+  * mgcp_endp: cosmetic: remove unnecessary new line
+  * mgcp_e1: fix log output
+  * mgcp_e1: be more frugal withe E1 line resources
+  * mgcp_client: fix sourcecode formatting
+  * mgcp_e1: fix typo
+  * mgcp_e1: rewrite comment
+  * mgcp_e1: rename e1_send to e1_send_ts_frame
+  * mgcp_e1: cosmetic: rewrite comment
+  * Revert "mgcp_codec: do not differentiate between oa and bwe when comparing codec"
+  * mgcp_codec: fix oa/bwe comparison in mgcp_codec_pt_translate()
+  * mgcp_codec: refactor payload type converstion
+  * mgcp_codec: cosmetic: remove line break in api-doc
+  * mgcp_network: fix apidoc
+  * mgcp_vty: add warnings for deprecated config options
+  * mgcp_codec: move mgcp_codec_decide down
+  * mgcp_codec: fix codec decision
+  * mgcp_network: do not deliver RTP packets with unpatched PT
+  * mgcp_codec: be sensitive about IuFP when checking codecs
+  * mgcp_client.h: also add spec ref to the other 3gpp defined payload types
+
+  [ Harald Welte ]
+  * cosmetic: Fix grammar suggesting reading _the_ user manual
+
+  [ arehbein ]
+  * Transition to use of 'telnet_init_default'
+
+  [ Oliver Smith ]
+  * mgcp_client: mgcp_msg_gen: add more error logs
+  * mgcp_client_pool: add mgcp_client_pool_empty()
+  * Cosmetic: mgcp_client: fix typo
+  * debian: set compat level to 10
+  * systemd: depend on networking-online.target
+  * Cosmetic: fix a typo
+  * mgcp_client: check rc of map_str_to_codec
+
+  [ Pau Espin Pedrol ]
+  * mgcp_network: Unregister osmo_fd before closing fd
+  * mgcp-client: Call osmo_fd_unregister() before closing and changing bfd->fd
+  * mgcp-client: Drop unused struct mgcp_client field
+  * mgcp_client: Introduce mgcp_client_conf_alloc(), deprecate mgcp_client_conf_init()
+  * mgcp-client: Move some static functions further above
+  * mgw: Allow auditing speciall 'null' endpoint
+  * mgcp-client: Add keepalive feature
+  * mgcp_client: pool: Only pick clients with an MGCP link considered to be UP
+  * mgcp-client: Always mark client as UP if keepalive request-interval disabled
+  * mgcp-client: Mark client as UP when keepalive request-interval/timeout is disabled through VTY
+
+  [ Vadim Yanitskiy ]
+  * */Makefile.am: libraries shall not be in AM_LDFLAGS
+  * tests: use -no-install libtool flag to avoid ./lt-* scripts
+  * tests: $(BUILT_SOURCES) is not defined, depend on osmo-mgw
+  * copyright: fix typo: sysmocom s/s.m.f.c./s.f.m.c./ GmbH
+
+  [ Neels Hofmeyr ]
+  * mgcp_find_section_end(): skip spaces at start of SDP
+  * mgcp_client: simpler error handling
+  * mgcp: fix "L: a:" header parsing: heed ";" separator
+  * mgcp_client: tweak extract_codec_name() implementation
+
+  [ Andreas Eversberg ]
+  * ASCI: Add new mode for voice group/broadcast call
+  * ASCI: Support conference briding with 1..n connections
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Tue, 12 Sep 2023 14:48:51 +0200
+
 osmo-mgw (1.11.0) unstable; urgency=medium
 
   [ Pau Espin Pedrol ]
