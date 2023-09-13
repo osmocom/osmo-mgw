@@ -12,7 +12,11 @@
  *  When modifiying a connection, the endpoint and call_id members may be left
  *  unpopulated. The call_id field is ignored in this case. If an endpoint
  *  identifier is supplied it is checked against the internal state to make
- *  sure it is correct. */
+ *  sure it is correct.
+ *
+ *  CAUTION: This struct may be subject to changes and new struct members may
+ *  be added in the future. To prevent memory conflicts it is strongly advised
+ *  to allocate this struct dynamically using mgcp_conn_peer_alloc() */
 struct mgcp_conn_peer {
 	/*! RTP connection IP-Address (optional, string e.g. "127.0.0.1") */
 	char addr[INET6_ADDRSTRLEN];
@@ -62,6 +66,8 @@ struct mgcp_conn_peer {
 	bool param_present;
 	struct mgcp_codec_param param;
 };
+
+struct mgcp_conn_peer *mgcp_conn_peer_alloc(void *ctx);
 
 struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm_inst *parent_fi, uint32_t parent_term_evt,
 				       uint32_t parent_evt, struct mgcp_conn_peer *conn_peer)

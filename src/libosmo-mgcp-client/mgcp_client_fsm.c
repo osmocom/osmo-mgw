@@ -624,6 +624,17 @@ static struct osmo_fsm fsm_mgcp_client = {
 	.log_subsys = DLMGCP,
 };
 
+/*! allocate struct to hold the description of an MGCP connection peer.
+ *  \param[in] ctx talloc context.
+ *  \returns newly-allocated and initialized struct mgcp_conn_peer. */
+struct mgcp_conn_peer *mgcp_conn_peer_alloc(void *ctx)
+{
+	struct mgcp_conn_peer *peer;
+	peer = talloc_zero(ctx, struct mgcp_conn_peer);
+	OSMO_ASSERT(peer);
+	return peer;
+}
+
 /* Provide backwards compat for deprecated conn_peer->codecs[]: when the caller passes in an mgcp_conn_peer instance
  * that has codecs[] set, apply it to ptmap[] instead. */
 static void mgcp_conn_peer_compat(struct mgcp_conn_peer *conn_peer)
