@@ -45,6 +45,7 @@ static inline void osmo_mgcpc_ep_ci_dlcx(struct osmo_mgcpc_ep_ci *ci)
 void osmo_mgcpc_ep_clear(struct osmo_mgcpc_ep *ep);
 
 const char *osmo_mgcpc_ep_name(const struct osmo_mgcpc_ep *ep);
+const char *osmo_mgcpc_ep_local_name(const struct osmo_mgcpc_ep *ep);
 const char *osmo_mgcpc_ep_ci_name(const struct osmo_mgcpc_ep_ci *ci);
 const char *osmo_mgcpc_ep_ci_id(const struct osmo_mgcpc_ep_ci *ci);
 struct mgcp_client *osmo_mgcpc_ep_client(const struct osmo_mgcpc_ep *ep);

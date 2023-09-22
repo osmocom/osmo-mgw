@@ -173,6 +173,30 @@ const char *osmo_mgcpc_ep_name(const struct osmo_mgcpc_ep *ep)
 	return osmo_fsm_inst_name(ep->fi);
 }
 
+/*! Get "local endpoint name" part of the endpoint name: (local-endpoint-name@domain-name)
+ *
+ * \param ep  The MGCP Endpoint
+ * \returns the local endpoint name if found, NULL on error.
+ */
+const char *osmo_mgcpc_ep_local_name(const struct osmo_mgcpc_ep *ep)
+{
+	static char buf[1024];
+	const char *sep;
+
+	OSMO_ASSERT(ep);
+	sep = strchr(ep->endpoint, '@');
+	if (!sep) {
+		OSMO_STRLCPY_ARRAY(buf, ep->endpoint);
+		return buf;
+	}
+	if (sep - ep->endpoint >= sizeof(buf))
+		return NULL;
+
+	memcpy(buf, ep->endpoint, sep - ep->endpoint);
+	buf[sep - ep->endpoint] = '\0';
+	return buf;
+}
+
 const char *mgcp_conn_peer_name(const struct mgcp_conn_peer *info)
 {
 	/* I'd be fine with a smaller buffer and accept truncation, but gcc possibly refuses to build if
