@@ -2,6 +2,8 @@
 
 #include <stdbool.h>
 
+#include <osmocom/vty/vty.h>
+
 struct mgcp_client;
 struct mgcp_client_pool;
 struct mgcp_client_pool_member;
