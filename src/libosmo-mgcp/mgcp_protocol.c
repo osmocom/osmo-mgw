@@ -1293,6 +1293,10 @@ mgcp_header_done:
 		error_code = rc;
 		goto error3;
 	}
+	/* Upgrade the conn type RTP_DEFAULT->RTP_IUUP if needed based on requested codec: */
+	/* TODO: "codec" probably needs to be moved from endp to conn */
+	if (conn->type == MGCP_RTP_DEFAULT && strcmp(conn->end.codec->subtype_name, "VND.3GPP.IUFP") == 0)
+		rc = mgcp_conn_iuup_init(conn);
 
 	/* check connection mode setting */
 	if (conn->conn->mode != MGCP_CONN_LOOPBACK
