@@ -1,3 +1,12 @@
+osmo-mgw (1.12.1) unstable; urgency=medium
+
+  [ Pau Espin Pedrol ]
+  * mgcp-client: Fix missing include in mgcp_client_pool.h
+  * mgcp-client: Introduce API osmo_mgcpc_ep_local_name()
+  * mgw: Configure IuUP if codec set during MDCX
+
+ -- Oliver Smith <osmith@sysmocom.de>  Thu, 28 Sep 2023 15:58:17 +0200
+
 osmo-mgw (1.12.0) unstable; urgency=medium
 
   [ Philipp Maier ]
