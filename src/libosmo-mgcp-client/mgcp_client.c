@@ -319,7 +319,7 @@ static int mgcp_parse_audio_port_pt(struct mgcp_response *r, char *line)
 	pt_str = strtok(line, " ");
 	while (1) {
 		/* Do not allow excessive payload types */
-		if (count > ARRAY_SIZE(r->codecs))
+		if (count >= ARRAY_SIZE(r->codecs))
 			goto response_parse_failure_pt;
 
 		pt_str = strtok(NULL, " ");
