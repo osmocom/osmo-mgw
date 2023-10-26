@@ -1377,13 +1377,20 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 	}
 
 	/* Add optional codec parameters (fmtp) */
-	if (mgcp_msg->param_present) {
-		for (i = 0; i < mgcp_msg->ptmap_len; i++) {
-			/* The following is only applicable for AMR */
-			if (mgcp_msg->ptmap[i].codec != CODEC_AMR_8000_1
-			    && mgcp_msg->ptmap[i].codec != CODEC_AMRWB_16000_1)
-				continue;
+	for (i = 0; i < mgcp_msg->ptmap_len; i++) {
+		/* Add fmtp string, if any is set. */
+		if (mgcp_msg->ptmap[i].fmtp[0]) {
+			MSGB_PRINTF_OR_RET("a=fmtp:%u %s\r\n", mgcp_msg->ptmap[i].pt, mgcp_msg->ptmap[i].fmtp);
+			continue;
+		}
+
+		/* LEGACY COMPAT. Fill in fmtp with the legacy mgcp_msg->param, if any, when no individual fmtp is set
+		 * on the codec. We only ever supported AMR fmtp in mgcp_msg->param. */
+		if (mgcp_msg->param_present
+		    && (mgcp_msg->ptmap[i].codec == CODEC_AMR_8000_1
+			|| mgcp_msg->ptmap[i].codec == CODEC_AMRWB_16000_1)) {
 			pt = mgcp_msg->ptmap[i].pt;
+
 			if (mgcp_msg->param.amr_octet_aligned_present && mgcp_msg->param.amr_octet_aligned)
 				MSGB_PRINTF_OR_RET("a=fmtp:%u octet-align=1\r\n", pt);
 			else if (mgcp_msg->param.amr_octet_aligned_present && !mgcp_msg->param.amr_octet_aligned)
@@ -1621,5 +1628,8 @@ int ptmap_cmp(const struct ptmap *a, const struct ptmap *b)
 	rc = OSMO_CMP(a->codec, b->codec);
 	if (rc)
 		return rc;
-	return OSMO_CMP(a->pt, b->pt);
+	rc = OSMO_CMP(a->pt, b->pt);
+	if (rc)
+		return rc;
+	return strcmp(a->fmtp, b->fmtp);
 }

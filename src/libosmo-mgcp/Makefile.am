@@ -45,6 +45,7 @@ libosmo_mgcp_la_SOURCES = \
 	$(NULL)
 
 libosmo_mgcp_la_LIBADD = \
+	$(top_builddir)/src/libosmo-sdp/libosmo-sdp.la \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOGSM_LIBS) \
 	$(LIBOSMOVTY_LIBS) \

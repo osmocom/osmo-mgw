@@ -550,7 +550,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 16012 RTP/AVP 111\r\n" \
 	"a=rtpmap:111 AMR/8000/1\r\n" \
-	"a=fmtp:111 octet-align=1\r\n" \
+	"a=fmtp:111 mode-change-capability=2; octet-align=1\r\n" \
 	"a=ptime:20\r\n"
 
 #define CRCX_NO_LCO_NO_SDP_RET \
@@ -838,6 +838,7 @@ static void test_messages(void)
 			}
 		} else if (check_response(msg->data, t->exp_resp) != 0) {
 			printf("%s failed.\n", t->name);
+			fflush(stdout);
 			OSMO_ASSERT(false);
 		}
 
