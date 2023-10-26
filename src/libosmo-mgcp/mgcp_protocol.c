@@ -1120,6 +1120,7 @@ mgcp_header_done:
 
 	LOGPCONN(_conn, DLMGCP, LOGL_NOTICE,
 		 "CRCX: connection successfully created\n");
+
 	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_SUCCESS));
 	mgcp_endp_update(endp);
 

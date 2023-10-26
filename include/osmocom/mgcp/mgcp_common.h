@@ -59,7 +59,7 @@ enum mgcp_x_osmo_ign {
 	MGCP_X_OSMO_IGN_CALLID = 1,
 };
 
-/* Codec parameters (communicated via SDP/fmtp) */
+/* Deprecated. Use the new fmtp string instead. */
 struct mgcp_codec_param {
 	bool amr_octet_aligned_present;
 	bool amr_octet_aligned;

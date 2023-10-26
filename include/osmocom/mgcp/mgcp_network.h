@@ -84,8 +84,11 @@ struct mgcp_rtp_codec {
 	char audio_name[64];
 	char subtype_name[64];
 
+	/* Deprecated. Use the new fmtp string instead. */
 	bool param_present;
 	struct mgcp_codec_param param;
+
+	char fmtp[256];
 };
 
 /* 'mgcp_rtp_end': basically a wrapper around the RTP+RTCP ports */

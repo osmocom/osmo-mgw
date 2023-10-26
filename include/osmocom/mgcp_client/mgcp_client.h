@@ -77,6 +77,9 @@ struct ptmap {
 
 	/*! payload type number (96-127) */
 	unsigned int pt;
+
+	/*! the MGCP 'a=fmtp:N <...>' string, e.g. "mode-set=1,2,3;octet-align=0". */
+	char fmtp[256];
 };
 
 int ptmap_cmp(const struct ptmap *a, const struct ptmap *b);

@@ -35,6 +35,9 @@
 #include <osmocom/mgcp/mgcp_sdp.h>
 #include <osmocom/mgcp/mgcp_protocol.h>
 
+#include <osmocom/sdp/fmtp.h>
+#include <osmocom/sdp/sdp_strings.h>
+
 #include <errno.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -55,7 +58,7 @@ struct sdp_rtp_map {
 };
 struct sdp_fmtp_param {
 	int payload_type;
-	struct mgcp_codec_param param;
+	const char *fmtp;
 };
 
 
@@ -195,11 +198,7 @@ static int fmtp_from_sdp(void *ctx, struct sdp_fmtp_param *fmtp_param, char *sdp
 {
 	char *str;
 	char *str_ptr;
-	char *param_str;
 	unsigned int pt;
-	unsigned int count = 0;
-	char delimiter;
-	unsigned int amr_octet_aligned;
 
 	memset(fmtp_param, 0, sizeof(*fmtp_param));
 
@@ -218,40 +217,13 @@ static int fmtp_from_sdp(void *ctx, struct sdp_fmtp_param *fmtp_param, char *sdp
 		goto error;
 	fmtp_param->payload_type = pt;
 
-	/* Advance pointer to the beginning of the parameter section and
-	 * tokenize string */
+	/* Advance pointer to the beginning of the parameter section */
 	str_ptr = strstr(str_ptr, " ");
 	if (!str_ptr)
 		goto error;
 	str_ptr++;
 
-	param_str = strtok(str_ptr, " ");
-	if (!param_str)
-		goto exit;
-
-	while (1) {
-		/* Make sure that we don't get trapped in an endless loop */
-		if (count > 256)
-			goto error;
-
-		/* Chop off delimiters ';' at the end */
-		delimiter = str_ptr[strlen(str_ptr) - 1];
-		if (delimiter == ';' || delimiter == ',')
-			str_ptr[strlen(str_ptr) - 1] = '\0';
-
-		/* AMR octet aligned parameter (see also RFC 3267, section 8.3) */
-		if (sscanf(param_str, "octet-align=%d", &amr_octet_aligned) == 1) {
-			fmtp_param->param.amr_octet_aligned_present = true;
-			fmtp_param->param.amr_octet_aligned = false;
-			if (amr_octet_aligned == 1)
-				fmtp_param->param.amr_octet_aligned = true;
-		}
-
-		param_str = strtok(NULL, " ");
-		if (!param_str)
-			break;
-		count++;
-	}
+	fmtp_param->fmtp = talloc_strdup(ctx, str_ptr);
 
 exit:
 	talloc_free(str);
@@ -299,13 +271,13 @@ static int audio_ip_from_sdp(struct osmo_sockaddr *dst_addr, char *sdp)
 
 /* Pick optional fmtp parameters by payload type, if there are no fmtp
  * parameters, a nullpointer is returned */
-static struct mgcp_codec_param *param_by_pt(int pt, struct sdp_fmtp_param *fmtp_params, unsigned int fmtp_params_len)
+static const char *param_by_pt(int pt, struct sdp_fmtp_param *fmtp_params, unsigned int fmtp_params_len)
 {
 	unsigned int i;
 
 	for (i = 0; i < fmtp_params_len; i++) {
 		if (fmtp_params[i].payload_type == pt)
-			return &fmtp_params[i].param;
+			return fmtp_params[i].fmtp;
 	}
 
 	return NULL;
@@ -326,7 +298,6 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	unsigned int codecs_used = 0;
 	struct sdp_fmtp_param fmtp_params[MGCP_MAX_CODECS];
 	unsigned int fmtp_used = 0;
-	struct mgcp_codec_param *codec_param;
 	char ipbuf[INET6_ADDRSTRLEN];
 	char *line;
 	unsigned int i;
@@ -421,8 +392,8 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 
 	/* Store parsed codec information */
 	for (i = 0; i < codecs_used; i++) {
-		codec_param = param_by_pt(codecs[i].payload_type, fmtp_params, fmtp_used);
-		rc = mgcp_codec_add(conn, codecs[i].payload_type, codecs[i].map_line, codec_param);
+		const char *fmtp = param_by_pt(codecs[i].payload_type, fmtp_params, fmtp_used);
+		rc = mgcp_codec_add2(conn, codecs[i].payload_type, codecs[i].map_line, fmtp);
 		if (rc < 0)
 			LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "failed to add codec\n");
 	}
@@ -436,10 +407,12 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	if (codecs_used == 0)
 		LOGPC(DLMGCP, LOGL_NOTICE, "none");
 	for (i = 0; i < codecs_used; i++) {
-		LOGPC(DLMGCP, LOGL_NOTICE, "%d=%s",
+		LOGPC(DLMGCP, LOGL_NOTICE, " %d=%s%s%s%s",
 		      rtp->codecs[i].payload_type,
-		      strlen(rtp->codecs[i].subtype_name) ? rtp->codecs[i].subtype_name : "unknown");
-		LOGPC(DLMGCP, LOGL_NOTICE, " ");
+		      strlen(rtp->codecs[i].subtype_name) ? rtp->codecs[i].subtype_name : "unknown",
+		      rtp->codecs[i].fmtp[0] ? ",fmtp='" : "",
+		      rtp->codecs[i].fmtp,
+		      rtp->codecs[i].fmtp[0] ? "'" : "");
 	}
 	LOGPC(DLMGCP, LOGL_NOTICE, "\n");
 
@@ -494,18 +467,15 @@ static int add_fmtp(struct msgb *sdp, struct sdp_fmtp_param *fmtp_params, unsign
 	int rc;
 
 	for (i = 0; i < fmtp_params_len; i++) {
+		bool first = true;
 		rc = msgb_printf(sdp, "a=fmtp:%u", fmtp_params[i].payload_type);
 		if (rc < 0)
 			return -EINVAL;
 
 		/* Add amr octet align parameter */
-		if (fmtp_params[i].param.amr_octet_aligned_present) {
-			if (fmtp_params[i].param.amr_octet_aligned)
-				rc = msgb_printf(sdp, " octet-align=1");
-			else
-				rc = msgb_printf(sdp, " octet-align=0");
-			if (rc < 0)
-				return -EINVAL;
+		if (fmtp_params[i].fmtp) {
+			msgb_printf(sdp, "%s%s", first ? " " : ";", fmtp_params[i].fmtp);
+			first = false;
 		}
 
 		rc = msgb_printf(sdp, "\r\n");
@@ -529,7 +499,6 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 	const struct mgcp_rtp_codec *codec;
 	const char *audio_name;
 	int payload_type;
-	struct sdp_fmtp_param fmtp_param;
 	int rc;
 	int payload_types[1];
 	int local_port;
@@ -578,12 +547,22 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 				goto buffer_too_small;
 		}
 
-		if (codec->param_present) {
-			fmtp_param.payload_type = payload_type;
-			fmtp_param.param = codec->param;
-			fmtp_params[0] = fmtp_param;
+		if (codec->fmtp[0]) {
+			fmtp_params[0] = (struct sdp_fmtp_param){
+				.payload_type = payload_type,
+				.fmtp = codec->fmtp,
+			};
 			fmtp_params_len = 1;
+		} else if (codec->param_present) {
+			/* Legacy */
+			fmtp_params[0] = (struct sdp_fmtp_param){
+				.payload_type = payload_type,
+			};
+			fmtp_params_len = 1;
+			fmtp_params[0].fmtp = (codec->param.amr_octet_aligned ?
+					       OSMO_SDP_STR_AMR_OCTET_ALIGN_1 : OSMO_SDP_STR_AMR_OCTET_ALIGN_0);
 		}
+
 		rc = add_fmtp(sdp, fmtp_params, fmtp_params_len);
 		if (rc < 0)
 			goto buffer_too_small;

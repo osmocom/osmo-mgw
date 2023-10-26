@@ -40,6 +40,7 @@ libosmo_mgcp_client_la_LDFLAGS = \
 	$(NULL)
 
 libosmo_mgcp_client_la_LIBADD = \
+	$(top_builddir)/src/libosmo-sdp/libosmo-sdp.la \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
 	$(NULL)

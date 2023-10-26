@@ -1207,11 +1207,12 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 		if (mgcp_conn_rtp_is_iuup(conn_dst) || mgcp_conn_rtp_is_iuup(conn_src)) {
 			/* the iuup code will correctly transform to the correct AMR mode */
 		} else if (mgcp_codec_amr_align_mode_is_indicated(conn_dst->end.codec)) {
-			rc = amr_oa_bwe_convert(endp, msg, conn_dst->end.codec->param.amr_octet_aligned);
+			bool oa = mgcp_codec_amr_is_octet_aligned(conn_dst->end.codec);
+			rc = amr_oa_bwe_convert(endp, msg, oa);
 			if (rc < 0) {
 				LOGPENDP(endp, DRTP, LOGL_ERROR,
 					 "Error in AMR octet-aligned <-> bandwidth-efficient mode conversion (target=%s)\n",
-					 conn_dst->end.codec->param.amr_octet_aligned ? "octet-aligned" : "bandwidth-efficient");
+					 oa ? "octet-aligned" : "bandwidth-efficient");
 				msgb_free(msg);
 				return rc;
 			}
@@ -1564,16 +1565,18 @@ static int rx_rtp(struct msgb *msg)
 	if (mc->proto == MGCP_PROTO_RTP
 	    && conn_src->end.codec
 	    && mgcp_codec_amr_align_mode_is_indicated(conn_src->end.codec)) {
+		bool src_oa;
 		/* Make sure that the incoming AMR frame format matches the frame format that the call agent has
 		 * communicated via SDP when the connection was created/modfied. */
 		int oa = amr_oa_check((char*)msgb_data(msg), msgb_length(msg));
 		if (oa < 0)
 			goto out_free;
-		if (((bool)oa) != conn_src->end.codec->param.amr_octet_aligned) {
+		src_oa = mgcp_codec_amr_is_octet_aligned(conn_src->end.codec);
+		if (((bool)oa) != src_oa) {
 			LOG_CONN_RTP(conn_src, LOGL_NOTICE,
 				     "rx_rtp(%u bytes): Expected RTP AMR octet-aligned=%u but got octet-aligned=%u."
 				     " check the config of your call-agent!\n",
-				     msgb_length(msg), conn_src->end.codec->param.amr_octet_aligned, oa);
+				     msgb_length(msg), src_oa, oa);
 			goto out_free;
 		}
 	}
