@@ -24,6 +24,7 @@
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
 #include <osmocom/mgcp/mgcp_codec.h>
+#include <osmocom/mgcp_client/fmtp.h>
 #include <errno.h>
 
 /* Helper function to dump codec information of a specified codec to a printable
@@ -116,9 +117,9 @@ void mgcp_codec_reset_all(struct mgcp_conn_rtp *conn)
  *  \param[out] conn related rtp-connection.
  *  \param[in] payload_type codec type id (e.g. 3 for GSM, -1 when undefined).
  *  \param[in] audio_name audio codec name, in uppercase (e.g. "GSM/8000/1").
- *  \param[in] param optional codec parameters (set to NULL when unused).
+ *  \param[in] fmtp optional codec parameters (set to NULL when unused).
  *  \returns 0 on success, -EINVAL on failure. */
-int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *audio_name, const struct mgcp_codec_param *param)
+int mgcp_codec_add2(struct mgcp_conn_rtp *conn, int payload_type, const char *audio_name, const char *fmtp)
 {
 	int rate;
 	int channels;
@@ -261,12 +262,16 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 		}
 	}
 
-	/* Copy over optional codec parameters */
-	if (param) {
-		codec->param = *param;
-		codec->param_present = true;
-	} else
-		codec->param_present = false;
+	if (fmtp) {
+		OSMO_STRLCPY_ARRAY(codec->fmtp, fmtp);
+		if (strlen(codec->fmtp) != strlen(fmtp)) {
+			LOGP(DLMGCP, LOGL_ERROR, "fmtp too long: %zu > %zu\n", strlen(fmtp), strlen(codec->fmtp));
+			/* let's just hope what is there is still useful, worst case the call's audio doesn't work */
+		}
+	}
+
+	/* legacy */
+	codec->param_present = false;
 
 	conn->end.codecs_assigned++;
 	return 0;
@@ -276,23 +281,33 @@ error:
 	return -EINVAL;
 }
 
-/* Return true if octet-aligned is set in the given codec. Default to octet-aligned=0, i.e. bandwidth-efficient mode.
- * See RFC4867 "RTP Payload Format for AMR and AMR-WB" sections "8.1. AMR Media Type Registration" and "8.2. AMR-WB
- * Media Type Registration":
- *
- *    octet-align: Permissible values are 0 and 1.  If 1, octet-aligned
- *                 operation SHALL be used.  If 0 or if not present,
- *                 bandwidth-efficient operation is employed.
- *
- * https://tools.ietf.org/html/rfc4867
- */
+/*! Legacy compat, use mgcp_codec_add2() instead to be able to pass any fmtp besides AMR octet-align=1.
+ * Add codec configuration depending on payload type and/or codec name. This
+ *  function uses the input parameters to extrapolate the full codec information.
+ *  \param[out] codec configuration (caller provided memory).
+ *  \param[out] conn related rtp-connection.
+ *  \param[in] payload_type codec type id (e.g. 3 for GSM, -1 when undefined).
+ *  \param[in] audio_name audio codec name, in uppercase (e.g. "GSM/8000/1").
+ *  \param[in] param optional codec parameters (set to NULL when unused).
+ *  \returns 0 on success, -EINVAL on failure. */
+int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *audio_name, const struct mgcp_codec_param *param)
+{
+	const char *fmtp = NULL;
+	if (param && param->amr_octet_aligned_present)
+		fmtp = OSMO_SDP_AMR_SET_OCTET_ALIGN(param->amr_octet_aligned);
+
+	return mgcp_codec_add2(conn, payload_type, audio_name, fmtp);
+}
+
 bool mgcp_codec_amr_is_octet_aligned(const struct mgcp_rtp_codec *codec)
 {
-	if (!codec->param_present)
-		return false;
-	if (!codec->param.amr_octet_aligned_present)
-		return false;
-	return codec->param.amr_octet_aligned;
+	/* Legacy */
+	if (!codec->fmtp[0]
+	    && codec->param_present
+	    && codec->param.amr_octet_aligned_present)
+		return codec->param.amr_octet_aligned;
+
+	return osmo_sdp_fmtp_amr_is_octet_aligned(codec->fmtp);
 }
 
 /* Compare two codecs, all parameters must match up */
@@ -462,13 +477,13 @@ int mgcp_codec_decide(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn
 /* Check if the codec has a specific AMR mode (octet-aligned or bandwith-efficient) set. */
 bool mgcp_codec_amr_align_mode_is_indicated(const struct mgcp_rtp_codec *codec)
 {
-	if (codec->param_present == false)
-		return false;
-	if (!codec->param.amr_octet_aligned_present)
-		return false;
-	if (strcmp(codec->subtype_name, "AMR") != 0)
-		return false;
-	return true;
+	if (!codec->fmtp[0]) {
+		/* Legacy */
+		return codec->param_present && codec->param.amr_octet_aligned_present;
+	}
+
+	/* Just check for presence, not the actual value. */
+	return osmo_sdp_fmtp_get_val(NULL, 0, codec->fmtp, OSMO_SDP_NAME_AMR_OCTET_ALIGN);
 }
 
 /* Find the payload type number configured for a specific codec by SDP.
