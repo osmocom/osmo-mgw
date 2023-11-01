@@ -441,3 +441,10 @@ struct mgcp_conn *mgcp_conn_get_oldest(struct mgcp_endpoint *endp)
 
 	return llist_last_entry(&endp->conns, struct mgcp_conn, entry);
 }
+
+const struct value_string mgcp_conn_rtp_type_names[] = {
+	{ MGCP_RTP_DEFAULT, "rtp" },
+	{ MGCP_RTP_OSMUX, "osmux" },
+	{ MGCP_RTP_IUUP, "iuup" },
+	{}
+};
