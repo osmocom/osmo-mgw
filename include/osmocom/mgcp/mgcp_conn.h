@@ -49,6 +49,11 @@ enum mgcp_conn_rtp_type {
 	MGCP_RTP_OSMUX,
 	MGCP_RTP_IUUP,
 };
+extern const struct value_string mgcp_conn_rtp_type_names[];
+static inline const char *mgcp_conn_rtp_type_name(enum mgcp_conn_rtp_type val)
+{
+	return get_value_string(mgcp_conn_rtp_type_names, val);
+}
 
 /*! Connection type, specifies which member of the union "u" in mgcp_conn
  *  contains a useful connection description (currently only RTP) */
