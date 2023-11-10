@@ -364,13 +364,21 @@ static void fsm_ready_cb(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 	switch (event) {
 	case EV_MDCX:
 		msg = make_mdcx_msg(mgcp_ctx);
-		OSMO_ASSERT(msg);
+		if (!msg) {
+			/* make_mdcx_msg() should already have logged the error */
+			osmo_fsm_inst_term(fi, OSMO_FSM_TERM_ERROR, NULL);
+			return;
+		}
 		rc = mgcp_client_tx(mgcp, msg, mgw_mdcx_resp_cb, fi);
 		new_state = ST_MDCX_RESP;
 		break;
 	case EV_DLCX:
 		msg = make_dlcx_msg(mgcp_ctx);
-		OSMO_ASSERT(msg);
+		if (!msg) {
+			/* make_dlcx_msg() should already have logged the error */
+			osmo_fsm_inst_term(fi, OSMO_FSM_TERM_ERROR, NULL);
+			return;
+		}
 		rc = mgcp_client_tx(mgcp, msg, mgw_dlcx_resp_cb, fi);
 		new_state = ST_DLCX_RESP;
 		break;
