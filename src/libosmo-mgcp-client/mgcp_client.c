@@ -1302,9 +1302,6 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 	local_ip_family = osmo_ip_str_type(local_ip);
 	if (local_ip_family == AF_UNSPEC)
 		return -EINVAL;
-	audio_ip_family = osmo_ip_str_type(mgcp_msg->audio_ip);
-	if (audio_ip_family == AF_UNSPEC)
-		return -EINVAL;
 
 	/* Add owner/creator (SDP) */
 	MSGB_PRINTF_OR_RET("o=- %x 23 IN IP%c %s\r\n", mgcp_msg->call_id,
@@ -1314,33 +1311,39 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 	/* Add session name (none) */
 	MSGB_PRINTF_OR_RET("s=-\r\n");
 
-	/* Add RTP address and port */
-	if (mgcp_msg->audio_port == 0) {
-		LOGPMGW(mgcp, LOGL_ERROR,
-			"Invalid port number, can not generate MGCP message\n");
-		msgb_free(msg);
-		return -EINVAL;
+	/* Add RTP address */
+	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_IP) {
+		audio_ip_family = osmo_ip_str_type(mgcp_msg->audio_ip);
+		if (audio_ip_family == AF_UNSPEC)
+			return -EINVAL;
+		if (strlen(mgcp_msg->audio_ip) <= 0) {
+			LOGPMGW(mgcp, LOGL_ERROR,
+				"Empty ip address, can not generate MGCP message\n");
+			return -EINVAL;
+		}
+		MSGB_PRINTF_OR_RET("c=IN IP%c %s\r\n",
+				   audio_ip_family == AF_INET6 ? '6' : '4',
+				   mgcp_msg->audio_ip);
 	}
-	if (strlen(mgcp_msg->audio_ip) <= 0) {
-		LOGPMGW(mgcp, LOGL_ERROR,
-			"Empty ip address, can not generate MGCP message\n");
-		msgb_free(msg);
-		return -EINVAL;
-	}
-	MSGB_PRINTF_OR_RET("c=IN IP%c %s\r\n",
-			  audio_ip_family == AF_INET6 ? '6' : '4',
-			  mgcp_msg->audio_ip);
 
 	/* Add time description, active time (SDP) */
 	MSGB_PRINTF_OR_RET("t=0 0\r\n");
 
-	MSGB_PRINTF_OR_RET("m=audio %u RTP/AVP", mgcp_msg->audio_port);
-	for (i = 0; i < mgcp_msg->codecs_len; i++) {
-		pt = map_codec_to_pt(mgcp_msg->ptmap, mgcp_msg->ptmap_len, mgcp_msg->codecs[i]);
-		MSGB_PRINTF_OR_RET(" %u", pt);
+	/* Add RTP address port and codecs */
+	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_PORT) {
+		if (mgcp_msg->audio_port == 0) {
+			LOGPMGW(mgcp, LOGL_ERROR,
+				"Invalid port number, can not generate MGCP message\n");
+			return -EINVAL;
+		}
+		MSGB_PRINTF_OR_RET("m=audio %u RTP/AVP", mgcp_msg->audio_port);
+		for (i = 0; i < mgcp_msg->codecs_len; i++) {
+			pt = map_codec_to_pt(mgcp_msg->ptmap, mgcp_msg->ptmap_len, mgcp_msg->codecs[i]);
+			MSGB_PRINTF_OR_RET(" %u", pt);
 
+		}
+		MSGB_PRINTF_OR_RET("\r\n");
 	}
-	MSGB_PRINTF_OR_RET("\r\n");
 
 	/* Add optional codec parameters (fmtp) */
 	if (mgcp_msg->param_present) {
@@ -1470,10 +1473,10 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		MSGB_PRINTF_OR_RET("I: %s\r\n", mgcp_msg->conn_id);
 	}
 
-	/* Using SDP makes sense when a valid IP/Port combination is specified,
+	/* Using SDP makes sense when a valid IP or Port is specified,
 	 * if we do not know this information yet, we fall back to LCO */
 	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_IP
-	    && mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_PORT)
+	    || mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_PORT)
 		use_sdp = true;
 
 	/* Add local connection options (LCO) */

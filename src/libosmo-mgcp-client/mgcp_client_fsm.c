@@ -136,10 +136,19 @@ static void make_crcx_msg(struct mgcp_msg *mgcp_msg, struct mgcp_conn_peer *info
 
 static void add_audio(struct mgcp_msg *mgcp_msg, struct mgcp_conn_peer *info)
 {
-	mgcp_msg->presence |= MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT;
-	mgcp_msg->audio_ip = info->addr;
-	mgcp_msg->audio_port = info->port;
-	mgcp_msg->conn_mode = MGCP_CONN_RECV_SEND;
+	bool ip_is_set = info->addr[0] != '\0' &&
+			 strncmp(info->addr, "::", sizeof(info->addr)) != 0 &&
+			 strncmp(info->addr, "0.0.0.0", sizeof(info->addr)) != 0;
+	if (ip_is_set) {
+		mgcp_msg->presence |= MGCP_MSG_PRESENCE_AUDIO_IP;
+		mgcp_msg->audio_ip = info->addr;
+	}
+	if (info->port) {
+		mgcp_msg->presence |= MGCP_MSG_PRESENCE_AUDIO_PORT;
+		mgcp_msg->audio_port = info->port;
+	}
+	if (ip_is_set && info->port)
+		mgcp_msg->conn_mode = MGCP_CONN_RECV_SEND;
 }
 
 static void set_conn_mode(struct mgcp_msg *mgcp_msg, struct mgcp_conn_peer *peer)
@@ -221,8 +230,7 @@ static void fsm_crcx_cb(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 			 mgcp_ctx->conn_peer_local.endpoint);
 
 		make_crcx_msg(&mgcp_msg, &mgcp_ctx->conn_peer_local);
-		if (mgcp_ctx->conn_peer_local.port)
-			add_audio(&mgcp_msg, &mgcp_ctx->conn_peer_local);
+		add_audio(&mgcp_msg, &mgcp_ctx->conn_peer_local);
 		set_conn_mode(&mgcp_msg, &mgcp_ctx->conn_peer_local);
 
 		msg = mgcp_msg_gen(mgcp_ctx->mgcp, &mgcp_msg);
