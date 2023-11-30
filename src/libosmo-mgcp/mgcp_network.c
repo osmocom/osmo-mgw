@@ -845,9 +845,8 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *ad
 			 * sends the RAB Assignment Response. Hence, if the remote address is 0.0.0.0 and the
 			 * MGCP port is in loopback mode, allow looping back the packet to any source. */
 			LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
-				 "In loopback mode and remote address not set:"
-				 " allowing data from address: %s\n",
-				 osmo_sockaddr_ntop(&addr->u.sa, ipbuf));
+				 "In loopback mode and remote address not set: allowing data from address: %s\n",
+				 osmo_sockaddr_to_str(addr));
 			return 0;
 
 		default:
@@ -855,9 +854,8 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *ad
 			 * this as an error that occurs on every call, keep it more low profile to not
 			 * confuse humans with expected errors. */
 			LOGPCONN(conn->conn, DRTP, LOGL_INFO,
-				 "Rx RTP from %s, but remote address not set:"
-				 " dropping early media\n",
-				 osmo_sockaddr_ntop(&addr->u.sa, ipbuf));
+				 "Rx RTP from %s, but remote address not set: dropping early media\n",
+				 osmo_sockaddr_to_str(addr));
 			return -1;
 		}
 	}
@@ -871,11 +869,8 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *ad
 	     memcmp(&conn->end.addr.u.sin6.sin6_addr, &addr->u.sin6.sin6_addr,
 		    sizeof(struct in6_addr)))) {
 		LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
-			 "data from wrong address: %s, ",
-			 osmo_sockaddr_ntop(&addr->u.sa, ipbuf));
-		LOGPC(DRTP, LOGL_ERROR, "expected: %s\n",
-		      osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf));
-		LOGPCONN(conn->conn, DRTP, LOGL_ERROR, "packet tossed\n");
+			 "data from wrong src %s, expected IP Address %s. Packet tossed.\n",
+			 osmo_sockaddr_to_str(addr), osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf));
 		return -1;
 	}
 
@@ -886,12 +881,9 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *ad
 	if (osmo_sockaddr_port(&conn->end.addr.u.sa) != osmo_sockaddr_port(&addr->u.sa) &&
 	    ntohs(conn->end.rtcp_port) != osmo_sockaddr_port(&addr->u.sa)) {
 		LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
-			 "data from wrong source port: %d, ",
-			 osmo_sockaddr_port(&addr->u.sa));
-		LOGPC(DRTP, LOGL_ERROR,
-		      "expected: %d for RTP or %d for RTCP\n",
-		      osmo_sockaddr_port(&conn->end.addr.u.sa), ntohs(conn->end.rtcp_port));
-		LOGPCONN(conn->conn, DRTP, LOGL_ERROR, "packet tossed\n");
+			 "data from wrong src %s, expected port: %u for RTP or %u for RTCP. Packet tossed.\n",
+			 osmo_sockaddr_to_str(addr), osmo_sockaddr_port(&conn->end.addr.u.sa),
+			 ntohs(conn->end.rtcp_port));
 		return -1;
 	}
 
