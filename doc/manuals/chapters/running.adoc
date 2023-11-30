@@ -23,3 +23,20 @@ arguments:
 	Disable colors for logging to stderr. This has mostly been
 	deprecated by VTY based logging configuration, see <<logging>>
 	for more information.
+
+
+=== Configure limits
+
+When servicing hundreds of media endpoints, it may be necessary to adjust the
+operating system's limit on open file descriptors for the osmo-mgw process. A
+typical default limit imposed by operating systems is 1024; this would be
+exceeded by, for example, about 256 active voice calls with 4 RTP/RTPC ports
+each, sockets for other interfaces not considered yet.
+
+It should be ok to set an OS limit on open file descriptors as high as 65536
+for osmo-mgw, which practically rules out failure from running out of file
+descriptors anywhere (<16,000 active calls).
+
+When using systemd, the file descriptor limit may be adjusted in the service
+file by the `LimitNOFILE` setting ("Number of Open FILE descriptors"). OsmoMGW
+ships a systemd service file with a high LimitNOFILE setting.

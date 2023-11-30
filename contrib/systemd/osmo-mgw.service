@@ -5,6 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+LimitNOFILE=65536
 StateDirectory=osmocom
 WorkingDirectory=%S/osmocom
 Restart=always
