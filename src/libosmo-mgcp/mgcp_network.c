@@ -844,31 +844,14 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *ad
 	}
 
 	if (osmo_sockaddr_is_any(&conn->end.addr) != 0) {
-		switch (conn->conn->mode) {
-		case MGCP_CONN_LOOPBACK:
-			/* HACK: for IuUP, we want to reply with an IuUP Initialization ACK upon the first RTP
-			 * message received. We currently hackishly accomplish that by putting the endpoint in
-			 * loopback mode and patching over the looped back RTP message to make it look like an
-			 * ack. We don't know the femto cell's IP address and port until the RAB Assignment
-			 * Response is received, but the nano3G expects an IuUP Initialization Ack before it even
-			 * sends the RAB Assignment Response. Hence, if the remote address is 0.0.0.0 and the
-			 * MGCP port is in loopback mode, allow looping back the packet to any source. */
-			LOGPCONN(conn->conn, DRTP, LOGL_ERROR,
-				 "In loopback mode and remote address not set:"
-				 " allowing data from address: %s\n",
-				 osmo_sockaddr_ntop(&addr->u.sa, ipbuf));
-			return 0;
-
-		default:
-			/* Receiving early media before the endpoint is configured. Instead of logging
-			 * this as an error that occurs on every call, keep it more low profile to not
-			 * confuse humans with expected errors. */
-			LOGPCONN(conn->conn, DRTP, LOGL_INFO,
-				 "Rx RTP from %s, but remote address not set:"
-				 " dropping early media\n",
-				 osmo_sockaddr_ntop(&addr->u.sa, ipbuf));
-			return -1;
-		}
+		/* Receiving early media before the endpoint is configured. Instead of logging
+		 * this as an error that occurs on every call, keep it more low profile to not
+		 * confuse humans with expected errors. */
+		LOGPCONN(conn->conn, DRTP, LOGL_INFO,
+			 "Rx RTP from %s, but remote address not set:"
+			 " dropping early media\n",
+			 osmo_sockaddr_ntop(&addr->u.sa, ipbuf));
+		return -1;
 	}
 
 	/* Note: Check if the inbound RTP data comes from the same host to
