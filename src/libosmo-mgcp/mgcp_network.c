@@ -835,6 +835,18 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *ad
 	char ipbuf[INET6_ADDRSTRLEN];
 
 	if (osmo_sockaddr_is_any(&conn->end.addr) != 0) {
+		if (mgcp_conn_rtp_is_iuup(conn) && !conn->iuup.configured) {
+			/* Allow IuUP Initialization to get through even if we don't have a remote address set yet.
+			 * This is needed because hNodeB doesn't announce its IuUP remote IP addr to the MGCP client
+			 * (RAB-ASs-Resp at hnbgw) until it has gone through IuUP Initialization against this MGW
+			 * here. Hence the MGCP client is unable to set up the remote address through MDCX until
+			 * later passed this point.
+			 */
+			LOGPCONN(conn->conn, DRTP, LOGL_INFO,
+				 "Rx RTP from %s: allowing unknown src for IuUP Initialization\n",
+				 osmo_sockaddr_to_str(addr));
+			return 0;
+		}
 		switch (conn->conn->mode) {
 		case MGCP_CONN_LOOPBACK:
 			/* HACK: for IuUP, we want to reply with an IuUP Initialization ACK upon the first RTP
