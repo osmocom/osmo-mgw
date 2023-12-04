@@ -834,6 +834,15 @@ static int check_rtp_origin(struct mgcp_conn_rtp *conn, struct osmo_sockaddr *ad
 {
 	char ipbuf[INET6_ADDRSTRLEN];
 
+	/* Allow IuUP Initialization to get through even if we don't have a remote address set yet. */
+	if (mgcp_conn_rtp_is_iuup(conn) && !conn->iuup.configured) {
+		/* maybe todo: also verify that it is actually a valid IuUP Initialization header in the incoming msgb?
+		 * (though, why do we even care where the RTP is coming from) */
+		LOGPCONN(conn->conn, DRTP, LOGL_INFO, "Rx RTP from %s: allowing unknown src for IuUP Initialization\n",
+			 osmo_sockaddr_to_str(addr));
+		return 0;
+	}
+
 	if (osmo_sockaddr_is_any(&conn->end.addr) != 0) {
 		switch (conn->conn->mode) {
 		case MGCP_CONN_LOOPBACK:
