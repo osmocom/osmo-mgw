@@ -600,6 +600,121 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
+Testing test_messages() CRCX_EXPLICIT_EP
+creating message from statically defined input:
+---------8<---------
+CRCX 101 rtpbridge/8@mgw MGCP 1.0
+m: recvonly
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 1.2.3.4
+m=audio 1234 RTP/AVP 112
+a=rtpmap:112 AMR/8000
+a=ptime:20
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+(response contains a connection id)
+Dummy packets: 2
+
+================================================
+Testing test_messages() CRCX_TWO_PAYLOADS_1
+creating message from statically defined input:
+---------8<---------
+CRCX 102 rtpbridge/*@mgw MGCP 1.0
+m: recvonly
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 1.2.3.4
+m=audio 1234 RTP/AVP 112 3
+a=rtpmap:112 AMR/8000
+a=ptime:20
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+(response contains a connection id)
+Dummy packets: 2
+
+================================================
+Testing test_messages() CRCX_TWO_PAYLOADS_2
+creating message from statically defined input:
+---------8<---------
+CRCX 103 rtpbridge/2@mgw MGCP 1.0
+m: recvonly
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 1.2.3.4
+m=audio 1234 RTP/AVP 3 112
+a=rtpmap:112 AMR/8000
+a=ptime:20
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+(response contains a connection id)
+Dummy packets: 2
+
+================================================
+Testing test_messages() CRCX_THREE_PAYLOADS_1
+creating message from statically defined input:
+---------8<---------
+CRCX 104 rtpbridge/*@mgw MGCP 1.0
+m: recvonly
+C: 4
+L: p:20
+
+v=0
+c=IN IP4 1.2.3.4
+m=audio 1234 RTP/AVP 112 3 111
+a=rtpmap:112 AMR/8000
+a=fmtp:112 octet-align=1;mode-set=0,2,4,7
+a=rtpmap:111 GSM-HR-08/8000
+a=ptime:20
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+(response contains a connection id)
+Dummy packets: 2
+
+================================================
+Testing test_messages() CRCX_THREE_PAYLOADS_2
+creating message from statically defined input:
+---------8<---------
+CRCX 105 rtpbridge/3@mgw MGCP 1.0
+m: recvonly
+C: 4
+L: p:20
+
+v=0
+c=IN IP4 1.2.3.4
+m=audio 1234 RTP/AVP 3 112 113
+a=rtpmap:112 AMR/8000
+a=fmtp:112 octet-align=1;mode-set=0,2,4,7
+a=rtpmap:113 AMR/8000
+a=fmtp:113 octet-align=1;mode-set=0,2,4
+a=ptime:20
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+(response contains a connection id)
+Dummy packets: 2
+
+================================================
 Testing test_retransmission() CRCX
 creating message from statically defined input:
 ---------8<---------

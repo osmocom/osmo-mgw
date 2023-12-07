@@ -623,6 +623,133 @@ static const struct mgcp_test tests[] = {
 	{"MDCX_NULL", MDCX_NULL, MDCX_NULL_RET},
 	{"DLCX_NULL", DLCX_NULL, DLCX_NULL_RET},
 	{"RQNT_NULL", RQNT_NULL, RQNT_NULL_RET},
+	{
+		"CRCX_EXPLICIT_EP",
+		/* CRCX for a new endpoint 8@mgw, not using the '*@mgw' wildcard */
+		"CRCX 101 rtpbridge/8@mgw MGCP 1.0\r\n"
+			"m: recvonly\r\n"
+			"C: 2\r\n"
+			"L: p:20\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"c=IN IP4 1.2.3.4\r\n"
+			"m=audio 1234 RTP/AVP 112\r\n"
+			"a=rtpmap:112 AMR/8000\r\n"
+			"a=ptime:20\r\n",
+		"200 101 OK\r\n"
+			"I: %s\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"o=- %s 23 IN IP4 0.0.0.0\r\n"
+			"s=-\r\n"
+			"c=IN IP4 0.0.0.0\r\n"
+			"t=0 0\r\n"
+			"m=audio 16014 RTP/AVP 112\r\n"
+			"a=rtpmap:112 AMR/8000\r\n"
+			"a=ptime:20\r\n"
+	},
+	{
+		"CRCX_TWO_PAYLOADS_1",
+		"CRCX 102 rtpbridge/*@mgw MGCP 1.0\r\n"
+			"m: recvonly\r\n"
+			"C: 2\r\n"
+			"L: p:20\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"c=IN IP4 1.2.3.4\r\n"
+			"m=audio 1234 RTP/AVP 112 3\r\n"
+			"a=rtpmap:112 AMR/8000\r\n"
+			"a=ptime:20\r\n",
+		"200 102 OK\r\n"
+			"Z: rtpbridge/2@mgw\r\n"
+			"I: %s\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"o=- %s 23 IN IP4 0.0.0.0\r\n"
+			"s=-\r\n"
+			"c=IN IP4 0.0.0.0\r\n"
+			"t=0 0\r\n"
+			"m=audio 16016 RTP/AVP 112\r\n" /* <-- should be '112 3' like above */
+			"a=rtpmap:112 AMR/8000\r\n"
+			"a=ptime:20\r\n"
+	},
+	{
+		"CRCX_TWO_PAYLOADS_2",
+		"CRCX 103 rtpbridge/2@mgw MGCP 1.0\r\n"
+			"m: recvonly\r\n"
+			"C: 2\r\n"
+			"L: p:20\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"c=IN IP4 1.2.3.4\r\n"
+			"m=audio 1234 RTP/AVP 3 112\r\n"
+			"a=rtpmap:112 AMR/8000\r\n"
+			"a=ptime:20\r\n",
+		"200 103 OK\r\n"
+			"I: %s\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"o=- %s 23 IN IP4 0.0.0.0\r\n"
+			"s=-\r\n"
+			"c=IN IP4 0.0.0.0\r\n"
+			"t=0 0\r\n"
+			"m=audio 16018 RTP/AVP 3\r\n" /* <-- should be '3 112' like above */
+			"a=ptime:20\r\n"
+	},
+	{
+		"CRCX_THREE_PAYLOADS_1",
+		"CRCX 104 rtpbridge/*@mgw MGCP 1.0\r\n"
+			"m: recvonly\r\n"
+			"C: 4\r\n"
+			"L: p:20\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"c=IN IP4 1.2.3.4\r\n"
+			"m=audio 1234 RTP/AVP 112 3 111\r\n"
+			"a=rtpmap:112 AMR/8000\r\n"
+			"a=fmtp:112 octet-align=1;mode-set=0,2,4,7\r\n"
+			"a=rtpmap:111 GSM-HR-08/8000\r\n"
+			"a=ptime:20\r\n",
+		"200 104 OK\r\n"
+			"Z: rtpbridge/3@mgw\r\n"
+			"I: %s\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"o=- %s 23 IN IP4 0.0.0.0\r\n"
+			"s=-\r\n"
+			"c=IN IP4 0.0.0.0\r\n"
+			"t=0 0\r\n"
+			"m=audio 16020 RTP/AVP 112\r\n" /* <-- should be '112 3 111' like above */
+			"a=rtpmap:112 AMR/8000\r\n"
+			"a=fmtp:112 octet-align=1;mode-set=0,2,4,7\r\n"
+			"a=ptime:20\r\n"
+	},
+	{
+		"CRCX_THREE_PAYLOADS_2",
+		"CRCX 105 rtpbridge/3@mgw MGCP 1.0\r\n"
+			"m: recvonly\r\n"
+			"C: 4\r\n"
+			"L: p:20\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"c=IN IP4 1.2.3.4\r\n"
+			"m=audio 1234 RTP/AVP 3 112 113\r\n"
+			"a=rtpmap:112 AMR/8000\r\n"
+			"a=fmtp:112 octet-align=1;mode-set=0,2,4,7\r\n"
+			"a=rtpmap:113 AMR/8000\r\n"
+			"a=fmtp:113 octet-align=1;mode-set=0,2,4\r\n"
+			"a=ptime:20\r\n",
+		"200 105 OK\r\n"
+			"I: %s\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"o=- %s 23 IN IP4 0.0.0.0\r\n"
+			"s=-\r\n"
+			"c=IN IP4 0.0.0.0\r\n"
+			"t=0 0\r\n"
+			"m=audio 16022 RTP/AVP 3\r\n" /* <-- should be '3 112 113' like above */
+			"a=ptime:20\r\n"
+	},
 };
 
 static const struct mgcp_test retransmit[] = {
