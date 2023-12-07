@@ -19,6 +19,7 @@
  */
 
 #include <osmocom/mgcp_client/mgcp_client.h>
+#include <osmocom/mgcp_client/mgcp_client_internal.h>
 #include <osmocom/mgcp_client/mgcp_client_fsm.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/core/fsm.h>

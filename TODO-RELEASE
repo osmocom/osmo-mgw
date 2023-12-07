@@ -24,3 +24,14 @@
 # If any interfaces have been removed or changed since the last public release, a=0.
 #
 #library		what		description / commit summary line
+libosmo-mgcp-client	remove public API	These public API items have not been called by any of our osmo-programs
+						for many years. Any sane caller of libosmo-mgcp-client should use the
+						higher level osmo_mgcpc_* API instead. Move these to a private header:
+						struct mgcp_response_head
+						struct mgcp_response
+						struct mgcp_msg
+						mgcp_response_parse_params()
+						mgcp_client_tx()
+						mgcp_client_cancel()
+						mgcp_msg_gen()
+						mgcp_msg_trans_id()
