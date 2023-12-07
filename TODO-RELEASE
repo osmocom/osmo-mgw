@@ -38,3 +38,8 @@ libosmo-mgcp-client	remove public API	These public API items have not been calle
 libosmo-mgcp-client	deprecate public API	New code should no longer use codecs[], instead use ptmap[].codec. There
 						is backwards compat code that moves codecs[] entries, if any, over to
 						ptmap[], so callers may migrate at own leisure.
+libosmo-mgcp-client	remove public API	Since codecs[] has been deprecated in favor of ptmap[], there is no use
+						for the following functions; all known callers have been within
+						osmo-mgw.git:
+						map_codec_to_pt()
+						map_pt_to_codec()
