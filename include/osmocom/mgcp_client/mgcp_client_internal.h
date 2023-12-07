@@ -38,8 +38,6 @@ struct mgcp_response {
 	uint16_t audio_port;
 	char audio_ip[INET6_ADDRSTRLEN];
 	unsigned int ptime;
-	enum mgcp_codecs codecs[MGCP_MAX_CODECS];
-	unsigned int codecs_len;
 	struct ptmap ptmap[MGCP_MAX_CODECS];
 	unsigned int ptmap_len;
 };
@@ -84,8 +82,6 @@ struct mgcp_msg {
 	char *audio_ip;
 	enum mgcp_connection_mode conn_mode;
 	unsigned int ptime;
-	enum mgcp_codecs codecs[MGCP_MAX_CODECS];
-	unsigned int codecs_len;
 	struct ptmap ptmap[MGCP_MAX_CODECS];
 	unsigned int ptmap_len;
 	uint32_t x_osmo_ign;

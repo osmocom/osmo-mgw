@@ -115,12 +115,10 @@ static void make_crcx_msg(struct mgcp_msg *mgcp_msg, struct mgcp_conn_peer *info
 		.call_id = info->call_id,
 		.conn_mode = MGCP_CONN_RECV_ONLY,
 		.ptime = info->ptime,
-		.codecs_len = info->codecs_len,
 		.ptmap_len = info->ptmap_len,
 		.param_present = info->param_present
 	};
 	osmo_strlcpy(mgcp_msg->endpoint, info->endpoint, MGCP_ENDPOINT_MAXLEN);
-	memcpy(mgcp_msg->codecs, info->codecs, sizeof(mgcp_msg->codecs));
 	memcpy(mgcp_msg->ptmap, info->ptmap, sizeof(mgcp_msg->ptmap));
 	memcpy(&mgcp_msg->param, &info->param, sizeof(mgcp_msg->param));
 
@@ -173,12 +171,10 @@ static struct msgb *make_mdcx_msg(struct mgcp_ctx *mgcp_ctx)
 		.audio_ip = mgcp_ctx->conn_peer_local.addr,
 		.audio_port = mgcp_ctx->conn_peer_local.port,
 		.ptime = mgcp_ctx->conn_peer_local.ptime,
-		.codecs_len = mgcp_ctx->conn_peer_local.codecs_len,
 		.ptmap_len = mgcp_ctx->conn_peer_local.ptmap_len,
 		.param_present = mgcp_ctx->conn_peer_local.param_present
 	};
 	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_remote.endpoint, MGCP_ENDPOINT_MAXLEN);
-	memcpy(mgcp_msg.codecs, mgcp_ctx->conn_peer_local.codecs, sizeof(mgcp_msg.codecs));
 	memcpy(mgcp_msg.ptmap, mgcp_ctx->conn_peer_local.ptmap, sizeof(mgcp_msg.ptmap));
 	memcpy(&mgcp_msg.param, &mgcp_ctx->conn_peer_local.param, sizeof(mgcp_ctx->conn_peer_local.param));
 
@@ -628,6 +624,72 @@ static struct osmo_fsm fsm_mgcp_client = {
 	.log_subsys = DLMGCP,
 };
 
+/* Provide backwards compat for deprecated conn_peer->codecs[]: when the caller passes in an mgcp_conn_peer instance
+ * that has codecs[] set, apply it to ptmap[] instead. */
+static void mgcp_conn_peer_compat(struct mgcp_conn_peer *conn_peer)
+{
+	struct ptmap ptmap[MGCP_MAX_CODECS];
+	unsigned int ptmap_len;
+
+	if (!conn_peer->codecs_len)
+		return;
+
+	/* Before dropping codecs[], codecs[] would indicate the order in which the codecs should appear in SDP. ptmap[]
+	 * would indicate payload type numbers when not using a default payload type number (may omit entries).
+	 * Now, ptmap[] just indicates both at the same time; codecs[] should be empty, and ptmap[] lists all codecs.
+	 * So if any codecs[] are present, recreate ptmap[] in the order of codecs[]. */
+
+	ptmap_len = 0;
+	for (int i = 0; i < conn_peer->codecs_len; i++) {
+		enum mgcp_codecs codec = conn_peer->codecs[i];
+		struct ptmap *found = NULL;
+
+		/* Look up whether a specific pt was indicated for this codec */
+		for (int p = 0; p < conn_peer->ptmap_len; p++) {
+			if (conn_peer->ptmap[p].codec != codec)
+				continue;
+			found = &conn_peer->ptmap[p];
+			break;
+		}
+		if (found) {
+			ptmap[ptmap_len] = *found;
+		} else {
+			ptmap[ptmap_len] = (struct ptmap){
+				.codec = codec,
+				/* some enum mgcp_codecs correspond to their standard PT nr, so for compat: */
+				.pt = codec,
+			};
+		}
+		ptmap_len++;
+	}
+
+	/* Are there any entries in the old ptmap that were omitted by codecs[]? */
+	for (int p = 0; p < conn_peer->ptmap_len; p++) {
+		bool exists = false;
+		for (int i = 0; i < ptmap_len; i++) {
+			if (ptmap_cmp(&ptmap[i], &conn_peer->ptmap[p]))
+				continue;
+			exists = true;
+			break;
+		}
+
+		if (exists)
+			continue;
+
+		if (ptmap_len >= ARRAY_SIZE(ptmap))
+			break;
+
+		/* Not present yet, add it to the end */
+		ptmap[ptmap_len] = conn_peer->ptmap[p];
+		ptmap_len++;
+	}
+
+	/* Use the new ptmap[], and clear out legacy codecs[]. */
+	memcpy(conn_peer->ptmap, ptmap, sizeof(conn_peer->ptmap));
+	conn_peer->ptmap_len = ptmap_len;
+	conn_peer->codecs_len = 0;
+}
+
 /*! allocate FSM, and create a new connection on the MGW.
  *  \param[in] mgcp MGCP client descriptor.
  *  \param[in] parent_fi Parent FSM instance.
@@ -642,6 +704,7 @@ struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm
 	struct osmo_fsm_inst *fi;
 	struct in6_addr ip_test;
 
+	mgcp_conn_peer_compat(conn_peer);
 
 	OSMO_ASSERT(parent_fi);
 	OSMO_ASSERT(mgcp);
@@ -680,6 +743,8 @@ int mgcp_conn_modify(struct osmo_fsm_inst *fi, uint32_t parent_evt, struct mgcp_
 	OSMO_ASSERT(fi);
 	struct mgcp_ctx *mgcp_ctx = fi->priv;
 	struct in6_addr ip_test;
+
+	mgcp_conn_peer_compat(conn_peer);
 
 	OSMO_ASSERT(mgcp_ctx);
 	OSMO_ASSERT(conn_peer);

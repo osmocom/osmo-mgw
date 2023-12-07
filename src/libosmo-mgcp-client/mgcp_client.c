@@ -302,7 +302,7 @@ static int mgcp_parse_audio_port_pt(struct mgcp_response *r, char *line)
 	char *pt_str;
 	char *pt_end;
 	unsigned long int pt;
-	unsigned int count = 0;
+	unsigned int ptmap_len;
 	unsigned int i;
 
 	/* Extract port information */
@@ -316,10 +316,15 @@ static int mgcp_parse_audio_port_pt(struct mgcp_response *r, char *line)
 	if (!line)
 		goto exit;
 
+	/* Clear any previous entries before writing over r->ptmap */
+	r->ptmap_len = 0;
+	/* Keep a local ptmap_len to show only the full list after parsing succeeded in whole. */
+	ptmap_len = 0;
+
 	pt_str = strtok(line, " ");
 	while (1) {
 		/* Do not allow excessive payload types */
-		if (count >= ARRAY_SIZE(r->codecs))
+		if (ptmap_len >= ARRAY_SIZE(r->ptmap))
 			goto response_parse_failure_pt;
 
 		pt_str = strtok(NULL, " ");
@@ -335,21 +340,23 @@ static int mgcp_parse_audio_port_pt(struct mgcp_response *r, char *line)
 			goto response_parse_failure_pt;
 
 		/* Do not allow duplicate payload types */
-		for (i = 0; i < count; i++)
-			if (r->codecs[i] == pt)
+		for (i = 0; i < ptmap_len; i++)
+			if (r->ptmap[i].pt == pt)
 				goto response_parse_failure_pt;
 
-		/* Note: The payload type we store may not necessarly match
-		 * the codec types we have defined in enum mgcp_codecs. To
-		 * ensure that the end result only contains codec types which
-		 * match enum mgcp_codecs, we will go through afterwards and
-		 * remap the affected entries with the inrofmation we learn
-		 * from rtpmap */
-		r->codecs[count] = pt;
-		count++;
+		/* Some payload type numbers imply a specific codec. For those, using the PT number as enum mgcp_codecs
+		 * yields the correct result. If no more specific information on the codec follows in "a=rtpmap:N"
+		 * lines, then this default number takes over. This only applies for PT below the dynamic range (<96). */
+		if (pt < 96)
+			r->ptmap[ptmap_len].codec = pt;
+		else
+			r->ptmap[ptmap_len].codec = -1;
+		r->ptmap[ptmap_len].pt = pt;
+		ptmap_len++;
 	}
 
-	r->codecs_len = count;
+	/* Parsing succeeded, publish all entries. */
+	r->ptmap_len = ptmap_len;
 
 exit:
 	return 0;
@@ -365,10 +372,11 @@ response_parse_failure_pt:
 	return -EINVAL;
 }
 
-/* Parse a line like "m=audio 16002 RTP/AVP 98", extract port and payload types */
+/* Parse an 'a=...' parameter */
 static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *line)
 {
 	unsigned int pt;
+	unsigned int i;
 	char codec_resp[64];
 	int rc;
 
@@ -387,18 +395,39 @@ static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *li
 			     "Failed to parse SDP parameter, invalid rtpmap: %s\n", osmo_quote_str(line, -1));
 			return -EINVAL;
 		}
-		if (r->ptmap_len >= ARRAY_SIZE(r->ptmap)) {
-			LOGP(DLMGCP, LOGL_ERROR, "No more space in ptmap array (len=%u)\n", r->ptmap_len);
-			return -ENOSPC;
-		}
 		rc = map_str_to_codec(codec_resp);
 		if (rc < 0) {
 			LOGP(DLMGCP, LOGL_ERROR,
 			     "Failed to parse SDP parameter, can't parse codec in rtpmap: %s\n", osmo_quote_str(line, -1));
 			return -EINVAL;
 		}
-		r->ptmap[r->ptmap_len].pt = pt;
-		r->ptmap[r->ptmap_len].codec = rc;
+
+		/* Earlier, a line like "m=audio 16002 RTP/AVP 98 112 3" established the desired order of payloads, now
+		 * enrich it with actual codec information provided by "a=rtpmap:..." entries.
+		 * For each, find the entry with the right pt number and add the info there. */
+
+		for (i = 0; i < r->ptmap_len; i++) {
+			if (r->ptmap[i].pt != pt)
+				continue;
+			r->ptmap[i].codec = rc;
+			return 0;
+		}
+
+		/* No entry was found. This is an error in the MGCP protocol, but let's just add another entry
+		 * anyway, to not make it look like it was never there. */
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "error in MGCP message: 'a=rtpmap:%u' has no matching entry in 'm=audio ... %u'\n",
+		     pt, pt);
+		if (r->ptmap_len >= ARRAY_SIZE(r->ptmap)) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "cannot parse all codecs: can only store up to %zu rtpmap entries.\n",
+			     ARRAY_SIZE(r->ptmap));
+			return -ENOSPC;
+		}
+		r->ptmap[r->ptmap_len] = (struct ptmap){
+			.pt = pt,
+			.codec = rc,
+		};
 		r->ptmap_len++;
 	}
 
@@ -508,7 +537,6 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 	int rc;
 	char *data;
 	char *data_ptr;
-	int i;
 
 	/* Since this functions performs a destructive parsing, we create a
 	 * local copy of the body data */
@@ -552,10 +580,6 @@ int mgcp_response_parse_params(struct mgcp_response *r)
 			break;
 		}
 	}
-
-	/* See also note in mgcp_parse_audio_port_pt() */
-	for (i = 0; i < r->codecs_len; i++)
-	        r->codecs[i] =  map_pt_to_codec(r->ptmap, r->ptmap_len, r->codecs[i]);
 
 	rc = 0;
 exit:
@@ -1234,7 +1258,6 @@ static int add_lco(struct msgb *msg, struct mgcp_msg *mgcp_msg)
 {
 	unsigned int i;
 	const char *codec;
-	unsigned int pt;
 
 #define MSGB_PRINTF_OR_RET(FMT, ARGS...) do { \
 		if (msgb_printf(msg, FMT, ##ARGS) != 0) { \
@@ -1248,11 +1271,10 @@ static int add_lco(struct msgb *msg, struct mgcp_msg *mgcp_msg)
 	if (mgcp_msg->ptime)
 		MSGB_PRINTF_OR_RET(" p:%u,", mgcp_msg->ptime);
 
-	if (mgcp_msg->codecs_len) {
+	if (mgcp_msg->ptmap_len) {
 		MSGB_PRINTF_OR_RET(" a:");
-		for (i = 0; i < mgcp_msg->codecs_len; i++) {
-			pt = mgcp_msg->codecs[i];
-			codec = get_value_string_or_null(osmo_mgcpc_codec_names, pt);
+		for (i = 0; i < mgcp_msg->ptmap_len; i++) {
+			codec = get_value_string_or_null(osmo_mgcpc_codec_names, mgcp_msg->ptmap[i].codec);
 
 			/* Note: Use codec descriptors from enum mgcp_codecs
 			 * in mgcp_client only! */
@@ -1260,7 +1282,7 @@ static int add_lco(struct msgb *msg, struct mgcp_msg *mgcp_msg)
 				return -EINVAL;
 
 			MSGB_PRINTF_OR_RET("%s", extract_codec_name(codec));
-			if (i < mgcp_msg->codecs_len - 1)
+			if (i < mgcp_msg->ptmap_len - 1)
 				MSGB_PRINTF_OR_RET(";");
 		}
 		MSGB_PRINTF_OR_RET(",");
@@ -1338,21 +1360,19 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 			return -EINVAL;
 		}
 		MSGB_PRINTF_OR_RET("m=audio %u RTP/AVP", mgcp_msg->audio_port);
-		for (i = 0; i < mgcp_msg->codecs_len; i++) {
-			pt = map_codec_to_pt(mgcp_msg->ptmap, mgcp_msg->ptmap_len, mgcp_msg->codecs[i]);
-			MSGB_PRINTF_OR_RET(" %u", pt);
-
-		}
+		for (i = 0; i < mgcp_msg->ptmap_len; i++)
+			MSGB_PRINTF_OR_RET(" %u", mgcp_msg->ptmap[i].pt);
 		MSGB_PRINTF_OR_RET("\r\n");
 	}
 
 	/* Add optional codec parameters (fmtp) */
 	if (mgcp_msg->param_present) {
-		for (i = 0; i < mgcp_msg->codecs_len; i++) {
+		for (i = 0; i < mgcp_msg->ptmap_len; i++) {
 			/* The following is only applicable for AMR */
-			if (mgcp_msg->codecs[i] != CODEC_AMR_8000_1 && mgcp_msg->codecs[i] != CODEC_AMRWB_16000_1)
+			if (mgcp_msg->ptmap[i].codec != CODEC_AMR_8000_1
+			    && mgcp_msg->ptmap[i].codec != CODEC_AMRWB_16000_1)
 				continue;
-			pt = map_codec_to_pt(mgcp_msg->ptmap, mgcp_msg->ptmap_len, mgcp_msg->codecs[i]);
+			pt = mgcp_msg->ptmap[i].pt;
 			if (mgcp_msg->param.amr_octet_aligned_present && mgcp_msg->param.amr_octet_aligned)
 				MSGB_PRINTF_OR_RET("a=fmtp:%u octet-align=1\r\n", pt);
 			else if (mgcp_msg->param.amr_octet_aligned_present && !mgcp_msg->param.amr_octet_aligned)
@@ -1360,14 +1380,14 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 		}
 	}
 
-	for (i = 0; i < mgcp_msg->codecs_len; i++) {
-		pt = map_codec_to_pt(mgcp_msg->ptmap, mgcp_msg->ptmap_len, mgcp_msg->codecs[i]);
+	for (i = 0; i < mgcp_msg->ptmap_len; i++) {
+		pt = mgcp_msg->ptmap[i].pt;
 
 		/* Note: Only dynamic payload type from the range 96-127
 		 * require to be explained further via rtpmap. All others
 		 * are implcitly definedby the number in m=audio */
 		if (pt >= 96 && pt <= 127) {
-			codec = get_value_string_or_null(osmo_mgcpc_codec_names, mgcp_msg->codecs[i]);
+			codec = get_value_string_or_null(osmo_mgcpc_codec_names, mgcp_msg->ptmap[i].codec);
 
 			/* Note: Use codec descriptors from enum mgcp_codecs
 			 * in mgcp_client only! */
@@ -1574,4 +1594,21 @@ const char *mgcp_client_name(const struct mgcp_client *mgcp)
 		return mgcp->actual.description;
 	else
 		return mgcp_client_endpoint_domain(mgcp);
+}
+
+/*! Return typical cmp result, comparing a to b.
+ * Return 0 if a == b, -1 if a < b, 1 if a > b; comparing all members of ptmap in turn. */
+int ptmap_cmp(const struct ptmap *a, const struct ptmap *b)
+{
+	int rc;
+	if (a == b)
+		return 0;
+	if (!a)
+		return -1;
+	if (!b)
+		return 1;
+	rc = OSMO_CMP(a->codec, b->codec);
+	if (rc)
+		return rc;
+	return OSMO_CMP(a->pt, b->pt);
 }

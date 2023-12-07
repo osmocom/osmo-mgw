@@ -79,6 +79,8 @@ struct ptmap {
 	unsigned int pt;
 };
 
+int ptmap_cmp(const struct ptmap *a, const struct ptmap *b);
+
 enum mgcp_verb {
 	MGCP_VERB_CRCX,
 	MGCP_VERB_MDCX,
