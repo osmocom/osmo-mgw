@@ -531,7 +531,7 @@ void test_sdp_section_start(void)
 	OSMO_ASSERT(!failures);
 }
 
-static void test_map_pt_to_codec(void)
+static void test_map_str_to_codec(void)
 {
 	/* Full form */
 	OSMO_ASSERT(map_str_to_codec("PCMU/8000/1") == CODEC_PCMU_8000_1);
@@ -703,7 +703,7 @@ int main(int argc, char **argv)
 	test_mgcp_client_cancel();
 	test_sdp_section_start();
 	test_map_codec_to_pt_and_map_pt_to_codec();
-	test_map_pt_to_codec();
+	test_map_str_to_codec();
 	test_mgcp_client_e1_epname();
 
 	printf("Done\n");
