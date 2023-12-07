@@ -29,11 +29,11 @@ struct mgcp_conn_peer {
 	/*! RTP packetization interval (optional) */
 	unsigned int ptime;
 
-	/*! RTP codec list (optional) */
-	enum mgcp_codecs codecs[MGCP_MAX_CODECS];
-
-	/*! Number of codecs in RTP codec list (optional) */
-	unsigned int codecs_len;
+	/*! Deprecated. Use only ptmap[].codec in new code. */
+	enum mgcp_codecs codecs[MGCP_MAX_CODECS]
+		OSMO_DEPRECATED_OUTSIDE_LIBOSMOMGCPCLIENT("use ptmap[i].codec instead");
+	unsigned int codecs_len
+		OSMO_DEPRECATED_OUTSIDE_LIBOSMOMGCPCLIENT("use ptmap[] and ptmap_len instead");
 
 	/*! RTP payload type map (optional, only needed when payload types are
 	 * used that differ from what IANA/3GPP defines) */

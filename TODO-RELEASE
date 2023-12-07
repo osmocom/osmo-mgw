@@ -35,3 +35,6 @@ libosmo-mgcp-client	remove public API	These public API items have not been calle
 						mgcp_client_cancel()
 						mgcp_msg_gen()
 						mgcp_msg_trans_id()
+libosmo-mgcp-client	deprecate public API	New code should no longer use codecs[], instead use ptmap[].codec. There
+						is backwards compat code that moves codecs[] entries, if any, over to
+						ptmap[], so callers may migrate at own leisure.

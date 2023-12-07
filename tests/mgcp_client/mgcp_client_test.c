@@ -107,9 +107,6 @@ void test_response_cb(struct mgcp_response *response, void *priv)
 	printf("  audio_port = %u\n", response->audio_port);
 	printf("  audio_ip = %s\n", response->audio_ip);
 	printf("  ptime = %u\n", response->ptime);
-	printf("  codecs_len = %u\n", response->codecs_len);
-	for(i=0;i<response->codecs_len;i++)
-		printf("  codecs[%u] = %u\n", i, response->codecs[i]);
 	printf("  ptmap_len = %u\n", response->ptmap_len);
 	for(i=0;i<response->ptmap_len;i++) {
 		printf("  ptmap[%u].codec = %u\n", i, response->ptmap[i].codec);
@@ -149,12 +146,11 @@ void test_mgcp_msg(void)
 		.conn_id = "11",
 		.conn_mode = MGCP_CONN_RECV_SEND,
 		.ptime = 20,
-		.codecs[0] = CODEC_GSM_8000_1,
-		.codecs[1] = CODEC_AMR_8000_1,
-		.codecs[2] = CODEC_GSMEFR_8000_1,
-		.codecs_len = 1,
-		.ptmap[0].codec = CODEC_GSMEFR_8000_1,
-		.ptmap[0].pt = 96,
+		.ptmap = {
+			{ .codec = CODEC_GSM_8000_1, .pt = CODEC_GSM_8000_1 },
+			{ .codec = CODEC_AMR_8000_1, .pt = CODEC_AMR_8000_1 },
+			{ .codec = CODEC_GSMEFR_8000_1, .pt = 96 },
+		},
 		.ptmap_len = 1,
 		.x_osmo_ign = MGCP_X_OSMO_IGN_CALLID,
 		.x_osmo_osmux_cid = -1, /* wildcard */
@@ -179,9 +175,9 @@ void test_mgcp_msg(void)
 	mgcp_msg.presence =
 	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
 	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE);
-	mgcp_msg.codecs_len = 2;
+	mgcp_msg.ptmap_len = 2;
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
-	mgcp_msg.codecs_len = 1;
+	mgcp_msg.ptmap_len = 1;
 	printf("%s\n", (char *)msg->data);
 
 	printf("Generated CRCX message (three codecs, one with custom pt):\n");
@@ -189,9 +185,9 @@ void test_mgcp_msg(void)
 	mgcp_msg.presence =
 	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
 	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE);
-	mgcp_msg.codecs_len = 3;
+	mgcp_msg.ptmap_len = 3;
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
-	mgcp_msg.codecs_len = 1;
+	mgcp_msg.ptmap_len = 1;
 	printf("%s\n", (char *)msg->data);
 
 	printf("Generated MDCX message:\n");
@@ -209,9 +205,9 @@ void test_mgcp_msg(void)
 	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
 	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE |
 	     MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT);
-	mgcp_msg.codecs_len = 2;
+	mgcp_msg.ptmap_len = 2;
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
-	mgcp_msg.codecs_len = 1;
+	mgcp_msg.ptmap_len = 1;
 	printf("%s\n", (char *)msg->data);
 
 	printf("Generated MDCX message (three codecs, one with custom pt):\n");
@@ -220,9 +216,9 @@ void test_mgcp_msg(void)
 	    (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID |
 	     MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE |
 	     MGCP_MSG_PRESENCE_AUDIO_IP | MGCP_MSG_PRESENCE_AUDIO_PORT);
-	mgcp_msg.codecs_len = 3;
+	mgcp_msg.ptmap_len = 3;
 	msg = mgcp_msg_gen(mgcp, &mgcp_msg);
-	mgcp_msg.codecs_len = 1;
+	mgcp_msg.ptmap_len = 1;
 	printf("%s\n", (char *)msg->data);
 
 	printf("Generated DLCX message:\n");
@@ -330,8 +326,10 @@ void test_mgcp_client_cancel(void)
 		.presence = (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID
 			     | MGCP_MSG_PRESENCE_CONN_ID | MGCP_MSG_PRESENCE_CONN_MODE),
 		.ptime = 20,
-		.codecs[0] = CODEC_AMR_8000_1,
-		.codecs_len = 1
+		.ptmap = {
+			{ .codec = CODEC_AMR_8000_1, .pt = CODEC_AMR_8000_1 },
+		},
+		.ptmap_len = 1
 	};
 
 	printf("\n%s():\n", __func__);
