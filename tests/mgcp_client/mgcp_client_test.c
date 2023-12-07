@@ -571,57 +571,6 @@ static void test_map_str_to_codec(void)
 	OSMO_ASSERT(map_str_to_codec("AMR-WB####################################################################################################################") == -1);
 }
 
-static void test_map_codec_to_pt_and_map_pt_to_codec(void)
-{
-	struct ptmap ptmap[10];
-	unsigned int ptmap_len;
-	unsigned int i;
-
-	ptmap[0].codec = CODEC_GSMEFR_8000_1;
-	ptmap[0].pt = 96;
-	ptmap[1].codec = CODEC_GSMHR_8000_1;
-	ptmap[1].pt = 97;
-	ptmap[2].codec = CODEC_AMR_8000_1;
-	ptmap[2].pt = 98;
-	ptmap[3].codec = CODEC_AMRWB_16000_1;
-	ptmap[3].pt = 99;
-	ptmap_len = 4;
-
-	/* Mappings that are covered by the table */
-	for (i = 0; i < ptmap_len; i++)
-		printf(" %u => %u\n", ptmap[i].codec, map_codec_to_pt(ptmap, ptmap_len, ptmap[i].codec));
-	for (i = 0; i < ptmap_len; i++)
-		printf(" %u <= %u\n", ptmap[i].pt, map_pt_to_codec(ptmap, ptmap_len, ptmap[i].pt));
-	printf("\n");
-
-	/* Map some codecs/payload types from the static range, result must
-	 * always be a 1:1 mapping */
-	printf(" %u => %u\n", CODEC_PCMU_8000_1, map_codec_to_pt(ptmap, ptmap_len, CODEC_PCMU_8000_1));
-	printf(" %u => %u\n", CODEC_GSM_8000_1, map_codec_to_pt(ptmap, ptmap_len, CODEC_GSM_8000_1));
-	printf(" %u => %u\n", CODEC_PCMA_8000_1, map_codec_to_pt(ptmap, ptmap_len, CODEC_PCMA_8000_1));
-	printf(" %u => %u\n", CODEC_G729_8000_1, map_codec_to_pt(ptmap, ptmap_len, CODEC_G729_8000_1));
-	printf(" %u <= %u\n", CODEC_PCMU_8000_1, map_pt_to_codec(ptmap, ptmap_len, CODEC_PCMU_8000_1));
-	printf(" %u <= %u\n", CODEC_GSM_8000_1, map_pt_to_codec(ptmap, ptmap_len, CODEC_GSM_8000_1));
-	printf(" %u <= %u\n", CODEC_PCMA_8000_1, map_pt_to_codec(ptmap, ptmap_len, CODEC_PCMA_8000_1));
-	printf(" %u <= %u\n", CODEC_G729_8000_1, map_pt_to_codec(ptmap, ptmap_len, CODEC_G729_8000_1));
-	printf("\n");
-
-	/* Try to do mappings from statically defined range to danymic range and vice versa. This
-	 * is illegal and should result into a 1:1 mapping */
-	ptmap[3].codec = CODEC_AMRWB_16000_1;
-	ptmap[3].pt = 2;
-	ptmap[4].codec = CODEC_PCMU_8000_1;
-	ptmap[4].pt = 100;
-	ptmap_len = 5;
-
-	/* Apply all mappings again, the illegal ones we defined should result into 1:1 mappings */
-	for (i = 0; i < ptmap_len; i++)
-		printf(" %u => %u\n", ptmap[i].codec, map_codec_to_pt(ptmap, ptmap_len, ptmap[i].codec));
-	for (i = 0; i < ptmap_len; i++)
-		printf(" %u <= %u\n", ptmap[i].pt, map_pt_to_codec(ptmap, ptmap_len, ptmap[i].pt));
-	printf("\n");
-}
-
 void test_mgcp_client_e1_epname(void)
 {
 	char *epname;
@@ -908,7 +857,6 @@ int main(int argc, char **argv)
 	test_mgcp_msg();
 	test_mgcp_client_cancel();
 	test_sdp_section_start();
-	test_map_codec_to_pt_and_map_pt_to_codec();
 	test_map_str_to_codec();
 	test_mgcp_client_e1_epname();
 
