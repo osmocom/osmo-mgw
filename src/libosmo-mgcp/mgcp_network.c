@@ -1514,8 +1514,9 @@ static int rx_rtp(struct msgb *msg)
 		return -1;
 
 	/* Handle AMR frame format conversion (octet-aligned vs. bandwith-efficient) */
-	if (mc->proto == MGCP_PROTO_RTP &&
-	    mgcp_codec_amr_align_mode_is_indicated(conn_src->end.codec)) {
+	if (mc->proto == MGCP_PROTO_RTP
+	    && conn_src->end.codec
+	    && mgcp_codec_amr_align_mode_is_indicated(conn_src->end.codec)) {
 		/* Make sure that the incoming AMR frame format matches the frame format that the call agent has
 		 * communicated via SDP when the connection was created/modfied. */
 		int oa = amr_oa_check((char*)msgb_data(msg), msgb_length(msg));
