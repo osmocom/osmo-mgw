@@ -718,10 +718,10 @@ void osmo_mgcpc_ep_ci_request(struct osmo_mgcpc_ep_ci *ci,
 	osmo_strlcpy(cleared_ci.mgcp_ci_str, ci->mgcp_ci_str, sizeof(cleared_ci.mgcp_ci_str));
 	*ci = cleared_ci;
 
-	LOG_CI_VERB(ci, LOGL_DEBUG, "notify=%s\n", osmo_fsm_inst_name(ci->notify.fi));
-
 	if (verb_info)
 		ci->verb_info = *verb_info;
+
+	LOG_CI_VERB(ci, LOGL_DEBUG, "notify=%s\n", osmo_fsm_inst_name(ci->notify.fi));
 
 	if (ep->endpoint[0]) {
 		if (ci->verb_info.endpoint[0] && strcmp(ci->verb_info.endpoint, ep->endpoint))
