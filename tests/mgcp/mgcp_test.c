@@ -2144,7 +2144,7 @@ static bool codec_decision(struct mgcp_conn_rtp *conn, unsigned int index_conn_s
 static void test_mgcp_codec_decide(void)
 {
 	int i;
-	bool ok = true;
+	bool ok_all = true;
 	printf("\nTesting mgcp_codec_find_convertible()\n");
 
 	for (i = 0; i < ARRAY_SIZE(test_mgcp_codec_find_convertible_cases); i++) {
@@ -2153,6 +2153,7 @@ static void test_mgcp_codec_decide(void)
 		int rc;
 		int conn_i;
 		int c;
+		bool ok = true;
 
 		printf("#%d: %s\n", i, t->descr);
 
@@ -2193,9 +2194,12 @@ static void test_mgcp_codec_decide(void)
 			printf(" ===> SUCCESS: codec decision as expected!\n");
 		else
 			printf(" ===> FAIL: unexpected codec decision!\n");
+
+		if (!ok)
+			ok_all = false;
 	}
 
-	OSMO_ASSERT(ok);
+	OSMO_ASSERT(ok_all);
 }
 
 void test_conn_id_matching(void)
