@@ -446,13 +446,13 @@ int mgcp_codec_decide(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn
 	 * of a match set this codec on both connections. This would be an ideal selection since no codec conversion would be
 	 * required. */
 	for (i = 0; i < conn_src->end.codecs_assigned; i++) {
-		struct mgcp_rtp_codec *codec_conn_dst = mgcp_codec_find_same(conn_dst, &conn_src->end.codecs[i]);
+		struct mgcp_rtp_codec *codec_conn_src = &conn_src->end.codecs[i];
+		struct mgcp_rtp_codec *codec_conn_dst = mgcp_codec_find_same(conn_dst, codec_conn_src);
 		if (codec_conn_dst) {
 			/* We found the a codec that is exactly the same (same codec, same payload format etc.) on both
 			 * sides. We now set this codec on both connections. */
 			conn_dst->end.codec = codec_conn_dst;
-			conn_src->end.codec = mgcp_codec_find_same(conn_src, codec_conn_dst);
-			OSMO_ASSERT(conn_src->end.codec);
+			conn_src->end.codec = codec_conn_src;
 			return 0;
 		}
 	}
@@ -460,13 +460,12 @@ int mgcp_codec_decide(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn
 	/* In case we could not find a codec that is exactly the same, let's at least try to find a codec that we are able
 	 * to convert. */
 	for (i = 0; i < conn_src->end.codecs_assigned; i++) {
-		struct mgcp_rtp_codec *codec_conn_dst = codec_find_convertible(conn_dst, &conn_src->end.codecs[i]);
+		struct mgcp_rtp_codec *codec_conn_src = &conn_src->end.codecs[i];
+		struct mgcp_rtp_codec *codec_conn_dst = codec_find_convertible(conn_dst, codec_conn_src);
 		if (codec_conn_dst) {
-			/* We found the a codec that we are able to convert on both sides. We now set this codec on both
-			 * connections. */
+			/* We found the a codec that we can convert to. Set each side to its codec. */
 			conn_dst->end.codec = codec_conn_dst;
-			conn_src->end.codec = codec_find_convertible(conn_src, codec_conn_dst);
-			OSMO_ASSERT(conn_src->end.codec);
+			conn_src->end.codec = codec_conn_src;
 			return 0;
 		}
 	}
