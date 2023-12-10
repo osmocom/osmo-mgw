@@ -429,6 +429,26 @@ static struct mgcp_rtp_codec *codec_find_convertible(struct mgcp_conn_rtp *conn,
 int mgcp_codec_decide(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn_dst)
 {
 	unsigned int i;
+	if (log_check_level(DLMGCP, LOGL_DEBUG)) {
+		LOGP(DLMGCP, LOGL_DEBUG, "%s(): src.codecs_assigned=%d dst.codecs_assigned=%d\n",
+		     __func__,
+		     conn_src ? conn_src->end.codecs_assigned : 0,
+		     conn_dst ? conn_dst->end.codecs_assigned : 0);
+		if (conn_src) {
+			for (i = 0; i < conn_src->end.codecs_assigned; i++)  {
+				struct mgcp_rtp_codec *c = &conn_src->end.codecs[i];
+				LOGP(DLMGCP, LOGL_DEBUG, "src.codecs[%d]: %d %s %s %s\n",
+				     i, c->payload_type, c->audio_name, c->subtype_name, c->fmtp);
+			}
+		}
+		if (conn_dst) {
+			for (i = 0; i < conn_dst->end.codecs_assigned; i++)  {
+				struct mgcp_rtp_codec *c = &conn_dst->end.codecs[i];
+				LOGP(DLMGCP, LOGL_DEBUG, "dst.codecs[%d]: %d %s %s %s\n",
+				     i, c->payload_type, c->audio_name, c->subtype_name, c->fmtp);
+			}
+		}
+	}
 
 	/* In case no destination connection is available (yet), or in case the destination connection exists but has
 	 * no codecs assigned, we are forced to make a simple tentative decision:
