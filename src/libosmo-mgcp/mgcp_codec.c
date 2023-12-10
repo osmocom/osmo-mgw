@@ -470,7 +470,18 @@ int mgcp_codec_decide(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn
 		}
 	}
 
-	return -EINVAL;
+	LOGP(DLMGCP, LOGL_ERROR, "no matching codec found\n");
+	if (conn_dst->end.codecs_assigned)
+		conn_dst->end.codec = &conn_dst->end.codecs[0];
+	else
+		return -EINVAL;
+
+	if (conn_src->end.codecs_assigned)
+		conn_src->end.codec = &conn_src->end.codecs[0];
+	else
+		return -EINVAL;
+
+	return 0;
 }
 
 /* Check if the codec has a specific AMR mode (octet-aligned or bandwith-efficient) set. */
