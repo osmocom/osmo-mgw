@@ -8,6 +8,9 @@ nobase_include_HEADERS = \
 	osmocom/mgcp_client/mgcp_client_endpoint_fsm.h \
 	osmocom/mgcp_client/mgcp_client_fsm.h \
 	osmocom/mgcp_client/mgcp_client_pool.h \
+	$(NULL)
+
+noinst_HEADERS = \
 	osmocom/mgcp/mgcp.h \
 	osmocom/mgcp/mgcp_common.h \
 	osmocom/mgcp/osmux.h \
