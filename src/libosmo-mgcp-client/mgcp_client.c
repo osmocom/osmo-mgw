@@ -758,7 +758,8 @@ static int mgcp_do_read(struct osmo_fd *fd)
 		return -1;
 	}
 
-	ret = read(fd->fd, msg->data, 4096 - 128);
+	/* msgb_tailroom() is basically (4096 - 128); -1 is for '\0' */
+	ret = read(fd->fd, msg->data, msgb_tailroom(msg) - 1);
 	if (ret <= 0) {
 		LOGPMGW(mgcp, LOGL_ERROR, "Failed to read: %s: %d='%s'\n",
 		     osmo_sock_get_name2(fd->fd), errno, strerror(errno));
