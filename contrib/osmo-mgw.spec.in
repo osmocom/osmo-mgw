@@ -60,16 +60,6 @@ Osmocom's Media Gateway Control Protocol client librarary.
 This subpackage contains libraries and header files for developing
 applications that want to make use of libosmo-mgcp-client.
 
-%package -n libosmo-mgcp-devel
-Summary:        Development files for Osmocom's Media Gateway server library
-Group:          Development/Libraries/C and C++
-
-%description -n libosmo-mgcp-devel
-Osmocom's Media Gateway Control Protocol server library.
-
-This subpackage contains libraries and header files for developing
-applications that want to make use of libosmo-mgcp.
-
 %prep
 %setup -q
 
@@ -128,10 +118,5 @@ make %{?_smp_mflags} check || (find . -name testsuite.log -exec cat {} +)
 %dir %{_includedir}/osmocom
 %dir %{_includedir}/osmocom/mgcp_client
 %{_includedir}/osmocom/mgcp_client/*.h
-
-%files -n libosmo-mgcp-devel
-%dir %{_includedir}/osmocom
-%dir %{_includedir}/osmocom/mgcp
-%{_includedir}/osmocom/mgcp/*.h
 
 %changelog
