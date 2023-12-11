@@ -68,7 +68,7 @@ struct mgcp_codec_param {
 /* Ensure that the msg->l2h is NUL terminated. */
 static inline int mgcp_msg_terminate_nul(struct msgb *msg)
 {
-	unsigned char *tail = msg->l2h + msgb_l2len(msg); /* char after l2 data */
+	unsigned char *tail = msg->tail; /* char after l2 data */
 	if (tail[-1] == '\0')
 		/* nothing to do */;
 	else if (msgb_tailroom(msg) > 0)
