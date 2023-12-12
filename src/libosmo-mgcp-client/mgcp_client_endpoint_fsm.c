@@ -533,10 +533,42 @@ static void on_success(struct osmo_mgcpc_ep_ci *ci, void *data)
 	       mgcp_conn_peer_name(ci->got_port_info? &ci->rtp_info : NULL),
 	       ci->notify.fi ? "" : " (not sending a notification)");
 
+	/* Below ordering is a delicate decision:
+	 *
+	 * We want to
+	 * - emit the resulting event to ci->notify.fi,
+	 * - check whether we want to tx the next pending MGCP message.
+	 * Both these steps may terminate (=deallocate) the ep.
+	 * So whichever one goes first may cause a use-after-free in the other.
+	 *
+	 * When dispatching the FSM event, we don't get an rc indicating dealloc of the FSM -- it may deallocate and we
+	 * cannot tell. The common mechanism for that is osmo_fsm_set_dealloc_ctx(OTC_SELECT) and query the still
+	 * allocated FSM state after termination (here we would check 'if (ci->ep != NULL)'), but we cannot assume the
+	 * caller has actually set up an osmo_fsm_set_dealloc_ctx(). At time of writing, e.g. osmo-hnbgw does not use
+	 * it.
+	 *
+	 * In osmo_mgcpc_ep_fsm_check_state_chg_after_response(), we do get an rc: false means FSM has terminated.
+	 * On termination, the ep emits a term event to the FSM's parent.
+	 * That may cause the notify.fi to be terminated in turn, depending on how the caller set things up.
+	 * So: we cannot store notify.fi before, then call osmo_mgcpc_ep_fsm_check_state_chg_after_response(), and then
+	 * emit the event, because notify.fi may have deallocated. We cannot look up whether
+	 * osmo_mgcpc_ep_cancel_notify() has been called, because ci may have deallocated along with ci->ep.
+	 *
+	 * We have to skip emitting below success event in case the ep is now terminated.
+	 * - It may be the final DLCX OK: not a problem, osmo_mgcpc_ep_ci_dlcx() has no notify args on purpose, so we do
+	 *   make all callers not set a notify event for DLCX by design. notify.fi should always be NULL when the final
+	 *   DLCX OK terminates the local endpoint state.
+	 * - It may also be sudden termination due to a bad problem, in which case we shouldn't emit success.
+	 *   The osmo_fsm_inst.parent_term_event should suffice as feedback to the caller.
+	 */
+
+	if (osmo_mgcpc_ep_fsm_check_state_chg_after_response(ci->ep->fi) == false) {
+		/* false means, the ci->ep has been terminated. */
+		return;
+	}
+
 	if (ci->notify.fi)
 		osmo_fsm_inst_dispatch(ci->notify.fi, ci->notify.success, ci->notify.data);
-
-	osmo_mgcpc_ep_fsm_check_state_chg_after_response(ci->ep->fi);
 }
 
 /*! Return the MGW's local RTP port information for this connection, i.e. the local port that MGW is receiving on, as
