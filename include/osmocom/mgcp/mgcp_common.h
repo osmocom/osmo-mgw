@@ -72,7 +72,7 @@ static inline int mgcp_msg_terminate_nul(struct msgb *msg)
 	if (tail[-1] == '\0')
 		/* nothing to do */;
 	else if (msgb_tailroom(msg) > 0)
-		tail[0] = '\0';
+		msgb_put_u8(msg, (uint8_t)'\0');
 	else if (tail[-1] == '\r' || tail[-1] == '\n')
 		tail[-1] = '\0';
 	else {
