@@ -64,11 +64,15 @@ struct mgcp_conn_peer {
 };
 
 struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm_inst *parent_fi, uint32_t parent_term_evt,
-				       uint32_t parent_evt, struct mgcp_conn_peer *conn_peer);
-int mgcp_conn_modify(struct osmo_fsm_inst *fi, uint32_t parent_evt, struct mgcp_conn_peer *conn_peer);
-void mgcp_conn_delete(struct osmo_fsm_inst *fi);
+				       uint32_t parent_evt, struct mgcp_conn_peer *conn_peer)
+	OSMO_DEPRECATED_OUTSIDE_LIBOSMOMGCPCLIENT("use osmo_mgcpc_ep_alloc() and osmo_mgcpc_ep_ci_add() instead");
+int mgcp_conn_modify(struct osmo_fsm_inst *fi, uint32_t parent_evt, struct mgcp_conn_peer *conn_peer)
+	OSMO_DEPRECATED_OUTSIDE_LIBOSMOMGCPCLIENT("use osmo_mgcpc_ep_ci_request() instead");
+void mgcp_conn_delete(struct osmo_fsm_inst *fi)
+	OSMO_DEPRECATED_OUTSIDE_LIBOSMOMGCPCLIENT("use osmo_mgcpc_ep_ci_dlcx() instead");
 
-const char *mgcp_conn_get_ci(struct osmo_fsm_inst *fi);
+const char *mgcp_conn_get_ci(struct osmo_fsm_inst *fi)
+	OSMO_DEPRECATED_OUTSIDE_LIBOSMOMGCPCLIENT("use osmo_mgcpc_ep_ci.mgcp_ci_str instead");
 struct mgcp_client *mgcp_conn_get_client(struct osmo_fsm_inst *fi);
 
 const char *osmo_mgcpc_conn_peer_name(const struct mgcp_conn_peer *info);
