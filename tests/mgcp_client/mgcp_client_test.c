@@ -673,6 +673,214 @@ void test_mgcp_client_e1_epname(void)
 	OSMO_ASSERT(epname == NULL);
 }
 
+struct parse_response_test {
+	const char *body;
+	int expect_rc;
+	struct mgcp_response expect_params;
+};
+
+static struct parse_response_test parse_response_tests[] = {
+	{
+		.body = "200 2 OK\r\n"
+			"I: foo\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"o=- name 23 IN IP4 0.0.0.0\r\n"
+			"s=-\r\n"
+			"c=IN IP4 1.2.3.4\r\n"
+			"t=0 0\r\n"
+			"m=audio 23 RTP/AVP 112 3\r\n" /* <-- implicit: 3 = GSM-FR */
+			"a=rtpmap:112 AMR/8000\r\n"
+			"a=ptime:20\r\n",
+		.expect_rc = 0,
+		.expect_params = {
+			.audio_port = 23,
+			.audio_ip = "1.2.3.4",
+			.ptmap = {
+				{ .codec = CODEC_AMR_8000_1, .pt = 112 },
+				{ .codec = CODEC_GSM_8000_1, .pt = 3 },
+			},
+			.ptmap_len = 2,
+		},
+	},
+	{
+		.body = "200 2 OK\r\n"
+			"I: foo\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"o=- name 23 IN IP4 0.0.0.0\r\n"
+			"s=-\r\n"
+			"c=IN IP4 1.2.3.4\r\n"
+			"t=0 0\r\n"
+			"m=audio 23 RTP/AVP 112 3\r\n"
+			"a=rtpmap:112 AMR/8000\r\n"
+			"a=rtpmap:3 GSM/8000\r\n" /* 3 == GSM-FR implicitly, is an explicit entry a problem? */
+			"a=ptime:20\r\n",
+		.expect_rc = 0,
+		.expect_params = {
+			.audio_port = 23,
+			.audio_ip = "1.2.3.4",
+			.ptmap = {
+				{ .codec = CODEC_AMR_8000_1, .pt = 112 },
+				{ .codec = CODEC_GSM_8000_1, .pt = 3 }, /* no, not a problem */
+			},
+			.ptmap_len = 2,
+		},
+	},
+	{
+		.body = "200 2 OK\r\n"
+			"I: foo\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"o=- name 23 IN IP4 0.0.0.0\r\n"
+			"s=-\r\n"
+			"c=IN IP4 1.2.3.4\r\n"
+			"t=0 0\r\n"
+			"m=audio 23 RTP/AVP 3\r\n" /* <-- 112 is missing here. Will it still appear? */
+			"a=rtpmap:112 AMR/8000\r\n"
+			"a=ptime:20\r\n",
+		.expect_rc = 0,
+		.expect_params = {
+			.audio_port = 23,
+			.audio_ip = "1.2.3.4",
+			.ptmap = {
+				{ .codec = CODEC_GSM_8000_1, .pt = 3 },
+				{ .codec = CODEC_AMR_8000_1, .pt = 112 }, /* <-- yes, it was added to the end. */
+			},
+			.ptmap_len = 2,
+		},
+	},
+	{
+		/* test MGCP_MAX_CODECS */
+		.body = "200 2 OK\r\n"
+			"I: foo\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"o=- name 23 IN IP4 0.0.0.0\r\n"
+			"s=-\r\n"
+			"c=IN IP4 1.2.3.4\r\n"
+			"t=0 0\r\n"
+			"m=audio 23 RTP/AVP 101 102 103 104 105 106 107 108 109 110\r\n" /* <-- 10 codecs max */
+			"a=rtpmap:101 AMR/8000\r\n"
+			"a=rtpmap:102 AMR/8000\r\n"
+			"a=rtpmap:103 AMR/8000\r\n"
+			"a=rtpmap:104 AMR/8000\r\n"
+			"a=rtpmap:105 AMR/8000\r\n"
+			"a=rtpmap:106 AMR/8000\r\n"
+			"a=rtpmap:107 AMR/8000\r\n"
+			"a=rtpmap:108 AMR/8000\r\n"
+			"a=rtpmap:109 AMR/8000\r\n"
+			"a=rtpmap:110 AMR/8000\r\n"
+			"a=ptime:20\r\n",
+		.expect_rc = 0,
+		.expect_params = {
+			.audio_port = 23,
+			.audio_ip = "1.2.3.4",
+			.ptmap = {
+				{ .codec = CODEC_AMR_8000_1, .pt = 101 },
+				{ .codec = CODEC_AMR_8000_1, .pt = 102 },
+				{ .codec = CODEC_AMR_8000_1, .pt = 103 },
+				{ .codec = CODEC_AMR_8000_1, .pt = 104 },
+				{ .codec = CODEC_AMR_8000_1, .pt = 105 },
+				{ .codec = CODEC_AMR_8000_1, .pt = 106 },
+				{ .codec = CODEC_AMR_8000_1, .pt = 107 },
+				{ .codec = CODEC_AMR_8000_1, .pt = 108 },
+				{ .codec = CODEC_AMR_8000_1, .pt = 109 },
+				{ .codec = CODEC_AMR_8000_1, .pt = 110 },
+			},
+			.ptmap_len = 10,
+		},
+	},
+	{
+		/* test MGCP_MAX_CODECS */
+		.body = "200 2 OK\r\n"
+			"I: foo\r\n"
+			"\r\n"
+			"v=0\r\n"
+			"o=- name 23 IN IP4 0.0.0.0\r\n"
+			"s=-\r\n"
+			"c=IN IP4 1.2.3.4\r\n"
+			"t=0 0\r\n"
+			"m=audio 23 RTP/AVP 101 102 103 104 105 106 107 108 109 110 3\r\n" /* <-- 11 > MGCP_MAX_CODECS */
+			"a=rtpmap:101 AMR/8000\r\n"
+			"a=rtpmap:102 AMR/8000\r\n"
+			"a=rtpmap:103 AMR/8000\r\n"
+			"a=rtpmap:104 AMR/8000\r\n"
+			"a=rtpmap:105 AMR/8000\r\n"
+			"a=rtpmap:106 AMR/8000\r\n"
+			"a=rtpmap:107 AMR/8000\r\n"
+			"a=rtpmap:108 AMR/8000\r\n"
+			"a=rtpmap:109 AMR/8000\r\n"
+			"a=rtpmap:110 AMR/8000\r\n"
+			"a=ptime:20\r\n",
+		.expect_rc = -EINVAL,
+	},
+};
+
+static void test_parse_response(void)
+{
+	int i;
+	int failures = 0;
+
+	for (i = 0; i < ARRAY_SIZE(parse_response_tests); i++) {
+		int rc;
+		struct parse_response_test *t = &parse_response_tests[i];
+		struct mgcp_response *r = talloc_zero(ctx, struct mgcp_response);
+		int p;
+
+		r->body = talloc_strdup(r, t->body);
+
+		//printf("\n%s() test [%d]:\n", __func__, i);
+		fprintf(stderr, "\n%s() test [%d]:\n", __func__, i);
+		fprintf(stderr, "body: \"%s\"\n", osmo_escape_str(r->body, -1));
+
+		rc = mgcp_response_parse_params(r);
+
+		fprintf(stderr, "got rc=%d\n", rc);
+		if (rc != t->expect_rc) {
+			fprintf(stderr, "FAIL: Expected rc=%d\n", t->expect_rc);
+			failures++;
+		}
+		if (rc) {
+			talloc_free(r);
+			continue;
+		}
+
+		fprintf(stderr, "got audio_ip=\"%s\"\n", r->audio_ip);
+		if (strcmp(r->audio_ip, t->expect_params.audio_ip)) {
+			fprintf(stderr, "FAIL: Expected audio_ip=\"%s\"\n", t->expect_params.audio_ip);
+			failures++;
+		}
+		fprintf(stderr, "got audio_port=%u\n", r->audio_port);
+		if (r->audio_port != t->expect_params.audio_port) {
+			fprintf(stderr, "FAIL: Expected audio_port=%u\n", t->expect_params.audio_port);
+			failures++;
+		}
+
+		for (p = 0; p < r->ptmap_len; p++) {
+			struct ptmap *got = &r->ptmap[p];
+			struct ptmap *expect = NULL;
+			fprintf(stderr, "  %d %s\n", got->pt, osmo_mgcpc_codec_name(got->codec));
+			if (p >= t->expect_params.ptmap_len) {
+				fprintf(stderr, "    - ERROR: too many codec entries\n");
+				failures++;
+				continue;
+			}
+			expect = &t->expect_params.ptmap[p];
+			if (ptmap_cmp(got, expect)) {
+				fprintf(stderr, "    - ERROR: expected: %d %s\n",
+					expect->pt, osmo_mgcpc_codec_name(expect->codec));
+				failures++;
+			}
+		}
+
+		talloc_free(r);
+	}
+
+	OSMO_ASSERT(!failures);
+}
+
+
 static const struct log_info_cat log_categories[] = {
 };
 
@@ -703,6 +911,8 @@ int main(int argc, char **argv)
 	test_map_codec_to_pt_and_map_pt_to_codec();
 	test_map_str_to_codec();
 	test_mgcp_client_e1_epname();
+
+	test_parse_response();
 
 	printf("Done\n");
 	fprintf(stderr, "Done\n");

@@ -137,4 +137,51 @@ DLMGCP MGW(mgw) Cannot compose MGCP e1-endpoint name (ds/e1-15/s-1/su128-0@mgw),
 DLMGCP MGW(mgw) Cannot compose MGCP e1-endpoint name (ds/e1-15/s-1/su8-16@mgw), rate(8)/offset(16) combination is invalid!
 DLMGCP MGW(mgw) Cannot compose MGCP e1-endpoint name (ds/e1-15/s-0/su8-2@mgw), E1-timeslot number (0) is invalid!
 DLMGCP MGW(mgw) Cannot compose MGCP e1-endpoint name (ds/e1-15/s-64/su8-2@mgw), E1-timeslot number (64) is invalid!
+
+test_parse_response() test [0]:
+body: "200 2 OK\r\nI: foo\r\n\r\nv=0\r\no=- name 23 IN IP4 0.0.0.0\r\ns=-\r\nc=IN IP4 1.2.3.4\r\nt=0 0\r\nm=audio 23 RTP/AVP 112 3\r\na=rtpmap:112 AMR/8000\r\na=ptime:20\r\n"
+got rc=0
+got audio_ip="1.2.3.4"
+got audio_port=23
+  112 AMR/8000/1
+  3 GSM/8000/1
+
+test_parse_response() test [1]:
+body: "200 2 OK\r\nI: foo\r\n\r\nv=0\r\no=- name 23 IN IP4 0.0.0.0\r\ns=-\r\nc=IN IP4 1.2.3.4\r\nt=0 0\r\nm=audio 23 RTP/AVP 112 3\r\na=rtpmap:112 AMR/8000\r\na=rtpmap:3 GSM/8000\r\na=ptime:20\r\n"
+got rc=0
+got audio_ip="1.2.3.4"
+got audio_port=23
+  112 AMR/8000/1
+  3 GSM/8000/1
+
+test_parse_response() test [2]:
+body: "200 2 OK\r\nI: foo\r\n\r\nv=0\r\no=- name 23 IN IP4 0.0.0.0\r\ns=-\r\nc=IN IP4 1.2.3.4\r\nt=0 0\r\nm=audio 23 RTP/AVP 3\r\na=rtpmap:112 AMR/8000\r\na=ptime:20\r\n"
+DLMGCP error in MGCP message: 'a=rtpmap:112' has no matching entry in 'm=audio ... 112'
+got rc=0
+got audio_ip="1.2.3.4"
+got audio_port=23
+  3 GSM/8000/1
+  112 AMR/8000/1
+
+test_parse_response() test [3]:
+body: "200 2 OK\r\nI: foo\r\n\r\nv=0\r\no=- name 23 IN IP4 0.0.0.0\r\ns=-\r\nc=IN IP4 1.2.3.4\r\nt=0 0\r\nm=audio 23 RTP/AVP 101 102 103 104 105 106 107 108 109 110\r\na=rtpmap:101 AMR/8000\r\na=rtpmap:102 AMR/8000\r\na=rtpmap:103 AMR/8000\r\na=rtpmap:104 AMR/8"
+got rc=0
+got audio_ip="1.2.3.4"
+got audio_port=23
+  101 AMR/8000/1
+  102 AMR/8000/1
+  103 AMR/8000/1
+  104 AMR/8000/1
+  105 AMR/8000/1
+  106 AMR/8000/1
+  107 AMR/8000/1
+  108 AMR/8000/1
+  109 AMR/8000/1
+  110 AMR/8000/1
+
+test_parse_response() test [4]:
+body: "200 2 OK\r\nI: foo\r\n\r\nv=0\r\no=- name 23 IN IP4 0.0.0.0\r\ns=-\r\nc=IN IP4 1.2.3.4\r\nt=0 0\r\nm=audio 23 RTP/AVP 101 102 103 104 105 106 107 108 109 110 3\r\na=rtpmap:101 AMR/8000\r\na=rtpmap:102 AMR/8000\r\na=rtpmap:103 AMR/8000\r\na=rtpmap:104 AMR"
+DLMGCP SDP: can parse only up to 10 payload type numbers
+DLMGCP Failed to parse SDP parameter payload types (RTP/AVP)
+got rc=-22
 Done
