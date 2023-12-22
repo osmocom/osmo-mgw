@@ -323,10 +323,6 @@ static int mgcp_parse_audio_port_pt(struct mgcp_response *r, char *line)
 
 	pt_str = strtok(line, " ");
 	while (1) {
-		/* Do not allow excessive payload types */
-		if (ptmap_len >= ARRAY_SIZE(r->ptmap))
-			goto response_parse_failure_pt;
-
 		pt_str = strtok(NULL, " ");
 		if (!pt_str)
 			break;
@@ -343,6 +339,10 @@ static int mgcp_parse_audio_port_pt(struct mgcp_response *r, char *line)
 		for (i = 0; i < ptmap_len; i++)
 			if (r->ptmap[i].pt == pt)
 				goto response_parse_failure_pt;
+
+		/* Do not allow excessive payload types */
+		if (ptmap_len >= ARRAY_SIZE(r->ptmap))
+			goto response_parse_failure_pt;
 
 		/* Some payload type numbers imply a specific codec. For those, using the PT number as enum mgcp_codecs
 		 * yields the correct result. If no more specific information on the codec follows in "a=rtpmap:N"
