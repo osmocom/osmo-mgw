@@ -31,6 +31,7 @@ libosmo_mgcp_client_la_SOURCES = \
 	mgcp_client_fsm.c \
 	mgcp_client_endpoint_fsm.c \
 	mgcp_client_pool.c \
+	fmtp.c \
 	$(NULL)
 
 libosmo_mgcp_client_la_LDFLAGS = \
