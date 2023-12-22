@@ -329,20 +329,31 @@ static int mgcp_parse_audio_port_pt(struct mgcp_response *r, char *line)
 		errno = 0;
 		pt = strtoul(pt_str, &pt_end, 0);
 		if ((errno == ERANGE && pt == ULONG_MAX) || (errno && !pt) ||
-		    pt_str == pt_end)
+		    pt_str == pt_end) {
+			LOGP(DLMGCP, LOGL_ERROR, "SDP: cannot parse payload type number from '%s'\n", pt_str);
 			goto response_parse_failure_pt;
+		}
 
-		if (pt >> 7) /* PT is 7 bit field, higher values not allowed */
+		/* PT is 7 bit field, higher values not allowed */
+		if (pt >> 7) {
+			LOGP(DLMGCP, LOGL_ERROR, "SDP: payload type number out of range: %lu > 127\n", pt);
 			goto response_parse_failure_pt;
+		}
 
 		/* Do not allow duplicate payload types */
-		for (i = 0; i < ptmap_len; i++)
-			if (r->ptmap[i].pt == pt)
+		for (i = 0; i < ptmap_len; i++) {
+			if (r->ptmap[i].pt == pt) {
+				LOGP(DLMGCP, LOGL_ERROR, "SDP: payload type number %lu listed twice\n", pt);
 				goto response_parse_failure_pt;
+			}
+		}
 
 		/* Do not allow excessive payload types */
-		if (ptmap_len >= ARRAY_SIZE(r->ptmap))
+		if (ptmap_len >= ARRAY_SIZE(r->ptmap)) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "SDP: can parse only up to %zu payload type numbers\n", ARRAY_SIZE(r->ptmap));
 			goto response_parse_failure_pt;
+		}
 
 		/* Some payload type numbers imply a specific codec. For those, using the PT number as enum mgcp_codecs
 		 * yields the correct result. If no more specific information on the codec follows in "a=rtpmap:N"
