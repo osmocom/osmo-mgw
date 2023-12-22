@@ -45,3 +45,6 @@ mgcp_test_LDADD = \
 	$(LIBOSMONETIF_LIBS) \
 	-lm  \
 	$(NULL)
+
+update_exp:
+	$(builddir)/mgcp_test >$(srcdir)/mgcp_test.ok
