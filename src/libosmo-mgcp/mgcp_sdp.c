@@ -418,35 +418,34 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 }
 
 
-/* Add rtpmap string to the sdp payload, but only when the payload type falls
- * into the dynamic payload type range */
-static int add_rtpmap(struct msgb *sdp, int payload_type, const char *audio_name)
-{
-	int rc;
-
-	if (payload_type >= 96 && payload_type <= 127) {
-		if (!audio_name)
-			return -EINVAL;
-		rc = msgb_printf(sdp, "a=rtpmap:%d %s\r\n", payload_type, audio_name);
-		if (rc < 0)
-			return -EINVAL;
-	}
-
-	return 0;
-}
-
-/* Add audio strings to sdp payload */
-static int add_audio(struct msgb *sdp, int *payload_types, unsigned int payload_types_len, int local_port)
+/* Add all codecs related lines to SDP payload */
+static int add_codecs(struct msgb *sdp, const struct mgcp_conn_rtp *conn)
 {
 	int rc;
 	unsigned int i;
+	int local_port;
+	struct mgcp_trunk *trunk = conn->conn->endp->trunk;
+
+	if (!conn->end.codecs_assigned)
+		return 0;
+
+	/* Compose 'm=audio 1234 RTP/AVP 112 96 3' line, with
+	 * - local RTP port
+	 * - a list of all assigned payload type numbers
+	 */
+
+	if (mgcp_conn_rtp_is_osmux(conn))
+		local_port = trunk->cfg->osmux.local_port;
+	else
+		local_port = conn->end.local_port;
 
 	rc = msgb_printf(sdp, "m=audio %d RTP/AVP", local_port);
 	if (rc < 0)
 		return -EINVAL;
 
-	for (i = 0; i < payload_types_len; i++) {
-		rc = msgb_printf(sdp, " %d", payload_types[i]);
+	for (i = 0; i < conn->end.codecs_assigned; i++) {
+		const struct mgcp_rtp_codec *c = &conn->end.codecs[i];
+		rc = msgb_printf(sdp, " %d", c->payload_type);
 		if (rc < 0)
 			return -EINVAL;
 	}
@@ -455,28 +454,45 @@ static int add_audio(struct msgb *sdp, int *payload_types, unsigned int payload_
 	if (rc < 0)
 		return -EINVAL;
 
-	return 0;
-}
+	/* Compose 'a=rtpmap:N FOO' lines for codecs in above list that require it.
+	 * e.g. GSM-FR is implicitly defined by payload type number 3, so it is enough to list 3 above;
+	 * AMR needs a line like 'a=rtpmap:112 AMR/8000/1' in addition to listing 112 above.
+	 */
+	for (i = 0; i < conn->end.codecs_assigned; i++) {
+		const struct mgcp_rtp_codec *c = &conn->end.codecs[i];
+		if (!c->audio_name[0])
+			continue;
 
-/* Add fmtp strings to sdp payload */
-static int add_fmtp(struct msgb *sdp, struct sdp_fmtp_param *fmtp_params, unsigned int fmtp_params_len)
-{
-	unsigned int i;
-	int rc;
-
-	for (i = 0; i < fmtp_params_len; i++) {
-		bool first = true;
-		rc = msgb_printf(sdp, "a=fmtp:%u", fmtp_params[i].payload_type);
-		if (rc < 0)
-			return -EINVAL;
-
-		/* Add amr octet align parameter */
-		if (fmtp_params[i].fmtp) {
-			msgb_printf(sdp, "%s%s", first ? " " : ";", fmtp_params[i].fmtp);
-			first = false;
+		/* Dynamic payload type numbers need explicit rtpmap defining the codec by "subtype name" like "AMR" or
+		 * "GSM-HR-08". Others are defined implicitly, like GSM-FR by payload type number 3.
+		 *
+		 * Also, if the trunk is configured as "no sdp audio-payload send-name", omit all rtpmap lines.
+		 */
+		if (c->payload_type >= 96 && c->payload_type <= 127
+		    && trunk->audio_send_name) {
+			if (msgb_printf(sdp, "a=rtpmap:%d %s\r\n", c->payload_type, c->audio_name) < 0)
+				return -EINVAL;
 		}
 
-		rc = msgb_printf(sdp, "\r\n");
+		/* Compose 'a=fmtp:N foo=bar' line if fmtp is defined for this codec.
+		 * e.g. AMR has fmtp like 'octet-align=1', 'mode-set=0,2,4,7'.
+		 */
+		if (c->fmtp[0]) {
+			if (msgb_printf(sdp, OSMO_SDP_PREFIX_A_FMTP "%d %s\r\n", c->payload_type, c->fmtp) < 0)
+				return -EINVAL;
+		}
+		else if (c->param_present) {
+			/* Legacy */
+			if (msgb_printf(sdp, OSMO_SDP_PREFIX_A_FMTP "%d %s\r\n", c->payload_type,
+					OSMO_SDP_AMR_SET_OCTET_ALIGN(c->param.amr_octet_aligned))
+			    < 0)
+				return -EINVAL;
+		}
+	}
+
+	if (conn->end.packet_duration_ms > 0 && conn->conn->endp->trunk->audio_send_ptime) {
+		rc = msgb_printf(sdp, "a=ptime:%u\r\n",
+				 conn->end.packet_duration_ms);
 		if (rc < 0)
 			return -EINVAL;
 	}
@@ -494,25 +510,13 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 			    const struct mgcp_conn_rtp *conn, struct msgb *sdp,
 			    const char *addr)
 {
-	const struct mgcp_rtp_codec *codec;
-	const char *audio_name;
-	int payload_type;
 	int rc;
-	int payload_types[1];
-	int local_port;
-	struct sdp_fmtp_param fmtp_params[1];
-        unsigned int fmtp_params_len = 0;
 	bool addr_is_v6;
 
 	OSMO_ASSERT(endp);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(sdp);
 	OSMO_ASSERT(addr);
-
-	codec = conn->end.codec;
-
-	audio_name = codec->audio_name;
-	payload_type = codec->payload_type;
 
 	addr_is_v6 = osmo_ip_str_type(addr) == AF_INET6;
 
@@ -528,53 +532,14 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 	if (rc < 0)
 		goto buffer_too_small;
 
-	if (payload_type >= 0) {
-
-		payload_types[0] = payload_type;
-		if (mgcp_conn_rtp_is_osmux(conn))
-			local_port = endp->trunk->cfg->osmux.local_port;
-		else
-			local_port = conn->end.local_port;
-		rc = add_audio(sdp, payload_types, 1, local_port);
-		if (rc < 0)
-			goto buffer_too_small;
-
-		if (endp->trunk->audio_send_name) {
-			rc = add_rtpmap(sdp, payload_type, audio_name);
-			if (rc < 0)
-				goto buffer_too_small;
-		}
-
-		if (codec->fmtp[0]) {
-			fmtp_params[0] = (struct sdp_fmtp_param){
-				.payload_type = payload_type,
-				.fmtp = codec->fmtp,
-			};
-			fmtp_params_len = 1;
-		}
-		else if (codec->param_present) {
-			/* Legacy */
-			fmtp_params[0] = (struct sdp_fmtp_param){
-				.payload_type = payload_type,
-			};
-			fmtp_params_len = 1;
-			fmtp_params[0].fmtp = OSMO_SDP_AMR_SET_OCTET_ALIGN(codec->param.amr_octet_aligned);
-		}
-
-		rc = add_fmtp(sdp, fmtp_params, fmtp_params_len);
-		if (rc < 0)
-			goto buffer_too_small;
-	}
-	if (conn->end.packet_duration_ms > 0 && endp->trunk->audio_send_ptime) {
-		rc = msgb_printf(sdp, "a=ptime:%u\r\n",
-				 conn->end.packet_duration_ms);
-		if (rc < 0)
-			goto buffer_too_small;
-	}
+	/* Add all codecs related SDP lines */
+	rc = add_codecs(sdp, conn);
+	if (rc < 0)
+		goto buffer_too_small;
 
 	return 0;
 
 buffer_too_small:
-	LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR, "SDP messagebuffer too small\n");
+	LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR, "SDP message too large for buffer\n");
 	return -1;
 }

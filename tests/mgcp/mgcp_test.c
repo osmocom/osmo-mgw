@@ -669,7 +669,7 @@ static const struct mgcp_test tests[] = {
 			"s=-\r\n"
 			"c=IN IP4 0.0.0.0\r\n"
 			"t=0 0\r\n"
-			"m=audio 16016 RTP/AVP 112\r\n" /* <-- should be '112 3' like above */
+			"m=audio 16016 RTP/AVP 112 3\r\n"
 			"a=rtpmap:112 AMR/8000\r\n"
 			"a=ptime:20\r\n"
 	},
@@ -693,7 +693,8 @@ static const struct mgcp_test tests[] = {
 			"s=-\r\n"
 			"c=IN IP4 0.0.0.0\r\n"
 			"t=0 0\r\n"
-			"m=audio 16018 RTP/AVP 3\r\n" /* <-- should be '3 112' like above */
+			"m=audio 16018 RTP/AVP 3 112\r\n"
+			"a=rtpmap:112 AMR/8000\r\n"
 			"a=ptime:20\r\n"
 	},
 	{
@@ -719,9 +720,10 @@ static const struct mgcp_test tests[] = {
 			"s=-\r\n"
 			"c=IN IP4 0.0.0.0\r\n"
 			"t=0 0\r\n"
-			"m=audio 16020 RTP/AVP 112\r\n" /* <-- should be '112 3 111' like above */
+			"m=audio 16020 RTP/AVP 112 3 111\r\n"
 			"a=rtpmap:112 AMR/8000\r\n"
 			"a=fmtp:112 octet-align=1;mode-set=0,2,4,7\r\n"
+			"a=rtpmap:111 GSM-HR-08/8000\r\n"
 			"a=ptime:20\r\n"
 	},
 	{
@@ -747,7 +749,11 @@ static const struct mgcp_test tests[] = {
 			"s=-\r\n"
 			"c=IN IP4 0.0.0.0\r\n"
 			"t=0 0\r\n"
-			"m=audio 16022 RTP/AVP 3\r\n" /* <-- should be '3 112 113' like above */
+			"m=audio 16022 RTP/AVP 3 112 113\r\n"
+			"a=rtpmap:112 AMR/8000\r\n"
+			"a=fmtp:112 octet-align=1;mode-set=0,2,4,7\r\n"
+			"a=rtpmap:113 AMR/8000\r\n"
+			"a=fmtp:113 octet-align=1;mode-set=0,2,4\r\n"
 			"a=ptime:20\r\n"
 	},
 };
