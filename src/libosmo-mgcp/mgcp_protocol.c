@@ -429,6 +429,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 		/* Check if we have to retransmit a response from a previous transaction */
 		if (pdata.trans && rq.endp->last_trans && strcmp(rq.endp->last_trans, pdata.trans) == 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_MSGS_RETRANSMITTED));
+			LOGP(DLMGCP, LOGL_DEBUG, "%s: retransmission\n", rq.name);
 			return create_retransmission_response(rq.endp);
 		}
 	}
