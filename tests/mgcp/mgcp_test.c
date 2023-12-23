@@ -823,7 +823,7 @@ static void test_messages(void)
 		struct msgb *msg;
 
 		printf("\n================================================\n");
-		printf("Testing %s\n", t->name);
+		printf("Testing %s() %s\n", __func__, t->name);
 
 		dummy_packets = 0;
 
@@ -956,7 +956,7 @@ static void test_retransmission(void)
 		struct msgb *msg;
 
 		printf("\n================================================\n");
-		printf("Testing %s\n", t->name);
+		printf("Testing %s() %s\n", __func__, t->name);
 
 		inp = create_msg(t->req, last_conn_id);
 		msg = mgcp_handle_message(cfg, inp);
@@ -1614,6 +1614,7 @@ static void test_no_cycle(void)
 	talloc_free(cfg);
 }
 
+/* Set audio_send_name=0 and verify that a=rtpmap: entries are omitted. */
 static void test_no_name(void)
 {
 	struct mgcp_trunk *trunk;

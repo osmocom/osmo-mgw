@@ -13,7 +13,7 @@ line: ''
 line: ''
 
 ================================================
-Testing AUEP1
+Testing test_messages() AUEP1
 creating message from statically defined input:
 ---------8<---------
 AUEP 158663169 ds/e1-1/2@mgw MGCP 1.0
@@ -25,7 +25,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing AUEP2
+Testing test_messages() AUEP2
 creating message from statically defined input:
 ---------8<---------
 AUEP 18983213 ds/e1-2/1@mgw MGCP 1.0
@@ -37,7 +37,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing MDCX1
+Testing test_messages() MDCX1
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983213 ds/e1-3/1@mgw MGCP 1.0
@@ -49,7 +49,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing MDCX2
+Testing test_messages() MDCX2
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983214 ds/e1-1/2@mgw MGCP 1.0
@@ -61,7 +61,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing CRCX
+Testing test_messages() CRCX
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 1@mgw MGCP 1.0
@@ -83,7 +83,7 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing MDCX3
+Testing test_messages() MDCX3
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983215 1@mgw MGCP 1.0
@@ -97,7 +97,7 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing MDCX4_ADDR000
+Testing test_messages() MDCX4_ADDR000
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983216 1@mgw MGCP 1.0
@@ -120,7 +120,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing MDCX4
+Testing test_messages() MDCX4
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983217 1@mgw MGCP 1.0
@@ -144,7 +144,7 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing MDCX4_PT1
+Testing test_messages() MDCX4_PT1
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983218 1@mgw MGCP 1.0
@@ -168,7 +168,7 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing MDCX4_PT2
+Testing test_messages() MDCX4_PT2
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983219 1@mgw MGCP 1.0
@@ -192,7 +192,7 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing MDCX4_PT3
+Testing test_messages() MDCX4_PT3
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983220 1@mgw MGCP 1.0
@@ -216,7 +216,7 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing MDCX4_PT4
+Testing test_messages() MDCX4_PT4
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983221 1@mgw MGCP 1.0
@@ -240,7 +240,7 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing MDCX4_SO
+Testing test_messages() MDCX4_SO
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983222 1@mgw MGCP 1.0
@@ -263,7 +263,7 @@ Response matches our expectations.
 (response contains a connection id)
 
 ================================================
-Testing MDCX4_RO
+Testing test_messages() MDCX4_RO
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983223 1@mgw MGCP 1.0
@@ -279,7 +279,7 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing DLCX
+Testing test_messages() DLCX
 creating message from statically defined input:
 ---------8<---------
 DLCX 7 1@mgw MGCP 1.0
@@ -293,7 +293,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing CRCX_ZYN
+Testing test_messages() CRCX_ZYN
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 1@mgw MGCP 1.0M: recvonlyC: 2
@@ -307,7 +307,7 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing EMPTY
+Testing test_messages() EMPTY
 creating message from statically defined input:
 ---------8<---------
 
@@ -315,7 +315,7 @@ creating message from statically defined input:
 ---------8<---------
 
 ================================================
-Testing SHORT1
+Testing test_messages() SHORT1
 creating message from statically defined input:
 ---------8<---------
 CRCX 
@@ -327,7 +327,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing SHORT2
+Testing test_messages() SHORT2
 creating message from statically defined input:
 ---------8<---------
 CRCX 1
@@ -338,7 +338,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing SHORT3
+Testing test_messages() SHORT3
 creating message from statically defined input:
 ---------8<---------
 CRCX 1 1@mgw
@@ -349,7 +349,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing SHORT4
+Testing test_messages() SHORT4
 creating message from statically defined input:
 ---------8<---------
 CRCX 1 1@mgw MGCP
@@ -360,7 +360,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing RQNT1
+Testing test_messages() RQNT1
 creating message from statically defined input:
 ---------8<---------
 RQNT 186908780 1@mgw MGCP 1.0
@@ -374,7 +374,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing RQNT2
+Testing test_messages() RQNT2
 creating message from statically defined input:
 ---------8<---------
 RQNT 186908781 1@mgw MGCP 1.0
@@ -388,7 +388,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing DLCX
+Testing test_messages() DLCX
 creating message from statically defined input:
 ---------8<---------
 DLCX 7 1@mgw MGCP 1.0
@@ -402,7 +402,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing CRCX
+Testing test_messages() CRCX
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 1@mgw MGCP 1.0
@@ -424,7 +424,7 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing MDCX3
+Testing test_messages() MDCX3
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983215 1@mgw MGCP 1.0
@@ -438,7 +438,7 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing DLCX
+Testing test_messages() DLCX
 creating message from statically defined input:
 ---------8<---------
 DLCX 7 1@mgw MGCP 1.0
@@ -452,7 +452,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing CRCX
+Testing test_messages() CRCX
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 6@mgw MGCP 1.0
@@ -466,7 +466,7 @@ Response matches our expectations.
 (response contains a connection id)
 
 ================================================
-Testing CRCX
+Testing test_messages() CRCX
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 1@mgw MGCP 1.0
@@ -489,7 +489,7 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing MDCX_TOO_LONG_CI
+Testing test_messages() MDCX_TOO_LONG_CI
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983224 1@mgw MGCP 1.0
@@ -502,7 +502,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing CRCX
+Testing test_messages() CRCX
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 7@mgw MGCP 1.0
@@ -526,7 +526,7 @@ Response matches our expectations.
 Dummy packets: 2
 
 ================================================
-Testing AUEP_NULL
+Testing test_messages() AUEP_NULL
 creating message from statically defined input:
 ---------8<---------
 AUEP 18983215 null@mgw MGCP 1.0
@@ -538,7 +538,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing CRCX_NULL
+Testing test_messages() CRCX_NULL
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 null@mgw MGCP 1.0
@@ -559,7 +559,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing MDCX_NULL
+Testing test_messages() MDCX_NULL
 creating message from statically defined input:
 ---------8<---------
 MDCX 9 null@mgw MGCP 1.0
@@ -572,7 +572,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing DLCX_NULL
+Testing test_messages() DLCX_NULL
 creating message from statically defined input:
 ---------8<---------
 DLCX 8 null@mgw MGCP 1.0
@@ -586,7 +586,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing RQNT_NULL
+Testing test_messages() RQNT_NULL
 creating message from statically defined input:
 ---------8<---------
 RQNT 186908782 null@mgw MGCP 1.0
@@ -600,7 +600,7 @@ Response matches our expectations.
 (response does not contain a connection id)
 
 ================================================
-Testing CRCX
+Testing test_retransmission() CRCX
 creating message from statically defined input:
 ---------8<---------
 CRCX 2 1@mgw MGCP 1.0
@@ -638,7 +638,7 @@ using message with patched conn_id for comparison
 Response matches our expectations.
 
 ================================================
-Testing RQNT1
+Testing test_retransmission() RQNT1
 creating message from statically defined input:
 ---------8<---------
 RQNT 186908780 1@mgw MGCP 1.0
@@ -662,7 +662,7 @@ using message as statically defined for comparison
 Response matches our expectations.
 
 ================================================
-Testing RQNT2
+Testing test_retransmission() RQNT2
 creating message from statically defined input:
 ---------8<---------
 RQNT 186908781 1@mgw MGCP 1.0
@@ -686,7 +686,7 @@ using message as statically defined for comparison
 Response matches our expectations.
 
 ================================================
-Testing MDCX3
+Testing test_retransmission() MDCX3
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983215 1@mgw MGCP 1.0
@@ -708,7 +708,7 @@ using message with patched conn_id for comparison
 Response matches our expectations.
 
 ================================================
-Testing DLCX
+Testing test_retransmission() DLCX
 creating message from statically defined input:
 ---------8<---------
 DLCX 7 1@mgw MGCP 1.0
