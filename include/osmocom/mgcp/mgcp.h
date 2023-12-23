@@ -138,8 +138,6 @@ struct mgcp_config {
 	mgcp_processing rtp_processing_cb;
 	mgcp_processing_setup setup_rtp_processing_cb;
 
-	mgcp_get_format get_net_downlink_format_cb;
-
 	struct osmo_wqueue gw_fd;
 
 	struct mgcp_port_range net_ports;

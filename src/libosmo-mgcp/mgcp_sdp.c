@@ -544,10 +544,8 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 	OSMO_ASSERT(sdp);
 	OSMO_ASSERT(addr);
 
-	/* FIXME: constify endp and conn args in get_net_donwlink_format_cb() */
-	endp->trunk->cfg->get_net_downlink_format_cb((struct mgcp_endpoint *)endp,
-					      &codec, &fmtp_extra,
-					      (struct mgcp_conn_rtp *)conn);
+	codec = conn->end.codec;
+	fmtp_extra = conn->end.fmtp_extra;
 
 	audio_name = codec->audio_name;
 	payload_type = codec->payload_type;

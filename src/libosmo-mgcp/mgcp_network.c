@@ -429,18 +429,6 @@ int mgcp_setup_rtp_processing_default(struct mgcp_endpoint *endp,
 	return 0;
 }
 
-void mgcp_get_net_downlink_format_default(struct mgcp_endpoint *endp,
-					  const struct mgcp_rtp_codec **codec,
-					  const char **fmtp_extra,
-					  struct mgcp_conn_rtp *conn)
-{
-	LOGPENDP(endp, DRTP, LOGL_DEBUG, "conn:%s using format defaults\n",
-		 mgcp_conn_dump(conn->conn));
-
-	*codec = conn->end.codec;
-	*fmtp_extra = conn->end.fmtp_extra;
-}
-
 void mgcp_rtp_annex_count(const struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_state *state, const uint16_t seq,
 			  const int32_t transit, const uint32_t ssrc,
