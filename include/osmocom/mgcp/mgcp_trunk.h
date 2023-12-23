@@ -27,7 +27,6 @@ struct mgcp_trunk {
 	unsigned int trunk_nr;
 	enum mgcp_trunk_type trunk_type;
 
-	char *audio_fmtp_extra;
 	int audio_send_ptime;
 	int audio_send_name;
 

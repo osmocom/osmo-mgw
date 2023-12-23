@@ -111,9 +111,6 @@ static int config_write_mgcp(struct vty *vty)
 			VTY_NEWLINE);
 	} else
 		vty_out(vty, " no rtp-patch%s", VTY_NEWLINE);
-	if (trunk->audio_fmtp_extra)
-		vty_out(vty, " sdp audio fmtp-extra %s%s",
-			trunk->audio_fmtp_extra, VTY_NEWLINE);
 	vty_out(vty, " %ssdp audio-payload send-ptime%s",
 		trunk->audio_send_ptime ? "" : "no ", VTY_NEWLINE);
 	vty_out(vty, " %ssdp audio-payload send-name%s",
@@ -187,7 +184,7 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_conn_rtp *conn)
 		"   Payload Type: %d Rate: %u Channels: %d %s"
 		"   Frame Duration: %u Frame Denominator: %u%s"
 		"   FPP: %d Packet Duration: %u%s"
-		"   FMTP-Extra: %s Audio-Name: %s Sub-Type: %s%s"
+		"   Audio-Name: %s Sub-Type: %s%s"
 		"   Output-Enabled: %d Force-PTIME: %d%s",
 		tx_packets->current, tx_bytes->current, VTY_NEWLINE,
 		rx_packets->current, rx_bytes->current, VTY_NEWLINE,
@@ -198,7 +195,7 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_conn_rtp *conn)
 		codec->payload_type, codec->rate, codec->channels, VTY_NEWLINE,
 		codec->frame_duration_num, codec->frame_duration_den,
 		VTY_NEWLINE, end->frames_per_packet, end->packet_duration_ms,
-		VTY_NEWLINE, end->fmtp_extra, codec->audio_name,
+		VTY_NEWLINE, codec->audio_name,
 		codec->subtype_name, VTY_NEWLINE, end->output_enabled,
 		end->force_output_ptime, VTY_NEWLINE);
 	if (mgcp_conn_rtp_is_osmux(conn)) {
@@ -681,21 +678,15 @@ DEFUN_USRATTR(cfg_mgcp_no_rtp_force_ptime,
 	return CMD_SUCCESS;
 }
 
-DEFUN_USRATTR(cfg_mgcp_sdp_fmtp_extra,
-	      cfg_mgcp_sdp_fmtp_extra_cmd,
-	      X(MGW_CMD_ATTR_NEWCONN),
-	      "sdp audio fmtp-extra .NAME",
-	      "Add extra fmtp for the SDP file\n" "Audio\n" "Fmtp-extra\n"
-	      "Extra Information\n")
-{
-	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
-	OSMO_ASSERT(trunk);
-	char *txt = argv_concat(argv, argc, 0);
-	if (!txt)
-		return CMD_WARNING;
+#define SDP_STR "SDP File related options\n"
+#define AUDIO_STR "Audio payload options\n"
 
-	osmo_talloc_replace_string(g_cfg, &trunk->audio_fmtp_extra, txt);
-	talloc_free(txt);
+DEFUN_DEPRECATED(cfg_mgcp_sdp_fmtp_extra,
+	      cfg_mgcp_sdp_fmtp_extra_cmd,
+	      "sdp audio fmtp-extra .NAME",
+	      SDP_STR AUDIO_STR "Deprecated, without effect since osmo-mgw v1.13\n" "Deprecated, without effect\n")
+{
+	vty_out(vty, "%% deprecated: the config option 'sdp audio fmtp-extra' has been removed.%s", VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 
@@ -715,8 +706,6 @@ DEFUN_DEPRECATED(cfg_mgcp_no_allow_transcoding,
 	return CMD_SUCCESS;
 }
 
-#define SDP_STR "SDP File related options\n"
-#define AUDIO_STR "Audio payload options\n"
 DEFUN_DEPRECATED(cfg_mgcp_sdp_payload_number,
       cfg_mgcp_sdp_payload_number_cmd,
       "sdp audio-payload number <0-255>",
@@ -1062,28 +1051,17 @@ static int config_write_trunk(struct vty *vty)
 				VTY_NEWLINE);
 		} else
 			vty_out(vty, "  no rtp-patch%s", VTY_NEWLINE);
-		if (trunk->audio_fmtp_extra)
-			vty_out(vty, "   sdp audio fmtp-extra %s%s",
-				trunk->audio_fmtp_extra, VTY_NEWLINE);
 	}
 
 	return CMD_SUCCESS;
 }
 
-DEFUN_USRATTR(cfg_trunk_sdp_fmtp_extra,
+DEFUN_DEPRECATED(cfg_trunk_sdp_fmtp_extra,
 	      cfg_trunk_sdp_fmtp_extra_cmd,
-	      X(MGW_CMD_ATTR_NEWCONN),
 	      "sdp audio fmtp-extra .NAME",
-	      "Add extra fmtp for the SDP file\n" "Audio\n" "Fmtp-extra\n"
-	      "Extra Information\n")
+	      SDP_STR AUDIO_STR "Deprecated, without effect since osmo-mgw v1.13\n" "Deprecated, without effect\n")
 {
-	struct mgcp_trunk *trunk = vty->index;
-	char *txt = argv_concat(argv, argc, 0);
-	if (!txt)
-		return CMD_WARNING;
-
-	osmo_talloc_replace_string(g_cfg, &trunk->audio_fmtp_extra, txt);
-	talloc_free(txt);
+	vty_out(vty, "%% deprecated: the config option 'sdp audio fmtp-extra' has been removed.%s", VTY_NEWLINE);
 	return CMD_SUCCESS;
 }
 

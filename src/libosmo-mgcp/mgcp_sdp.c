@@ -459,34 +459,10 @@ static int add_audio(struct msgb *sdp, int *payload_types, unsigned int payload_
 }
 
 /* Add fmtp strings to sdp payload */
-static int add_fmtp(struct msgb *sdp, struct sdp_fmtp_param *fmtp_params, unsigned int fmtp_params_len,
-		    const char *fmtp_extra)
+static int add_fmtp(struct msgb *sdp, struct sdp_fmtp_param *fmtp_params, unsigned int fmtp_params_len)
 {
 	unsigned int i;
 	int rc;
-	int fmtp_extra_pt = -1;
-	char *fmtp_extra_pars = "";
-
-	/* When no fmtp parameters ara available but an fmtp extra string
-	 * is configured, just add the fmtp extra string */
-	if (fmtp_params_len == 0 && fmtp_extra) {
-		return msgb_printf(sdp, "%s\r\n", fmtp_extra);
-	}
-
-	/* When there is fmtp extra configured we dissect it in order to drop
-	 * in the configured extra parameters at the right place when
-	 * generating the fmtp strings. */
-	if (fmtp_extra) {
-		if (sscanf(fmtp_extra, "a=fmtp:%d ", &fmtp_extra_pt) != 1)
-			fmtp_extra_pt = -1;
-
-		fmtp_extra_pars = strstr(fmtp_extra, " ");
-
-		if (!fmtp_extra_pars)
-			fmtp_extra_pars = "";
-		else
-			fmtp_extra_pars++;
-	}
 
 	for (i = 0; i < fmtp_params_len; i++) {
 		bool first = true;
@@ -498,16 +474,6 @@ static int add_fmtp(struct msgb *sdp, struct sdp_fmtp_param *fmtp_params, unsign
 		if (fmtp_params[i].fmtp) {
 			msgb_printf(sdp, "%s%s", first ? " " : ";", fmtp_params[i].fmtp);
 			first = false;
-		}
-
-		/* Append extra parameters from fmtp extra */
-		if (fmtp_params[i].payload_type == fmtp_extra_pt) {
-			rc = msgb_printf(sdp, "%s%s",
-					 first ? " " : ";",
-					 fmtp_extra_pars);
-			first = false;
-			if (rc < 0)
-				return -EINVAL;
 		}
 
 		rc = msgb_printf(sdp, "\r\n");
@@ -529,7 +495,6 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 			    const char *addr)
 {
 	const struct mgcp_rtp_codec *codec;
-	const char *fmtp_extra;
 	const char *audio_name;
 	int payload_type;
 	int rc;
@@ -545,7 +510,6 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 	OSMO_ASSERT(addr);
 
 	codec = conn->end.codec;
-	fmtp_extra = conn->end.fmtp_extra;
 
 	audio_name = codec->audio_name;
 	payload_type = codec->payload_type;
@@ -597,7 +561,7 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 			fmtp_params[0].fmtp = OSMO_SDP_AMR_SET_OCTET_ALIGN(codec->param.amr_octet_aligned);
 		}
 
-		rc = add_fmtp(sdp, fmtp_params, fmtp_params_len, fmtp_extra);
+		rc = add_fmtp(sdp, fmtp_params, fmtp_params_len);
 		if (rc < 0)
 			goto buffer_too_small;
 	}
