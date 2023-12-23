@@ -397,6 +397,23 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 		rq.null_endp = mgcp_endp_is_null(pdata.epname);
 	if (!rq.null_endp)
 		rq.endp = mgcp_endp_by_name(&rc, pdata.epname, pdata.cfg);
+	if (rq.endp) {
+		struct mgcp_conn *c;
+		int count = 0;
+		llist_for_each_entry(c, &rq.endp->conns, entry) {
+			LOGP(DLMGCP, LOGL_DEBUG,
+			     "%s: endp=%s conn %s\n",
+			     rq.name,
+			     rq.endp->name,
+			     mgcp_conn_dump(c));
+			count++;
+		}
+		if (!count)
+			LOGP(DLMGCP, LOGL_DEBUG,
+			     "%s: endp=%s no conns\n",
+			     rq.name,
+			     rq.endp->name);
+	}
 	rq.mgcp_cause = rc;
 	if (!rq.endp) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_FAIL_NO_ENDPOINT));
