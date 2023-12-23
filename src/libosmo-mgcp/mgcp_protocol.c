@@ -1712,8 +1712,6 @@ struct mgcp_config *mgcp_config_alloc(void)
 	cfg->rtp_processing_cb = &mgcp_rtp_processing_default;
 	cfg->setup_rtp_processing_cb = &mgcp_setup_rtp_processing_default;
 
-	cfg->get_net_downlink_format_cb = &mgcp_get_net_downlink_format_default;
-
 	INIT_LLIST_HEAD(&cfg->trunks);
 
 	/* Allocate virtual trunk */
