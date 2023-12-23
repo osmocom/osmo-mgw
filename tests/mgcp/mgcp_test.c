@@ -928,6 +928,9 @@ static void test_messages(void)
 			/* Reset them again for next test */
 			conn->end.codec->payload_type = PTYPE_NONE;
 		}
+
+		fflush(stdout);
+		fflush(stderr);
 	}
 
 	mgcp_endpoints_release(trunk);
@@ -986,6 +989,9 @@ static void test_retransmission(void)
 			OSMO_ASSERT(false);
 		}
 		msgb_free(msg);
+
+		fflush(stdout);
+		fflush(stderr);
 	}
 
 	mgcp_endpoints_release(trunk);
