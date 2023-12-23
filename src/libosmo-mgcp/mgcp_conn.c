@@ -357,6 +357,7 @@ char *mgcp_conn_dump(struct mgcp_conn *conn)
 	static char str[sizeof(conn->name)+sizeof(conn->id)+256];
 	char ipbuf[INET6_ADDRSTRLEN];
 	struct osmo_strbuf sb = { .buf = str, .len = sizeof(str) };
+	int i;
 
 	if (!conn)
 		return "NULL";
@@ -378,6 +379,11 @@ char *mgcp_conn_dump(struct mgcp_conn *conn)
 			break;
 		default:
 			break;
+		}
+
+		for (i = 0; i < conn->u.rtp.end.codecs_assigned; i++) {
+			struct mgcp_rtp_codec *c = &conn->u.rtp.end.codecs[i];
+			OSMO_STRBUF_PRINTF(sb, " %s#%d%s", c->subtype_name, c->payload_type, c->fmtp);
 		}
 
 		OSMO_STRBUF_PRINTF(sb, ")");
