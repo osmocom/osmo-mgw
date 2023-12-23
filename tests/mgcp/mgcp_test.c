@@ -2332,6 +2332,13 @@ int main(int argc, char **argv)
 	void *ctx = talloc_named_const(NULL, 0, "mgcp_test");
 	void *msgb_ctx = msgb_talloc_ctx_init(ctx, 0);
 	osmo_init_logging2(ctx, &log_info);
+	log_set_print_filename2(osmo_stderr_target, LOG_FILENAME_BASENAME);
+	log_set_print_filename_pos(osmo_stderr_target, LOG_FILENAME_POS_LINE_END);
+	log_set_print_level(osmo_stderr_target, 1);
+	log_set_print_category(osmo_stderr_target, 1);
+	log_set_print_category_hex(osmo_stderr_target, 0);
+	log_set_use_color(osmo_stderr_target, 1);
+	log_set_category_filter(osmo_stderr_target, DLMGCP, true, LOGL_DEBUG);
 
 	test_strline();
 	test_values();
