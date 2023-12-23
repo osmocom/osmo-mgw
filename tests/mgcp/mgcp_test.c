@@ -127,7 +127,6 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 16006 RTP/AVP 97\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=fmtp:126 0/1/2\r\n" \
 	"a=ptime:40\r\n"
 
 #define MDCX4_ADDR0000 \
@@ -336,7 +335,6 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 16006 RTP/AVP 97\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=fmtp:126 0/1/2\r\n" \
 	"a=ptime:40\r\n"
 
 #define CRCX_ZYN \
@@ -586,7 +584,6 @@ struct mgcp_test {
 	const char *req;
 	const char *exp_resp;
 	int ptype;
-	const char *extra_fmtp;
 };
 
 static const struct mgcp_test tests[] = {
@@ -614,10 +611,9 @@ static const struct mgcp_test tests[] = {
 	{"RQNT1", RQNT, RQNT1_RET},
 	{"RQNT2", RQNT2, RQNT2_RET},
 	{"DLCX", DLCX, DLCX_RET, PTYPE_IGNORE},
-	{"CRCX", CRCX, CRCX_FMTP_RET, 97,.extra_fmtp = "a=fmtp:126 0/1/2"},
-	{"MDCX3", MDCX3, MDCX3_FMTP_RET, PTYPE_NONE,.extra_fmtp =
-	 "a=fmtp:126 0/1/2"},
-	{"DLCX", DLCX, DLCX_RET, PTYPE_IGNORE,.extra_fmtp = "a=fmtp:126 0/1/2"},
+	{"CRCX", CRCX, CRCX_FMTP_RET, 97},
+	{"MDCX3", MDCX3, MDCX3_FMTP_RET, PTYPE_NONE},
+	{"DLCX", DLCX, DLCX_RET, PTYPE_IGNORE},
 	{"CRCX", CRCX_NO_LCO_NO_SDP, CRCX_NO_LCO_NO_SDP_RET, 97},
 	{"CRCX", CRCX_X_OSMO_IGN, CRCX_X_OSMO_IGN_RET, 97},
 	{"MDCX_TOO_LONG_CI", MDCX_TOO_LONG_CI, MDCX_TOO_LONG_CI_RET},
@@ -830,9 +826,6 @@ static void test_messages(void)
 		printf("Testing %s\n", t->name);
 
 		dummy_packets = 0;
-
-		osmo_talloc_replace_string(cfg, &trunk->audio_fmtp_extra,
-					   t->extra_fmtp);
 
 		inp = create_msg(t->req, last_conn_id);
 		msg = mgcp_handle_message(cfg, inp);

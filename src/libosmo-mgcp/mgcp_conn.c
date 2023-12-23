@@ -110,8 +110,6 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 	end->rtcp.fd = -1;
 	memset(&end->addr, 0, sizeof(end->addr));
 	end->rtcp_port = 0;
-	talloc_free(end->fmtp_extra);
-	end->fmtp_extra = NULL;
 
 	/* Set default values */
 	end->frames_per_packet = 0;	/* unknown */

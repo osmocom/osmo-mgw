@@ -1076,9 +1076,6 @@ mgcp_header_done:
 		rc = mgcp_conn_iuup_init(conn);
 	}
 
-	conn->end.fmtp_extra = talloc_strdup(trunk->endpoints,
-					     trunk->audio_fmtp_extra);
-
 	if (pdata->cfg->force_ptime) {
 		conn->end.packet_duration_ms = pdata->cfg->force_ptime;
 		conn->end.force_output_ptime = 1;
