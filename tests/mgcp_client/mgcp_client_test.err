@@ -128,6 +128,10 @@ test_sdp_section_start() test [18]:
 body: "some mgcp header data\r\nand header params\r\n\r\nc=IN IP4 \r\n"
 DLMGCP Failed to parse MGCP response header (audio ip)
 got rc=-22
+DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2
+DLMGCP ptmap contains illegal mapping: codec=0 maps to pt=100
+DLMGCP ptmap contains illegal mapping: codec=113 maps to pt=2
+DLMGCP ptmap contains illegal mapping: codec=0 maps to pt=100
 DLMGCP MGW(mgw) MGCP client: using endpoint domain '@mgw'
 DLMGCP MGW(mgw) Cannot compose MGCP e1-endpoint name (ds/e1-15/s-1/su128-0@mgw), rate(128)/offset(0) combination is invalid!
 DLMGCP MGW(mgw) Cannot compose MGCP e1-endpoint name (ds/e1-15/s-1/su8-16@mgw), rate(8)/offset(16) combination is invalid!
