@@ -24,6 +24,7 @@ pkgconfig_DATA = \
 BUILT_SOURCES = $(top_srcdir)/.version
 EXTRA_DIST = \
 	     .version \
+	     README \
 	     contrib/osmo-mgw.spec.in \
 	     debian \
 	     git-version-gen \
