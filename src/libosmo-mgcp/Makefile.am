@@ -19,15 +19,15 @@ AM_LDFLAGS = \
 	$(COVERAGE_LDFLAGS) \
 	$(NULL)
 
-noinst_LIBRARIES = \
-	libosmo-mgcp.a \
+noinst_LTLIBRARIES = \
+	libosmo-mgcp.la \
 	$(NULL)
 
 noinst_HEADERS = \
 	g711common.h \
 	$(NULL)
 
-libosmo_mgcp_a_SOURCES = \
+libosmo_mgcp_la_SOURCES = \
 	mgcp_protocol.c \
 	mgcp_network.c \
 	mgcp_vty.c \
@@ -42,4 +42,13 @@ libosmo_mgcp_a_SOURCES = \
 	mgcp_ratectr.c \
 	mgcp_e1.c \
 	mgcp_iuup.c \
+	$(NULL)
+
+libosmo_mgcp_la_LIBADD = \
+	$(LIBOSMOCORE_LIBS) \
+	$(LIBOSMOGSM_LIBS) \
+	$(LIBOSMOVTY_LIBS) \
+	$(LIBOSMONETIF_LIBS) \
+	$(LIBOSMOABIS_LIBS) \
+	$(LIBOSMOTRAU_LIBS) \
 	$(NULL)

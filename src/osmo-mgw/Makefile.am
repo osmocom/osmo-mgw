@@ -25,12 +25,6 @@ osmo_mgw_SOURCES = \
 	$(NULL)
 
 osmo_mgw_LDADD = \
-	$(top_builddir)/src/libosmo-mgcp/libosmo-mgcp.a \
-	$(LIBOSMOCORE_LIBS) \
-	$(LIBOSMOVTY_LIBS) \
-	$(LIBOSMOGSM_LIBS) \
+	$(top_builddir)/src/libosmo-mgcp/libosmo-mgcp.la \
 	$(LIBOSMOCTRL_LIBS) \
-	$(LIBOSMONETIF_LIBS) \
-	$(LIBOSMOABIS_LIBS) \
-	$(LIBOSMOTRAU_LIBS) \
 	$(NULL)
