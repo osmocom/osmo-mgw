@@ -1,0 +1,14 @@
+
+--- test_get_val()
+osmo_sdp_fmtp_get_val('foo=123;bar=success;baz=456', 'foo') rc=true val='123' ok
+osmo_sdp_fmtp_get_val('foo=123;bar=success;baz=456', 'bar') rc=true val='success' ok
+osmo_sdp_fmtp_get_val('foo=123;bar=success;baz=456', 'baz') rc=true val='456' ok
+
+--- test_get_val() DONE
+
+--- test_get_int()
+osmo_sdp_fmtp_get_int('foo=123;bar=success;baz=456', 'foo') rc=123 ok
+osmo_sdp_fmtp_get_int('foo=123;bar=success;baz=456', 'bar') rc=-1 ok
+osmo_sdp_fmtp_get_int('foo=123;bar=success;baz=456', 'baz') rc=456 ok
+
+--- test_get_int() DONE

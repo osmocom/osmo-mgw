@@ -36,6 +36,21 @@ Multi-Arch: same
 Depends: libosmo-mgcp-client14 (= ${binary:Version}), ${misc:Depends}
 Description: libosmo-mgcp-client: Osmocom's Media Gateway Control Protocol client utilities
 
+Package: libosmo-sdp1
+Section: libs
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: libosmo-sdp: Osmocom's Session Description Protocol encoder and decoder
+
+Package: libosmo-sdp-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends: libosmo-sdp1 (= ${binary:Version}), ${misc:Depends}
+Description: libosmo-sdp: Osmocom's Session Description Protocol encoder and decoder
+
 Package: osmo-mgw-doc
 Architecture: all
 Section: doc

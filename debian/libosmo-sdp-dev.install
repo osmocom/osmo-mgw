@@ -1,0 +1,4 @@
+usr/include/osmocom/sdp
+usr/lib/*/libosmo-sdp.so
+usr/lib/*/libosmo-sdp.a
+usr/lib/*/pkgconfig/libosmo-sdp.pc

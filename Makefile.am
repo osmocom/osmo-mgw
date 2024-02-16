@@ -18,6 +18,7 @@ SUBDIRS = \
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = \
+	libosmo-sdp.pc \
 	libosmo-mgcp-client.pc \
 	$(NULL)
 
