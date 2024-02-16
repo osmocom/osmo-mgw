@@ -1,0 +1,186 @@
+
+
+--- test_codec()
+- osmo_sdp_codec_set():
+osmo_sdp_codec_set [0] 'encoding-name#23'
+  osmo_sdp_codec_cmp() ok
+  osmo_sdp_codec_is_set() = true
+osmo_sdp_codec_set [1] 'AMR:octet-align=1;mode-set=0,2,4#112'
+  osmo_sdp_codec_cmp() ok
+  osmo_sdp_codec_is_set() = true
+osmo_sdp_codec_set [2] 'AMR:mode-set=0,2,4;octet-align=1#96'
+  osmo_sdp_codec_cmp() ok
+  osmo_sdp_codec_is_set() = true
+osmo_sdp_codec_set [3] 'AMR:mode-set=0,2,4#114'
+  osmo_sdp_codec_cmp() ok
+  osmo_sdp_codec_is_set() = true
+osmo_sdp_codec_set [4] 'AMR:mode-set=0,2,4;octet-align=0#97'
+  osmo_sdp_codec_cmp() ok
+  osmo_sdp_codec_is_set() = true
+osmo_sdp_codec_set [5] 'AMR:octet-align=1#98'
+  osmo_sdp_codec_cmp() ok
+  osmo_sdp_codec_is_set() = true
+osmo_sdp_codec_set [6] 'AMR-WB/16000#96'
+  osmo_sdp_codec_cmp() ok
+  osmo_sdp_codec_is_set() = true
+osmo_sdp_codec_set [7] 'GSM#3'
+  osmo_sdp_codec_cmp() ok
+  osmo_sdp_codec_is_set() = true
+osmo_sdp_codec_set [8] '/0#0'
+  osmo_sdp_codec_cmp() ok
+  osmo_sdp_codec_is_set() = false
+osmo_sdp_codec_set [9] ':octet-align=1#112'
+  osmo_sdp_codec_cmp() ok
+  osmo_sdp_codec_is_set() = false
+osmo_sdp_codec_set [10] ':octet-align=1#112'
+  osmo_sdp_codec_cmp() ok
+  osmo_sdp_codec_is_set() = false
+
+- osmo_sdp_codec_cmp(equivalent):
+  encoding-name#23 == encoding-name#23 == encoding-name#23
+  encoding-name#23 > AMR:octet-align=1;mode-set=0,2,4#112 < encoding-name#23
+  encoding-name#23 > AMR:mode-set=0,2,4;octet-align=1#96 < encoding-name#23
+  encoding-name#23 > AMR:mode-set=0,2,4#114 < encoding-name#23
+  encoding-name#23 > AMR:mode-set=0,2,4;octet-align=0#97 < encoding-name#23
+  encoding-name#23 > AMR:octet-align=1#98 < encoding-name#23
+  encoding-name#23 > AMR-WB/16000#96 < encoding-name#23
+  encoding-name#23 > GSM#3 < encoding-name#23
+  encoding-name#23 > /0#0 < encoding-name#23
+  encoding-name#23 > :octet-align=1#112 < encoding-name#23
+  encoding-name#23 > :octet-align=1#112 < encoding-name#23
+  AMR:octet-align=1;mode-set=0,2,4#112 < encoding-name#23 > AMR:octet-align=1;mode-set=0,2,4#112
+  AMR:octet-align=1;mode-set=0,2,4#112 == AMR:octet-align=1;mode-set=0,2,4#112 == AMR:octet-align=1;mode-set=0,2,4#112
+  AMR:octet-align=1;mode-set=0,2,4#112 == AMR:mode-set=0,2,4;octet-align=1#96 == AMR:octet-align=1;mode-set=0,2,4#112
+  AMR:octet-align=1;mode-set=0,2,4#112 > AMR:mode-set=0,2,4#114 < AMR:octet-align=1;mode-set=0,2,4#112
+  AMR:octet-align=1;mode-set=0,2,4#112 > AMR:mode-set=0,2,4;octet-align=0#97 < AMR:octet-align=1;mode-set=0,2,4#112
+  AMR:octet-align=1;mode-set=0,2,4#112 == AMR:octet-align=1#98 == AMR:octet-align=1;mode-set=0,2,4#112
+  AMR:octet-align=1;mode-set=0,2,4#112 < AMR-WB/16000#96 > AMR:octet-align=1;mode-set=0,2,4#112
+  AMR:octet-align=1;mode-set=0,2,4#112 < GSM#3 > AMR:octet-align=1;mode-set=0,2,4#112
+  AMR:octet-align=1;mode-set=0,2,4#112 > /0#0 < AMR:octet-align=1;mode-set=0,2,4#112
+  AMR:octet-align=1;mode-set=0,2,4#112 > :octet-align=1#112 < AMR:octet-align=1;mode-set=0,2,4#112
+  AMR:octet-align=1;mode-set=0,2,4#112 > :octet-align=1#112 < AMR:octet-align=1;mode-set=0,2,4#112
+  AMR:mode-set=0,2,4;octet-align=1#96 < encoding-name#23 > AMR:mode-set=0,2,4;octet-align=1#96
+  AMR:mode-set=0,2,4;octet-align=1#96 == AMR:octet-align=1;mode-set=0,2,4#112 == AMR:mode-set=0,2,4;octet-align=1#96
+  AMR:mode-set=0,2,4;octet-align=1#96 == AMR:mode-set=0,2,4;octet-align=1#96 == AMR:mode-set=0,2,4;octet-align=1#96
+  AMR:mode-set=0,2,4;octet-align=1#96 > AMR:mode-set=0,2,4#114 < AMR:mode-set=0,2,4;octet-align=1#96
+  AMR:mode-set=0,2,4;octet-align=1#96 > AMR:mode-set=0,2,4;octet-align=0#97 < AMR:mode-set=0,2,4;octet-align=1#96
+  AMR:mode-set=0,2,4;octet-align=1#96 == AMR:octet-align=1#98 == AMR:mode-set=0,2,4;octet-align=1#96
+  AMR:mode-set=0,2,4;octet-align=1#96 < AMR-WB/16000#96 > AMR:mode-set=0,2,4;octet-align=1#96
+  AMR:mode-set=0,2,4;octet-align=1#96 < GSM#3 > AMR:mode-set=0,2,4;octet-align=1#96
+  AMR:mode-set=0,2,4;octet-align=1#96 > /0#0 < AMR:mode-set=0,2,4;octet-align=1#96
+  AMR:mode-set=0,2,4;octet-align=1#96 > :octet-align=1#112 < AMR:mode-set=0,2,4;octet-align=1#96
+  AMR:mode-set=0,2,4;octet-align=1#96 > :octet-align=1#112 < AMR:mode-set=0,2,4;octet-align=1#96
+  AMR:mode-set=0,2,4#114 < encoding-name#23 > AMR:mode-set=0,2,4#114
+  AMR:mode-set=0,2,4#114 < AMR:octet-align=1;mode-set=0,2,4#112 > AMR:mode-set=0,2,4#114
+  AMR:mode-set=0,2,4#114 < AMR:mode-set=0,2,4;octet-align=1#96 > AMR:mode-set=0,2,4#114
+  AMR:mode-set=0,2,4#114 == AMR:mode-set=0,2,4#114 == AMR:mode-set=0,2,4#114
+  AMR:mode-set=0,2,4#114 == AMR:mode-set=0,2,4;octet-align=0#97 == AMR:mode-set=0,2,4#114
+  AMR:mode-set=0,2,4#114 < AMR:octet-align=1#98 > AMR:mode-set=0,2,4#114
+  AMR:mode-set=0,2,4#114 < AMR-WB/16000#96 > AMR:mode-set=0,2,4#114
+  AMR:mode-set=0,2,4#114 < GSM#3 > AMR:mode-set=0,2,4#114
+  AMR:mode-set=0,2,4#114 > /0#0 < AMR:mode-set=0,2,4#114
+  AMR:mode-set=0,2,4#114 > :octet-align=1#112 < AMR:mode-set=0,2,4#114
+  AMR:mode-set=0,2,4#114 > :octet-align=1#112 < AMR:mode-set=0,2,4#114
+  AMR:mode-set=0,2,4;octet-align=0#97 < encoding-name#23 > AMR:mode-set=0,2,4;octet-align=0#97
+  AMR:mode-set=0,2,4;octet-align=0#97 < AMR:octet-align=1;mode-set=0,2,4#112 > AMR:mode-set=0,2,4;octet-align=0#97
+  AMR:mode-set=0,2,4;octet-align=0#97 < AMR:mode-set=0,2,4;octet-align=1#96 > AMR:mode-set=0,2,4;octet-align=0#97
+  AMR:mode-set=0,2,4;octet-align=0#97 == AMR:mode-set=0,2,4#114 == AMR:mode-set=0,2,4;octet-align=0#97
+  AMR:mode-set=0,2,4;octet-align=0#97 == AMR:mode-set=0,2,4;octet-align=0#97 == AMR:mode-set=0,2,4;octet-align=0#97
+  AMR:mode-set=0,2,4;octet-align=0#97 < AMR:octet-align=1#98 > AMR:mode-set=0,2,4;octet-align=0#97
+  AMR:mode-set=0,2,4;octet-align=0#97 < AMR-WB/16000#96 > AMR:mode-set=0,2,4;octet-align=0#97
+  AMR:mode-set=0,2,4;octet-align=0#97 < GSM#3 > AMR:mode-set=0,2,4;octet-align=0#97
+  AMR:mode-set=0,2,4;octet-align=0#97 > /0#0 < AMR:mode-set=0,2,4;octet-align=0#97
+  AMR:mode-set=0,2,4;octet-align=0#97 > :octet-align=1#112 < AMR:mode-set=0,2,4;octet-align=0#97
+  AMR:mode-set=0,2,4;octet-align=0#97 > :octet-align=1#112 < AMR:mode-set=0,2,4;octet-align=0#97
+  AMR:octet-align=1#98 < encoding-name#23 > AMR:octet-align=1#98
+  AMR:octet-align=1#98 == AMR:octet-align=1;mode-set=0,2,4#112 == AMR:octet-align=1#98
+  AMR:octet-align=1#98 == AMR:mode-set=0,2,4;octet-align=1#96 == AMR:octet-align=1#98
+  AMR:octet-align=1#98 > AMR:mode-set=0,2,4#114 < AMR:octet-align=1#98
+  AMR:octet-align=1#98 > AMR:mode-set=0,2,4;octet-align=0#97 < AMR:octet-align=1#98
+  AMR:octet-align=1#98 == AMR:octet-align=1#98 == AMR:octet-align=1#98
+  AMR:octet-align=1#98 < AMR-WB/16000#96 > AMR:octet-align=1#98
+  AMR:octet-align=1#98 < GSM#3 > AMR:octet-align=1#98
+  AMR:octet-align=1#98 > /0#0 < AMR:octet-align=1#98
+  AMR:octet-align=1#98 > :octet-align=1#112 < AMR:octet-align=1#98
+  AMR:octet-align=1#98 > :octet-align=1#112 < AMR:octet-align=1#98
+  AMR-WB/16000#96 < encoding-name#23 > AMR-WB/16000#96
+  AMR-WB/16000#96 > AMR:octet-align=1;mode-set=0,2,4#112 < AMR-WB/16000#96
+  AMR-WB/16000#96 > AMR:mode-set=0,2,4;octet-align=1#96 < AMR-WB/16000#96
+  AMR-WB/16000#96 > AMR:mode-set=0,2,4#114 < AMR-WB/16000#96
+  AMR-WB/16000#96 > AMR:mode-set=0,2,4;octet-align=0#97 < AMR-WB/16000#96
+  AMR-WB/16000#96 > AMR:octet-align=1#98 < AMR-WB/16000#96
+  AMR-WB/16000#96 == AMR-WB/16000#96 == AMR-WB/16000#96
+  AMR-WB/16000#96 < GSM#3 > AMR-WB/16000#96
+  AMR-WB/16000#96 > /0#0 < AMR-WB/16000#96
+  AMR-WB/16000#96 > :octet-align=1#112 < AMR-WB/16000#96
+  AMR-WB/16000#96 > :octet-align=1#112 < AMR-WB/16000#96
+  GSM#3 < encoding-name#23 > GSM#3
+  GSM#3 > AMR:octet-align=1;mode-set=0,2,4#112 < GSM#3
+  GSM#3 > AMR:mode-set=0,2,4;octet-align=1#96 < GSM#3
+  GSM#3 > AMR:mode-set=0,2,4#114 < GSM#3
+  GSM#3 > AMR:mode-set=0,2,4;octet-align=0#97 < GSM#3
+  GSM#3 > AMR:octet-align=1#98 < GSM#3
+  GSM#3 > AMR-WB/16000#96 < GSM#3
+  GSM#3 == GSM#3 == GSM#3
+  GSM#3 > /0#0 < GSM#3
+  GSM#3 > :octet-align=1#112 < GSM#3
+  GSM#3 > :octet-align=1#112 < GSM#3
+  /0#0 < encoding-name#23 > /0#0
+  /0#0 < AMR:octet-align=1;mode-set=0,2,4#112 > /0#0
+  /0#0 < AMR:mode-set=0,2,4;octet-align=1#96 > /0#0
+  /0#0 < AMR:mode-set=0,2,4#114 > /0#0
+  /0#0 < AMR:mode-set=0,2,4;octet-align=0#97 > /0#0
+  /0#0 < AMR:octet-align=1#98 > /0#0
+  /0#0 < AMR-WB/16000#96 > /0#0
+  /0#0 < GSM#3 > /0#0
+  /0#0 == /0#0 == /0#0
+  /0#0 < :octet-align=1#112 > /0#0
+  /0#0 < :octet-align=1#112 > /0#0
+  :octet-align=1#112 < encoding-name#23 > :octet-align=1#112
+  :octet-align=1#112 < AMR:octet-align=1;mode-set=0,2,4#112 > :octet-align=1#112
+  :octet-align=1#112 < AMR:mode-set=0,2,4;octet-align=1#96 > :octet-align=1#112
+  :octet-align=1#112 < AMR:mode-set=0,2,4#114 > :octet-align=1#112
+  :octet-align=1#112 < AMR:mode-set=0,2,4;octet-align=0#97 > :octet-align=1#112
+  :octet-align=1#112 < AMR:octet-align=1#98 > :octet-align=1#112
+  :octet-align=1#112 < AMR-WB/16000#96 > :octet-align=1#112
+  :octet-align=1#112 < GSM#3 > :octet-align=1#112
+  :octet-align=1#112 > /0#0 < :octet-align=1#112
+  :octet-align=1#112 == :octet-align=1#112 == :octet-align=1#112
+  :octet-align=1#112 == :octet-align=1#112 == :octet-align=1#112
+  :octet-align=1#112 < encoding-name#23 > :octet-align=1#112
+  :octet-align=1#112 < AMR:octet-align=1;mode-set=0,2,4#112 > :octet-align=1#112
+  :octet-align=1#112 < AMR:mode-set=0,2,4;octet-align=1#96 > :octet-align=1#112
+  :octet-align=1#112 < AMR:mode-set=0,2,4#114 > :octet-align=1#112
+  :octet-align=1#112 < AMR:mode-set=0,2,4;octet-align=0#97 > :octet-align=1#112
+  :octet-align=1#112 < AMR:octet-align=1#98 > :octet-align=1#112
+  :octet-align=1#112 < AMR-WB/16000#96 > :octet-align=1#112
+  :octet-align=1#112 < GSM#3 > :octet-align=1#112
+  :octet-align=1#112 > /0#0 < :octet-align=1#112
+  :octet-align=1#112 == :octet-align=1#112 == :octet-align=1#112
+  :octet-align=1#112 == :octet-align=1#112 == :octet-align=1#112
+
+- osmo_sdp_codec_from_str():
+  osmo_sdp_codec_from_str('encoding-name#23') rc=0 res=encoding-name#23
+  osmo_sdp_codec_from_str('AMR:octet-align=1;mode-set=0,2,4#112') rc=0 res=AMR:octet-align=1;mode-set=0,2,4#112
+  osmo_sdp_codec_from_str('AMR:mode-set=0,2,4;octet-align=1#96') rc=0 res=AMR:mode-set=0,2,4;octet-align=1#96
+  osmo_sdp_codec_from_str('AMR:mode-set=0,2,4#114') rc=0 res=AMR:mode-set=0,2,4#114
+  osmo_sdp_codec_from_str('AMR:mode-set=0,2,4;octet-align=0#97') rc=0 res=AMR:mode-set=0,2,4;octet-align=0#97
+  osmo_sdp_codec_from_str('AMR:octet-align=1#98') rc=0 res=AMR:octet-align=1#98
+  osmo_sdp_codec_from_str('AMR-WB/16000#96') rc=0 res=AMR-WB/16000#96
+  osmo_sdp_codec_from_str('GSM#3') rc=0 res=GSM#3
+  osmo_sdp_codec_from_str('/0#0') rc=0 res=/0#0
+  osmo_sdp_codec_from_str(':octet-align=1#112') rc=0 res=:octet-align=1#112
+  osmo_sdp_codec_from_str(':octet-align=1#112') rc=0 res=:octet-align=1#112
+
+
+--- test_obj_members()
+o->codec = AMR:octet-align=1#96
+ctx
+ |  5 test_obj_members
+ |   4 struct my_obj
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1
+ |     1 AMR
+talloc_free(o)
+ctx
+ |  1 test_obj_members
