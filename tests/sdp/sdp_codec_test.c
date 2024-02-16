@@ -331,6 +331,150 @@ void test_codec_list(void)
 	talloc_free(list_ctx);
 }
 
+static struct osmo_sdp_codec_list *init_codec_list(void *ctx, const struct osmo_sdp_codec *init_array)
+{
+	struct osmo_sdp_codec_list *dst = osmo_sdp_codec_list_alloc(ctx);
+	for (; osmo_sdp_codec_is_set(init_array); init_array++)
+		osmo_sdp_codec_list_add(dst, init_array, NULL, false);
+	return dst;
+}
+
+void test_codec_list_cmp(void)
+{
+	void *ctx = talloc_named_const(test_ctx, 0, __func__);
+	void *print_ctx = talloc_named_const(test_ctx, 0, "print");
+	int i;
+
+	const struct osmo_sdp_codec codec_a[] = {
+		{ .payload_type = 112, .encoding_name = "AMR", .rate = 8000, .fmtp = "octet-align=1;mode-set=0,2,4" },
+		{ .payload_type = 3, .encoding_name = "GSM", .rate = 8000 },
+		{ .payload_type = 111, .encoding_name = "GSM-HR-08", .rate = 8000 },
+		{}
+	};
+
+	const struct osmo_sdp_codec codec_b[][5] = {
+		/* same */
+		{
+			{ .payload_type = 112, .encoding_name = "AMR", .rate = 8000, .fmtp = "octet-align=1;mode-set=0,2,4" },
+			{ .payload_type = 3, .encoding_name = "GSM", .rate = 8000 },
+			{ .payload_type = 111, .encoding_name = "GSM-HR-08", .rate = 8000 },
+		},
+
+		/* different payload_type */
+		{
+			{ .payload_type = 96, .encoding_name = "AMR", .rate = 8000, .fmtp = "octet-align=1;mode-set=0,2,4" },
+			{ .payload_type = 3, .encoding_name = "GSM", .rate = 8000 },
+			{ .payload_type = 111, .encoding_name = "GSM-HR-08", .rate = 8000 },
+		},
+
+		/* AMR fmtp in different order */
+		{
+			{ .payload_type = 112, .encoding_name = "AMR", .rate = 8000, .fmtp = "mode-set=0,2,4;octet-align=1" },
+			{ .payload_type = 3, .encoding_name = "GSM", .rate = 8000 },
+			{ .payload_type = 111, .encoding_name = "GSM-HR-08", .rate = 8000 },
+		},
+
+		/* different AMR mode-set */
+		{
+			{ .payload_type = 112, .encoding_name = "AMR", .rate = 8000, .fmtp = "octet-align=1;mode-set=7" },
+			{ .payload_type = 3, .encoding_name = "GSM", .rate = 8000 },
+			{ .payload_type = 111, .encoding_name = "GSM-HR-08", .rate = 8000 },
+		},
+
+		/* empty AMR mode-set */
+		{
+			{ .payload_type = 112, .encoding_name = "AMR", .rate = 8000, .fmtp = "octet-align=1" },
+			{ .payload_type = 3, .encoding_name = "GSM", .rate = 8000 },
+			{ .payload_type = 111, .encoding_name = "GSM-HR-08", .rate = 8000 },
+		},
+
+		/* different AMR octet-align */
+		{
+			{ .payload_type = 112, .encoding_name = "AMR", .rate = 8000, .fmtp = "octet-align=0;mode-set=0,2,4" },
+			{ .payload_type = 3, .encoding_name = "GSM", .rate = 8000 },
+			{ .payload_type = 111, .encoding_name = "GSM-HR-08", .rate = 8000 },
+		},
+
+		/* omitted AMR octet-align is identical to octet-align=0 */
+		{
+			{ .payload_type = 112, .encoding_name = "AMR", .rate = 8000, .fmtp = "mode-set=0,2,4" },
+			{ .payload_type = 3, .encoding_name = "GSM", .rate = 8000 },
+			{ .payload_type = 111, .encoding_name = "GSM-HR-08", .rate = 8000 },
+		},
+
+		/* different order */
+		{
+			{ .payload_type = 3, .encoding_name = "GSM", .rate = 8000 },
+			{ .payload_type = 111, .encoding_name = "GSM-HR-08", .rate = 8000 },
+			{ .payload_type = 112, .encoding_name = "AMR", .rate = 8000, .fmtp = "octet-align=1;mode-set=0,2,4" },
+		},
+
+		/* one less item */
+		{
+			{ .payload_type = 112, .encoding_name = "AMR", .rate = 8000, .fmtp = "octet-align=1;mode-set=0,2,4" },
+			{ .payload_type = 3, .encoding_name = "GSM", .rate = 8000 },
+		},
+
+		/* one more item */
+		{
+			{ .payload_type = 112, .encoding_name = "AMR", .rate = 8000, .fmtp = "octet-align=1;mode-set=0,2,4" },
+			{ .payload_type = 3, .encoding_name = "GSM", .rate = 8000 },
+			{ .payload_type = 111, .encoding_name = "GSM-HR-08", .rate = 8000 },
+			{ .payload_type = 110, .encoding_name = "GSM-EFR", .rate = 8000 },
+		},
+	};
+
+	const struct osmo_sdp_codec_cmp_flags *test_cmpf[] = {
+		&osmo_sdp_codec_cmp_name,
+		&osmo_sdp_codec_cmp_equivalent,
+		&osmo_sdp_codec_cmp_exact,
+	};
+
+	printf("\n\n--- %s()\n", __func__);
+
+	for (i = 0; i < ARRAY_SIZE(codec_b); i++) {
+		struct osmo_sdp_codec_list *list_a = init_codec_list(ctx, codec_a);
+		struct osmo_sdp_codec_list *list_b = init_codec_list(ctx, codec_b[i]);
+		int j;
+
+		printf("A = %s\n", osmo_sdp_codec_list_to_str_c(print_ctx, list_a, false));
+		printf("B = %s\n", osmo_sdp_codec_list_to_str_c(print_ctx, list_b, false));
+
+		for (j = 0; j < ARRAY_SIZE(test_cmpf); j++) {
+			const struct osmo_sdp_codec_cmp_flags *cmpf = test_cmpf[j];
+			int cmp = osmo_sdp_codec_list_cmp(list_a, list_b, cmpf);
+			int reverse_cmp = osmo_sdp_codec_list_cmp(list_b, list_a, cmpf);
+			printf("  cmpf[%d]: payload_type=%s rate=%s fmtp=%d: A %s B %s A\n",
+			       j,
+			       cmpf->payload_type ? "true" : "false",
+			       cmpf->rate ? "true" : "false",
+			       cmpf->fmtp,
+			       (cmp == 0) ? "=="
+				       : ((cmp < 0) ? "<" : ">"),
+			       (reverse_cmp == 0) ? "=="
+				       : ((reverse_cmp < 0) ? "<" : ">"));
+
+			if (reverse_cmp != -cmp)
+				printf("    *** ERROR: osmo_sdp_codec_list_cmp(reverse args) == %d, expected %d\n",
+				       reverse_cmp, -cmp);
+		}
+
+		talloc_free(list_a);
+		talloc_free(list_b);
+
+		if (talloc_total_blocks(ctx) != 1) {
+			printf("ERROR: memleak:\n");
+			report(ctx);
+		}
+		printf("\n");
+
+		talloc_free_children(print_ctx);
+	}
+
+	talloc_free(print_ctx);
+	talloc_free(ctx);
+}
+
 
 struct my_obj {
 	struct osmo_sdp_codec *codec;
@@ -381,6 +525,7 @@ typedef void (*test_func_t)(void);
 test_func_t test_func[] = {
 	test_codec,
 	test_codec_list,
+	test_codec_list_cmp,
 	test_obj_members,
 };
 
