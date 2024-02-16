@@ -67,6 +67,9 @@ struct osmo_sdp_codec {
 	 * holds only the , "param1=val1;param2=val2" part. For the buffer size, see fmtp_size. */
 	char *fmtp;
 
+	/* Entry used by osmo_sdp_codec_list. */
+	struct llist_head entry;
+
 	/* For future extension, always set to false. */
 	bool v2;
 };
