@@ -39,7 +39,7 @@ struct osmo_sdp_codec_list *osmo_sdp_codec_list_alloc(void *ctx)
 void osmo_sdp_codec_list_free_items(struct osmo_sdp_codec_list *codec_list)
 {
 	struct osmo_sdp_codec *c;
-	while ((c = llist_first_entry_or_null(&codec_list->list, struct osmo_sdp_codec, entry))) {
+	while ((c = osmo_sdp_codec_list_first(codec_list))) {
 		osmo_sdp_codec_list_remove_entry(c);
 		talloc_free(c);
 	}
@@ -229,4 +229,33 @@ int osmo_sdp_codec_list_to_str_buf(char *buf, size_t buflen, const struct osmo_s
 char *osmo_sdp_codec_list_to_str_c(void *ctx, const struct osmo_sdp_codec_list *codec_list, bool summarize)
 {
 	OSMO_NAME_C_IMPL(ctx, 128, "osmo_sdp_codec_list_to_str_c-ERROR", osmo_sdp_codec_list_to_str_buf, codec_list, summarize)
+}
+
+/*! Return first entry, or NULL if the list is empty. */
+struct osmo_sdp_codec *osmo_sdp_codec_list_first(const struct osmo_sdp_codec_list *list)
+{
+	return llist_first_entry_or_null(&list->list, struct osmo_sdp_codec, entry);
+}
+
+/*! Move entries matching 'codec' to the front of the list. Matching is done via osmo_sdp_codec_cmp(cmpf).
+ * Return the number of matches that are now at the front of the list.
+ */
+int osmo_sdp_codec_list_move_to_first(struct osmo_sdp_codec_list *codec_list, const struct osmo_sdp_codec *codec,
+				      const struct osmo_sdp_codec_cmp_flags *cmpf)
+{
+	struct llist_head *head = &codec_list->list;
+	struct osmo_sdp_codec *i, *j;
+	int matches_found = 0;
+	osmo_sdp_codec_list_foreach_safe (i, j, codec_list) {
+		if (osmo_sdp_codec_cmp(codec, i, cmpf))
+			continue;
+		/* It's a match, move to the head */
+		osmo_sdp_codec_list_remove_entry(i);
+		llist_add(&i->entry, head);
+		matches_found++;
+		/* If more matches show up later, add them *after* the one just moved to the front. */
+		head = &i->entry;
+	}
+
+	return matches_found;
 }
