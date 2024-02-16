@@ -57,3 +57,6 @@ int osmo_sdp_codec_list_move_to_first(struct osmo_sdp_codec_list *codec_list, co
 	llist_for_each_entry(STRUCT_SDP_CODEC_P, &(SDP_CODEC_LIST)->list, entry)
 #define osmo_sdp_codec_list_foreach_safe(STRUCT_SDP_CODEC_P, SAFE_P, SDP_CODEC_LIST) \
 	llist_for_each_entry_safe(STRUCT_SDP_CODEC_P, SAFE_P, &(SDP_CODEC_LIST)->list, entry)
+
+int osmo_sdp_codec_list_cmp(const struct osmo_sdp_codec_list *a, const struct osmo_sdp_codec_list *b,
+			    const struct osmo_sdp_codec_cmp_flags *cmpf);

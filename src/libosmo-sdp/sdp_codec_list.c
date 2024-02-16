@@ -259,3 +259,60 @@ int osmo_sdp_codec_list_move_to_first(struct osmo_sdp_codec_list *codec_list, co
 
 	return matches_found;
 }
+
+/*! Compare two lists of SDP codecs, returning cmp result: -1 if a < b, 0 if a == b, 1 if a > b.
+ * The two lists are compared in order, item by item, using osmo_sdp_codec_cmp(cmpf).
+ */
+int osmo_sdp_codec_list_cmp(const struct osmo_sdp_codec_list *a, const struct osmo_sdp_codec_list *b,
+			    const struct osmo_sdp_codec_cmp_flags *cmpf)
+{
+	const struct llist_head *a_start;
+	const struct llist_head *a_pos;
+	const struct llist_head *b_start;
+	const struct llist_head *b_pos;
+	int cmp;
+
+	/* NULL pointer == empty list */
+	if (a && llist_empty(&a->list))
+		a = NULL;
+	if (b && llist_empty(&a->list))
+		b = NULL;
+
+	/* are one or both empty? */
+	if (a == b)
+		return 0;
+	if (!a)
+		return -1;
+	if (!b)
+		return 1;
+
+	/* compare item by item */
+	a_start = &a->list;
+	a_pos = a_start->next;
+	b_start = &b->list;
+	b_pos = b_start->next;
+
+	for (; a_pos != a_start; a_pos = a_pos->next, b_pos = b_pos->next) {
+		const struct osmo_sdp_codec *codec_a;
+		const struct osmo_sdp_codec *codec_b;
+
+		if (b_pos == b_start) {
+			/* there is an entry in a, but b has already ended. mismatch. */
+			return 1;
+		}
+
+		codec_a = llist_entry(a_pos, struct osmo_sdp_codec, entry);
+		codec_b = llist_entry(b_pos, struct osmo_sdp_codec, entry);
+		cmp = osmo_sdp_codec_cmp(codec_a, codec_b, cmpf);
+		if (cmp)
+			return cmp;
+	}
+
+	if (b_pos != b_start) {
+		/* 'a' has ended, but 'b' has more items. mismatch. */
+		return -1;
+	}
+
+	/* full match. */
+	return 0;
+}
