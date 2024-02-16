@@ -189,9 +189,11 @@ AC_OUTPUT(
     libosmo-mgcp-client.pc
     include/Makefile
     include/osmocom/Makefile
+    include/osmocom/sdp/Makefile
     include/osmocom/mgcp_client/Makefile
     include/osmocom/mgcp/Makefile
     src/Makefile
+    src/libosmo-sdp/Makefile
     src/libosmo-mgcp-client/Makefile
     src/libosmo-mgcp/Makefile
     src/osmo-mgw/Makefile
@@ -199,6 +201,7 @@ AC_OUTPUT(
     tests/atlocal
     tests/mgcp_client/Makefile
     tests/mgcp/Makefile
+    tests/sdp/Makefile
     doc/Makefile
     doc/examples/Makefile
     doc/manuals/Makefile

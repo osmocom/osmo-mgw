@@ -13,3 +13,10 @@ AT_KEYWORDS([mgcp])
 cat $abs_srcdir/mgcp/mgcp_test.ok > expout
 AT_CHECK([$abs_top_builddir/tests/mgcp/mgcp_test], [], [expout], [ignore])
 AT_CLEANUP
+
+AT_SETUP([sdp_fmtp])
+AT_KEYWORDS([sdp_fmtp])
+cat $abs_srcdir/sdp/sdp_fmtp_test.ok > expout
+cat $abs_srcdir/sdp/sdp_fmtp_test.err > experr
+AT_CHECK([$abs_top_builddir/tests/sdp/sdp_fmtp_test], [], [expout], [experr])
+AT_CLEANUP

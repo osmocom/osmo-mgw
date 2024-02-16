@@ -15,6 +15,7 @@ AM_CFLAGS = \
 
 # Libraries
 SUBDIRS = \
+	libosmo-sdp \
 	libosmo-mgcp-client \
 	libosmo-mgcp \
 	$(NULL)
