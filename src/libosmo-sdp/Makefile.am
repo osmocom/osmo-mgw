@@ -15,6 +15,8 @@ noinst_LTLIBRARIES = \
 	$(NULL)
 
 libosmo_sdp_la_SOURCES = \
+	sdp_codec.c \
+	sdp_internal.c \
 	fmtp.c \
 	$(NULL)
 
