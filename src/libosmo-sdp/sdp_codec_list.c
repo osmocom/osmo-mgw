@@ -1,0 +1,151 @@
+/* Codec management in SDP messages. */
+/*
+ * (C) 2024 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
+ * All Rights Reserved.
+ *
+ * Author: Neels Janosch Hofmeyr <nhofmeyr@sysmocom.de>
+ *
+ * SPDX-License-Identifier: GPL-2.0+
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include <osmocom/sdp/sdp_codec_list.h>
+
+struct osmo_sdp_codec_list *osmo_sdp_codec_list_alloc(void *ctx)
+{
+	struct osmo_sdp_codec_list *codec_list = talloc_zero(ctx, struct osmo_sdp_codec_list);
+	INIT_LLIST_HEAD(&codec_list->list);
+	return codec_list;
+}
+
+/*! Free all items contained in this list, do not free the list itself (leave an empty list). */
+void osmo_sdp_codec_list_free_items(struct osmo_sdp_codec_list *codec_list)
+{
+	struct osmo_sdp_codec *c;
+	while ((c = llist_first_entry_or_null(&codec_list->list, struct osmo_sdp_codec, entry))) {
+		osmo_sdp_codec_list_remove_entry(c);
+		talloc_free(c);
+	}
+}
+
+struct osmo_sdp_codec *osmo_sdp_codec_list_add_empty(struct osmo_sdp_codec_list *codec_list)
+{
+	struct osmo_sdp_codec *c = osmo_sdp_codec_alloc(codec_list);
+	llist_add_tail(&c->entry, &codec_list->list);
+	return c;
+}
+
+int8_t osmo_sdp_codec_list_get_unused_dyn_pt_nr(const struct osmo_sdp_codec_list *codec_list, int8_t suggest_pt_nr)
+{
+	bool present[127 - 96 + 1] = {};
+	const struct osmo_sdp_codec *c;
+	bool suggest_pt_nr_exists = false;
+	int i;
+
+	osmo_sdp_codec_list_foreach (c, codec_list) {
+		if (c->payload_type >= 96 && c->payload_type <= 127)
+			present[c->payload_type - 96] = true;
+		if (c->payload_type == suggest_pt_nr)
+			suggest_pt_nr_exists = true;
+	}
+
+	if (!suggest_pt_nr_exists)
+		return suggest_pt_nr;
+
+	/* The desired number is already taken, see which of the dynamic types is not taken yet */
+	for (i = 96; i <= 127; i++) {
+		/* For dynamic allocations, skip these predefined numbers, taken from enum mgcp_codecs:
+		 * CODEC_GSMEFR_8000_1 = 110,	3GPP TS 48.103 table 5.4.2.2.1
+		 * CODEC_GSMHR_8000_1 = 111,	3GPP TS 48.103 table 5.4.2.2.1
+		 * CODEC_AMR_8000_1 = 112,		3GPP TS 48.103 table 5.4.2.2.1
+		 * CODEC_AMRWB_16000_1 = 113,	3GPP TS 48.103 table 5.4.2.2.1
+		 * CODEC_CLEARMODE = 120,		3GPP TS 48.103 table 5.4.2.2.1
+		 */
+		if (i >= 110 && i <= 113)
+			continue;
+		else if (i == 120)
+			continue;
+
+		if (!present[i - 96])
+			return i;
+	}
+
+	return -1;
+}
+
+/*! Allocate a new entry in codec_list and copy codec's values to it.
+ * If once is NULL, unconditionally add a new codec entry.
+ * If once is non-NULL, do not add a new entry when the list already contains a matching entry; for determining a match,
+ * use the once->flags. For example, if once = &osmo_sdp_codec_cmp_equivalent, look up if codec_list has a similar
+ * codec, and add the new entry only if it is not listed.
+ * See osmo_sdp_codec_cmp() and osmo_sdp_fmtp_amr_match() for details.
+ * Return the new entry, or the equivalent entry already present in the list.
+ */
+struct osmo_sdp_codec *osmo_sdp_codec_list_add(struct osmo_sdp_codec_list *codec_list,
+					       const struct osmo_sdp_codec *codec,
+					       const struct osmo_sdp_codec_cmp_flags *once, bool pick_unused_pt_nr)
+{
+	struct osmo_sdp_codec *new_entry;
+	int8_t payload_type;
+
+	if (once) {
+		struct osmo_sdp_codec *c;
+		osmo_sdp_codec_list_foreach (c, codec_list)
+			if (!osmo_sdp_codec_cmp(codec, c, once))
+				return c;
+	}
+
+	/* Adjust payload_type number? */
+	payload_type = codec->payload_type;
+	if (pick_unused_pt_nr)
+		payload_type = osmo_sdp_codec_list_get_unused_dyn_pt_nr(codec_list, payload_type);
+
+	/* Take provided values, possibly modified payload_type */
+	new_entry = osmo_sdp_codec_list_add_empty(codec_list);
+	osmo_sdp_codec_set(new_entry, payload_type, codec->encoding_name, codec->rate, codec->fmtp);
+
+	return new_entry;
+}
+
+/*! Remove and free all entries from the codec_list that match the given codec according to osmo_sdp_codec_cmp(cmpf).
+ * Return the number of entries freed. */
+int osmo_sdp_codec_list_remove(struct osmo_sdp_codec_list *codec_list, const struct osmo_sdp_codec *codec,
+			       const struct osmo_sdp_codec_cmp_flags *cmpf)
+{
+	struct osmo_sdp_codec *i, *j;
+	int count = 0;
+	osmo_sdp_codec_list_foreach_safe (i, j, codec_list) {
+		if (osmo_sdp_codec_cmp(i, codec, cmpf))
+			continue;
+		osmo_sdp_codec_list_remove_entry(i);
+		talloc_free(i);
+		count++;
+	}
+	return count;
+}
+
+/*! Unlink an osmo_sdp_codec from an osmo_sdp_codec_list, if the codec instance is part of a list. Do not free the
+ * struct osmo_sdp_codec.
+ */
+void osmo_sdp_codec_list_remove_entry(struct osmo_sdp_codec *codec)
+{
+	/* The codec is not part of a list in these cases:
+	 * After talloc_zero(), next == NULL.
+	 * After llist_del(), next == LLIST_POISON1. */
+	if (codec->entry.next != NULL
+	    && codec->entry.next != (struct llist_head *)LLIST_POISON1)
+		llist_del(&codec->entry);
+}
