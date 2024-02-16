@@ -34,7 +34,7 @@ mgcp_test_SOURCES = \
 	$(NULL)
 
 mgcp_test_LDADD = \
-	$(top_builddir)/src/libosmo-mgcp/libosmo-mgcp.a \
+	$(top_builddir)/src/libosmo-mgcp/libosmo-mgcp.la \
 	$(LIBOSMOCORE_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
 	$(LIBOSMOGSM_LIBS) \
