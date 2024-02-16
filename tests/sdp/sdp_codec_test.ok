@@ -399,6 +399,69 @@ osmo_sdp_codec_list_to_str_c(summarize=false):
  '(no-codecs)'
 
 
+--- test_codec_list_cmp()
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+  cmpf[0]: payload_type=false rate=false fmtp=0: A == B == A
+  cmpf[1]: payload_type=false rate=true fmtp=1: A == B == A
+  cmpf[2]: payload_type=true rate=true fmtp=2: A == B == A
+
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = AMR:octet-align=1;mode-set=0,2,4#96 GSM#3 GSM-HR-08#111
+  cmpf[0]: payload_type=false rate=false fmtp=0: A == B == A
+  cmpf[1]: payload_type=false rate=true fmtp=1: A == B == A
+  cmpf[2]: payload_type=true rate=true fmtp=2: A > B < A
+
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = AMR:mode-set=0,2,4;octet-align=1#112 GSM#3 GSM-HR-08#111
+  cmpf[0]: payload_type=false rate=false fmtp=0: A == B == A
+  cmpf[1]: payload_type=false rate=true fmtp=1: A == B == A
+  cmpf[2]: payload_type=true rate=true fmtp=2: A > B < A
+
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = AMR:octet-align=1;mode-set=7#112 GSM#3 GSM-HR-08#111
+  cmpf[0]: payload_type=false rate=false fmtp=0: A == B == A
+  cmpf[1]: payload_type=false rate=true fmtp=1: A < B > A
+  cmpf[2]: payload_type=true rate=true fmtp=2: A < B > A
+
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = AMR:octet-align=1#112 GSM#3 GSM-HR-08#111
+  cmpf[0]: payload_type=false rate=false fmtp=0: A == B == A
+  cmpf[1]: payload_type=false rate=true fmtp=1: A == B == A
+  cmpf[2]: payload_type=true rate=true fmtp=2: A > B < A
+
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = AMR:octet-align=0;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+  cmpf[0]: payload_type=false rate=false fmtp=0: A == B == A
+  cmpf[1]: payload_type=false rate=true fmtp=1: A > B < A
+  cmpf[2]: payload_type=true rate=true fmtp=2: A > B < A
+
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = AMR:mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+  cmpf[0]: payload_type=false rate=false fmtp=0: A == B == A
+  cmpf[1]: payload_type=false rate=true fmtp=1: A > B < A
+  cmpf[2]: payload_type=true rate=true fmtp=2: A > B < A
+
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = GSM#3 GSM-HR-08#111 AMR:octet-align=1;mode-set=0,2,4#112
+  cmpf[0]: payload_type=false rate=false fmtp=0: A < B > A
+  cmpf[1]: payload_type=false rate=true fmtp=1: A < B > A
+  cmpf[2]: payload_type=true rate=true fmtp=2: A < B > A
+
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3
+  cmpf[0]: payload_type=false rate=false fmtp=0: A > B < A
+  cmpf[1]: payload_type=false rate=true fmtp=1: A > B < A
+  cmpf[2]: payload_type=true rate=true fmtp=2: A > B < A
+
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111 GSM-EFR#110
+  cmpf[0]: payload_type=false rate=false fmtp=0: A < B > A
+  cmpf[1]: payload_type=false rate=true fmtp=1: A < B > A
+  cmpf[2]: payload_type=true rate=true fmtp=2: A < B > A
+
+
+
 --- test_obj_members()
 o->codec = AMR:octet-align=1#96
 ctx
