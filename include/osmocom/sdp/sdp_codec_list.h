@@ -49,6 +49,10 @@ void osmo_sdp_codec_list_remove_entry(struct osmo_sdp_codec *codec);
 int osmo_sdp_codec_list_to_str_buf(char *buf, size_t buflen, const struct osmo_sdp_codec_list *codec_list, bool summarize);
 char *osmo_sdp_codec_list_to_str_c(void *ctx, const struct osmo_sdp_codec_list *codec_list, bool summarize);
 
+struct osmo_sdp_codec *osmo_sdp_codec_list_first(const struct osmo_sdp_codec_list *list);
+int osmo_sdp_codec_list_move_to_first(struct osmo_sdp_codec_list *codec_list, const struct osmo_sdp_codec *codec,
+				      const struct osmo_sdp_codec_cmp_flags *cmpf);
+
 #define osmo_sdp_codec_list_foreach(STRUCT_SDP_CODEC_P, SDP_CODEC_LIST) \
 	llist_for_each_entry(STRUCT_SDP_CODEC_P, &(SDP_CODEC_LIST)->list, entry)
 #define osmo_sdp_codec_list_foreach_safe(STRUCT_SDP_CODEC_P, SAFE_P, SDP_CODEC_LIST) \

@@ -195,6 +195,8 @@ void test_codec_list(void)
 	printf("\n\n--- %s()\n", __func__);
 
 	codec_list = osmo_sdp_codec_list_alloc(list_ctx);
+	printf("osmo_sdp_codec_list_first() = %s\n",
+	       osmo_sdp_codec_to_str_c(print_ctx, osmo_sdp_codec_list_first(codec_list)));
 	report(list_ctx);
 
 	for (i = 0; i < ARRAY_SIZE(all_codecs); i++) {
@@ -206,6 +208,8 @@ void test_codec_list(void)
 	osmo_sdp_codec_list_foreach(codec, codec_list) {
 		printf("codec_list[%d] = %s\n", i++, osmo_sdp_codec_to_str_c(print_ctx, codec));
 	}
+	printf("osmo_sdp_codec_list_first() = %s\n",
+	       osmo_sdp_codec_to_str_c(print_ctx, osmo_sdp_codec_list_first(codec_list)));
 	report(list_ctx);
 
 	printf("osmo_sdp_codec_list_to_str_c(summarize=true):\n '%s'\n",
@@ -293,6 +297,21 @@ void test_codec_list(void)
 	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, true));
 	printf("osmo_sdp_codec_list_to_str_c(summarize=false):\n '%s'\n",
 	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, false));
+
+	rc = osmo_sdp_codec_list_move_to_first(codec_list, &all_codecs[0], &osmo_sdp_codec_cmp_equivalent);
+	printf("- osmo_sdp_codec_list_move_to_first('%s', equivalent) = %d\n",
+	       osmo_sdp_codec_to_str_c(print_ctx, &all_codecs[0]), rc);
+	i = 0;
+	osmo_sdp_codec_list_foreach(codec, codec_list) {
+		printf("codec_list[%d] = %s\n", i++, osmo_sdp_codec_to_str_c(print_ctx, codec));
+	}
+	report(list_ctx);
+
+	printf("osmo_sdp_codec_list_to_str_c(summarize=true):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, true));
+	printf("osmo_sdp_codec_list_to_str_c(summarize=false):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, false));
+
 
 	printf("- osmo_sdp_codec_list_free_items()\n");
 	osmo_sdp_codec_list_free_items(codec_list);
