@@ -8,7 +8,7 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/core/linuxlist.h>
 
-#include <osmocom/sdp/sdp_codec.h>
+#include <osmocom/sdp/sdp_codec_list.h>
 #include <osmocom/sdp/fmtp.h>
 
 void *test_ctx = NULL;
@@ -176,14 +176,118 @@ void test_codec(void)
 	talloc_free(ctx);
 }
 
+void test_codec_list(void)
+{
+	void *list_ctx = talloc_named_const(test_ctx, 0, __func__);
+	void *print_ctx = talloc_named_const(test_ctx, 0, "print");
+	int i;
+	int rc;
+	struct osmo_sdp_codec *codec;
+
+	const struct osmo_sdp_codec all_codecs[] = {
+		{ .payload_type = 112, .encoding_name = "AMR", .rate = 8000, .fmtp = "octet-align=1;mode-set=0,2,4" },
+		{ .payload_type = 3, .encoding_name = "GSM", .rate = 8000 },
+		{ .payload_type = 111, .encoding_name = "GSM-HR-08", .rate = 8000 },
+	};
+
+	struct osmo_sdp_codec_list *codec_list;
+
+	printf("\n\n--- %s()\n", __func__);
+
+	codec_list = osmo_sdp_codec_list_alloc(list_ctx);
+	report(list_ctx);
+
+	for (i = 0; i < ARRAY_SIZE(all_codecs); i++) {
+		struct osmo_sdp_codec *added = osmo_sdp_codec_list_add(codec_list, &all_codecs[i], NULL, false);
+		printf("[%d] osmo_sdp_codec_list_add(%s)\n", i, osmo_sdp_codec_to_str_c(print_ctx, added));
+	}
+
+	i = 0;
+	osmo_sdp_codec_list_foreach(codec, codec_list) {
+		printf("codec_list[%d] = %s\n", i++, osmo_sdp_codec_to_str_c(print_ctx, codec));
+	}
+	report(list_ctx);
+
+	printf("\n");
+	printf("- add same entries again with once=exact, nothing should change\n");
+	for (i = 0; i < ARRAY_SIZE(all_codecs); i++) {
+		struct osmo_sdp_codec *added = osmo_sdp_codec_list_add(codec_list, &all_codecs[i],
+								       &osmo_sdp_codec_cmp_exact, false);
+		printf("[] osmo_sdp_codec_list_add(%s)\n", osmo_sdp_codec_to_str_c(print_ctx, added));
+	}
+	i = 0;
+	osmo_sdp_codec_list_foreach(codec, codec_list) {
+		printf("codec_list[%d] = %s\n", i++, osmo_sdp_codec_to_str_c(print_ctx, codec));
+	}
+	report(list_ctx);
+
+	printf("\n");
+	printf("- add same entries again with once=NULL, duplicates are added\n");
+	for (i = 0; i < ARRAY_SIZE(all_codecs); i++) {
+		struct osmo_sdp_codec *added = osmo_sdp_codec_list_add(codec_list, &all_codecs[i], NULL, false);
+		printf("[] osmo_sdp_codec_list_add(%s)\n", osmo_sdp_codec_to_str_c(print_ctx, added));
+	}
+	i = 0;
+	osmo_sdp_codec_list_foreach(codec, codec_list) {
+		printf("codec_list[%d] = %s\n", i++, osmo_sdp_codec_to_str_c(print_ctx, codec));
+	}
+	report(list_ctx);
+
+	printf("\n");
+	printf("- add same entries again with once=NULL,pick_unused_pt_nr=true, duplicates are added with new #nr\n");
+	for (i = 0; i < ARRAY_SIZE(all_codecs); i++) {
+		struct osmo_sdp_codec *added = osmo_sdp_codec_list_add(codec_list, &all_codecs[i], NULL, true);
+		printf("[] osmo_sdp_codec_list_add(%s)\n", osmo_sdp_codec_to_str_c(print_ctx, added));
+	}
+	i = 0;
+	osmo_sdp_codec_list_foreach(codec, codec_list) {
+		printf("codec_list[%d] = %s\n", i++, osmo_sdp_codec_to_str_c(print_ctx, codec));
+	}
+	report(list_ctx);
+
+	printf("\n");
+	printf("- remove all 'GSM#3' entries, with osmo_sdp_codec_cmp_exact\n");
+	rc = osmo_sdp_codec_list_remove(codec_list, &all_codecs[1], &osmo_sdp_codec_cmp_exact);
+	printf("  osmo_sdp_codec_list_remove() = %d\n", rc);
+	i = 0;
+	osmo_sdp_codec_list_foreach(codec, codec_list) {
+		printf("codec_list[%d] = %s\n", i++, osmo_sdp_codec_to_str_c(print_ctx, codec));
+	}
+	report(list_ctx);
+
+
+	printf("- remove all 'GSM' entries, with osmo_sdp_codec_cmp_equivalent\n");
+	rc = osmo_sdp_codec_list_remove(codec_list, &all_codecs[1], &osmo_sdp_codec_cmp_equivalent);
+	printf("  osmo_sdp_codec_list_remove() = %d\n", rc);
+	i = 0;
+	osmo_sdp_codec_list_foreach(codec, codec_list) {
+		printf("codec_list[%d] = %s\n", i++, osmo_sdp_codec_to_str_c(print_ctx, codec));
+	}
+	report(list_ctx);
+
+	printf("- osmo_sdp_codec_list_free_items()\n");
+	osmo_sdp_codec_list_free_items(codec_list);
+	i = 0;
+	osmo_sdp_codec_list_foreach(codec, codec_list) {
+		printf("codec_list[%d] = %s\n", i++, osmo_sdp_codec_to_str_c(print_ctx, codec));
+	}
+	printf("  %d entries\n", i);
+	report(list_ctx);
+
+	talloc_free(print_ctx);
+	talloc_free(list_ctx);
+}
+
 
 struct my_obj {
 	struct osmo_sdp_codec *codec;
+	struct osmo_sdp_codec_list *codec_list;
 };
 
 struct my_obj *my_obj_alloc(void *ctx)
 {
 	struct my_obj *o = talloc_zero(ctx, struct my_obj);
+	o->codec_list = osmo_sdp_codec_list_alloc(o);
 	return o;
 }
 
@@ -191,6 +295,8 @@ void test_obj_members(void)
 {
 	void *ctx = talloc_named_const(test_ctx, 0, __func__);
 	void *print_ctx = talloc_named_const(test_ctx, 0, "print");
+	int i;
+	struct osmo_sdp_codec *codec;
 
 	struct my_obj *o;
 
@@ -201,6 +307,14 @@ void test_obj_members(void)
 	osmo_sdp_codec_set(o->codec, 96, "AMR", 8000, "octet-align=1");
 
 	printf("o->codec = %s\n", osmo_sdp_codec_to_str_c(print_ctx, o->codec));
+	report(ctx);
+
+	osmo_sdp_codec_list_add(o->codec_list, o->codec, false, false);
+	osmo_sdp_codec_list_add(o->codec_list, o->codec, false, true);
+	i = 0;
+	osmo_sdp_codec_list_foreach(codec, o->codec_list) {
+		printf("o->codec_list[%d] = %s\n", i++, osmo_sdp_codec_to_str_c(print_ctx, codec));
+	}
 
 	report(ctx);
 	printf("talloc_free(o)\n");
@@ -213,6 +327,7 @@ void test_obj_members(void)
 typedef void (*test_func_t)(void);
 test_func_t test_func[] = {
 	test_codec,
+	test_codec_list,
 	test_obj_members,
 };
 
