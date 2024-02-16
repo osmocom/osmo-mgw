@@ -173,14 +173,197 @@ osmo_sdp_codec_set [10] ':octet-align=1#112'
   osmo_sdp_codec_from_str(':octet-align=1#112') rc=0 res=:octet-align=1#112
 
 
+--- test_codec_list()
+list_ctx
+ |  2 test_codec_list
+ |   1 struct osmo_sdp_codec_list
+[0] osmo_sdp_codec_list_add(AMR:octet-align=1;mode-set=0,2,4#112)
+[1] osmo_sdp_codec_list_add(GSM#3)
+[2] osmo_sdp_codec_list_add(GSM-HR-08#111)
+codec_list[0] = AMR:octet-align=1;mode-set=0,2,4#112
+codec_list[1] = GSM#3
+codec_list[2] = GSM-HR-08#111
+list_ctx
+ |  9 test_codec_list
+ |   8 struct osmo_sdp_codec_list
+ |    2 struct osmo_sdp_codec
+ |     1 GSM-HR-08
+ |    2 struct osmo_sdp_codec
+ |     1 GSM
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1;mode-set=0,2,4
+ |     1 AMR
+
+- add same entries again with once=exact, nothing should change
+[] osmo_sdp_codec_list_add(AMR:octet-align=1;mode-set=0,2,4#112)
+[] osmo_sdp_codec_list_add(GSM#3)
+[] osmo_sdp_codec_list_add(GSM-HR-08#111)
+codec_list[0] = AMR:octet-align=1;mode-set=0,2,4#112
+codec_list[1] = GSM#3
+codec_list[2] = GSM-HR-08#111
+list_ctx
+ |  9 test_codec_list
+ |   8 struct osmo_sdp_codec_list
+ |    2 struct osmo_sdp_codec
+ |     1 GSM-HR-08
+ |    2 struct osmo_sdp_codec
+ |     1 GSM
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1;mode-set=0,2,4
+ |     1 AMR
+
+- add same entries again with once=NULL, duplicates are added
+[] osmo_sdp_codec_list_add(AMR:octet-align=1;mode-set=0,2,4#112)
+[] osmo_sdp_codec_list_add(GSM#3)
+[] osmo_sdp_codec_list_add(GSM-HR-08#111)
+codec_list[0] = AMR:octet-align=1;mode-set=0,2,4#112
+codec_list[1] = GSM#3
+codec_list[2] = GSM-HR-08#111
+codec_list[3] = AMR:octet-align=1;mode-set=0,2,4#112
+codec_list[4] = GSM#3
+codec_list[5] = GSM-HR-08#111
+list_ctx
+ | 16 test_codec_list
+ |  15 struct osmo_sdp_codec_list
+ |    2 struct osmo_sdp_codec
+ |     1 GSM-HR-08
+ |    2 struct osmo_sdp_codec
+ |     1 GSM
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1;mode-set=0,2,4
+ |     1 AMR
+ |    2 struct osmo_sdp_codec
+ |     1 GSM-HR-08
+ |    2 struct osmo_sdp_codec
+ |     1 GSM
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1;mode-set=0,2,4
+ |     1 AMR
+
+- add same entries again with once=NULL,pick_unused_pt_nr=true, duplicates are added with new #nr
+[] osmo_sdp_codec_list_add(AMR:octet-align=1;mode-set=0,2,4#96)
+[] osmo_sdp_codec_list_add(GSM#97)
+[] osmo_sdp_codec_list_add(GSM-HR-08#98)
+codec_list[0] = AMR:octet-align=1;mode-set=0,2,4#112
+codec_list[1] = GSM#3
+codec_list[2] = GSM-HR-08#111
+codec_list[3] = AMR:octet-align=1;mode-set=0,2,4#112
+codec_list[4] = GSM#3
+codec_list[5] = GSM-HR-08#111
+codec_list[6] = AMR:octet-align=1;mode-set=0,2,4#96
+codec_list[7] = GSM#97
+codec_list[8] = GSM-HR-08#98
+list_ctx
+ | 23 test_codec_list
+ |  22 struct osmo_sdp_codec_list
+ |    2 struct osmo_sdp_codec
+ |     1 GSM-HR-08
+ |    2 struct osmo_sdp_codec
+ |     1 GSM
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1;mode-set=0,2,4
+ |     1 AMR
+ |    2 struct osmo_sdp_codec
+ |     1 GSM-HR-08
+ |    2 struct osmo_sdp_codec
+ |     1 GSM
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1;mode-set=0,2,4
+ |     1 AMR
+ |    2 struct osmo_sdp_codec
+ |     1 GSM-HR-08
+ |    2 struct osmo_sdp_codec
+ |     1 GSM
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1;mode-set=0,2,4
+ |     1 AMR
+
+- remove all 'GSM#3' entries, with osmo_sdp_codec_cmp_exact
+  osmo_sdp_codec_list_remove() = 2
+codec_list[0] = AMR:octet-align=1;mode-set=0,2,4#112
+codec_list[1] = GSM-HR-08#111
+codec_list[2] = AMR:octet-align=1;mode-set=0,2,4#112
+codec_list[3] = GSM-HR-08#111
+codec_list[4] = AMR:octet-align=1;mode-set=0,2,4#96
+codec_list[5] = GSM#97
+codec_list[6] = GSM-HR-08#98
+list_ctx
+ | 19 test_codec_list
+ |  18 struct osmo_sdp_codec_list
+ |    2 struct osmo_sdp_codec
+ |     1 GSM-HR-08
+ |    2 struct osmo_sdp_codec
+ |     1 GSM
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1;mode-set=0,2,4
+ |     1 AMR
+ |    2 struct osmo_sdp_codec
+ |     1 GSM-HR-08
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1;mode-set=0,2,4
+ |     1 AMR
+ |    2 struct osmo_sdp_codec
+ |     1 GSM-HR-08
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1;mode-set=0,2,4
+ |     1 AMR
+- remove all 'GSM' entries, with osmo_sdp_codec_cmp_equivalent
+  osmo_sdp_codec_list_remove() = 1
+codec_list[0] = AMR:octet-align=1;mode-set=0,2,4#112
+codec_list[1] = GSM-HR-08#111
+codec_list[2] = AMR:octet-align=1;mode-set=0,2,4#112
+codec_list[3] = GSM-HR-08#111
+codec_list[4] = AMR:octet-align=1;mode-set=0,2,4#96
+codec_list[5] = GSM-HR-08#98
+list_ctx
+ | 17 test_codec_list
+ |  16 struct osmo_sdp_codec_list
+ |    2 struct osmo_sdp_codec
+ |     1 GSM-HR-08
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1;mode-set=0,2,4
+ |     1 AMR
+ |    2 struct osmo_sdp_codec
+ |     1 GSM-HR-08
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1;mode-set=0,2,4
+ |     1 AMR
+ |    2 struct osmo_sdp_codec
+ |     1 GSM-HR-08
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1;mode-set=0,2,4
+ |     1 AMR
+- osmo_sdp_codec_list_free_items()
+  0 entries
+list_ctx
+ |  2 test_codec_list
+ |   1 struct osmo_sdp_codec_list
+
+
 --- test_obj_members()
 o->codec = AMR:octet-align=1#96
 ctx
- |  5 test_obj_members
- |   4 struct my_obj
+ |  6 test_obj_members
+ |   5 struct my_obj
  |    3 struct osmo_sdp_codec
  |     1 octet-align=1
  |     1 AMR
+ |    1 struct osmo_sdp_codec_list
+o->codec_list[0] = AMR:octet-align=1#96
+o->codec_list[1] = AMR:octet-align=1#97
+ctx
+ | 12 test_obj_members
+ |  11 struct my_obj
+ |    3 struct osmo_sdp_codec
+ |     1 octet-align=1
+ |     1 AMR
+ |    7 struct osmo_sdp_codec_list
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
 talloc_free(o)
 ctx
  |  1 test_obj_members
