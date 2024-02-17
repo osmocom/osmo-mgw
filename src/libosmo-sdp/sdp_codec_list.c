@@ -22,6 +22,10 @@
  *
  */
 
+#include <string.h>
+
+#include <osmocom/core/utils.h>
+
 #include <osmocom/sdp/sdp_codec_list.h>
 
 struct osmo_sdp_codec_list *osmo_sdp_codec_list_alloc(void *ctx)
@@ -148,4 +152,81 @@ void osmo_sdp_codec_list_remove_entry(struct osmo_sdp_codec *codec)
 	if (codec->entry.next != NULL
 	    && codec->entry.next != (struct llist_head *)LLIST_POISON1)
 		llist_del(&codec->entry);
+}
+
+static inline int strcmp_safe(const char *a, const char *b)
+{
+	return strcmp(a ? : "", b ? : "");
+}
+
+/*! Short single-line representation of a list of SDP audio codecs, convenient for logging.
+ * If summarize == true, collapse variants of the same encoding_name (in practice, don't show all of the various AMR
+ * fmtp permutations). If summarize == false, print each and every codec in full.
+ */
+int osmo_sdp_codec_list_to_str_buf(char *buf, size_t buflen, const struct osmo_sdp_codec_list *codec_list, bool summarize)
+{
+	struct osmo_strbuf sb = { .buf = buf, .len = buflen };
+	const struct osmo_sdp_codec *codec;
+	bool first;
+
+	if (llist_empty(&codec_list->list)) {
+		OSMO_STRBUF_PRINTF(sb, "(no-codecs)");
+		return sb.chars_needed;
+	}
+
+	if (!summarize) {
+		first = true;
+		osmo_sdp_codec_list_foreach (codec, codec_list) {
+			if (!first)
+				OSMO_STRBUF_PRINTF(sb, " ");
+			OSMO_STRBUF_APPEND(sb, osmo_sdp_codec_to_str_buf, codec);
+			first = false;
+		}
+		return sb.chars_needed;
+	}
+
+	/* summarize */
+	first = true;
+	osmo_sdp_codec_list_foreach (codec, codec_list) {
+		const struct osmo_sdp_codec *c2;
+		int count = 0;
+		bool various_pt = false;
+
+		/* When this encoding name has been handled before, skip it now. */
+		osmo_sdp_codec_list_foreach (c2, codec_list) {
+			if (c2 == codec)
+				break;
+			if (!strcmp_safe(codec->encoding_name, c2->encoding_name)) {
+				count = 1;
+				break;
+			}
+		}
+		if (count)
+			continue;
+
+		/* Not seen this encoding_name before, count total occurences */
+		count = 0;
+		osmo_sdp_codec_list_foreach (c2, codec_list) {
+			if (!strcmp_safe(codec->encoding_name, c2->encoding_name)) {
+				count++;
+				if (codec->payload_type != c2->payload_type)
+					various_pt = true;
+			}
+		}
+
+		if (!first)
+			OSMO_STRBUF_PRINTF(sb, " ");
+		if (count > 1)
+			OSMO_STRBUF_PRINTF(sb, "%d*", count);
+		OSMO_STRBUF_PRINTF(sb, "%s", codec->encoding_name);
+		if (!various_pt)
+			OSMO_STRBUF_PRINTF(sb, "#%d", codec->payload_type);
+		first = false;
+	}
+	return sb.chars_needed;
+}
+
+char *osmo_sdp_codec_list_to_str_c(void *ctx, const struct osmo_sdp_codec_list *codec_list, bool summarize)
+{
+	OSMO_NAME_C_IMPL(ctx, 128, "osmo_sdp_codec_list_to_str_c-ERROR", osmo_sdp_codec_list_to_str_buf, codec_list, summarize)
 }
