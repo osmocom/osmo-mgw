@@ -208,6 +208,11 @@ void test_codec_list(void)
 	}
 	report(list_ctx);
 
+	printf("osmo_sdp_codec_list_to_str_c(summarize=true):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, true));
+	printf("osmo_sdp_codec_list_to_str_c(summarize=false):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, false));
+
 	printf("\n");
 	printf("- add same entries again with once=exact, nothing should change\n");
 	for (i = 0; i < ARRAY_SIZE(all_codecs); i++) {
@@ -221,6 +226,11 @@ void test_codec_list(void)
 	}
 	report(list_ctx);
 
+	printf("osmo_sdp_codec_list_to_str_c(summarize=true):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, true));
+	printf("osmo_sdp_codec_list_to_str_c(summarize=false):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, false));
+
 	printf("\n");
 	printf("- add same entries again with once=NULL, duplicates are added\n");
 	for (i = 0; i < ARRAY_SIZE(all_codecs); i++) {
@@ -232,6 +242,11 @@ void test_codec_list(void)
 		printf("codec_list[%d] = %s\n", i++, osmo_sdp_codec_to_str_c(print_ctx, codec));
 	}
 	report(list_ctx);
+
+	printf("osmo_sdp_codec_list_to_str_c(summarize=true):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, true));
+	printf("osmo_sdp_codec_list_to_str_c(summarize=false):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, false));
 
 	printf("\n");
 	printf("- add same entries again with once=NULL,pick_unused_pt_nr=true, duplicates are added with new #nr\n");
@@ -245,6 +260,11 @@ void test_codec_list(void)
 	}
 	report(list_ctx);
 
+	printf("osmo_sdp_codec_list_to_str_c(summarize=true):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, true));
+	printf("osmo_sdp_codec_list_to_str_c(summarize=false):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, false));
+
 	printf("\n");
 	printf("- remove all 'GSM#3' entries, with osmo_sdp_codec_cmp_exact\n");
 	rc = osmo_sdp_codec_list_remove(codec_list, &all_codecs[1], &osmo_sdp_codec_cmp_exact);
@@ -255,6 +275,10 @@ void test_codec_list(void)
 	}
 	report(list_ctx);
 
+	printf("osmo_sdp_codec_list_to_str_c(summarize=true):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, true));
+	printf("osmo_sdp_codec_list_to_str_c(summarize=false):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, false));
 
 	printf("- remove all 'GSM' entries, with osmo_sdp_codec_cmp_equivalent\n");
 	rc = osmo_sdp_codec_list_remove(codec_list, &all_codecs[1], &osmo_sdp_codec_cmp_equivalent);
@@ -265,6 +289,11 @@ void test_codec_list(void)
 	}
 	report(list_ctx);
 
+	printf("osmo_sdp_codec_list_to_str_c(summarize=true):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, true));
+	printf("osmo_sdp_codec_list_to_str_c(summarize=false):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, false));
+
 	printf("- osmo_sdp_codec_list_free_items()\n");
 	osmo_sdp_codec_list_free_items(codec_list);
 	i = 0;
@@ -273,6 +302,11 @@ void test_codec_list(void)
 	}
 	printf("  %d entries\n", i);
 	report(list_ctx);
+
+	printf("osmo_sdp_codec_list_to_str_c(summarize=true):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, true));
+	printf("osmo_sdp_codec_list_to_str_c(summarize=false):\n '%s'\n",
+	       osmo_sdp_codec_list_to_str_c(print_ctx, codec_list, false));
 
 	talloc_free(print_ctx);
 	talloc_free(list_ctx);
