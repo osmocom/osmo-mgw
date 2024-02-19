@@ -316,3 +316,34 @@ int osmo_sdp_codec_list_cmp(const struct osmo_sdp_codec_list *a, const struct os
 	/* full match. */
 	return 0;
 }
+
+/*! Leave only those codecs in 'dst' that are also present in 'other'.
+ * The matching is made by osmo_sdp_codec_cmp(cmpf).
+ * If translate_payload_type_numbers has an effect if 'dst' and 'other' have mismatching payload_type numbers for the
+ * same SDP codec descriptions. If translate_payload_type_numbers is true, take the payload_type numbers from 'other'.
+ * If false, keep payload_type numbers in 'dst' unchanged. */
+void osmo_sdp_codec_list_intersection(struct osmo_sdp_codec_list *dst, const struct osmo_sdp_codec_list *other,
+				      const struct osmo_sdp_codec_cmp_flags *cmpf,
+				      bool translate_payload_type_numbers)
+{
+	struct osmo_sdp_codec *i, *j;
+	osmo_sdp_codec_list_foreach_safe (i, j, dst) {
+		struct osmo_sdp_codec *o;
+		struct osmo_sdp_codec *match = NULL;
+		osmo_sdp_codec_list_foreach (o, other) {
+			if (osmo_sdp_codec_cmp(i, o, cmpf))
+				continue;
+			match = o;
+			break;
+		}
+
+		if (!match) {
+			osmo_sdp_codec_list_remove_entry(i);
+			talloc_free(i);
+			continue;
+		}
+
+		if (translate_payload_type_numbers)
+			i->payload_type = match->payload_type;
+	}
+}
