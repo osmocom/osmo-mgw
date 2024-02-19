@@ -60,3 +60,7 @@ int osmo_sdp_codec_list_move_to_first(struct osmo_sdp_codec_list *codec_list, co
 
 int osmo_sdp_codec_list_cmp(const struct osmo_sdp_codec_list *a, const struct osmo_sdp_codec_list *b,
 			    const struct osmo_sdp_codec_cmp_flags *cmpf);
+
+void osmo_sdp_codec_list_intersection(struct osmo_sdp_codec_list *dst, const struct osmo_sdp_codec_list *other,
+				      const struct osmo_sdp_codec_cmp_flags *cmpf,
+				      bool translate_payload_type_numbers);
