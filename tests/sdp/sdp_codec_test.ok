@@ -462,6 +462,53 @@ B = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111 GSM-EFR#110
 
 
 
+--- test_codec_list_intersection()
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = AMR:octet-align=1;mode-set=0,2,4#96 GSM#97 GSM-HR-08#98
+osmo_sdp_codec_list_intersection(A, B, equivalent, translate_pt=false)
+ = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+osmo_sdp_codec_list_intersection(A, B, equivalent, translate_pt=true)
+ = AMR:octet-align=1;mode-set=0,2,4#96 GSM#97 GSM-HR-08#98
+osmo_sdp_codec_list_intersection(B, A, equivalent, translate_pt=false)
+ = AMR:octet-align=1;mode-set=0,2,4#96 GSM#97 GSM-HR-08#98
+osmo_sdp_codec_list_intersection(B, A, equivalent, translate_pt=true)
+ = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = GSM-HR-08#98 AMR:octet-align=1;mode-set=0,2,4#96 GSM#97
+osmo_sdp_codec_list_intersection(A, B, equivalent, translate_pt=false)
+ = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+osmo_sdp_codec_list_intersection(A, B, equivalent, translate_pt=true)
+ = AMR:octet-align=1;mode-set=0,2,4#96 GSM#97 GSM-HR-08#98
+osmo_sdp_codec_list_intersection(B, A, equivalent, translate_pt=false)
+ = GSM-HR-08#98 AMR:octet-align=1;mode-set=0,2,4#96 GSM#97
+osmo_sdp_codec_list_intersection(B, A, equivalent, translate_pt=true)
+ = GSM-HR-08#111 AMR:octet-align=1;mode-set=0,2,4#112 GSM#3
+
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = GSM-HR-08#98 GSM-EFR#110 GSM#97
+osmo_sdp_codec_list_intersection(A, B, equivalent, translate_pt=false)
+ = GSM#3 GSM-HR-08#111
+osmo_sdp_codec_list_intersection(A, B, equivalent, translate_pt=true)
+ = GSM#97 GSM-HR-08#98
+osmo_sdp_codec_list_intersection(B, A, equivalent, translate_pt=false)
+ = GSM-HR-08#98 GSM#97
+osmo_sdp_codec_list_intersection(B, A, equivalent, translate_pt=true)
+ = GSM-HR-08#111 GSM#3
+
+A = AMR:octet-align=1;mode-set=0,2,4#112 GSM#3 GSM-HR-08#111
+B = AMR-WB/16000#97 FOO#98 GSM-EFR#110
+osmo_sdp_codec_list_intersection(A, B, equivalent, translate_pt=false)
+ = (no-codecs)
+osmo_sdp_codec_list_intersection(A, B, equivalent, translate_pt=true)
+ = (no-codecs)
+osmo_sdp_codec_list_intersection(B, A, equivalent, translate_pt=false)
+ = (no-codecs)
+osmo_sdp_codec_list_intersection(B, A, equivalent, translate_pt=true)
+ = (no-codecs)
+
+
+
 --- test_obj_members()
 o->codec = AMR:octet-align=1#96
 ctx

@@ -475,6 +475,100 @@ void test_codec_list_cmp(void)
 	talloc_free(ctx);
 }
 
+void test_codec_list_intersection(void)
+{
+	void *ctx = talloc_named_const(test_ctx, 0, __func__);
+	void *print_ctx = talloc_named_const(test_ctx, 0, "print");
+	int i;
+
+	const struct osmo_sdp_codec codec_a[] = {
+		{ .payload_type = 112, .encoding_name = "AMR", .rate = 8000, .fmtp = "octet-align=1;mode-set=0,2,4" },
+		{ .payload_type = 3, .encoding_name = "GSM", .rate = 8000 },
+		{ .payload_type = 111, .encoding_name = "GSM-HR-08", .rate = 8000 },
+		{}
+	};
+
+	const struct osmo_sdp_codec codec_b[][5] = {
+		/* same */
+		{
+			{ .payload_type = 96, .encoding_name = "AMR", .rate = 8000, .fmtp = "octet-align=1;mode-set=0,2,4" },
+			{ .payload_type = 97, .encoding_name = "GSM", .rate = 8000 },
+			{ .payload_type = 98, .encoding_name = "GSM-HR-08", .rate = 8000 },
+		},
+
+		/* same in different order */
+		{
+			{ .payload_type = 98, .encoding_name = "GSM-HR-08", .rate = 8000 },
+			{ .payload_type = 96, .encoding_name = "AMR", .rate = 8000, .fmtp = "octet-align=1;mode-set=0,2,4" },
+			{ .payload_type = 97, .encoding_name = "GSM", .rate = 8000 },
+		},
+
+		/* two matches */
+		{
+			{ .payload_type = 98, .encoding_name = "GSM-HR-08", .rate = 8000 },
+			{ .payload_type = 110, .encoding_name = "GSM-EFR", .rate = 8000 },
+			{ .payload_type = 97, .encoding_name = "GSM", .rate = 8000 },
+		},
+
+		/* no match */
+		{
+			{ .payload_type = 97, .encoding_name = "AMR-WB", .rate = 16000 },
+			{ .payload_type = 98, .encoding_name = "FOO", .rate = 8000 },
+			{ .payload_type = 110, .encoding_name = "GSM-EFR", .rate = 8000 },
+		},
+
+	};
+
+	printf("\n\n--- %s()\n", __func__);
+
+	for (i = 0; i < ARRAY_SIZE(codec_b); i++) {
+		struct osmo_sdp_codec_list *list_a = init_codec_list(ctx, codec_a);
+		struct osmo_sdp_codec_list *list_b = init_codec_list(ctx, codec_b[i]);
+
+		printf("A = %s\n", osmo_sdp_codec_list_to_str_c(print_ctx, list_a, false));
+		printf("B = %s\n", osmo_sdp_codec_list_to_str_c(print_ctx, list_b, false));
+
+		osmo_sdp_codec_list_intersection(list_a, list_b, &osmo_sdp_codec_cmp_equivalent, false);
+		printf("osmo_sdp_codec_list_intersection(A, B, equivalent, translate_pt=false)\n = %s\n",
+		       osmo_sdp_codec_list_to_str_c(print_ctx, list_a, false));
+
+		talloc_free(list_a);
+		list_a = init_codec_list(ctx, codec_a);
+
+		osmo_sdp_codec_list_intersection(list_a, list_b, &osmo_sdp_codec_cmp_equivalent, true);
+		printf("osmo_sdp_codec_list_intersection(A, B, equivalent, translate_pt=true)\n = %s\n",
+		       osmo_sdp_codec_list_to_str_c(print_ctx, list_a, false));
+
+		talloc_free(list_a);
+		list_a = init_codec_list(ctx, codec_a);
+
+		osmo_sdp_codec_list_intersection(list_b, list_a, &osmo_sdp_codec_cmp_equivalent, false);
+		printf("osmo_sdp_codec_list_intersection(B, A, equivalent, translate_pt=false)\n = %s\n",
+		       osmo_sdp_codec_list_to_str_c(print_ctx, list_b, false));
+
+		talloc_free(list_a);
+		list_a = init_codec_list(ctx, codec_a);
+
+		osmo_sdp_codec_list_intersection(list_b, list_a, &osmo_sdp_codec_cmp_equivalent, true);
+		printf("osmo_sdp_codec_list_intersection(B, A, equivalent, translate_pt=true)\n = %s\n",
+		       osmo_sdp_codec_list_to_str_c(print_ctx, list_b, false));
+
+		talloc_free(list_a);
+		talloc_free(list_b);
+
+		if (talloc_total_blocks(ctx) != 1) {
+			printf("ERROR: memleak:\n");
+			report(ctx);
+		}
+		printf("\n");
+
+		talloc_free_children(print_ctx);
+	}
+
+	talloc_free(print_ctx);
+	talloc_free(ctx);
+}
+
 
 struct my_obj {
 	struct osmo_sdp_codec *codec;
@@ -526,6 +620,7 @@ test_func_t test_func[] = {
 	test_codec,
 	test_codec_list,
 	test_codec_list_cmp,
+	test_codec_list_intersection,
 	test_obj_members,
 };
 
