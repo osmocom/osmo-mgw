@@ -1,0 +1,1316 @@
+
+
+test_parse_and_compose
+
+[0]
+sdp input: v=0\r\n
+sdp input: o=- 5628250 5628250 IN IP4 192.168.11.121\r\n
+sdp input: s=-\r\n
+sdp input: c=IN IP4 192.168.11.121\r\n
+sdp input: t=0 0\r\n
+sdp input: m=audio 10020 RTP/AVP 18 0 2 4 8 96 97 98 100 101\r\n
+sdp input: a=rtpmap:18 G729/8000\r\n
+sdp input: a=rtpmap:0 PCMU/8000\r\n
+sdp input: a=rtpmap:2 G726-32/8000\r\n
+sdp input: a=rtpmap:4 G723/8000\r\n
+sdp input: a=rtpmap:8 PCMA/8000\r\n
+sdp input: a=rtpmap:96 G726-40/8000\r\n
+sdp input: a=rtpmap:97 G726-24/8000\r\n
+sdp input: a=rtpmap:98 G726-16/8000\r\n
+sdp input: a=rtpmap:100 NSE/8000\r\n
+sdp input: a=fmtp:100 192-193\r\n
+sdp input: a=rtpmap:101 telephone-event/8000\r\n
+sdp input: a=fmtp:101 0-15\r\n
+sdp input: a=ptime:20\r\n
+sdp input: a=sendrecv\r\n
+parsed SDP message 192.168.11.121:10020{G729#18 PCMU#0 G726-32#2 G723#4 PCMA#8 G726-40#96 G726-24#97 G726-16#98 NSE:192-193#100 telephone-event:0-15#101}
+osmo_sdp_msg_encode_buf: v=0\r\n
+osmo_sdp_msg_encode_buf: o=- 5628250 5628250 IN IP4 192.168.11.121\r\n
+osmo_sdp_msg_encode_buf: s=-\r\n
+osmo_sdp_msg_encode_buf: c=IN IP4 192.168.11.121\r\n
+osmo_sdp_msg_encode_buf: t=0 0\r\n
+osmo_sdp_msg_encode_buf: m=audio 10020 RTP/AVP 18 0 2 4 8 96 97 98 100 101\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:18 G729/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:0 PCMU/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:2 G726-32/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:4 G723/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:8 PCMA/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:96 G726-40/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:97 G726-24/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:98 G726-16/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:100 NSE/8000\r\n
+osmo_sdp_msg_encode_buf: a=fmtp:100 192-193\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:101 telephone-event/8000\r\n
+osmo_sdp_msg_encode_buf: a=fmtp:101 0-15\r\n
+osmo_sdp_msg_encode_buf: a=ptime:20\r\n
+osmo_sdp_msg_encode_buf: a=sendrecv\r\n
+[0] ok
+ctx
+ | 29 test_parse_and_compose
+ |  28 struct osmo_sdp_msg
+ |    1 -
+ |    1 5628250
+ |    1 5628250
+ |    1 -
+ |   23 struct osmo_sdp_codec_list
+ |     3 struct osmo_sdp_codec
+ |      1 0-15
+ |      1 telephone-event
+ |     3 struct osmo_sdp_codec
+ |      1 192-193
+ |      1 NSE
+ |     2 struct osmo_sdp_codec
+ |      1 G726-16
+ |     2 struct osmo_sdp_codec
+ |      1 G726-24
+ |     2 struct osmo_sdp_codec
+ |      1 G726-40
+ |     2 struct osmo_sdp_codec
+ |      1 PCMA
+ |     2 struct osmo_sdp_codec
+ |      1 G723
+ |     2 struct osmo_sdp_codec
+ |      1 G726-32
+ |     2 struct osmo_sdp_codec
+ |      1 PCMU
+ |     2 struct osmo_sdp_codec
+ |      1 G729
+talloc_free(sdp_msg)
+ctx
+ |  1 test_parse_and_compose
+
+
+[1]
+sdp input: v=0\r\n
+sdp input: o=FooBar 1565090289 1565090290 IN IP4 192.168.11.151\r\n
+sdp input: s=FooBar\r\n
+sdp input: c=IN IP4 192.168.11.151\r\n
+sdp input: t=0 0\r\n
+sdp input: m=audio 16398 RTP/AVP 98\r\n
+sdp input: a=rtpmap:98 AMR/8000\r\n
+sdp input: a=fmtp:98 octet-align=1; mode-set=4\r\n
+sdp input: a=ptime:20\r\n
+sdp input: a=rtcp:16399 IN IP4 192.168.11.151\r\n
+parsed SDP message 192.168.11.151:16398{AMR:octet-align=1; mode-set=4#98}
+osmo_sdp_msg_encode_buf: v=0\r\n
+osmo_sdp_msg_encode_buf: o=FooBar 1565090289 1565090290 IN IP4 192.168.11.151\r\n
+osmo_sdp_msg_encode_buf: s=FooBar\r\n
+osmo_sdp_msg_encode_buf: c=IN IP4 192.168.11.151\r\n
+osmo_sdp_msg_encode_buf: t=0 0\r\n
+osmo_sdp_msg_encode_buf: m=audio 16398 RTP/AVP 98\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:98 AMR/8000\r\n
+osmo_sdp_msg_encode_buf: a=fmtp:98 octet-align=1; mode-set=4\r\n
+osmo_sdp_msg_encode_buf: a=ptime:20\r\n
+[1] ok
+ctx
+ | 10 test_parse_and_compose
+ |   9 struct osmo_sdp_msg
+ |    1 FooBar
+ |    1 1565090290
+ |    1 1565090289
+ |    1 FooBar
+ |    4 struct osmo_sdp_codec_list
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1; mode-set=4
+ |      1 AMR
+talloc_free(sdp_msg)
+ctx
+ |  1 test_parse_and_compose
+
+
+[2]
+sdp input: v=0\r\n
+sdp input: o=FooBar 1565090289 1565090290 IN IP4 192.168.11.151\r\n
+sdp input: s=FooBar\r\n
+sdp input: c=IN IP4 192.168.11.140\r\n
+sdp input: t=0 0\r\n
+sdp input: m=audio 30436 RTP/AVP 18 0 4 8 101\r\n
+sdp input: a=rtpmap:18 G729/8000\r\n
+sdp input: a=rtpmap:0 PCMU/8000\r\n
+sdp input: a=rtpmap:4 G723/8000\r\n
+sdp input: a=rtpmap:8 PCMA/8000\r\n
+sdp input: a=rtpmap:101 telephone-event/8000\r\n
+sdp input: a=fmtp:101 0-15\r\n
+sdp input: a=sendrecv\r\n
+sdp input: a=rtcp:30437\r\n
+sdp input: a=ptime:20\r\n
+parsed SDP message 192.168.11.140:30436{G729#18 PCMU#0 G723#4 PCMA#8 telephone-event:0-15#101}
+osmo_sdp_msg_encode_buf: v=0\r\n
+osmo_sdp_msg_encode_buf: o=FooBar 1565090289 1565090290 IN IP4 192.168.11.151\r\n
+osmo_sdp_msg_encode_buf: s=FooBar\r\n
+osmo_sdp_msg_encode_buf: c=IN IP4 192.168.11.140\r\n
+osmo_sdp_msg_encode_buf: t=0 0\r\n
+osmo_sdp_msg_encode_buf: m=audio 30436 RTP/AVP 18 0 4 8 101\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:18 G729/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:0 PCMU/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:4 G723/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:8 PCMA/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:101 telephone-event/8000\r\n
+osmo_sdp_msg_encode_buf: a=fmtp:101 0-15\r\n
+osmo_sdp_msg_encode_buf: a=ptime:20\r\n
+osmo_sdp_msg_encode_buf: a=sendrecv\r\n
+[2] ok
+ctx
+ | 18 test_parse_and_compose
+ |  17 struct osmo_sdp_msg
+ |    1 FooBar
+ |    1 1565090290
+ |    1 1565090289
+ |    1 FooBar
+ |   12 struct osmo_sdp_codec_list
+ |     3 struct osmo_sdp_codec
+ |      1 0-15
+ |      1 telephone-event
+ |     2 struct osmo_sdp_codec
+ |      1 PCMA
+ |     2 struct osmo_sdp_codec
+ |      1 G723
+ |     2 struct osmo_sdp_codec
+ |      1 PCMU
+ |     2 struct osmo_sdp_codec
+ |      1 G729
+talloc_free(sdp_msg)
+ctx
+ |  1 test_parse_and_compose
+
+
+[3]
+sdp input: v=0\r\n
+sdp input: o=FooBar 1565090289 1565090290 IN IP4 192.168.11.151\r\n
+sdp input: s=FooBar\r\n
+sdp input: c=IN IP4 192.168.11.140\r\n
+sdp input: t=0 0\r\n
+sdp input: m=audio 30436 RTP/AVP 18 0 4 8 101\r\n
+sdp input: a=rtpmap:18 G729/8000\r\n
+sdp input: a=rtpmap:0 PCMU/8000\r\n
+sdp input: a=rtpmap:4 G723/8000\r\n
+sdp input: a=rtpmap:8 PCMA/8000\r\n
+sdp input: a=rtpmap:101 telephone-event/8000\r\n
+sdp input: a=fmtp:101 0-15\r\n
+sdp input: a=recvonly\r\n
+sdp input: a=rtcp:30437\r\n
+sdp input: a=ptime:20\r\n
+parsed SDP message 192.168.11.140:30436{G729#18 PCMU#0 G723#4 PCMA#8 telephone-event:0-15#101}
+osmo_sdp_msg_encode_buf: v=0\r\n
+osmo_sdp_msg_encode_buf: o=FooBar 1565090289 1565090290 IN IP4 192.168.11.151\r\n
+osmo_sdp_msg_encode_buf: s=FooBar\r\n
+osmo_sdp_msg_encode_buf: c=IN IP4 192.168.11.140\r\n
+osmo_sdp_msg_encode_buf: t=0 0\r\n
+osmo_sdp_msg_encode_buf: m=audio 30436 RTP/AVP 18 0 4 8 101\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:18 G729/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:0 PCMU/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:4 G723/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:8 PCMA/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:101 telephone-event/8000\r\n
+osmo_sdp_msg_encode_buf: a=fmtp:101 0-15\r\n
+osmo_sdp_msg_encode_buf: a=ptime:20\r\n
+osmo_sdp_msg_encode_buf: a=recvonly\r\n
+[3] ok
+ctx
+ | 18 test_parse_and_compose
+ |  17 struct osmo_sdp_msg
+ |    1 FooBar
+ |    1 1565090290
+ |    1 1565090289
+ |    1 FooBar
+ |   12 struct osmo_sdp_codec_list
+ |     3 struct osmo_sdp_codec
+ |      1 0-15
+ |      1 telephone-event
+ |     2 struct osmo_sdp_codec
+ |      1 PCMA
+ |     2 struct osmo_sdp_codec
+ |      1 G723
+ |     2 struct osmo_sdp_codec
+ |      1 PCMU
+ |     2 struct osmo_sdp_codec
+ |      1 G729
+talloc_free(sdp_msg)
+ctx
+ |  1 test_parse_and_compose
+
+
+[4]
+sdp input: v=0\r\n
+sdp input: o=FooBar 1565090289 1565090290 IN IP4 192.168.11.151\r\n
+sdp input: s=FooBar\r\n
+sdp input: c=IN IP4 192.168.11.140\r\n
+sdp input: t=0 0\r\n
+sdp input: m=audio 30436 RTP/AVP 18 0 4 8 101\r\n
+sdp input: a=rtpmap:18 G729/8000\r\n
+sdp input: a=rtpmap:0 PCMU/8000\r\n
+sdp input: a=rtpmap:4 G723/8000\r\n
+sdp input: a=rtpmap:8 PCMA/8000\r\n
+sdp input: a=rtpmap:101 telephone-event/8000\r\n
+sdp input: a=fmtp:101 0-15\r\n
+sdp input: a=ptime:20\r\n
+sdp input: a=sendonly\r\n
+parsed SDP message 192.168.11.140:30436{G729#18 PCMU#0 G723#4 PCMA#8 telephone-event:0-15#101}
+osmo_sdp_msg_encode_buf: v=0\r\n
+osmo_sdp_msg_encode_buf: o=FooBar 1565090289 1565090290 IN IP4 192.168.11.151\r\n
+osmo_sdp_msg_encode_buf: s=FooBar\r\n
+osmo_sdp_msg_encode_buf: c=IN IP4 192.168.11.140\r\n
+osmo_sdp_msg_encode_buf: t=0 0\r\n
+osmo_sdp_msg_encode_buf: m=audio 30436 RTP/AVP 18 0 4 8 101\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:18 G729/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:0 PCMU/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:4 G723/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:8 PCMA/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:101 telephone-event/8000\r\n
+osmo_sdp_msg_encode_buf: a=fmtp:101 0-15\r\n
+osmo_sdp_msg_encode_buf: a=ptime:20\r\n
+osmo_sdp_msg_encode_buf: a=sendonly\r\n
+[4] ok
+ctx
+ | 18 test_parse_and_compose
+ |  17 struct osmo_sdp_msg
+ |    1 FooBar
+ |    1 1565090290
+ |    1 1565090289
+ |    1 FooBar
+ |   12 struct osmo_sdp_codec_list
+ |     3 struct osmo_sdp_codec
+ |      1 0-15
+ |      1 telephone-event
+ |     2 struct osmo_sdp_codec
+ |      1 PCMA
+ |     2 struct osmo_sdp_codec
+ |      1 G723
+ |     2 struct osmo_sdp_codec
+ |      1 PCMU
+ |     2 struct osmo_sdp_codec
+ |      1 G729
+talloc_free(sdp_msg)
+ctx
+ |  1 test_parse_and_compose
+
+
+[5]
+sdp input: v=0\r\n
+sdp input: o=FooBar 1565090289 1565090290 IN IP4 192.168.11.151\r\n
+sdp input: s=FooBar\r\n
+sdp input: c=IN IP4 192.168.11.140\r\n
+sdp input: t=0 0\r\n
+sdp input: m=audio 30436 RTP/AVP 18 0 4 8 101\r\n
+sdp input: a=rtpmap:18 G729/8000\r\n
+sdp input: a=rtpmap:0 PCMU/8000\r\n
+sdp input: a=rtpmap:4 G723/8000\r\n
+sdp input: a=rtpmap:8 PCMA/8000\r\n
+sdp input: a=rtpmap:101 telephone-event/8000\r\n
+sdp input: a=fmtp:101 0-15\r\n
+sdp input: a=ptime:20\r\n
+sdp input: a=inactive\r\n
+parsed SDP message 192.168.11.140:30436{G729#18 PCMU#0 G723#4 PCMA#8 telephone-event:0-15#101}
+osmo_sdp_msg_encode_buf: v=0\r\n
+osmo_sdp_msg_encode_buf: o=FooBar 1565090289 1565090290 IN IP4 192.168.11.151\r\n
+osmo_sdp_msg_encode_buf: s=FooBar\r\n
+osmo_sdp_msg_encode_buf: c=IN IP4 192.168.11.140\r\n
+osmo_sdp_msg_encode_buf: t=0 0\r\n
+osmo_sdp_msg_encode_buf: m=audio 30436 RTP/AVP 18 0 4 8 101\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:18 G729/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:0 PCMU/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:4 G723/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:8 PCMA/8000\r\n
+osmo_sdp_msg_encode_buf: a=rtpmap:101 telephone-event/8000\r\n
+osmo_sdp_msg_encode_buf: a=fmtp:101 0-15\r\n
+osmo_sdp_msg_encode_buf: a=ptime:20\r\n
+osmo_sdp_msg_encode_buf: a=inactive\r\n
+[5] ok
+ctx
+ | 18 test_parse_and_compose
+ |  17 struct osmo_sdp_msg
+ |    1 FooBar
+ |    1 1565090290
+ |    1 1565090289
+ |    1 FooBar
+ |   12 struct osmo_sdp_codec_list
+ |     3 struct osmo_sdp_codec
+ |      1 0-15
+ |      1 telephone-event
+ |     2 struct osmo_sdp_codec
+ |      1 PCMA
+ |     2 struct osmo_sdp_codec
+ |      1 G723
+ |     2 struct osmo_sdp_codec
+ |      1 PCMU
+ |     2 struct osmo_sdp_codec
+ |      1 G729
+talloc_free(sdp_msg)
+ctx
+ |  1 test_parse_and_compose
+
+
+
+test_intersect
+
+[0] identical codecs lead to no change
+SDP A: v=0\r\n
+SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+SDP A: s=GSM Call\r\n
+SDP A: c=IN IP4 23.42.23.42\r\n
+SDP A: t=0 0\r\n
+SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+SDP A: a=rtpmap:112 AMR/8000\r\n
+SDP A: a=fmtp:112 octet-align=1\r\n
+SDP A: a=rtpmap:3 GSM/8000\r\n
+SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+SDP A: a=ptime:20\r\n
+ SDP B: c=IN IP4 5.6.7.8\r\n
+ SDP B: m=audio 12345 RTP/AVP 112 3 111 110\r\n
+ SDP B: a=rtpmap:112 AMR/8000\r\n
+ SDP B: a=fmtp:112 octet-align=1\r\n
+ SDP B: a=rtpmap:3 GSM/8000\r\n
+ SDP B: a=rtpmap:111 GSM-HR-08/8000\r\n
+ SDP B: a=rtpmap:110 GSM-EFR/8000\r\n
+parsed SDP A: v=0\r\n
+parsed SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+parsed SDP A: s=GSM Call\r\n
+parsed SDP A: c=IN IP4 23.42.23.42\r\n
+parsed SDP A: t=0 0\r\n
+parsed SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+parsed SDP A: a=rtpmap:112 AMR/8000\r\n
+parsed SDP A: a=fmtp:112 octet-align=1\r\n
+parsed SDP A: a=rtpmap:3 GSM/8000\r\n
+parsed SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+parsed SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+parsed SDP A: a=ptime:20\r\n
+parsed SDP B: v=0\r\n
+parsed SDP B: o=libosmo-sdp 0 0 IN IP4 0.0.0.0\r\n
+parsed SDP B: s=-\r\n
+parsed SDP B: c=IN IP4 5.6.7.8\r\n
+parsed SDP B: t=0 0\r\n
+parsed SDP B: m=audio 12345 RTP/AVP 112 3 111 110\r\n
+parsed SDP B: a=rtpmap:112 AMR/8000\r\n
+parsed SDP B: a=fmtp:112 octet-align=1\r\n
+parsed SDP B: a=rtpmap:3 GSM/8000\r\n
+parsed SDP B: a=rtpmap:111 GSM-HR-08/8000\r\n
+parsed SDP B: a=rtpmap:110 GSM-EFR/8000\r\n
+intersection(a,b): v=0\r\n
+intersection(a,b): o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+intersection(a,b): s=GSM Call\r\n
+intersection(a,b): c=IN IP4 23.42.23.42\r\n
+intersection(a,b): t=0 0\r\n
+intersection(a,b): m=audio 30436 RTP/AVP 112 3 111 110\r\n
+intersection(a,b): a=rtpmap:112 AMR/8000\r\n
+intersection(a,b): a=fmtp:112 octet-align=1\r\n
+intersection(a,b): a=rtpmap:3 GSM/8000\r\n
+intersection(a,b): a=rtpmap:111 GSM-HR-08/8000\r\n
+intersection(a,b): a=rtpmap:110 GSM-EFR/8000\r\n
+intersection(a,b): a=ptime:20\r\n
+[0] ok
+ctx
+ | 27 test_intersect
+ |  11 struct osmo_sdp_msg
+ |   10 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+ |  15 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |   10 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+talloc_free(sdp_msg_a)
+ctx
+ | 12 test_intersect
+ |  11 struct osmo_sdp_msg
+ |   10 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+talloc_free(sdp_msg_b)
+ctx
+ |  1 test_intersect
+
+
+[1] identical codecs in different order also lead to no change
+SDP A: v=0\r\n
+SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+SDP A: s=GSM Call\r\n
+SDP A: c=IN IP4 23.42.23.42\r\n
+SDP A: t=0 0\r\n
+SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+SDP A: a=rtpmap:112 AMR/8000\r\n
+SDP A: a=fmtp:112 octet-align=1\r\n
+SDP A: a=rtpmap:3 GSM/8000\r\n
+SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+SDP A: a=ptime:20\r\n
+ SDP B: c=IN IP4 5.6.7.8\r\n
+ SDP B: m=audio 12345 RTP/AVP 3 110 111 112\r\n
+ SDP B: a=rtpmap:3 GSM/8000\r\n
+ SDP B: a=rtpmap:110 GSM-EFR/8000\r\n
+ SDP B: a=rtpmap:111 GSM-HR-08/8000\r\n
+ SDP B: a=rtpmap:112 AMR/8000\r\n
+ SDP B: a=fmtp:112 octet-align=1\r\n
+parsed SDP A: v=0\r\n
+parsed SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+parsed SDP A: s=GSM Call\r\n
+parsed SDP A: c=IN IP4 23.42.23.42\r\n
+parsed SDP A: t=0 0\r\n
+parsed SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+parsed SDP A: a=rtpmap:112 AMR/8000\r\n
+parsed SDP A: a=fmtp:112 octet-align=1\r\n
+parsed SDP A: a=rtpmap:3 GSM/8000\r\n
+parsed SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+parsed SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+parsed SDP A: a=ptime:20\r\n
+parsed SDP B: v=0\r\n
+parsed SDP B: o=libosmo-sdp 0 0 IN IP4 0.0.0.0\r\n
+parsed SDP B: s=-\r\n
+parsed SDP B: c=IN IP4 5.6.7.8\r\n
+parsed SDP B: t=0 0\r\n
+parsed SDP B: m=audio 12345 RTP/AVP 3 110 111 112\r\n
+parsed SDP B: a=rtpmap:3 GSM/8000\r\n
+parsed SDP B: a=rtpmap:110 GSM-EFR/8000\r\n
+parsed SDP B: a=rtpmap:111 GSM-HR-08/8000\r\n
+parsed SDP B: a=rtpmap:112 AMR/8000\r\n
+parsed SDP B: a=fmtp:112 octet-align=1\r\n
+intersection(a,b): v=0\r\n
+intersection(a,b): o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+intersection(a,b): s=GSM Call\r\n
+intersection(a,b): c=IN IP4 23.42.23.42\r\n
+intersection(a,b): t=0 0\r\n
+intersection(a,b): m=audio 30436 RTP/AVP 112 3 111 110\r\n
+intersection(a,b): a=rtpmap:112 AMR/8000\r\n
+intersection(a,b): a=fmtp:112 octet-align=1\r\n
+intersection(a,b): a=rtpmap:3 GSM/8000\r\n
+intersection(a,b): a=rtpmap:111 GSM-HR-08/8000\r\n
+intersection(a,b): a=rtpmap:110 GSM-EFR/8000\r\n
+intersection(a,b): a=ptime:20\r\n
+[1] ok
+ctx
+ | 27 test_intersect
+ |  11 struct osmo_sdp_msg
+ |   10 struct osmo_sdp_codec_list
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |  15 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |   10 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+talloc_free(sdp_msg_a)
+ctx
+ | 12 test_intersect
+ |  11 struct osmo_sdp_msg
+ |   10 struct osmo_sdp_codec_list
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+talloc_free(sdp_msg_b)
+ctx
+ |  1 test_intersect
+
+
+[2] identical codecs with mismatching payload type numbers also lead to no change
+SDP A: v=0\r\n
+SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+SDP A: s=GSM Call\r\n
+SDP A: c=IN IP4 23.42.23.42\r\n
+SDP A: t=0 0\r\n
+SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+SDP A: a=rtpmap:112 AMR/8000\r\n
+SDP A: a=fmtp:112 octet-align=1\r\n
+SDP A: a=rtpmap:3 GSM/8000\r\n
+SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+SDP A: a=ptime:20\r\n
+ SDP B: c=IN IP4 5.6.7.8\r\n
+ SDP B: m=audio 12345 RTP/AVP 96 97 98 99\r\n
+ SDP B: a=rtpmap:96 GSM/8000\r\n
+ SDP B: a=rtpmap:97 GSM-EFR/8000\r\n
+ SDP B: a=rtpmap:98 GSM-HR-08/8000\r\n
+ SDP B: a=rtpmap:99 AMR/8000\r\n
+ SDP B: a=fmtp:99 octet-align=1\r\n
+parsed SDP A: v=0\r\n
+parsed SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+parsed SDP A: s=GSM Call\r\n
+parsed SDP A: c=IN IP4 23.42.23.42\r\n
+parsed SDP A: t=0 0\r\n
+parsed SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+parsed SDP A: a=rtpmap:112 AMR/8000\r\n
+parsed SDP A: a=fmtp:112 octet-align=1\r\n
+parsed SDP A: a=rtpmap:3 GSM/8000\r\n
+parsed SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+parsed SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+parsed SDP A: a=ptime:20\r\n
+parsed SDP B: v=0\r\n
+parsed SDP B: o=libosmo-sdp 0 0 IN IP4 0.0.0.0\r\n
+parsed SDP B: s=-\r\n
+parsed SDP B: c=IN IP4 5.6.7.8\r\n
+parsed SDP B: t=0 0\r\n
+parsed SDP B: m=audio 12345 RTP/AVP 96 97 98 99\r\n
+parsed SDP B: a=rtpmap:96 GSM/8000\r\n
+parsed SDP B: a=rtpmap:97 GSM-EFR/8000\r\n
+parsed SDP B: a=rtpmap:98 GSM-HR-08/8000\r\n
+parsed SDP B: a=rtpmap:99 AMR/8000\r\n
+parsed SDP B: a=fmtp:99 octet-align=1\r\n
+intersection(a,b): v=0\r\n
+intersection(a,b): o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+intersection(a,b): s=GSM Call\r\n
+intersection(a,b): c=IN IP4 23.42.23.42\r\n
+intersection(a,b): t=0 0\r\n
+intersection(a,b): m=audio 30436 RTP/AVP 112 3 111 110\r\n
+intersection(a,b): a=rtpmap:112 AMR/8000\r\n
+intersection(a,b): a=fmtp:112 octet-align=1\r\n
+intersection(a,b): a=rtpmap:3 GSM/8000\r\n
+intersection(a,b): a=rtpmap:111 GSM-HR-08/8000\r\n
+intersection(a,b): a=rtpmap:110 GSM-EFR/8000\r\n
+intersection(a,b): a=ptime:20\r\n
+[2] ok
+ctx
+ | 27 test_intersect
+ |  11 struct osmo_sdp_msg
+ |   10 struct osmo_sdp_codec_list
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |  15 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |   10 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+talloc_free(sdp_msg_a)
+ctx
+ | 12 test_intersect
+ |  11 struct osmo_sdp_msg
+ |   10 struct osmo_sdp_codec_list
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+talloc_free(sdp_msg_b)
+ctx
+ |  1 test_intersect
+
+
+[3] identical codecs plus some extra codecs also lead to no change
+SDP A: v=0\r\n
+SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+SDP A: s=GSM Call\r\n
+SDP A: c=IN IP4 23.42.23.42\r\n
+SDP A: t=0 0\r\n
+SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+SDP A: a=rtpmap:112 AMR/8000\r\n
+SDP A: a=fmtp:112 octet-align=1\r\n
+SDP A: a=rtpmap:3 GSM/8000\r\n
+SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+SDP A: a=ptime:20\r\n
+ SDP B: c=IN IP4 5.6.7.8\r\n
+ SDP B: m=audio 12345 RTP/AVP 8 0 96 97 98 99\r\n
+ SDP B: a=rtpmap:8 PCMA/8000\r\n
+ SDP B: a=rtpmap:0 PCMU/8000\r\n
+ SDP B: a=rtpmap:96 GSM/8000\r\n
+ SDP B: a=rtpmap:97 GSM-EFR/8000\r\n
+ SDP B: a=rtpmap:98 GSM-HR-08/8000\r\n
+ SDP B: a=rtpmap:99 AMR/8000\r\n
+ SDP B: a=fmtp:99 octet-align=1\r\n
+parsed SDP A: v=0\r\n
+parsed SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+parsed SDP A: s=GSM Call\r\n
+parsed SDP A: c=IN IP4 23.42.23.42\r\n
+parsed SDP A: t=0 0\r\n
+parsed SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+parsed SDP A: a=rtpmap:112 AMR/8000\r\n
+parsed SDP A: a=fmtp:112 octet-align=1\r\n
+parsed SDP A: a=rtpmap:3 GSM/8000\r\n
+parsed SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+parsed SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+parsed SDP A: a=ptime:20\r\n
+parsed SDP B: v=0\r\n
+parsed SDP B: o=libosmo-sdp 0 0 IN IP4 0.0.0.0\r\n
+parsed SDP B: s=-\r\n
+parsed SDP B: c=IN IP4 5.6.7.8\r\n
+parsed SDP B: t=0 0\r\n
+parsed SDP B: m=audio 12345 RTP/AVP 8 0 96 97 98 99\r\n
+parsed SDP B: a=rtpmap:8 PCMA/8000\r\n
+parsed SDP B: a=rtpmap:0 PCMU/8000\r\n
+parsed SDP B: a=rtpmap:96 GSM/8000\r\n
+parsed SDP B: a=rtpmap:97 GSM-EFR/8000\r\n
+parsed SDP B: a=rtpmap:98 GSM-HR-08/8000\r\n
+parsed SDP B: a=rtpmap:99 AMR/8000\r\n
+parsed SDP B: a=fmtp:99 octet-align=1\r\n
+intersection(a,b): v=0\r\n
+intersection(a,b): o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+intersection(a,b): s=GSM Call\r\n
+intersection(a,b): c=IN IP4 23.42.23.42\r\n
+intersection(a,b): t=0 0\r\n
+intersection(a,b): m=audio 30436 RTP/AVP 112 3 111 110\r\n
+intersection(a,b): a=rtpmap:112 AMR/8000\r\n
+intersection(a,b): a=fmtp:112 octet-align=1\r\n
+intersection(a,b): a=rtpmap:3 GSM/8000\r\n
+intersection(a,b): a=rtpmap:111 GSM-HR-08/8000\r\n
+intersection(a,b): a=rtpmap:110 GSM-EFR/8000\r\n
+intersection(a,b): a=ptime:20\r\n
+[3] ok
+ctx
+ | 31 test_intersect
+ |  15 struct osmo_sdp_msg
+ |   14 struct osmo_sdp_codec_list
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     2 struct osmo_sdp_codec
+ |      1 PCMU
+ |     2 struct osmo_sdp_codec
+ |      1 PCMA
+ |  15 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |   10 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+talloc_free(sdp_msg_a)
+ctx
+ | 16 test_intersect
+ |  15 struct osmo_sdp_msg
+ |   14 struct osmo_sdp_codec_list
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     2 struct osmo_sdp_codec
+ |      1 PCMU
+ |     2 struct osmo_sdp_codec
+ |      1 PCMA
+talloc_free(sdp_msg_b)
+ctx
+ |  1 test_intersect
+
+
+[4] some codecs removed
+SDP A: v=0\r\n
+SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+SDP A: s=GSM Call\r\n
+SDP A: c=IN IP4 23.42.23.42\r\n
+SDP A: t=0 0\r\n
+SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+SDP A: a=rtpmap:112 AMR/8000\r\n
+SDP A: a=fmtp:112 octet-align=1\r\n
+SDP A: a=rtpmap:3 GSM/8000\r\n
+SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+SDP A: a=ptime:20\r\n
+ SDP B: v=0\r\n
+ SDP B: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+ SDP B: s=GSM Call\r\n
+ SDP B: c=IN IP4 23.42.23.42\r\n
+ SDP B: t=0 0\r\n
+ SDP B: m=audio 30436 RTP/AVP 112 110\r\n
+ SDP B: a=rtpmap:112 AMR/8000\r\n
+ SDP B: a=fmtp:112 octet-align=1\r\n
+ SDP B: a=rtpmap:110 GSM-EFR/8000\r\n
+ SDP B: a=ptime:20\r\n
+parsed SDP A: v=0\r\n
+parsed SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+parsed SDP A: s=GSM Call\r\n
+parsed SDP A: c=IN IP4 23.42.23.42\r\n
+parsed SDP A: t=0 0\r\n
+parsed SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+parsed SDP A: a=rtpmap:112 AMR/8000\r\n
+parsed SDP A: a=fmtp:112 octet-align=1\r\n
+parsed SDP A: a=rtpmap:3 GSM/8000\r\n
+parsed SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+parsed SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+parsed SDP A: a=ptime:20\r\n
+parsed SDP B: v=0\r\n
+parsed SDP B: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+parsed SDP B: s=GSM Call\r\n
+parsed SDP B: c=IN IP4 23.42.23.42\r\n
+parsed SDP B: t=0 0\r\n
+parsed SDP B: m=audio 30436 RTP/AVP 112 110\r\n
+parsed SDP B: a=rtpmap:112 AMR/8000\r\n
+parsed SDP B: a=fmtp:112 octet-align=1\r\n
+parsed SDP B: a=rtpmap:110 GSM-EFR/8000\r\n
+parsed SDP B: a=ptime:20\r\n
+intersection(a,b): v=0\r\n
+intersection(a,b): o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+intersection(a,b): s=GSM Call\r\n
+intersection(a,b): c=IN IP4 23.42.23.42\r\n
+intersection(a,b): t=0 0\r\n
+intersection(a,b): m=audio 30436 RTP/AVP 112 110\r\n
+intersection(a,b): a=rtpmap:112 AMR/8000\r\n
+intersection(a,b): a=fmtp:112 octet-align=1\r\n
+intersection(a,b): a=rtpmap:110 GSM-EFR/8000\r\n
+intersection(a,b): a=ptime:20\r\n
+[4] ok
+ctx
+ | 23 test_intersect
+ |  11 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |    6 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+ |  11 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |    6 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+talloc_free(sdp_msg_a)
+ctx
+ | 12 test_intersect
+ |  11 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |    6 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+talloc_free(sdp_msg_b)
+ctx
+ |  1 test_intersect
+
+
+[5] other codecs removed
+SDP A: v=0\r\n
+SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+SDP A: s=GSM Call\r\n
+SDP A: c=IN IP4 23.42.23.42\r\n
+SDP A: t=0 0\r\n
+SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+SDP A: a=rtpmap:112 AMR/8000\r\n
+SDP A: a=fmtp:112 octet-align=1\r\n
+SDP A: a=rtpmap:3 GSM/8000\r\n
+SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+SDP A: a=ptime:20\r\n
+ SDP B: v=0\r\n
+ SDP B: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+ SDP B: s=GSM Call\r\n
+ SDP B: c=IN IP4 23.42.23.42\r\n
+ SDP B: t=0 0\r\n
+ SDP B: m=audio 30436 RTP/AVP 3 111 123\r\n
+ SDP B: a=rtpmap:3 GSM/8000\r\n
+ SDP B: a=rtpmap:111 GSM-HR-08/8000\r\n
+ SDP B: a=rtpmap:123 FOO/8000\r\n
+ SDP B: a=ptime:20\r\n
+parsed SDP A: v=0\r\n
+parsed SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+parsed SDP A: s=GSM Call\r\n
+parsed SDP A: c=IN IP4 23.42.23.42\r\n
+parsed SDP A: t=0 0\r\n
+parsed SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+parsed SDP A: a=rtpmap:112 AMR/8000\r\n
+parsed SDP A: a=fmtp:112 octet-align=1\r\n
+parsed SDP A: a=rtpmap:3 GSM/8000\r\n
+parsed SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+parsed SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+parsed SDP A: a=ptime:20\r\n
+parsed SDP B: v=0\r\n
+parsed SDP B: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+parsed SDP B: s=GSM Call\r\n
+parsed SDP B: c=IN IP4 23.42.23.42\r\n
+parsed SDP B: t=0 0\r\n
+parsed SDP B: m=audio 30436 RTP/AVP 3 111 123\r\n
+parsed SDP B: a=rtpmap:3 GSM/8000\r\n
+parsed SDP B: a=rtpmap:111 GSM-HR-08/8000\r\n
+parsed SDP B: a=rtpmap:123 FOO/8000\r\n
+parsed SDP B: a=ptime:20\r\n
+intersection(a,b): v=0\r\n
+intersection(a,b): o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+intersection(a,b): s=GSM Call\r\n
+intersection(a,b): c=IN IP4 23.42.23.42\r\n
+intersection(a,b): t=0 0\r\n
+intersection(a,b): m=audio 30436 RTP/AVP 3 111\r\n
+intersection(a,b): a=rtpmap:3 GSM/8000\r\n
+intersection(a,b): a=rtpmap:111 GSM-HR-08/8000\r\n
+intersection(a,b): a=ptime:20\r\n
+[5] ok
+ctx
+ | 23 test_intersect
+ |  12 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |    7 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 FOO
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |  10 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |    5 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+talloc_free(sdp_msg_a)
+ctx
+ | 13 test_intersect
+ |  12 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |    7 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 FOO
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+talloc_free(sdp_msg_b)
+ctx
+ |  1 test_intersect
+
+
+[6] all codecs removed
+SDP A: v=0\r\n
+SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+SDP A: s=GSM Call\r\n
+SDP A: c=IN IP4 23.42.23.42\r\n
+SDP A: t=0 0\r\n
+SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+SDP A: a=rtpmap:112 AMR/8000\r\n
+SDP A: a=fmtp:112 octet-align=1\r\n
+SDP A: a=rtpmap:3 GSM/8000\r\n
+SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+SDP A: a=ptime:20\r\n
+ SDP B: s=empty
+parsed SDP A: v=0\r\n
+parsed SDP A: o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+parsed SDP A: s=GSM Call\r\n
+parsed SDP A: c=IN IP4 23.42.23.42\r\n
+parsed SDP A: t=0 0\r\n
+parsed SDP A: m=audio 30436 RTP/AVP 112 3 111 110\r\n
+parsed SDP A: a=rtpmap:112 AMR/8000\r\n
+parsed SDP A: a=fmtp:112 octet-align=1\r\n
+parsed SDP A: a=rtpmap:3 GSM/8000\r\n
+parsed SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+parsed SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+parsed SDP A: a=ptime:20\r\n
+parsed SDP B: v=0\r\n
+parsed SDP B: o=libosmo-sdp 0 0 IN IP4 0.0.0.0\r\n
+parsed SDP B: s=empty\r\n
+parsed SDP B: c=IN IP4 0.0.0.0\r\n
+parsed SDP B: t=0 0\r\n
+parsed SDP B: m=audio 0 RTP/AVP\r\n
+intersection(a,b): v=0\r\n
+intersection(a,b): o=libosmo-sdp 0 0 IN IP4 23.42.23.42\r\n
+intersection(a,b): s=GSM Call\r\n
+intersection(a,b): c=IN IP4 23.42.23.42\r\n
+intersection(a,b): t=0 0\r\n
+intersection(a,b): m=audio 30436 RTP/AVP\r\n
+intersection(a,b): a=ptime:20\r\n
+[6] ok
+ctx
+ | 10 test_intersect
+ |   3 struct osmo_sdp_msg
+ |    1 empty
+ |    1 struct osmo_sdp_codec_list
+ |   6 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |    1 struct osmo_sdp_codec_list
+talloc_free(sdp_msg_a)
+ctx
+ |  4 test_intersect
+ |   3 struct osmo_sdp_msg
+ |    1 empty
+ |    1 struct osmo_sdp_codec_list
+talloc_free(sdp_msg_b)
+ctx
+ |  1 test_intersect
+
+
+[7] some real world test case
+SDP A: v=0\r\n
+SDP A: o=libosmo-sdp 0 0 IN IP4 0.0.0.0\r\n
+SDP A: s=GSM Call\r\n
+SDP A: c=IN IP4 0.0.0.0\r\n
+SDP A: t=0 0\r\n
+SDP A: m=audio 0 RTP/AVP 112 113 110 3 111\r\n
+SDP A: a=rtpmap:112 AMR/8000\r\n
+SDP A: a=fmtp:112 octet-align=1;mode-set=0,1,2,3\r\n
+SDP A: a=rtpmap:113 AMR-WB/8000\r\n
+SDP A: a=fmtp:113 octet-align=1\r\n
+SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+SDP A: a=rtpmap:3 GSM/8000\r\n
+SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+SDP A: a=ptime:20\r\n
+ SDP B: v=0\r\n
+ SDP B: o=libosmo-sdp 0 0 IN IP4 0.0.0.0\r\n
+ SDP B: s=GSM Call\r\n
+ SDP B: c=IN IP4 0.0.0.0\r\n
+ SDP B: t=0 0\r\n
+ SDP B: m=audio 0 RTP/AVP 112 113 110 3 111\r\n
+ SDP B: a=rtpmap:112 AMR/8000\r\n
+ SDP B: a=fmtp:112 octet-align=1;mode-set=0,1,2,3\r\n
+ SDP B: a=rtpmap:113 AMR-WB/8000\r\n
+ SDP B: a=fmtp:113 octet-align=1\r\n
+ SDP B: a=rtpmap:110 GSM-EFR/8000\r\n
+ SDP B: a=rtpmap:3 GSM/8000\r\n
+ SDP B: a=rtpmap:111 GSM-HR-08/8000\r\n
+ SDP B: a=ptime:20\r\n
+parsed SDP A: v=0\r\n
+parsed SDP A: o=libosmo-sdp 0 0 IN IP4 0.0.0.0\r\n
+parsed SDP A: s=GSM Call\r\n
+parsed SDP A: c=IN IP4 0.0.0.0\r\n
+parsed SDP A: t=0 0\r\n
+parsed SDP A: m=audio 0 RTP/AVP 112 113 110 3 111\r\n
+parsed SDP A: a=rtpmap:112 AMR/8000\r\n
+parsed SDP A: a=fmtp:112 octet-align=1;mode-set=0,1,2,3\r\n
+parsed SDP A: a=rtpmap:113 AMR-WB/8000\r\n
+parsed SDP A: a=fmtp:113 octet-align=1\r\n
+parsed SDP A: a=rtpmap:110 GSM-EFR/8000\r\n
+parsed SDP A: a=rtpmap:3 GSM/8000\r\n
+parsed SDP A: a=rtpmap:111 GSM-HR-08/8000\r\n
+parsed SDP A: a=ptime:20\r\n
+parsed SDP B: v=0\r\n
+parsed SDP B: o=libosmo-sdp 0 0 IN IP4 0.0.0.0\r\n
+parsed SDP B: s=GSM Call\r\n
+parsed SDP B: c=IN IP4 0.0.0.0\r\n
+parsed SDP B: t=0 0\r\n
+parsed SDP B: m=audio 0 RTP/AVP 112 113 110 3 111\r\n
+parsed SDP B: a=rtpmap:112 AMR/8000\r\n
+parsed SDP B: a=fmtp:112 octet-align=1;mode-set=0,1,2,3\r\n
+parsed SDP B: a=rtpmap:113 AMR-WB/8000\r\n
+parsed SDP B: a=fmtp:113 octet-align=1\r\n
+parsed SDP B: a=rtpmap:110 GSM-EFR/8000\r\n
+parsed SDP B: a=rtpmap:3 GSM/8000\r\n
+parsed SDP B: a=rtpmap:111 GSM-HR-08/8000\r\n
+parsed SDP B: a=ptime:20\r\n
+intersection(a,b): v=0\r\n
+intersection(a,b): o=libosmo-sdp 0 0 IN IP4 0.0.0.0\r\n
+intersection(a,b): s=GSM Call\r\n
+intersection(a,b): c=IN IP4 0.0.0.0\r\n
+intersection(a,b): t=0 0\r\n
+intersection(a,b): m=audio 0 RTP/AVP 112 113 110 3 111\r\n
+intersection(a,b): a=rtpmap:112 AMR/8000\r\n
+intersection(a,b): a=fmtp:112 octet-align=1;mode-set=0,1,2,3\r\n
+intersection(a,b): a=rtpmap:113 AMR-WB/8000\r\n
+intersection(a,b): a=fmtp:113 octet-align=1\r\n
+intersection(a,b): a=rtpmap:110 GSM-EFR/8000\r\n
+intersection(a,b): a=rtpmap:3 GSM/8000\r\n
+intersection(a,b): a=rtpmap:111 GSM-HR-08/8000\r\n
+intersection(a,b): a=ptime:20\r\n
+[7] ok
+ctx
+ | 37 test_intersect
+ |  18 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |   13 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR-WB
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1;mode-set=0,1,2,3
+ |      1 AMR
+ |  18 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |   13 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR-WB
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1;mode-set=0,1,2,3
+ |      1 AMR
+talloc_free(sdp_msg_a)
+ctx
+ | 19 test_intersect
+ |  18 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |   13 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR-WB
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1;mode-set=0,1,2,3
+ |      1 AMR
+talloc_free(sdp_msg_b)
+ctx
+ |  1 test_intersect
+
+
+
+test_select
+
+[0]
+SDP: AMR:octet-align=1#112 GSM#3 GSM-HR-08#111 GSM-EFR#110
+Select: /0#112
+SDP: AMR:octet-align=1#112 GSM#3 GSM-HR-08#111 GSM-EFR#110
+[0] ok
+ctx
+ | 16 test_select
+ |  15 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |   10 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+talloc_free(sdp_msg)
+ctx
+ |  1 test_select
+
+
+[1]
+SDP: AMR:octet-align=1#112 GSM#3 GSM-HR-08#111 GSM-EFR#110
+Select: /0#3
+SDP: GSM#3 AMR:octet-align=1#112 GSM-HR-08#111 GSM-EFR#110
+[1] ok
+ctx
+ | 16 test_select
+ |  15 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |   10 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+talloc_free(sdp_msg)
+ctx
+ |  1 test_select
+
+
+[2]
+SDP: AMR:octet-align=1#112 GSM#3 GSM-HR-08#111 GSM-EFR#110
+Select: /0#111
+SDP: GSM-HR-08#111 AMR:octet-align=1#112 GSM#3 GSM-EFR#110
+[2] ok
+ctx
+ | 16 test_select
+ |  15 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |   10 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+talloc_free(sdp_msg)
+ctx
+ |  1 test_select
+
+
+[3]
+SDP: AMR:octet-align=1#112 GSM#3 GSM-HR-08#111 GSM-EFR#110
+Select: /0#110
+SDP: GSM-EFR#110 AMR:octet-align=1#112 GSM#3 GSM-HR-08#111
+[3] ok
+ctx
+ | 16 test_select
+ |  15 struct osmo_sdp_msg
+ |    1 GSM Call
+ |    1 0
+ |    1 0
+ |    1 libosmo-sdp
+ |   10 struct osmo_sdp_codec_list
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-EFR
+ |     2 struct osmo_sdp_codec
+ |      1 GSM-HR-08
+ |     2 struct osmo_sdp_codec
+ |      1 GSM
+ |     3 struct osmo_sdp_codec
+ |      1 octet-align=1
+ |      1 AMR
+talloc_free(sdp_msg)
+ctx
+ |  1 test_select
+
+
+
+--- test_obj_members()
+o->sdp_msg = 'v=0
+o=libosmo-sdp 0 0 IN IP4 0.0.0.0
+s=-
+c=IN IP4 0.0.0.0
+t=0 0
+m=audio 0 RTP/AVP
+'
+ctx
+ |  4 test_obj_members
+ |   3 struct my_obj
+ |    2 struct osmo_sdp_msg
+ |     1 struct osmo_sdp_codec_list
+o->sdp_msg = 'v=0
+o=libosmo-sdp 0 0 IN IP4 0.0.0.0
+s=-
+c=IN IP4 0.0.0.0
+t=0 0
+m=audio 0 RTP/AVP 112 3 111
+a=rtpmap:112 AMR/8000
+a=fmtp:112 octet-align=1;mode-set=0,2,4
+a=rtpmap:3 GSM/8000
+a=rtpmap:111 GSM-HR-08/8000
+'
+ctx
+ | 11 test_obj_members
+ |  10 struct my_obj
+ |    9 struct osmo_sdp_msg
+ |     8 struct osmo_sdp_codec_list
+ |      2 struct osmo_sdp_codec
+ |       1 GSM-HR-08
+ |      2 struct osmo_sdp_codec
+ |       1 GSM
+ |      3 struct osmo_sdp_codec
+ |       1 octet-align=1;mode-set=0,2,4
+ |       1 AMR
+talloc_free(o)
+ctx
+ |  1 test_obj_members

@@ -27,3 +27,10 @@ cat $abs_srcdir/sdp/sdp_codec_test.ok > expout
 cat $abs_srcdir/sdp/sdp_codec_test.err > experr
 AT_CHECK([$abs_top_builddir/tests/sdp/sdp_codec_test], [], [expout], [experr])
 AT_CLEANUP
+
+AT_SETUP([sdp_msg])
+AT_KEYWORDS([sdp_msg])
+cat $abs_srcdir/sdp/sdp_msg_test.ok > expout
+cat $abs_srcdir/sdp/sdp_msg_test.err > experr
+AT_CHECK([$abs_top_builddir/tests/sdp/sdp_msg_test], [], [expout], [experr])
+AT_CLEANUP
