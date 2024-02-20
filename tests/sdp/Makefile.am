@@ -28,6 +28,7 @@ EXTRA_DIST = \
 check_PROGRAMS = \
 	sdp_fmtp_test \
 	sdp_codec_test \
+	sdp_msg_test \
 	$(NULL)
 
 sdp_fmtp_test_SOURCES = \
@@ -47,6 +48,16 @@ sdp_codec_test_LDADD = \
 	$(LIBOSMOCORE_LIBS) \
 	$(NULL)
 
+sdp_msg_test_SOURCES = \
+	sdp_msg_test.c \
+	$(NULL)
+
+sdp_msg_test_LDADD = \
+	$(top_builddir)/src/libosmo-sdp/libosmo-sdp.la \
+	$(LIBOSMOCORE_LIBS) \
+	$(NULL)
+
 update_exp:
 	$(builddir)/sdp_fmtp_test >$(srcdir)/sdp_fmtp_test.ok 2>$(srcdir)/sdp_fmtp_test.err
 	$(builddir)/sdp_codec_test >$(srcdir)/sdp_codec_test.ok 2>$(srcdir)/sdp_codec_test.err
+	$(builddir)/sdp_msg_test >$(srcdir)/sdp_msg_test.ok 2>$(srcdir)/sdp_msg_test.err
