@@ -347,3 +347,14 @@ void osmo_sdp_codec_list_intersection(struct osmo_sdp_codec_list *dst, const str
 			i->payload_type = match->payload_type;
 	}
 }
+
+/* Find an entry for the given payload_type number in the given list of codecs. */
+struct osmo_sdp_codec *osmo_sdp_codec_list_by_payload_type(struct osmo_sdp_codec_list *codec_list, int8_t payload_type)
+{
+	struct osmo_sdp_codec *codec;
+	osmo_sdp_codec_list_foreach(codec, codec_list) {
+		if (codec->payload_type == payload_type)
+			return codec;
+	}
+	return NULL;
+}
