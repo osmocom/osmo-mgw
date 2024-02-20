@@ -11,6 +11,7 @@ nobase_include_HEADERS = \
 	osmocom/sdp/fmtp.h \
 	osmocom/sdp/sdp_codec.h \
 	osmocom/sdp/sdp_codec_list.h \
+	osmocom/sdp/sdp_msg.h \
 	osmocom/sdp/sdp_strings.h \
 	$(NULL)
 
