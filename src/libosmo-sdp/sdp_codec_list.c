@@ -358,3 +358,10 @@ struct osmo_sdp_codec *osmo_sdp_codec_list_by_payload_type(struct osmo_sdp_codec
 	}
 	return NULL;
 }
+
+bool osmo_sdp_codec_list_is_empty(const struct osmo_sdp_codec_list *codec_list)
+{
+	if (!codec_list)
+		return true;
+	return llist_empty(&codec_list->list);
+}
