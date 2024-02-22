@@ -66,3 +66,4 @@ void osmo_sdp_codec_list_intersection(struct osmo_sdp_codec_list *dst, const str
 				      bool translate_payload_type_numbers);
 
 struct osmo_sdp_codec *osmo_sdp_codec_list_by_payload_type(struct osmo_sdp_codec_list *codec_list, int8_t payload_type);
+bool osmo_sdp_codec_list_is_empty(const struct osmo_sdp_codec_list *codec_list);
