@@ -29,6 +29,7 @@
 
 #include <osmocom/mgcp_client/mgcp_client.h>
 #include <osmocom/mgcp_client/mgcp_client_internal.h>
+#include <osmocom/sdp/sdp_strings.h>
 
 #include <osmocom/abis/e1_input.h>
 
@@ -388,11 +389,12 @@ static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *li
 {
 	unsigned int pt;
 	unsigned int i;
-	char codec_resp[64];
+	char codec_resp[256];
 	int rc;
 
-#define A_PTIME "a=ptime:"
-#define A_RTPMAP "a=rtpmap:"
+#define A_PTIME OSMO_SDP_A_PREFIX(OSMO_SDP_STR_PTIME)
+#define A_RTPMAP OSMO_SDP_A_PREFIX(OSMO_SDP_STR_RTPMAP)
+#define A_FMTP OSMO_SDP_A_PREFIX(OSMO_SDP_STR_FMTP)
 
 	if (osmo_str_startswith(line, A_PTIME)) {
 		if (sscanf(line, A_PTIME "%u", &r->ptime) != 1) {
@@ -401,7 +403,7 @@ static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *li
 			return -EINVAL;
 		}
 	} else if (osmo_str_startswith(line, A_RTPMAP)) {
-		if (sscanf(line, A_RTPMAP "%d %63s", &pt, codec_resp) != 2) {
+		if (sscanf(line, A_RTPMAP "%d %255s", &pt, codec_resp) != 2) {
 			LOGP(DLMGCP, LOGL_ERROR,
 			     "Failed to parse SDP parameter, invalid rtpmap: %s\n", osmo_quote_str(line, -1));
 			return -EINVAL;
@@ -439,6 +441,42 @@ static int mgcp_parse_audio_ptime_rtpmap(struct mgcp_response *r, const char *li
 			.pt = pt,
 			.codec = rc,
 		};
+		r->ptmap_len++;
+
+	} else if (osmo_str_startswith(line, A_FMTP)) {
+		if (sscanf(line, A_FMTP "%d %255s", &pt, codec_resp) != 2) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "Failed to parse SDP parameter, invalid fmtp: %s\n", osmo_quote_str(line, -1));
+			return -EINVAL;
+		}
+
+		/* Earlier, a line like "m=audio 16002 RTP/AVP 98 112 3" established the desired order of payloads, now
+		 * enrich it with actual codec information provided by "a=rtpmap:..." entries.
+		 * For each, find the entry with the right pt number and add the info there. */
+
+		for (i = 0; i < r->ptmap_len; i++) {
+			if (r->ptmap[i].pt != pt)
+				continue;
+			OSMO_STRLCPY_ARRAY(r->ptmap[r->ptmap_len].fmtp, codec_resp);
+			return 0;
+		}
+
+		/* No entry was found. This is an error in the MGCP protocol, but let's just add another entry
+		 * anyway, to not make it look like it was never there. */
+		LOGP(DLMGCP, LOGL_ERROR,
+		     "error in MGCP message: 'a=fmtp:%u' has no matching entry in 'm=audio ... %u'\n",
+		     pt, pt);
+		if (r->ptmap_len >= ARRAY_SIZE(r->ptmap)) {
+			LOGP(DLMGCP, LOGL_ERROR,
+			     "cannot parse all codecs: can only store up to %zu rtpmap entries.\n",
+			     ARRAY_SIZE(r->ptmap));
+			return -ENOSPC;
+		}
+		r->ptmap[r->ptmap_len] = (struct ptmap){
+			.pt = pt,
+			.codec = -1,
+		};
+		OSMO_STRLCPY_ARRAY(r->ptmap[r->ptmap_len].fmtp, codec_resp);
 		r->ptmap_len++;
 	}
 
