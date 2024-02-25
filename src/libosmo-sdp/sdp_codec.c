@@ -93,7 +93,7 @@ char *osmo_sdp_codec_to_str_c(void *ctx, const struct osmo_sdp_codec *codec)
  * the fmtp string part is "my-fmtp=val;my-other-fmtp=val2" and ends up in dst->ftmp as-is.
  * Parse at most str_len characters, or the entire string when str_len < 0 or str_len > strlen(str).
  * Return 0 on success, negative on failure. */
-int osmo_sdp_codec_from_str(void *ctx, struct osmo_sdp_codec *dst, const char *str, int str_len)
+int osmo_sdp_codec_from_str(struct osmo_sdp_codec *dst, const char *str, int str_len)
 {
 	const char *pos = str;
 	const char *str_end = str + (str_len >= 0 ? str_len : strlen(str));

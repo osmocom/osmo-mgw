@@ -160,7 +160,7 @@ void test_codec(void)
 	printf("\n- osmo_sdp_codec_from_str():\n");
 	for (t = codec_tests; (t - codec_tests) < ARRAY_SIZE(codec_tests); t++) {
 		struct osmo_sdp_codec *codec = osmo_sdp_codec_alloc(ctx);
-		int rc = osmo_sdp_codec_from_str(codec, codec, t->expect_str, -1);
+		int rc = osmo_sdp_codec_from_str(codec, t->expect_str, -1);
 		printf("  osmo_sdp_codec_from_str('%s') rc=%d",
 		       t->expect_str, rc);
 		if (!rc) {

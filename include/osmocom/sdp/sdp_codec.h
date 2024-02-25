@@ -83,7 +83,7 @@ bool osmo_sdp_codec_is_set(const struct osmo_sdp_codec *a);
 int osmo_sdp_codec_to_str_buf(char *buf, size_t buflen, const struct osmo_sdp_codec *codec);
 char *osmo_sdp_codec_to_str_c(void *ctx, const struct osmo_sdp_codec *codec);
 
-int osmo_sdp_codec_from_str(void *ctx, struct osmo_sdp_codec *dst, const char *str, int str_len);
+int osmo_sdp_codec_from_str(struct osmo_sdp_codec *dst, const char *str, int str_len);
 
 enum osmo_sdp_cmp {
 	OSMO_SDP_CMP_IGNORE = 0,
