@@ -148,3 +148,46 @@ static void strip_whitespace(char *str)
 			break;
 	}
 }
+
+/* Return true when the two AMR type fmtp strings can be considered equivalent.
+ * - Omission of octet-align is equivalent to having octet-align=0 present (0 is the default).
+ * - Omission of 'mode-set' means, match any and all codec modes. So if either a or b have no 'mode-set', it's a match.
+ *   If both have 'mode-set' present, they must be identical to match. Do not sort the mode-set string, but strip
+ *   whitespace.
+ * - TODO all other parameters are currently completely ignored.
+ */
+bool osmo_sdp_fmtp_amr_match(const char *a, const char *b)
+{
+	char a_modeset[32] = {};
+	char b_modeset[32] = {};
+	bool a_ok;
+	bool b_ok;
+
+	if (!a)
+		a = "";
+	if (!b)
+		b = "";
+
+	/* octet-align=1. Omission means octet-align=0 */
+	if (osmo_sdp_fmtp_amr_is_octet_aligned(a) != osmo_sdp_fmtp_amr_is_octet_aligned(b))
+		return false;
+
+	/* mode-set=0,1,2,3,4,5,6,7 */
+	a_ok = osmo_sdp_fmtp_get_val(a_modeset, sizeof(a_modeset), a, "mode-set");
+	b_ok = osmo_sdp_fmtp_get_val(b_modeset, sizeof(b_modeset), b, "mode-set");
+	if (a_ok && b_ok) {
+		/* Strip whitespace: We don't know what remote SDP peers may throw at us. There could be whitespace
+		 * around the separators like 'mode-set=2,3 ; octet-align=1', which may show up here as whitespace in
+		 * the value string as "2,3 ", which would mismatch "2,3". */
+		strip_whitespace(a_modeset);
+		strip_whitespace(b_modeset);
+		if (strcmp(a_modeset, b_modeset))
+			return false;
+	}
+
+	/* TODO: treat other AMR traits, see RFC4867 8.1. Maybe generically match all values that are present?
+	 * So far we have no need for other values than octet-align and mode-set. */
+
+	/* No mismatch found, it's a match */
+	return true;
+}
