@@ -31,3 +31,4 @@ bool osmo_sdp_fmtp_get_val(char *val, size_t val_size, const char *fmtp, const c
 int64_t osmo_sdp_fmtp_get_int(const char *fmtp, const char *option_name, int64_t default_value);
 
 bool osmo_sdp_fmtp_amr_is_octet_aligned(const char *fmtp);
+bool osmo_sdp_fmtp_amr_match(const char *a, const char *b);
