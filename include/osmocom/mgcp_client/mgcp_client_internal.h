@@ -1,6 +1,6 @@
 #pragma once
 
-#include <osmocom/core/write_queue.h>
+#include <osmocom/core/osmo_io.h>
 #include <osmocom/core/timer.h>
 
 #define MSGB_CB_MGCP_TRANS_ID 0
@@ -13,7 +13,7 @@ struct reset_ep {
 
 struct mgcp_client {
 	struct mgcp_client_conf actual;
-	struct osmo_wqueue wq;
+	struct osmo_io_fd *iofd;
 	mgcp_trans_id_t next_trans_id;
 	struct llist_head responses_pending;
 	struct mgcp_client_pool_member *pool_member;

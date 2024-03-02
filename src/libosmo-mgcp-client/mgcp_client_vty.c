@@ -322,7 +322,7 @@ DEFUN(cfg_mgw_mgw_keepalive_req_interval,
 
 	/* If client already exists, apply the change immediately if possible: */
 	mgcp->actual.keepalive.req_interval_sec = atoi(argv[0]);
-	if (mgcp->wq.bfd.fd != -1) { /* UDP MGCP socket connected */
+	if (mgcp->iofd) { /* UDP MGCP socket connected */
 		if (mgcp->actual.keepalive.req_interval_sec > 0) {
 			/* Re-schedule: */
 			osmo_timer_schedule(&mgcp->keepalive_tx_timer, mgcp->actual.keepalive.req_interval_sec, 0);
@@ -375,7 +375,7 @@ DEFUN(cfg_mgw_mgw_keepalive_timeout,
 
 	/* If client already exists, apply the change immediately if possible: */
 	mgcp->actual.keepalive.timeout_sec = atoi(argv[0]);
-	if (mgcp->wq.bfd.fd != -1) { /* UDP MGCP socket connected */
+	if (mgcp->iofd) { /* UDP MGCP socket connected */
 		if (mgcp->actual.keepalive.timeout_sec > 0) {
 			/* Re-schedule: */
 			osmo_timer_schedule(&mgcp->keepalive_rx_timer, mgcp->actual.keepalive.timeout_sec, 0);
@@ -680,7 +680,7 @@ DEFUN(mgw_show, mgw_show_cmd, "show mgw-pool", SHOW_STR "Display information abo
 		const struct mgcp_client *cli = pool_member->client;
 		vty_out(vty, "%%  MGW %s%s", mgcp_client_pool_member_name(pool_member), VTY_NEWLINE);
 		vty_out(vty, "%%   MGCP link:     %s,%s%s",
-			cli && cli->wq.bfd.fd != -1 ? "connected" : "disconnected",
+			cli && cli->iofd ? "connected" : "disconnected",
 			cli && cli->conn_up ?
 				((cli->actual.keepalive.timeout_sec > 0) ? "UP" : "MAYBE") :
 				"DOWN",
