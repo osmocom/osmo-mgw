@@ -204,6 +204,5 @@ int mgcp_send_reset_ep(struct mgcp_endpoint *endp);
 int mgcp_send_reset_all(struct mgcp_config *cfg);
 
 
-int mgcp_create_bind(const char *source_addr, struct osmo_fd *fd, int port, uint8_t dscp,
-		     uint8_t prio);
+int mgcp_create_bind(const char *source_addr, int port, uint8_t dscp, uint8_t prio);
 int mgcp_udp_send(int fd, const struct osmo_sockaddr *addr, const char *buf, int len);

@@ -514,13 +514,14 @@ int osmux_init(struct mgcp_trunk *trunk)
 	osmo_fd_setup(&osmux_fd_v6, -1, OSMO_FD_READ, osmux_read_fd_cb, trunk, 0);
 
 	if (cfg->osmux.local_addr_v4) {
-		ret = mgcp_create_bind(cfg->osmux.local_addr_v4, &osmux_fd_v4, cfg->osmux.local_port,
+		ret = mgcp_create_bind(cfg->osmux.local_addr_v4, cfg->osmux.local_port,
 					cfg->endp_dscp, cfg->endp_priority);
 		if (ret < 0) {
 			LOGP(DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv4 socket to %s:%u\n",
 			     cfg->osmux.local_addr_v4, cfg->osmux.local_port);
 			return ret;
 		}
+		osmux_fd_v4.fd = ret;
 
 		ret = osmo_fd_register(&osmux_fd_v4);
 		if (ret < 0) {
@@ -532,13 +533,14 @@ int osmux_init(struct mgcp_trunk *trunk)
 		     osmo_sock_get_name2(osmux_fd_v4.fd));
 	}
 	if (cfg->osmux.local_addr_v6) {
-		ret = mgcp_create_bind(cfg->osmux.local_addr_v6, &osmux_fd_v6, cfg->osmux.local_port,
+		ret = mgcp_create_bind(cfg->osmux.local_addr_v6, cfg->osmux.local_port,
 					cfg->endp_dscp, cfg->endp_priority);
 		if (ret < 0) {
 			LOGP(DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv6 socket to [%s]:%u\n",
 			     cfg->osmux.local_addr_v6, cfg->osmux.local_port);
 			return ret;
 		}
+		osmux_fd_v6.fd = ret;
 
 		ret = osmo_fd_register(&osmux_fd_v6);
 		if (ret < 0) {
