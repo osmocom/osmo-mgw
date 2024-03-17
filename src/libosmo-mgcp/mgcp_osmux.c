@@ -1,6 +1,7 @@
 /*
  * (C) 2012-2013 by Pablo Neira Ayuso <pablo@gnumonks.org>
  * (C) 2012-2013 by On Waves ehf <http://www.on-waves.com>
+ * (C) 2013-2024 by sysmocom - s.f.m.c. GmbH
  * All rights not specifically granted under this license are reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -13,9 +14,11 @@
 #include <string.h> /* for memcpy */
 #include <stdlib.h> /* for abs */
 #include <inttypes.h> /* for PRIu64 */
+#include <unistd.h> /* for PRIu64 */
 #include <netinet/in.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/socket.h>
+#include <osmocom/core/osmo_io.h>
 #include <osmocom/core/talloc.h>
 
 #include <osmocom/netif/osmux.h>
@@ -30,8 +33,8 @@
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
 
-static struct osmo_fd osmux_fd_v4;
-static struct osmo_fd osmux_fd_v6;
+static struct osmo_io_fd *osmux_fd_v4;
+static struct osmo_io_fd *osmux_fd_v6;
 
 static LLIST_HEAD(osmux_handle_list);
 
@@ -76,34 +79,31 @@ static void rtpconn_osmux_rate_ctr_inc(struct mgcp_conn_rtp *conn_rtp, int id)
 static void osmux_deliver_cb(struct msgb *batch_msg, void *data)
 {
 	struct osmux_handle *handle = data;
-	socklen_t dest_len;
-	int rc, fd;
-	struct mgcp_trunk *trunk = (struct mgcp_trunk *)osmux_fd_v4.data;
+	int rc;
+	struct osmo_io_fd *iofd;
+	struct mgcp_trunk *trunk = (struct mgcp_trunk *) osmo_iofd_get_data(osmux_fd_v4);
 	struct rate_ctr_group *all_osmux_stats = trunk->ratectr.all_osmux_conn_stats;
 
 	switch (handle->rem_addr.u.sa.sa_family) {
 	case AF_INET6:
-		dest_len = sizeof(handle->rem_addr.u.sin6);
-		fd = osmux_fd_v6.fd;
+		iofd = osmux_fd_v6;
 		break;
 	case AF_INET:
 	default:
-		dest_len = sizeof(handle->rem_addr.u.sin);
-		fd = osmux_fd_v4.fd;
+		iofd = osmux_fd_v4;
 		break;
 	}
-	rc = sendto(fd, batch_msg->data, batch_msg->len, 0,
-		    (struct sockaddr *)&handle->rem_addr.u.sa, dest_len);
+	rc = osmo_iofd_sendto_msgb(iofd, batch_msg, 0, &handle->rem_addr);
 	if (rc < 0) {
 		char errbuf[129];
-		strerror_r(errno, errbuf, sizeof(errbuf));
+		strerror_r(-rc, errbuf, sizeof(errbuf));
 		LOGP(DOSMUX, LOGL_NOTICE, "osmux sendto(%s) failed: %s\n",
 			 osmo_sockaddr_to_str(&handle->rem_addr), errbuf);
 		rate_ctr_inc(rate_ctr_group_get_ctr(all_osmux_stats, OSMUX_DROPPED_PACKETS_CTR));
+		msgb_free(batch_msg);
 	} else {
 		rate_ctr_inc(rate_ctr_group_get_ctr(all_osmux_stats, OSMUX_PACKETS_TX_CTR));
 	}
-	msgb_free(batch_msg);
 }
 
 /* Lookup existing OSMUX handle for specified destination address. */
@@ -325,28 +325,6 @@ static void scheduled_from_osmux_tx_rtp_cb(struct msgb *msg, void *data)
 	/* dispatch_rtp_cb() has taken ownership of the msgb */
 }
 
-static struct msgb *osmux_recv(struct osmo_fd *ofd, struct osmo_sockaddr *addr)
-{
-	struct msgb *msg;
-	socklen_t slen = sizeof(addr->u.sas);
-	int ret;
-
-	msg = msgb_alloc(4096, "OSMUX");
-	if (!msg) {
-		LOGP(DOSMUX, LOGL_ERROR, "cannot allocate message\n");
-		return NULL;
-	}
-	ret = recvfrom(ofd->fd, msg->data, msg->data_len, 0, &addr->u.sa, &slen);
-	if (ret <= 0) {
-		msgb_free(msg);
-		LOGP(DOSMUX, LOGL_ERROR, "cannot receive message\n");
-		return NULL;
-	}
-	msgb_put(msg, ret);
-
-	return msg;
-}
-
 /* To be called every time some AMR data is received on a connection
  * returns: 0 if conn can process data, negative if an error ocurred and data should not be further processed */
 static int conn_osmux_event_data_received(struct mgcp_conn_rtp *conn, const struct osmo_sockaddr *rem_addr)
@@ -442,22 +420,16 @@ out:
 }
 
 #define osmux_chunk_length(msg, rem) ((rem) - (msg)->len)
-static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
+static void osmux_recvfrom_cb(struct osmo_io_fd *iofd, int res, struct msgb *msg, const struct osmo_sockaddr *rem_addr)
 {
-	struct msgb *msg;
 	struct osmux_hdr *osmuxh;
-	struct osmo_sockaddr rem_addr;
-	uint32_t rem;
-	struct mgcp_trunk *trunk = ofd->data;
+	struct mgcp_trunk *trunk = osmo_iofd_get_data(iofd);
 	struct rate_ctr_group *all_rtp_stats = trunk->ratectr.all_osmux_conn_stats;
+	uint32_t rem;
 	char addr_str[64];
 
-	msg = osmux_recv(ofd, &rem_addr);
-	if (!msg)
-		return -1;
-
 	rate_ctr_inc(rate_ctr_group_get_ctr(all_rtp_stats, OSMUX_PACKETS_RX_CTR));
-	osmo_sockaddr_to_str_buf(addr_str, sizeof(addr_str), &rem_addr);
+	osmo_sockaddr_to_str_buf(addr_str, sizeof(addr_str), rem_addr);
 
 	if (trunk->cfg->osmux.usage == OSMUX_USAGE_OFF) {
 		LOGP(DOSMUX, LOGL_ERROR,
@@ -467,14 +439,16 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 	}
 
 	/* Catch legacy dummy message and process them separately: */
-	if (msg->len == 2 && msg->data[0] == MGCP_DUMMY_LOAD)
-		return osmux_handle_legacy_dummy(trunk, &rem_addr, msg);
+	if (msg->len == 2 && msg->data[0] == MGCP_DUMMY_LOAD) {
+		osmux_handle_legacy_dummy(trunk, rem_addr, msg);
+		return;
+	}
 
 	rem = msg->len;
 	while((osmuxh = osmux_xfrm_output_pull(msg)) != NULL) {
 		struct mgcp_conn_rtp *conn_src;
 		conn_src = osmux_conn_lookup(trunk, osmuxh->circuit_id,
-					     &rem_addr);
+					     rem_addr);
 		if (!conn_src) {
 			LOGP(DOSMUX, LOGL_DEBUG,
 			     "Cannot find a src conn for %s CID=%d\n",
@@ -482,7 +456,7 @@ static int osmux_read_fd_cb(struct osmo_fd *ofd, unsigned int what)
 			goto next;
 		}
 
-		if (conn_osmux_event_data_received(conn_src, &rem_addr) < 0)
+		if (conn_osmux_event_data_received(conn_src, rem_addr) < 0)
 			goto next;
 
 		mgcp_conn_watchdog_kick(conn_src->conn);
@@ -496,19 +470,38 @@ next:
 	}
 out:
 	msgb_free(msg);
-	return 0;
 }
+
+static void osmux_sendto_cb(struct osmo_io_fd *iofd, int res, struct msgb *msg, const struct osmo_sockaddr *rem_addr)
+{
+	/* nothing; osmo_io takes care of msgb_free */
+	if (res < 0) {
+		struct mgcp_trunk *trunk = (struct mgcp_trunk *) osmo_iofd_get_data(iofd);
+		struct rate_ctr_group *all_osmux_stats = trunk->ratectr.all_osmux_conn_stats;
+		char errbuf[129];
+		strerror_r(-res, errbuf, sizeof(errbuf));
+		LOGP(DOSMUX, LOGL_NOTICE, "osmux sendto(%s) failed: %s\n", osmo_sockaddr_to_str(rem_addr), errbuf);
+		rate_ctr_inc(rate_ctr_group_get_ctr(all_osmux_stats, OSMUX_DROPPED_PACKETS_CTR));
+	}
+}
+
+static const struct osmo_io_ops osmux_ioops = {
+	.recvfrom_cb = osmux_recvfrom_cb,
+	.sendto_cb = osmux_sendto_cb,
+};
 
 int osmux_init(struct mgcp_trunk *trunk)
 {
-	int ret;
+	int ret, fd;
 	struct mgcp_config *cfg = trunk->cfg;
 
 	/* So far we only support running on one trunk: */
 	OSMO_ASSERT(trunk == mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID));
 
-	osmo_fd_setup(&osmux_fd_v4, -1, OSMO_FD_READ, osmux_read_fd_cb, trunk, 0);
-	osmo_fd_setup(&osmux_fd_v6, -1, OSMO_FD_READ, osmux_read_fd_cb, trunk, 0);
+	osmux_fd_v4 = osmo_iofd_setup(trunk, -1, "osmux_fd_v4", OSMO_IO_FD_MODE_RECVFROM_SENDTO, &osmux_ioops, trunk);
+	if (!osmux_fd_v4)
+		goto out;
+	osmo_iofd_set_alloc_info(osmux_fd_v4, 4096, 0);
 
 	if (cfg->osmux.local_addr_v4) {
 		ret = mgcp_create_bind(cfg->osmux.local_addr_v4, cfg->osmux.local_port,
@@ -516,40 +509,55 @@ int osmux_init(struct mgcp_trunk *trunk)
 		if (ret < 0) {
 			LOGP(DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv4 socket to %s:%u\n",
 			     cfg->osmux.local_addr_v4, cfg->osmux.local_port);
-			return ret;
+			goto out_free_v4;
 		}
-		osmux_fd_v4.fd = ret;
+		fd = ret;
 
-		ret = osmo_fd_register(&osmux_fd_v4);
+		ret = osmo_iofd_register(osmux_fd_v4, fd);
 		if (ret < 0) {
-			LOGP(DOSMUX, LOGL_ERROR, "Cannot register OSMUX IPv4 socket %s\n",
-			     osmo_sock_get_name2(osmux_fd_v4.fd));
-			return ret;
+			LOGP(DOSMUX, LOGL_ERROR, "Cannot register OSMUX IPv4 socket %s\n", osmo_sock_get_name2(fd));
+			close(fd);
+			goto out_free_v4;
 		}
-		LOGP(DOSMUX, LOGL_INFO, "OSMUX IPv4 socket listening on %s\n",
-		     osmo_sock_get_name2(osmux_fd_v4.fd));
+		LOGP(DOSMUX, LOGL_INFO, "OSMUX IPv4 socket listening on %s\n", osmo_sock_get_name2(fd));
 	}
+
+	osmux_fd_v6 = osmo_iofd_setup(trunk, -1, "osmux_fd_v6", OSMO_IO_FD_MODE_RECVFROM_SENDTO, &osmux_ioops, trunk);
+	if (!osmux_fd_v6)
+		goto out_free_v4;
+	osmo_iofd_set_alloc_info(osmux_fd_v6, 4096, 0);
+
 	if (cfg->osmux.local_addr_v6) {
 		ret = mgcp_create_bind(cfg->osmux.local_addr_v6, cfg->osmux.local_port,
 					cfg->endp_dscp, cfg->endp_priority);
 		if (ret < 0) {
 			LOGP(DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv6 socket to [%s]:%u\n",
 			     cfg->osmux.local_addr_v6, cfg->osmux.local_port);
-			return ret;
+			goto out_free_v6;
 		}
-		osmux_fd_v6.fd = ret;
+		fd = ret;
 
-		ret = osmo_fd_register(&osmux_fd_v6);
+		ret = osmo_iofd_register(osmux_fd_v6, fd);
 		if (ret < 0) {
-			LOGP(DOSMUX, LOGL_ERROR, "Cannot register OSMUX IPv6 socket %s\n",
-			     osmo_sock_get_name2(osmux_fd_v6.fd));
-			return ret;
+			LOGP(DOSMUX, LOGL_ERROR, "Cannot register OSMUX IPv6 socket %s\n", osmo_sock_get_name2(fd));
+			close(fd);
+			goto out_free_v6;
 		}
-		LOGP(DOSMUX, LOGL_INFO, "OSMUX IPv6 socket listening on %s\n",
-		     osmo_sock_get_name2(osmux_fd_v6.fd));
+		LOGP(DOSMUX, LOGL_INFO, "OSMUX IPv6 socket listening on %s\n", osmo_sock_get_name2(fd));
 	}
 	cfg->osmux.initialized = true;
 	return 0;
+
+out_free_v6:
+	/* osmo_iofd_free performs unregister + close */
+	osmo_iofd_free(osmux_fd_v6);
+	osmux_fd_v6 = NULL;
+out_free_v4:
+	/* osmo_iofd_free performs unregister + close */
+	osmo_iofd_free(osmux_fd_v4);
+	osmux_fd_v4 = NULL;
+out:
+	return -1;
 }
 
 /*! relase OSXMUX cid, that had been allocated to this connection.
@@ -715,7 +723,7 @@ int osmux_send_dummy(struct mgcp_conn_rtp *conn)
 		 osmo_sockaddr_ntop(&conn->end.addr.u.sa, ipbuf),
 		 osmo_sockaddr_port(&conn->end.addr.u.sa), conn->osmux.remote_cid);
 
-	return mgcp_udp_send(osmux_fd_v4.fd, &conn->end.addr, (char *)osmuxh, buf_len);
+	return mgcp_udp_send(osmux_fd_v4, &conn->end.addr, (char *)osmuxh, buf_len);
 }
 
 /* Keeps track of locally allocated Osmux circuit ID. +7 to round up to 8 bit boundary. */

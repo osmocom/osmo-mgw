@@ -24,6 +24,7 @@
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/socket.h>
+#include <osmocom/core/osmo_io.h>
 #include <osmocom/core/write_queue.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/logging.h>
@@ -205,4 +206,4 @@ int mgcp_send_reset_all(struct mgcp_config *cfg);
 
 
 int mgcp_create_bind(const char *source_addr, int port, uint8_t dscp, uint8_t prio);
-int mgcp_udp_send(int fd, const struct osmo_sockaddr *addr, const char *buf, int len);
+int mgcp_udp_send(struct osmo_io_fd *iofd, const struct osmo_sockaddr *addr, const char *buf, int len);

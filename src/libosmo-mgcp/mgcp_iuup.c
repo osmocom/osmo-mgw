@@ -512,10 +512,9 @@ static int mgcp_send_iuup(struct mgcp_endpoint *endp, struct msgb *msg,
 		 osmo_sockaddr_port(&rtp_end->addr.u.sa), ntohs(rtp_end->rtcp_port));
 
 	/* Forward a copy of the RTP data to a debug ip/port */
-	forward_data_tap(rtp_end->rtp.fd, &conn_src->tap_out,
-		     msg);
+	forward_data_tap(rtp_end->rtp, &conn_src->tap_out, msg);
 
-	len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr, (char *)hdr, buflen);
+	len = mgcp_udp_send(rtp_end->rtp, &rtp_end->addr, (char *)hdr, buflen);
 
 	if (len <= 0)
 		return len;

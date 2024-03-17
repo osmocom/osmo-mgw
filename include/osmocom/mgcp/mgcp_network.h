@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include <osmocom/core/socket.h>
+#include <osmocom/core/osmo_io.h>
 
 #include <osmocom/mgcp/mgcp.h>
 
@@ -120,8 +121,8 @@ struct mgcp_rtp_end {
 	bool rfc5993_hr_convert;
 
 	/* Each end has a separate socket for RTP and RTCP */
-	struct osmo_fd rtp;
-	struct osmo_fd rtcp;
+	struct osmo_io_fd *rtp;
+	struct osmo_io_fd *rtcp;
 
 	/* local UDP port number of the RTP socket; RTCP is +1 */
 	int local_port;
@@ -179,7 +180,7 @@ void rtpconn_rate_ctr_add(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *
 				 int id, int inc);
 void rtpconn_rate_ctr_inc(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *endp,
 				 int id);
-void forward_data_tap(int fd, struct mgcp_rtp_tap *tap, struct msgb *msg);
+void forward_data_tap(struct osmo_io_fd *iofd, struct mgcp_rtp_tap *tap, struct msgb *msg);
 uint32_t mgcp_get_current_ts(unsigned codec_rate);
 
 int amr_oa_bwe_convert(struct mgcp_endpoint *endp, struct msgb *msg, bool target_is_oa);
