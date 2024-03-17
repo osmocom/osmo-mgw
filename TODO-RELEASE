@@ -39,3 +39,5 @@ libosmo-mgcp-client	deprecate public API	New code should no longer use codecs[],
 						is backwards compat code that moves codecs[] entries, if any, over to
 						ptmap[], so callers may migrate at own leisure.
 osmo-mgw		remove cfg		Remove VTY config item 'sdp audio fmtp-extra' (see OS#6313)
+libosmocore		bump_dep; workaround	Bump libosmocore version dependency after I68328adb952ca8833ba047cb3b49ccc6f8a1f1b5
+						has been merged to libosmocore.git; then remove my_msgb_copy_c wrapper function.

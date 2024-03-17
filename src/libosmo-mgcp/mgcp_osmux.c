@@ -204,17 +204,17 @@ osmux_handle_find_or_create(const struct mgcp_trunk *trunk, const struct osmo_so
 	return h->in;
 }
 
-/*! send RTP packet through OSMUX connection.
+/*! send RTP packet through OSMUX connection. Takes ownership of msg.
  *  \param[in] conn associated RTP connection
  *  \param[in] msg msgb containing an RTP AMR packet
  *  \returns 0 on success, -1 on ERROR */
 int conn_osmux_send_rtp(struct mgcp_conn_rtp *conn, struct msgb *msg)
 {
 	int ret;
-	struct msgb *msg2;
 
 	if (!conn->end.output_enabled) {
 		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_DROPPED_CTR);
+		msgb_free(msg);
 		return -1;
 	}
 
@@ -222,22 +222,19 @@ int conn_osmux_send_rtp(struct mgcp_conn_rtp *conn, struct msgb *msg)
 		LOGPCONN(conn->conn, DOSMUX, LOGL_INFO, "forwarding RTP to Osmux conn not yet enabled, dropping (cid=%d)\n",
 		conn->osmux.remote_cid);
 		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_DROPPED_CTR);
+		msgb_free(msg);
 		return -1;
 	}
-
-	/* msg is not owned by us and will be freed by the caller stack upon return: */
-	msg2 = msgb_copy_c(conn->conn, msg, "osmux-rtp-send");
-	if (!msg2)
-		return -1;
 
 	/* Osmux implementation works with AMR OA only, make sure we convert to it if needed: */
-	if (amr_oa_bwe_convert(conn->conn->endp, msg2, true) < 0) {
+	if (amr_oa_bwe_convert(conn->conn->endp, msg, true) < 0) {
 		LOGPCONN(conn->conn, DOSMUX, LOGL_ERROR,
 			 "Error converting to AMR octet-aligned mode\n");
+		msgb_free(msg);
 		return -1;
 	}
 
-	while ((ret = osmux_xfrm_input(conn->osmux.in, msg2, conn->osmux.remote_cid)) > 0) {
+	while ((ret = osmux_xfrm_input(conn->osmux.in, msg, conn->osmux.remote_cid)) > 0) {
 		/* batch full, build and deliver it */
 		osmux_xfrm_input_deliver(conn->osmux.in);
 	}
@@ -245,7 +242,7 @@ int conn_osmux_send_rtp(struct mgcp_conn_rtp *conn, struct msgb *msg)
 		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_DROPPED_CTR);
 	} else {
 		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_CTR);
-		rtpconn_osmux_rate_ctr_add(conn, OSMUX_AMR_OCTETS_TX_CTR, msgb_length(msg2) - sizeof(struct rtp_hdr));
+		rtpconn_osmux_rate_ctr_add(conn, OSMUX_AMR_OCTETS_TX_CTR, msgb_length(msg) - sizeof(struct rtp_hdr));
 	}
 	return 0;
 }
@@ -325,7 +322,7 @@ static void scheduled_from_osmux_tx_rtp_cb(struct msgb *msg, void *data)
 	};
 
 	endp->type->dispatch_rtp_cb(msg);
-	msgb_free(msg);
+	/* dispatch_rtp_cb() has taken ownership of the msgb */
 }
 
 static struct msgb *osmux_recv(struct osmo_fd *ofd, struct osmo_sockaddr *addr)
