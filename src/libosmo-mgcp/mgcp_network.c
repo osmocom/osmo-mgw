@@ -794,16 +794,18 @@ static int amr_oa_check(char *data, int len)
 
 /* Forward data to a debug tap. This is debug function that is intended for
  * debugging the voice traffic with tools like gstreamer */
-void forward_data_tap(int fd, struct mgcp_rtp_tap *tap, struct msgb *msg)
+void forward_data_tap(struct osmo_io_fd *iofd, struct mgcp_rtp_tap *tap, struct msgb *msg)
 {
 	int rc;
 
 	if (!tap->enabled)
 		return;
 
-	rc = sendto(fd, msgb_data(msg), msgb_length(msg), 0, (struct sockaddr *)&tap->forward,
-		    sizeof(tap->forward));
+	struct msgb *msg2 = msgb_copy(msg, "RTP TAP Tx");
+	if (!msg2)
+		return;
 
+	rc = osmo_iofd_sendto_msgb(iofd, msg2, 0, &tap->forward);
 	if (rc < 0)
 		LOGP(DRTP, LOGL_ERROR,
 		     "Forwarding tapped (debug) voice data failed.\n");
@@ -1039,29 +1041,34 @@ static int mgcp_conn_rtp_dispatch_rtp(struct mgcp_conn_rtp *conn_dst, struct msg
 	return -1;
 }
 
-/*! send udp packet.
- *  \param[in] fd associated file descriptor.
+/*! send message buffer via udp socket.
+ *  \param[in] iofd associated file descriptor.
+ *  \param[in] addr destination ip-address.
+ *  \param[in] msg message buffer that holds the data to be send.
+ *  \returns bytes sent, -1 on error. */
+static int mgcp_udp_send_msg(struct osmo_io_fd *iofd, const struct osmo_sockaddr *addr, struct msgb *msg)
+{
+	LOGP(DRTP, LOGL_DEBUG, "sending %i bytes length packet to %s ...\n", msgb_length(msg),
+	     osmo_sockaddr_to_str(addr));
+
+	return osmo_iofd_sendto_msgb(iofd, msg, 0, addr);
+}
+
+/*! send udp packet from raw buffer/length.
+ *  \param[in] iofd associated file descriptor.
  *  \param[in] addr destination ip-address.
  *  \param[in] buf buffer that holds the data to be send.
  *  \param[in] len length of the data to be sent.
  *  \returns bytes sent, -1 on error. */
-int mgcp_udp_send(int fd, const struct osmo_sockaddr *addr, const char *buf, int len)
+int mgcp_udp_send(struct osmo_io_fd *iofd, const struct osmo_sockaddr *addr, const char *buf, int len)
 {
-	char ipbuf[INET6_ADDRSTRLEN];
-	size_t addr_len;
+	struct msgb *msg = msgb_alloc_c(iofd, len, "mgcp_udp_send");
+	if (!msg)
+		return -ENOMEM;
+	memcpy(msg->tail, buf, len);
+	msgb_put(msg, len);
 
-	LOGP(DRTP, LOGL_DEBUG,
-	     "sending %i bytes length packet to %s:%u ...\n", len,
-	     osmo_sockaddr_ntop(&addr->u.sa, ipbuf),
-	     osmo_sockaddr_port(&addr->u.sa));
-
-	if (addr->u.sa.sa_family == AF_INET6) {
-		addr_len = sizeof(addr->u.sin6);
-	} else {
-		addr_len = sizeof(addr->u.sin);
-	}
-
-	return sendto(fd, buf, len, 0, &addr->u.sa, addr_len);
+	return mgcp_udp_send_msg(iofd, addr, msg);
 }
 
 /*! send RTP dummy packet (to keep NAT connection open).
@@ -1089,8 +1096,7 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	if (mgcp_conn_rtp_is_iuup(conn))
 		rc = mgcp_conn_iuup_send_dummy(conn);
 	else
-		rc = mgcp_udp_send(conn->end.rtp.fd, &conn->end.addr,
-				   rtp_dummy_payload, sizeof(rtp_dummy_payload));
+		rc = mgcp_udp_send(conn->end.rtp, &conn->end.addr, rtp_dummy_payload, sizeof(rtp_dummy_payload));
 
 	if (rc == -1)
 		goto failed;
@@ -1101,7 +1107,7 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	was_rtcp = 1;
 	rtcp_addr = conn->end.addr;
 	osmo_sockaddr_set_port(&rtcp_addr.u.sa, ntohs(conn->end.rtcp_port));
-	rc = mgcp_udp_send(conn->end.rtcp.fd, &rtcp_addr,
+	rc = mgcp_udp_send(conn->end.rtcp, &rtcp_addr,
 			   rtp_dummy_payload, sizeof(rtp_dummy_payload));
 
 	if (rc >= 0)
@@ -1225,22 +1231,21 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 			);
 
 		/* Forward a copy of the RTP data to a debug ip/port */
-		forward_data_tap(rtp_end->rtp.fd, &conn_src->tap_out,
-			     msg);
+		forward_data_tap(rtp_end->rtp, &conn_src->tap_out, msg);
 
-		len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr,
-				    (char *)msgb_data(msg), msgb_length(msg));
-		if (len <= 0) {
+		len = msgb_length(msg);
+
+		rc = mgcp_udp_send_msg(rtp_end->rtp, &rtp_end->addr, msg);
+		if (rc < 0) {
 			msgb_free(msg);
-			return len;
+			return rc;
 		}
 
 		rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
 		rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
 		rtp_state->alt_rtp_tx_sequence++;
 
-		msgb_free(msg);
-		return len;
+		return 0;
 	} else if (!trunk->omit_rtcp) {
 		struct osmo_sockaddr rtcp_addr = rtp_end->addr;
 		osmo_sockaddr_set_port(&rtcp_addr.u.sa, rtp_end->rtcp_port);
@@ -1251,15 +1256,19 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 			 osmo_sockaddr_port(&rtcp_addr.u.sa)
 			);
 
-		len = mgcp_udp_send(rtp_end->rtcp.fd, &rtcp_addr,
-				    (char *)msgb_data(msg), msgb_length(msg));
+		len = msgb_length(msg);
+
+		rc = mgcp_udp_send_msg(rtp_end->rtcp, &rtcp_addr, msg);
+		if (rc < 0) {
+			msgb_free(msg);
+			return rc;
+		}
 
 		rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
 		rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
 		rtp_state->alt_rtp_tx_sequence++;
 
-		msgb_free(msg);
-		return len;
+		return 0;
 	}
 
 	msgb_free(msg);
@@ -1461,7 +1470,7 @@ void mgcp_cleanup_e1_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *con
 }
 
 /* Handle incoming RTP data from NET */
-static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
+static void rtp_recvfrom_cb(struct osmo_io_fd *iofd, int res, struct msgb *msg, const struct osmo_sockaddr *saddr)
 {
 	/* NOTE: This is a generic implementation. RTP data is received. In
 	 * case of loopback the data is just sent back to its origin. All
@@ -1472,49 +1481,34 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 
 	struct mgcp_conn_rtp *conn_src;
 	struct mgcp_endpoint *endp;
-	struct osmo_sockaddr addr;
-	socklen_t slen = sizeof(addr);
-	char ipbuf[INET6_ADDRSTRLEN];
-	int ret;
 	enum rtp_proto proto;
 	struct osmo_rtp_msg_ctx *mc;
-	struct msgb *msg;
-	int rc;
 
-	conn_src = (struct mgcp_conn_rtp *)fd->data;
+	conn_src = (struct mgcp_conn_rtp *) osmo_iofd_get_data(iofd);
 	OSMO_ASSERT(conn_src);
 	endp = conn_src->conn->endp;
 	OSMO_ASSERT(endp);
-	msg = msgb_alloc_c(endp->trunk, RTP_BUF_SIZE, "RTP-rx");
 
-	proto = (fd == &conn_src->end.rtp)? MGCP_PROTO_RTP : MGCP_PROTO_RTCP;
+	proto = (iofd == conn_src->end.rtp)? MGCP_PROTO_RTP : MGCP_PROTO_RTCP;
 
-	ret = recvfrom(fd->fd, msgb_data(msg), msg->data_len, 0, (struct sockaddr *)&addr.u.sa, &slen);
-
-	if (ret <= 0) {
-		LOG_CONN_RTP(conn_src, LOGL_ERROR, "recvfrom error: %s\n", strerror(errno));
-		rc = -1;
-		goto out;
+	if (res <= 0) {
+		LOG_CONN_RTP(conn_src, LOGL_ERROR, "recvfrom error: %s\n", strerror(-res));
+		goto out_free;
 	}
 
-	msgb_put(msg, ret);
-
-	LOG_CONN_RTP(conn_src, LOGL_DEBUG, "%s: rx %u bytes from %s:%u\n",
+	LOG_CONN_RTP(conn_src, LOGL_DEBUG, "%s: rx %u bytes from %s\n",
 		     proto == MGCP_PROTO_RTP ? "RTP" : "RTCP",
-		     msgb_length(msg), osmo_sockaddr_ntop(&addr.u.sa, ipbuf),
-		     osmo_sockaddr_port(&addr.u.sa));
+		     msgb_length(msg), osmo_sockaddr_to_str(saddr));
 
 	if ((proto == MGCP_PROTO_RTP && check_rtp(conn_src, msg))
 	    || (proto == MGCP_PROTO_RTCP && check_rtcp(conn_src, msg))) {
 		/* Logging happened in the two check_ functions */
-		rc = -1;
-		goto out;
+		goto out_free;
 	}
 
 	if (mgcp_is_rtp_dummy_payload(msg)) {
 		LOG_CONN_RTP(conn_src, LOGL_DEBUG, "rx dummy packet (dropped)\n");
-		rc = 0;
-		goto out;
+		goto out_free;
 	}
 
 	/* Since the msgb remains owned and freed by this function, the msg ctx data struct can just be on the stack and
@@ -1523,7 +1517,7 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	*mc = (struct osmo_rtp_msg_ctx){
 		.proto = proto,
 		.conn_src = conn_src,
-		.from_addr = &addr,
+		.from_addr = (struct osmo_sockaddr *) saddr,
 	};
 	LOG_CONN_RTP(conn_src, LOGL_DEBUG, "msg ctx: %d %p %s\n",
 		     mc->proto, mc->conn_src,
@@ -1538,12 +1532,13 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	/* FIXME: count RTP and RTCP separately, also count IuUP payload-less separately */
 
 	/* Forward a copy of the RTP data to a debug ip/port */
-	forward_data_tap(fd->fd, &conn_src->tap_in, msg);
+	forward_data_tap(iofd, &conn_src->tap_in, msg);
 
-	rc = rx_rtp(msg);
+	rx_rtp(msg);
+	return;
 
-out:
-	return rc;
+out_free:
+	msgb_free(msg);
 }
 
 /* Note: This function is able to handle RTP and RTCP. msgb ownership is transferred, so this function or its
@@ -1590,6 +1585,24 @@ out_free:
 	return -1;
 }
 
+static void rtp_sendto_cb(struct osmo_io_fd *iofd, int res, struct msgb *msg, const struct osmo_sockaddr *daddr)
+{
+	/* nothing; osmo_io takes care of msgb_free */
+	if (res < 0) {
+		struct mgcp_conn_rtp *conn_rtp = (struct mgcp_conn_rtp *) osmo_iofd_get_data(iofd);
+		int priv_nr = osmo_iofd_get_priv_nr(iofd);
+		char errbuf[129];
+		strerror_r(-res, errbuf, sizeof(errbuf));
+		LOG_CONN_RTP(conn_rtp, LOGL_NOTICE, "%s sendto(%s) failed: %s\n", priv_nr ? "RTCP" : "RTP",
+			 osmo_sockaddr_to_str(daddr), errbuf);
+	}
+}
+
+static const struct osmo_io_ops rtp_ioops = {
+	.recvfrom_cb = rtp_recvfrom_cb,
+	.sendto_cb = rtp_sendto_cb,
+};
+
 /*! bind RTP port to osmo_fd.
  *  \param[in] source_addr source (local) address to bind on.
  *  \param[in] port to bind on.
@@ -1617,7 +1630,7 @@ int mgcp_create_bind(const char *source_addr, int port, uint8_t dscp, uint8_t pr
 static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
 		    struct mgcp_rtp_end *rtp_end, struct mgcp_endpoint *endp)
 {
-	int rc;
+	int rc, rtp_fd, rtcp_fd;
 
 	/* NOTE: The port that is used for RTCP is the RTP port incremented by one
 	 * (e.g. RTP-Port = 16000 ==> RTCP-Port = 16001) */
@@ -1629,7 +1642,7 @@ static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
 			 source_addr, rtp_end->local_port);
 		goto cleanup0;
 	}
-	rtp_end->rtp.fd = rc;
+	rtp_fd = rc;
 
 	rc = mgcp_create_bind(source_addr, rtp_end->local_port + 1, cfg->endp_dscp, cfg->endp_priority);
 	if (rc < 0) {
@@ -1638,16 +1651,16 @@ static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
 			 source_addr, rtp_end->local_port + 1);
 		goto cleanup1;
 	}
-	rtp_end->rtcp.fd = rc;
+	rtcp_fd = rc;
 
-	if (osmo_fd_register(&rtp_end->rtp) != 0) {
+	if (osmo_iofd_register(rtp_end->rtp, rtp_fd) < 0) {
 		LOGPENDP(endp, DRTP, LOGL_ERROR,
 			 "failed to register RTP port %d\n",
 			 rtp_end->local_port);
 		goto cleanup2;
 	}
 
-	if (osmo_fd_register(&rtp_end->rtcp) != 0) {
+	if (osmo_iofd_register(rtp_end->rtcp, rtcp_fd) != 0) {
 		LOGPENDP(endp, DRTP, LOGL_ERROR,
 			 "failed to register RTCP port %d\n",
 			 rtp_end->local_port + 1);
@@ -1657,13 +1670,11 @@ static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
 	return 0;
 
 cleanup3:
-	osmo_fd_unregister(&rtp_end->rtp);
+	osmo_iofd_unregister(rtp_end->rtp);
 cleanup2:
-	close(rtp_end->rtcp.fd);
-	rtp_end->rtcp.fd = -1;
+	close(rtcp_fd);
 cleanup1:
-	close(rtp_end->rtp.fd);
-	rtp_end->rtp.fd = -1;
+	close(rtp_fd);
 cleanup0:
 	return -1;
 }
@@ -1682,7 +1693,8 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 	snprintf(name, sizeof(name), "%s-%s", conn->conn->name, conn->conn->id);
 	end = &conn->end;
 
-	if (end->rtp.fd != -1 || end->rtcp.fd != -1) {
+	if ((end->rtp && osmo_iofd_get_fd(end->rtp) != -1) ||
+	    (end->rtcp && osmo_iofd_get_fd(end->rtcp) != -1)) {
 		LOGPENDP(endp, DRTP, LOGL_ERROR, "%u was already bound on conn:%s\n",
 			 rtp_port, mgcp_conn_dump(conn->conn));
 
@@ -1695,8 +1707,18 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 	}
 
 	end->local_port = rtp_port;
-	osmo_fd_setup(&end->rtp, -1, OSMO_FD_READ, rtp_data_net, conn, 0);
-	osmo_fd_setup(&end->rtcp, -1, OSMO_FD_READ, rtp_data_net, conn, 0);
+	end->rtp = osmo_iofd_setup(conn->conn, -1, name, OSMO_IO_FD_MODE_RECVFROM_SENDTO, &rtp_ioops, conn);
+	if (!end->rtp)
+		return -EIO;
+	osmo_iofd_set_alloc_info(end->rtp, RTP_BUF_SIZE, 0);
+	end->rtcp = osmo_iofd_setup(conn->conn, -1, name, OSMO_IO_FD_MODE_RECVFROM_SENDTO, &rtp_ioops, conn);
+	if (!end->rtcp) {
+		osmo_iofd_free(end->rtp);
+		end->rtp = NULL;
+		return -EIO;
+	}
+	osmo_iofd_set_alloc_info(end->rtcp, RTP_BUF_SIZE, 0);
+	osmo_iofd_set_priv_nr(end->rtcp, 1); /* we use priv_nr as identifier for RTCP */
 
 	return bind_rtp(endp->trunk->cfg, conn->end.local_addr, end, endp);
 }
@@ -1705,15 +1727,13 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
  *  \param[in] end RTP end */
 void mgcp_free_rtp_port(struct mgcp_rtp_end *end)
 {
-	if (end->rtp.fd != -1) {
-		osmo_fd_unregister(&end->rtp);
-		close(end->rtp.fd);
-		end->rtp.fd = -1;
+	if (end->rtp) {
+		osmo_iofd_free(end->rtp);
+		end->rtp = NULL;
 	}
 
-	if (end->rtcp.fd != -1) {
-		osmo_fd_unregister(&end->rtcp);
-		close(end->rtcp.fd);
-		end->rtcp.fd = -1;
+	if (end->rtcp) {
+		osmo_iofd_free(end->rtcp);
+		end->rtcp = NULL;
 	}
 }

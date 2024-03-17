@@ -106,8 +106,8 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 	/* backpointer to the generic part of the connection */
 	conn->u.rtp.conn = conn;
 
-	end->rtp.fd = -1;
-	end->rtcp.fd = -1;
+	end->rtp = NULL;
+	end->rtcp = NULL;
 	memset(&end->addr, 0, sizeof(end->addr));
 	end->rtcp_port = 0;
 
