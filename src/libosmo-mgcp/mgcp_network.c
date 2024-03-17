@@ -70,6 +70,18 @@ void rtpconn_rate_ctr_inc(struct mgcp_conn_rtp *conn_rtp, struct mgcp_endpoint *
 	rtpconn_rate_ctr_add(conn_rtp, endp, id, 1);
 }
 
+/* wrapper around libosmocore msgb_copy_c, which [at least before libosmocore.git Change-Id
+ * I68328adb952ca8833ba047cb3b49ccc6f8a1f1b5] doesn't copy the cb */
+static inline struct msgb *mgw_msgb_copy_c(void *ctx, struct msgb *msg, const char *name)
+{
+	struct msgb *msg2 = msgb_copy_c(ctx, msg, name);
+	if (OSMO_UNLIKELY(!msg2))
+		return NULL;
+
+	memcpy(msg2->cb, msg->cb, sizeof(msg2->cb));
+	return msg2;
+}
+
 static int rx_rtp(struct msgb *msg);
 
 bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end)
@@ -963,7 +975,7 @@ static int check_rtp(struct mgcp_conn_rtp *conn_src, struct msgb *msg)
 	return 0;
 }
 
-/*! Dispatch msg bridged from the sister conn in the endpoint.
+/*! Dispatch msg bridged from the sister conn in the endpoint. Takes ownership of msgb.
  *  \param[in] conn_dst The destination conn that should handle and transmit the content to
  *			its peer outside MGW.
  *  \param[in] msg msgb containing an RTP pkt received by the sister conn in the endpoint,
@@ -985,8 +997,10 @@ static int mgcp_conn_rtp_dispatch_rtp(struct mgcp_conn_rtp *conn_dst, struct msg
 	/* Before we try to deliver the packet, we check if the destination
 	 * port and IP-Address make sense at all. If not, we will be unable
 	 * to deliver the packet. */
-	if (check_rtp_destin(conn_dst) != 0)
+	if (check_rtp_destin(conn_dst) != 0) {
+		msgb_free(msg);
 		return -1;
+	}
 
 	/* Depending on the RTP connection type, deliver the RTP packet to the
 	 * destination connection. */
@@ -1021,7 +1035,7 @@ static int mgcp_conn_rtp_dispatch_rtp(struct mgcp_conn_rtp *conn_dst, struct msg
 	 * be discarded, this should not happen, normally the MGCP type
 	 * should be properly set */
 	LOGPENDP(endp, DRTP, LOGL_ERROR, "bad MGCP type -- data discarded!\n");
-
+	msgb_free(msg);
 	return -1;
 }
 
@@ -1101,7 +1115,7 @@ failed:
 	return -1;
 }
 
-/*! Send RTP/RTCP data to a specified destination connection.
+/*! Send RTP/RTCP data to a specified destination connection. Takes ownership of msg.
  *  \param[in] endp associated endpoint (for configuration, logging).
  *  \param[in] is_rtp flag to specify if the packet is of type RTP or RTCP.
  *  \param[in] addr spoofed source address (set to NULL to disable).
@@ -1140,6 +1154,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 	if (is_rtp && !mgcp_conn_rtp_is_iuup(conn_src)) {
 		if (mgcp_patch_pt(conn_dst, msg) < 0) {
 			LOGPENDP(endp, DRTP, LOGL_NOTICE, "unable to patch payload type RTP packet, discarding...\n");
+			msgb_free(msg);
 			return -EINVAL;
 		}
 	}
@@ -1173,6 +1188,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 		rc = endp->trunk->cfg->rtp_processing_cb(endp, rtp_end, msg);
 		if (rc < 0) {
 			LOGPENDP(endp, DRTP, LOGL_ERROR, "Error %d during transcoding\n", rc);
+			msgb_free(msg);
 			return rc;
 		}
 
@@ -1187,6 +1203,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 				LOGPENDP(endp, DRTP, LOGL_ERROR,
 					 "Error in AMR octet-aligned <-> bandwidth-efficient mode conversion (target=%s)\n",
 					 conn_dst->end.codec->param.amr_octet_aligned ? "octet-aligned" : "bandwidth-efficient");
+				msgb_free(msg);
 				return rc;
 			}
 		} else if (rtp_end->rfc5993_hr_convert &&
@@ -1194,6 +1211,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 			rc = rfc5993_hr_convert(endp, msg);
 			if (rc < 0) {
 				LOGPENDP(endp, DRTP, LOGL_ERROR, "Error while converting to GSM-HR-08\n");
+				msgb_free(msg);
 				return rc;
 			}
 		}
@@ -1212,14 +1230,16 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 
 		len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr,
 				    (char *)msgb_data(msg), msgb_length(msg));
-
-		if (len <= 0)
+		if (len <= 0) {
+			msgb_free(msg);
 			return len;
+		}
 
 		rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
 		rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
 		rtp_state->alt_rtp_tx_sequence++;
 
+		msgb_free(msg);
 		return len;
 	} else if (!trunk->omit_rtcp) {
 		struct osmo_sockaddr rtcp_addr = rtp_end->addr;
@@ -1238,10 +1258,41 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 		rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
 		rtp_state->alt_rtp_tx_sequence++;
 
+		msgb_free(msg);
 		return len;
 	}
 
+	msgb_free(msg);
 	return 0;
+}
+
+/*! determine if there's only a single recipient in endp for data received via conn_src.
+ *  The function returns NULL in case there is no recipient, or in case there are multiple recipients.
+ *  \param endp The MGCP endpoint whose connections to analyze
+ *  \param conn_src The source MGCP connection [which shall not count in results]
+ *  \returns recipient donnection if there is only one; NULL in case there are multiple */
+static struct mgcp_conn *rtpbridge_get_only_recipient(struct mgcp_endpoint *endp, struct mgcp_conn *conn_src)
+{
+	struct mgcp_conn *conn_ret = NULL;
+	struct mgcp_conn *conn_dst;
+
+	llist_for_each_entry(conn_dst, &endp->conns, entry) {
+		if (conn_dst == conn_src)
+			continue;
+		switch (conn_dst->mode) {
+		case MGCP_CONN_SEND_ONLY:
+		case MGCP_CONN_RECV_SEND:
+		case MGCP_CONN_CONFECHO:
+			if (conn_ret)
+				return NULL;
+			conn_ret = conn_dst;
+			break;
+		default:
+			break;
+		}
+	}
+
+	return conn_ret;
 }
 
 /*! Dispatch incoming RTP packet to opposite RTP connection.
@@ -1301,23 +1352,44 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 		return rc;
 	}
 
-	/* If the mode is "confecho", send RTP back to the sender. */
-	if (conn->mode == MGCP_CONN_CONFECHO)
-		rc = mgcp_conn_rtp_dispatch_rtp(conn_src, msg);
+	/* All the use cases above are 1:1 where we have one source msgb and we're sending that to one
+	 * destination.  msgb ownership had been passed to the respective _*dospatch_rtp() function.
+	 * In the cases below, we actually [can] have multiple recipients, so we copy the original msgb
+	 * for each of the recipients. */
 
-	/* Dispatch RTP packet to all other connection(s) that send audio. */
-	llist_for_each_entry(conn_dst, &endp->conns, entry) {
-		if (conn_dst == conn)
-			continue;
-		switch (conn_dst->mode) {
-		case MGCP_CONN_SEND_ONLY:
-		case MGCP_CONN_RECV_SEND:
-		case MGCP_CONN_CONFECHO:
-			rc = mgcp_conn_rtp_dispatch_rtp(&conn_dst->u.rtp, msg);
-			break;
-		default:
-			break;
+	/* If the mode is "confecho", send RTP back to the sender. */
+	if (conn->mode == MGCP_CONN_CONFECHO) {
+		struct msgb *msg2 = mgw_msgb_copy_c(conn, msg, "RTP confecho");
+		if (OSMO_LIKELY(msg2))
+			rc = mgcp_conn_rtp_dispatch_rtp(conn_src, msg2);
+	}
+
+	conn_dst = rtpbridge_get_only_recipient(endp, conn);
+	if (OSMO_LIKELY(conn_dst)) {
+		/* we only have a single recipient and cann hence send the original msgb without copying */
+		rc = mgcp_conn_rtp_dispatch_rtp(&conn_dst->u.rtp, msg);
+	} else {
+		/* Dispatch RTP packet to all other connection(s) that send audio. */
+		llist_for_each_entry(conn_dst, &endp->conns, entry) {
+			struct msgb *msg2;
+			if (conn_dst == conn)
+				continue;
+			switch (conn_dst->mode) {
+			case MGCP_CONN_SEND_ONLY:
+			case MGCP_CONN_RECV_SEND:
+			case MGCP_CONN_CONFECHO:
+				/* we have multiple recipients and must make copies for each recipient */
+				msg2 = mgw_msgb_copy_c(conn_dst, msg, "RTP Tx copy");
+				if (OSMO_LIKELY(msg2))
+					rc = mgcp_conn_rtp_dispatch_rtp(&conn_dst->u.rtp, msg2);
+				break;
+			default:
+				break;
+			}
 		}
+		/* as we only sent copies in the previous llist_for_each_entry() loop, we must free the
+		 * original one */
+		msgb_free(msg);
 	}
 	return rc;
 }
@@ -1471,11 +1543,11 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	rc = rx_rtp(msg);
 
 out:
-	msgb_free(msg);
 	return rc;
 }
 
-/* Note: This function is able to handle RTP and RTCP */
+/* Note: This function is able to handle RTP and RTCP. msgb ownership is transferred, so this function or its
+ * downstream consumers must make sure to [eventually] free the msgb. */
 static int rx_rtp(struct msgb *msg)
 {
 	struct osmo_rtp_msg_ctx *mc = OSMO_RTP_MSG_CTX(msg);
@@ -1488,7 +1560,7 @@ static int rx_rtp(struct msgb *msg)
 
 	/* Check if the origin of the RTP packet seems plausible */
 	if (!trunk->rtp_accept_all && check_rtp_origin(conn_src, from_addr))
-		return -1;
+		goto out_free;
 
 	/* Handle AMR frame format conversion (octet-aligned vs. bandwith-efficient) */
 	if (mc->proto == MGCP_PROTO_RTP
@@ -1498,13 +1570,13 @@ static int rx_rtp(struct msgb *msg)
 		 * communicated via SDP when the connection was created/modfied. */
 		int oa = amr_oa_check((char*)msgb_data(msg), msgb_length(msg));
 		if (oa < 0)
-			return -1;
+			goto out_free;
 		if (((bool)oa) != conn_src->end.codec->param.amr_octet_aligned) {
 			LOG_CONN_RTP(conn_src, LOGL_NOTICE,
 				     "rx_rtp(%u bytes): Expected RTP AMR octet-aligned=%u but got octet-aligned=%u."
 				     " check the config of your call-agent!\n",
 				     msgb_length(msg), conn_src->end.codec->param.amr_octet_aligned, oa);
-			return -1;
+			goto out_free;
 		}
 	}
 
@@ -1513,6 +1585,9 @@ static int rx_rtp(struct msgb *msg)
 	/* Execute endpoint specific implementation that handles the
 	 * dispatching of the RTP data */
 	return conn->endp->type->dispatch_rtp_cb(msg);
+out_free:
+	msgb_free(msg);
+	return -1;
 }
 
 /*! bind RTP port to osmo_fd.

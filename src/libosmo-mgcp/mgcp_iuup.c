@@ -311,7 +311,6 @@ static int bridge_iuup_to_rtp_peer(struct mgcp_conn_rtp *conn_rtp_src, struct mg
 	};
 
 	rc = mgcp_send(conn_rtp_dst->conn->endp, true, NULL, msg, conn_rtp_src, conn_rtp_dst);
-	msgb_free(msg);
 	return rc;
 }
 
@@ -640,7 +639,7 @@ free_ret:
 }
 
 /* Build IuUP RNL Data primitive from msg containing an incoming RTP pkt from
- * peer and send it down the IuUP layer towards the destination as IuUP/RTP: */
+ * peer and send it down the IuUP layer towards the destination as IuUP/RTP. Takes ownership of msg. */
 int mgcp_conn_iuup_send_rtp(struct mgcp_conn_rtp *conn_src_rtp, struct mgcp_conn_rtp *conn_dest_rtp, struct msgb *msg)
 {
 	struct osmo_iuup_rnl_prim *irp;

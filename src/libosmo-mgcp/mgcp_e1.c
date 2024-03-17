@@ -301,7 +301,6 @@ static void sync_frame_out_cb(void *user_data, const ubit_t *bits, unsigned int 
 
 	mgcp_send(endp, 1, NULL, msg, &conn_dst->u.rtp, &conn_dst->u.rtp);
 
-	msgb_free(msg);
 	return;
 skip:
 	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, E1_I460_TRAU_RX_FAIL_CTR));
