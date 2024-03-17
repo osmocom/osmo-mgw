@@ -1517,13 +1517,11 @@ static int rx_rtp(struct msgb *msg)
 
 /*! bind RTP port to osmo_fd.
  *  \param[in] source_addr source (local) address to bind on.
- *  \param[in] fd associated file descriptor.
  *  \param[in] port to bind on.
  *  \param[in] dscp IP DSCP value to use.
  *  \param[in] prio socket priority to use.
- *  \returns 0 on success, -1 on ERROR. */
-int mgcp_create_bind(const char *source_addr, struct osmo_fd *fd, int port, uint8_t dscp,
-		     uint8_t prio)
+ *  \returns file descriptor on success, -1 on ERROR. */
+int mgcp_create_bind(const char *source_addr, int port, uint8_t dscp, uint8_t prio)
 {
 	int rc;
 
@@ -1535,34 +1533,37 @@ int mgcp_create_bind(const char *source_addr, struct osmo_fd *fd, int port, uint
 		     source_addr, port);
 		return -1;
 	}
-	fd->fd = rc;
 	LOGP(DRTP, LOGL_DEBUG, "created socket + bound UDP port (%s:%i).\n", source_addr, port);
 
-	return 0;
+	return rc;
 }
 
 /* Bind RTP and RTCP port (helper function for mgcp_bind_net_rtp_port()) */
 static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
 		    struct mgcp_rtp_end *rtp_end, struct mgcp_endpoint *endp)
 {
+	int rc;
+
 	/* NOTE: The port that is used for RTCP is the RTP port incremented by one
 	 * (e.g. RTP-Port = 16000 ==> RTCP-Port = 16001) */
 
-	if (mgcp_create_bind(source_addr, &rtp_end->rtp, rtp_end->local_port,
-			     cfg->endp_dscp, cfg->endp_priority) != 0) {
+	rc = mgcp_create_bind(source_addr, rtp_end->local_port, cfg->endp_dscp, cfg->endp_priority);
+	if (rc < 0) {
 		LOGPENDP(endp, DRTP, LOGL_ERROR,
 			 "failed to create RTP port: %s:%d\n",
 			 source_addr, rtp_end->local_port);
 		goto cleanup0;
 	}
+	rtp_end->rtp.fd = rc;
 
-	if (mgcp_create_bind(source_addr, &rtp_end->rtcp, rtp_end->local_port + 1,
-			     cfg->endp_dscp, cfg->endp_priority) != 0) {
+	rc = mgcp_create_bind(source_addr, rtp_end->local_port + 1, cfg->endp_dscp, cfg->endp_priority);
+	if (rc < 0) {
 		LOGPENDP(endp, DRTP, LOGL_ERROR,
 			 "failed to create RTCP port: %s:%d\n",
 			 source_addr, rtp_end->local_port + 1);
 		goto cleanup1;
 	}
+	rtp_end->rtcp.fd = rc;
 
 	if (osmo_fd_register(&rtp_end->rtp) != 0) {
 		LOGPENDP(endp, DRTP, LOGL_ERROR,
