@@ -280,6 +280,31 @@ int mgcp_vty_go_parent(struct vty *vty)
 	return vty->node;
 }
 
+static void signal_handler(int signum)
+{
+	fprintf(stdout, "signal %u received\n", signum);
+
+	switch (signum) {
+	case SIGABRT:
+		/* in case of abort, we want to obtain a talloc report and
+		 * then run default SIGABRT handler, who will generate coredump
+		 * and abort the process. abort() should do this for us after we
+		 * return, but program wouldn't exit if an external SIGABRT is
+		 * received.
+		 */
+		talloc_report(tall_vty_ctx, stderr);
+		talloc_report_full(tall_mgw_ctx, stderr);
+		signal(SIGABRT, SIG_DFL);
+		raise(SIGABRT);
+		break;
+	case SIGUSR1:
+		talloc_report(tall_vty_ctx, stderr);
+		talloc_report_full(tall_mgw_ctx, stderr);
+		break;
+	default:
+		break;
+	}
+}
 
 static struct vty_app_info vty_info = {
 	.name 		= "OsmoMGW",
@@ -328,6 +353,8 @@ int main(int argc, char **argv)
 
 	msgb_talloc_ctx_init(tall_mgw_ctx, 0);
 
+	signal(SIGABRT, &signal_handler);
+	signal(SIGUSR1, &signal_handler);
 	osmo_init_ignore_signals();
 	osmo_init_logging2(tall_mgw_ctx, &log_info);
 	libosmo_abis_init(tall_mgw_ctx);
