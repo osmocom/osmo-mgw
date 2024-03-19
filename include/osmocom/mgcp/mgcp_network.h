@@ -159,8 +159,7 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 int mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn);
 
 /* payload processing default functions */
-int mgcp_rtp_processing_default(struct mgcp_endpoint *endp, struct mgcp_rtp_end *dst_end,
-				char *data, int *len, int buf_size);
+int mgcp_rtp_processing_default(struct mgcp_endpoint *endp, struct mgcp_rtp_end *dst_end, struct msgb *msg);
 
 int mgcp_setup_rtp_processing_default(struct mgcp_endpoint *endp,
 				      struct mgcp_conn_rtp *conn_dst,

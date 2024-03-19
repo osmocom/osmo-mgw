@@ -70,12 +70,10 @@ typedef int (*mgcp_rqnt)(struct mgcp_endpoint *endp, char tone);
 /**
  * Return:
  *   <  0 in case no audio was processed
- *   >= 0 in case audio was processed. The remaining payload
- *   length will be returned.
+ *   >= 0 in case audio was processed.
  */
 typedef int (*mgcp_processing)(struct mgcp_endpoint *endp,
-			       struct mgcp_rtp_end *dst_end,
-			       char *data, int *len, int buf_size);
+			       struct mgcp_rtp_end *dst_end, struct msgb *msg);
 
 struct mgcp_conn_rtp;
 
