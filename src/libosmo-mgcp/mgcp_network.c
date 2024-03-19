@@ -1167,70 +1167,64 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 			 osmo_sockaddr_port(&rtp_end->addr.u.sa), ntohs(rtp_end->rtcp_port)
 		    );
 	} else if (is_rtp) {
-		int cont;
-		int nbytes = 0;
 		int buflen = msgb_length(msg);
 
 		/* Make sure we have a valid RTP header, in cases where no RTP
 		 * header is present, we will generate one. */
 		gen_rtp_header(msg, rtp_end, rtp_state);
 
-		do {
-			/* Run transcoder */
-			cont = endp->trunk->cfg->rtp_processing_cb(endp, rtp_end, (char *)msgb_data(msg), &buflen, RTP_BUF_SIZE);
-			if (cont < 0)
-				break;
+		/* Run transcoder */
+		rc = endp->trunk->cfg->rtp_processing_cb(endp, rtp_end, (char *)msgb_data(msg), &buflen, RTP_BUF_SIZE);
+		if (rc < 0) {
+			LOGPENDP(endp, DRTP, LOGL_ERROR, "Error %d during transcoding\n", rc);
+			return rc;
+		}
 
-			if (addr)
-				mgcp_patch_and_count(endp, rtp_state, rtp_end,
-						     addr, msg);
+		if (addr)
+			mgcp_patch_and_count(endp, rtp_state, rtp_end, addr, msg);
 
-			if (mgcp_conn_rtp_is_iuup(conn_dst) || mgcp_conn_rtp_is_iuup(conn_src)) {
-				/* the iuup code will correctly transform to the correct AMR mode */
-			} else if (mgcp_codec_amr_align_mode_is_indicated(conn_dst->end.codec)) {
-				rc = amr_oa_bwe_convert(endp, msg,
-							conn_dst->end.codec->param.amr_octet_aligned);
-				if (rc < 0) {
-					LOGPENDP(endp, DRTP, LOGL_ERROR,
-						 "Error in AMR octet-aligned <-> bandwidth-efficient mode conversion (target=%s)\n",
-						 conn_dst->end.codec->param.amr_octet_aligned ? "octet-aligned" : "bandwidth-efficient");
-					break;
-				}
-			} else if (rtp_end->rfc5993_hr_convert &&
-				   strcmp(conn_src->end.codec->subtype_name, "GSM-HR-08") == 0) {
-				rc = rfc5993_hr_convert(endp, msg);
-				if (rc < 0) {
-					LOGPENDP(endp, DRTP, LOGL_ERROR, "Error while converting to GSM-HR-08\n");
-					break;
-				}
+		if (mgcp_conn_rtp_is_iuup(conn_dst) || mgcp_conn_rtp_is_iuup(conn_src)) {
+			/* the iuup code will correctly transform to the correct AMR mode */
+		} else if (mgcp_codec_amr_align_mode_is_indicated(conn_dst->end.codec)) {
+			rc = amr_oa_bwe_convert(endp, msg, conn_dst->end.codec->param.amr_octet_aligned);
+			if (rc < 0) {
+				LOGPENDP(endp, DRTP, LOGL_ERROR,
+					 "Error in AMR octet-aligned <-> bandwidth-efficient mode conversion (target=%s)\n",
+					 conn_dst->end.codec->param.amr_octet_aligned ? "octet-aligned" : "bandwidth-efficient");
+				return rc;
 			}
+		} else if (rtp_end->rfc5993_hr_convert &&
+			   strcmp(conn_src->end.codec->subtype_name, "GSM-HR-08") == 0) {
+			rc = rfc5993_hr_convert(endp, msg);
+			if (rc < 0) {
+				LOGPENDP(endp, DRTP, LOGL_ERROR, "Error while converting to GSM-HR-08\n");
+				return rc;
+			}
+		}
 
-			LOGPENDP(endp, DRTP, LOGL_DEBUG,
-				 "process/send to %s %s "
-				 "rtp_port:%u rtcp_port:%u\n",
-				 dest_name,
-				 osmo_sockaddr_ntop(&rtp_end->addr.u.sa, ipbuf),
-				 osmo_sockaddr_port(&rtp_end->addr.u.sa), ntohs(rtp_end->rtcp_port)
-				);
+		LOGPENDP(endp, DRTP, LOGL_DEBUG,
+			 "process/send to %s %s "
+			 "rtp_port:%u rtcp_port:%u\n",
+			 dest_name,
+			 osmo_sockaddr_ntop(&rtp_end->addr.u.sa, ipbuf),
+			 osmo_sockaddr_port(&rtp_end->addr.u.sa), ntohs(rtp_end->rtcp_port)
+			);
 
-			/* Forward a copy of the RTP data to a debug ip/port */
-			forward_data_tap(rtp_end->rtp.fd, &conn_src->tap_out,
-				     msg);
+		/* Forward a copy of the RTP data to a debug ip/port */
+		forward_data_tap(rtp_end->rtp.fd, &conn_src->tap_out,
+			     msg);
 
-			len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr,
-					    (char *)msgb_data(msg), msgb_length(msg));
+		len = mgcp_udp_send(rtp_end->rtp.fd, &rtp_end->addr,
+				    (char *)msgb_data(msg), msgb_length(msg));
 
-			if (len <= 0)
-				return len;
+		if (len <= 0)
+			return len;
 
-			rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
-			rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
-			rtp_state->alt_rtp_tx_sequence++;
+		rtpconn_rate_ctr_inc(conn_dst, endp, RTP_PACKETS_TX_CTR);
+		rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
+		rtp_state->alt_rtp_tx_sequence++;
 
-			nbytes += len;
-			buflen = cont;
-		} while (buflen > 0);
-		return nbytes;
+		return len;
 	} else if (!trunk->omit_rtcp) {
 		struct osmo_sockaddr rtcp_addr = rtp_end->addr;
 		osmo_sockaddr_set_port(&rtcp_addr.u.sa, rtp_end->rtcp_port);
