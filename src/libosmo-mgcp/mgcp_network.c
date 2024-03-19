@@ -410,7 +410,6 @@ int mgcp_rtp_processing_default(struct mgcp_endpoint *endp,
 				struct mgcp_rtp_end *dst_end,
 				struct msgb *msg)
 {
-	LOGPENDP(endp, DRTP, LOGL_DEBUG, "transcoding disabled\n");
 	return 0;
 }
 
