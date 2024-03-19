@@ -404,13 +404,11 @@ static int align_rtp_timestamp_offset(const struct mgcp_endpoint *endp,
 /*! dummy callback to disable transcoding (see also cfg->rtp_processing_cb).
  *  \param[in] associated endpoint.
  *  \param[in] destination RTP end.
- *  \param[in,out] pointer to buffer with voice data.
- *  \param[in] voice data length.
- *  \param[in] maximum size of caller provided voice data buffer.
+ *  \param[in,out] msg message bufffer containing data. Function might change length.
  *  \returns ignores input parameters, return always 0. */
 int mgcp_rtp_processing_default(struct mgcp_endpoint *endp,
 				struct mgcp_rtp_end *dst_end,
-				char *data, int *len, int buf_size)
+				struct msgb *msg)
 {
 	return 0;
 }
@@ -1167,14 +1165,12 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 			 osmo_sockaddr_port(&rtp_end->addr.u.sa), ntohs(rtp_end->rtcp_port)
 		    );
 	} else if (is_rtp) {
-		int buflen = msgb_length(msg);
-
 		/* Make sure we have a valid RTP header, in cases where no RTP
 		 * header is present, we will generate one. */
 		gen_rtp_header(msg, rtp_end, rtp_state);
 
 		/* Run transcoder */
-		rc = endp->trunk->cfg->rtp_processing_cb(endp, rtp_end, (char *)msgb_data(msg), &buflen, RTP_BUF_SIZE);
+		rc = endp->trunk->cfg->rtp_processing_cb(endp, rtp_end, msg);
 		if (rc < 0) {
 			LOGPENDP(endp, DRTP, LOGL_ERROR, "Error %d during transcoding\n", rc);
 			return rc;
