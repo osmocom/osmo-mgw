@@ -1051,7 +1051,7 @@ int mgcp_udp_send(int fd, const struct osmo_sockaddr *addr, const char *buf, int
 	size_t addr_len;
 
 	LOGP(DRTP, LOGL_DEBUG,
-	     "sending %i bytes length packet to %s:%u ...\n", len,
+	     "sending %d bytes length packet to %s:%u ...\n", len,
 	     osmo_sockaddr_ntop(&addr->u.sa, ipbuf),
 	     osmo_sockaddr_port(&addr->u.sa));
 
@@ -1487,7 +1487,7 @@ static int rtp_data_net(struct osmo_fd *fd, unsigned int what)
 	OSMO_ASSERT(endp);
 	msg = msgb_alloc_c(endp->trunk, RTP_BUF_SIZE, "RTP-rx");
 
-	proto = (fd == &conn_src->end.rtp)? MGCP_PROTO_RTP : MGCP_PROTO_RTCP;
+	proto = (fd == &conn_src->end.rtp) ? MGCP_PROTO_RTP : MGCP_PROTO_RTCP;
 
 	ret = recvfrom(fd->fd, msgb_data(msg), msg->data_len, 0, (struct sockaddr *)&addr.u.sa, &slen);
 
@@ -1604,11 +1604,11 @@ int mgcp_create_bind(const char *source_addr, int port, uint8_t dscp, uint8_t pr
 			     NULL, 0, OSMO_SOCK_F_BIND | OSMO_SOCK_F_DSCP(dscp) |
 			     OSMO_SOCK_F_PRIO(prio));
 	if (rc < 0) {
-		LOGP(DRTP, LOGL_ERROR, "failed to bind UDP port (%s:%i).\n",
+		LOGP(DRTP, LOGL_ERROR, "failed to bind UDP port (%s:%d).\n",
 		     source_addr, port);
 		return -1;
 	}
-	LOGP(DRTP, LOGL_DEBUG, "created socket + bound UDP port (%s:%i).\n", source_addr, port);
+	LOGP(DRTP, LOGL_DEBUG, "created socket + bound UDP port (%s:%d).\n", source_addr, port);
 
 	return rc;
 }
