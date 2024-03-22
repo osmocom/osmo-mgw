@@ -170,7 +170,7 @@ int sdp_parse_attrib(struct osmo_sdp_msg *sdp, const char *src)
 	if (str_is_attrib(src, OSMO_SDP_STR_RTPMAP, ':')) {
 		/* "a=rtpmap:96 AMR/8000" */
 		struct token audio_name;
-		unsigned int channels = 1;
+		const char *slash;
 		if (sscanf(src, OSMO_SDP_STR_RTPMAP ":%u", &payload_type) != 1)
 			return -EINVAL;
 
@@ -183,16 +183,22 @@ int sdp_parse_attrib(struct osmo_sdp_msg *sdp, const char *src)
 		if (audio_name.start >= get_line_end(src))
 			return -EINVAL;
 
-		audio_name.end = strchr(audio_name.start, '/');
-		if (!audio_name.end || audio_name.end > line_end)
-			audio_name.end = line_end;
-		token_copy(codec, &codec->encoding_name, &audio_name);
-		/* '< 1' is enough, the second '/%u' is optional */
-		if (sscanf(audio_name.end, "/%u/%u", &codec->rate, &channels) < 1)
-			return -EINVAL;
+		slash = strchr(audio_name.start, '/');
 
-		if (channels != 1)
-			return -ENOTSUP;
+		audio_name.end = slash ? : line_end;
+		token_copy(codec, &codec->encoding_name, &audio_name);
+
+		if (audio_name.end >= line_end) {
+			/* There should be a "/8000" here. If it is missing, let's not be strict about it. */
+			codec->rate = 8000;
+		} else {
+			unsigned int channels = 1;
+			if (sscanf(audio_name.end, "/%u/%u", &codec->rate, &channels) < 1)
+				return -EINVAL;
+
+			if (channels != 1)
+				return -ENOTSUP;
+		}
 	}
 
 	else if (str_is_attrib(src, OSMO_SDP_STR_FMTP, ':')) {
