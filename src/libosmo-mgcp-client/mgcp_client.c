@@ -1315,6 +1315,7 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 	int local_ip_family, audio_ip_family;
 	const char *codec;
 	unsigned int pt;
+	uint16_t audio_port;
 
 #define MSGB_PRINTF_OR_RET(FMT, ARGS...) do { \
 		if (msgb_printf(msg, FMT, ##ARGS) != 0) { \
@@ -1366,17 +1367,19 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 	MSGB_PRINTF_OR_RET("t=0 0\r\n");
 
 	/* Add RTP address port and codecs */
-	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_PORT) {
-		if (mgcp_msg->audio_port == 0) {
+	audio_port = 0;
+	if ((mgcp_msg->presence & MGCP_MSG_PRESENCE_AUDIO_PORT)) {
+		audio_port = mgcp_msg->audio_port;
+		if (!audio_port) {
 			LOGPMGW(mgcp, LOGL_ERROR,
 				"Invalid port number, can not generate MGCP message\n");
 			return -EINVAL;
 		}
-		MSGB_PRINTF_OR_RET("m=audio %u RTP/AVP", mgcp_msg->audio_port);
-		for (i = 0; i < mgcp_msg->ptmap_len; i++)
-			MSGB_PRINTF_OR_RET(" %u", mgcp_msg->ptmap[i].pt);
-		MSGB_PRINTF_OR_RET("\r\n");
 	}
+	MSGB_PRINTF_OR_RET("m=audio %u RTP/AVP", audio_port);
+	for (i = 0; i < mgcp_msg->ptmap_len; i++)
+		MSGB_PRINTF_OR_RET(" %u", mgcp_msg->ptmap[i].pt);
+	MSGB_PRINTF_OR_RET("\r\n");
 
 	/* Add optional codec parameters (fmtp) */
 	if (mgcp_msg->param_present) {
