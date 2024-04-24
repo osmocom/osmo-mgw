@@ -468,7 +468,7 @@ static int mgcp_send_iuup(struct mgcp_endpoint *endp, struct msgb *msg,
 	struct rtp_hdr *hdr = (struct rtp_hdr *)msgb_data(msg);
 	int buflen = msgb_length(msg);
 	char *dest_name;
-	int len;
+	int rc;
 
 	OSMO_ASSERT(conn_src);
 	OSMO_ASSERT(conn_dst);
@@ -514,16 +514,16 @@ static int mgcp_send_iuup(struct mgcp_endpoint *endp, struct msgb *msg,
 	/* Forward a copy of the RTP data to a debug ip/port */
 	forward_data_tap(rtp_end->rtp, &conn_src->tap_out, msg);
 
-	len = mgcp_udp_send(rtp_end->rtp, &rtp_end->addr, (char *)hdr, buflen);
+	rc = mgcp_udp_send(rtp_end->rtp, &rtp_end->addr, (char *)hdr, buflen);
 
-	if (len <= 0)
-		return len;
+	if (rc < 0)
+		return rc;
 
 	rtpconn_rate_ctr_add(conn_dst, endp, RTP_PACKETS_TX_CTR, 1);
-	rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, len);
+	rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, buflen);
 	rtp_state->alt_rtp_tx_sequence++;
 
-	return len;
+	return 0;
 }
 
 /* Received TNL primitive from IuUP layer FSM, transmit it further down to the

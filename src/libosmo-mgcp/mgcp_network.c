@@ -1062,7 +1062,7 @@ static int mgcp_udp_send_msg(struct osmo_io_fd *iofd, const struct osmo_sockaddr
  *  \param[in] addr destination ip-address.
  *  \param[in] buf buffer that holds the data to be send.
  *  \param[in] len length of the data to be sent.
- *  \returns bytes sent, -1 on error. */
+ *  \returns 0 in case of success, -1 on error. */
 int mgcp_udp_send(struct osmo_io_fd *iofd, const struct osmo_sockaddr *addr, const char *buf, int len)
 {
 	struct msgb *msg = msgb_alloc_c(iofd, len, "mgcp_udp_send");
@@ -1077,7 +1077,7 @@ int mgcp_udp_send(struct osmo_io_fd *iofd, const struct osmo_sockaddr *addr, con
 /*! send RTP dummy packet (to keep NAT connection open).
  *  \param[in] endp mcgp endpoint that holds the RTP connection.
  *  \param[in] conn associated RTP connection.
- *  \returns bytes sent, -1 on error. */
+ *  \returns 0 in case of success, -1 on error. */
 int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 {
 	int rc;
@@ -1113,7 +1113,7 @@ int mgcp_send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 	rc = mgcp_udp_send(conn->end.rtcp, &rtcp_addr,
 			   rtp_dummy_payload, sizeof(rtp_dummy_payload));
 
-	if (rc >= 0)
+	if (rc == 0)
 		return rc;
 
 failed:

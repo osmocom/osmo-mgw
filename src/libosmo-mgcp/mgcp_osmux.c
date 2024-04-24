@@ -695,7 +695,7 @@ void conn_osmux_disable(struct mgcp_conn_rtp *conn)
 
 /*! send RTP dummy packet to OSMUX connection port.
  *  \param[in] conn associated RTP connection
- *  \returns bytes sent, -1 on error */
+ *  \returns 0 in case of success, -1 on error */
 int osmux_send_dummy(struct mgcp_conn_rtp *conn)
 {
 	char ipbuf[INET6_ADDRSTRLEN];
