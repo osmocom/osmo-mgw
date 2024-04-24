@@ -505,6 +505,7 @@ static int mgcp_send_iuup(struct mgcp_endpoint *endp, struct msgb *msg,
 	hdr->timestamp = osmo_htonl(mgcp_get_current_ts(rtp_end->codec->rate));
 	hdr->sequence = osmo_htons(rtp_state->alt_rtp_tx_sequence);
 	hdr->ssrc = rtp_state->alt_rtp_tx_ssrc;
+	rtp_state->alt_rtp_tx_sequence++;
 
 	LOGPENDP(endp, DRTP, LOGL_DEBUG,
 		 "process/send IuUP to %s %s rtp_port:%u rtcp_port:%u\n",
@@ -521,7 +522,6 @@ static int mgcp_send_iuup(struct mgcp_endpoint *endp, struct msgb *msg,
 
 	rtpconn_rate_ctr_add(conn_dst, endp, RTP_PACKETS_TX_CTR, 1);
 	rtpconn_rate_ctr_add(conn_dst, endp, RTP_OCTETS_TX_CTR, buflen);
-	rtp_state->alt_rtp_tx_sequence++;
 
 	return 0;
 }
