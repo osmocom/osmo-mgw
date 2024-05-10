@@ -9,8 +9,11 @@ LimitNOFILE=65536
 StateDirectory=osmocom
 WorkingDirectory=%S/osmocom
 Restart=always
+User=osmocom
+Group=osmocom
 ExecStart=/usr/bin/osmo-mgw -s -c /etc/osmocom/osmo-mgw.cfg
 RestartSec=2
+AmbientCapabilities=CAP_SYS_NICE
 # CPU scheduling policy:
 CPUSchedulingPolicy=rr
 # For real-time scheduling policies an integer between 1 (lowest priority) and 99 (highest priority):
