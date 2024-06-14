@@ -386,6 +386,56 @@ static void test_strline(void)
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
 	"a=ptime:40\r\n"
 
+#define CRCX_PORT_0 \
+	"CRCX 3 1@mgw MGCP 1.0\r\n" \
+	"m: recvonly\r\n" \
+	"C: 2\r\n" \
+	"L: p:20\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"c=IN IP4 123.12.12.123\r\n" \
+	"m=audio 0 RTP/AVP 97\r\n" \
+	"a=rtpmap:97 GSM-EFR/8000\r\n" \
+	"a=ptime:40\r\n"
+
+#define CRCX_PORT_0_RET \
+	"200 3 OK\r\n" \
+	"I: %s\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
+	"s=-\r\n" \
+	"c=IN IP4 0.0.0.0\r\n" \
+	"t=0 0\r\n" \
+	"m=audio 16014 RTP/AVP 97\r\n" \
+	"a=rtpmap:97 GSM-EFR/8000\r\n" \
+	"a=ptime:40\r\n"
+
+#define CRCX_PORT_0_IUFP \
+	"CRCX 4 1@mgw MGCP 1.0\r\n" \
+	"m: recvonly\r\n" \
+	"C: 2\r\n" \
+	"L: p:20\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"c=IN IP4 123.12.12.123\r\n" \
+	"m=audio 0 RTP/AVP 96\r\n" \
+	"a=rtpmap:96 VND.3GPP.IUFP/16000\r\n" \
+	"a=ptime:40\r\n"
+
+#define CRCX_PORT_0_IUFP_RET \
+	"200 4 OK\r\n" \
+	"I: %s\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
+	"s=-\r\n" \
+	"c=IN IP4 0.0.0.0\r\n" \
+	"t=0 0\r\n" \
+	"m=audio 16016 RTP/AVP 96\r\n" \
+	"a=rtpmap:96 VND.3GPP.IUFP/16000\r\n" \
+	"a=ptime:40\r\n"
+
 #define DLCX \
 	"DLCX 7 1@mgw MGCP 1.0\r\n" \
 	"I: %s\r\n" \
@@ -623,6 +673,8 @@ static const struct mgcp_test tests[] = {
 	{"MDCX_NULL", MDCX_NULL, MDCX_NULL_RET},
 	{"DLCX_NULL", DLCX_NULL, DLCX_NULL_RET},
 	{"RQNT_NULL", RQNT_NULL, RQNT_NULL_RET},
+	{"CRCX_PORT_0", CRCX_PORT_0, CRCX_PORT_0_RET, 97},
+	{"CRCX_PORT_0_IUFP", CRCX_PORT_0_IUFP, CRCX_PORT_0_IUFP_RET, 96},
 };
 
 static const struct mgcp_test retransmit[] = {
