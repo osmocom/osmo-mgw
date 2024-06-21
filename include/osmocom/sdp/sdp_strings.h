@@ -12,6 +12,9 @@
 /*! "a=foo:" */
 #define OSMO_SDP_A_PREFIX(STR) OSMO_SDP_STR_ATTRIB "=" STR ":"
 
+/*! "a=fmtp:" */
+#define OSMO_SDP_STR_A_FMTP OSMO_SDP_A_PREFIX(OSMO_SDP_STR_FMTP)
+
 /* Media Direction Attributes "a=recvonly", "a=sendrecv", "a=sendonly", "a=inactive" RFC-8866 6.7. */
 #define OSMO_SDP_STR_RECVONLY "recvonly"
 #define OSMO_SDP_STR_SENDRECV "sendrecv"
