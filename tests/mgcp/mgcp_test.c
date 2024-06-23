@@ -436,6 +436,44 @@ static void test_strline(void)
 	"a=rtpmap:96 VND.3GPP.IUFP/16000\r\n" \
 	"a=ptime:20\r\n"
 
+/* Do a CRCX in m=sendrecv */
+#define CRCX_PORT_0_IUFP_SENDRECV \
+	"CRCX 4 1@mgw MGCP 1.0\r\n" \
+	"M: sendrecv\r\n" \
+	"C: 2\r\n" \
+	"L: p:20\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"c=IN IP4 123.12.12.123\r\n" \
+	"m=audio 0 RTP/AVP 96\r\n" \
+	"a=rtpmap:96 VND.3GPP.IUFP/16000\r\n" \
+	"a=ptime:20\r\n"
+
+/* Do a CRCX using sendrecv mode in the SDP part */
+#define CRCX_PORT_0_IUFP_SENDRECV2 \
+	"CRCX 4 1@mgw MGCP 1.0\r\n" \
+	"C: 2\r\n" \
+	"L: p:20\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"c=IN IP4 123.12.12.123\r\n" \
+	"a=sendrecv\r\n" \
+	"m=audio 0 RTP/AVP 96\r\n" \
+	"a=rtpmap:96 VND.3GPP.IUFP/16000\r\n" \
+	"a=ptime:20\r\n"
+
+/* Do a CRCX entirely omitting a mode, i.e. implcit sendrecv */
+#define CRCX_PORT_0_IUFP_SENDRECV3 \
+	"CRCX 4 1@mgw MGCP 1.0\r\n" \
+	"C: 2\r\n" \
+	"L: p:20\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"c=IN IP4 123.12.12.123\r\n" \
+	"m=audio 0 RTP/AVP 96\r\n" \
+	"a=rtpmap:96 VND.3GPP.IUFP/16000\r\n" \
+	"a=ptime:20\r\n"
+
 #define DLCX \
 	"DLCX 7 1@mgw MGCP 1.0\r\n" \
 	"I: %s\r\n" \
@@ -675,6 +713,9 @@ static const struct mgcp_test tests[] = {
 	{"RQNT_NULL", RQNT_NULL, RQNT_NULL_RET},
 	{"CRCX_PORT_0", CRCX_PORT_0, CRCX_PORT_0_RET, 97},
 	{"CRCX_PORT_0_IUFP", CRCX_PORT_0_IUFP, CRCX_PORT_0_IUFP_RET, 96},
+	{"CRCX_PORT_0_IUFP_SENDRECV", CRCX_PORT_0_IUFP_SENDRECV, CRCX_PORT_0_IUFP_RET, 96},
+	{"CRCX_PORT_0_IUFP_SENDRECV2", CRCX_PORT_0_IUFP_SENDRECV2, CRCX_PORT_0_IUFP_RET, 96},
+	{"CRCX_PORT_0_IUFP_SENDRECV3", CRCX_PORT_0_IUFP_SENDRECV3, CRCX_PORT_0_IUFP_RET, 96},
 };
 
 static const struct mgcp_test retransmit[] = {

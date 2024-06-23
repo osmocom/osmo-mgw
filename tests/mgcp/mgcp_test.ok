@@ -656,6 +656,68 @@ Response matches our expectations.
 (response contains a connection id)
 
 ================================================
+Testing CRCX_PORT_0_IUFP_SENDRECV
+creating message from statically defined input:
+---------8<---------
+CRCX 4 1@mgw MGCP 1.0
+M: sendrecv
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 0 RTP/AVP 96
+a=rtpmap:96 VND.3GPP.IUFP/16000
+a=ptime:20
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+(response contains a connection id)
+
+================================================
+Testing CRCX_PORT_0_IUFP_SENDRECV2
+creating message from statically defined input:
+---------8<---------
+CRCX 4 1@mgw MGCP 1.0
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+a=sendrecv
+m=audio 0 RTP/AVP 96
+a=rtpmap:96 VND.3GPP.IUFP/16000
+a=ptime:20
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+(response contains a connection id)
+
+================================================
+Testing CRCX_PORT_0_IUFP_SENDRECV3
+creating message from statically defined input:
+---------8<---------
+CRCX 4 1@mgw MGCP 1.0
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 0 RTP/AVP 96
+a=rtpmap:96 VND.3GPP.IUFP/16000
+a=ptime:20
+
+---------8<---------
+checking response:
+using message with patched conn_id for comparison
+Response matches our expectations.
+(response contains a connection id)
+
+================================================
 Testing CRCX
 creating message from statically defined input:
 ---------8<---------
