@@ -73,7 +73,7 @@ v=0
 c=IN IP4 123.12.12.123
 m=audio 5904 RTP/AVP 97
 a=rtpmap:97 GSM-EFR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -112,7 +112,7 @@ c=IN IP4 0.0.0.0
 t=0 0
 m=audio 4441 RTP/AVP 99
 a=rtpmap:99 AMR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -136,7 +136,7 @@ c=IN IP4 5.6.7.8
 t=0 0
 m=audio 4441 RTP/AVP 99
 a=rtpmap:99 AMR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -161,7 +161,7 @@ c=IN IP4 5.6.7.8
 t=0 0
 m=audio 4441 RTP/AVP 99
 a=rtpmap:99 AMR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -186,7 +186,7 @@ c=IN IP4 5.6.7.8
 t=0 0
 m=audio 4441 RTP/AVP 99
 a=rtpmap:99 AMR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -211,7 +211,7 @@ c=IN IP4 5.6.7.8
 t=0 0
 m=audio 4441 RTP/AVP 99
 a=rtpmap:99 AMR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -236,7 +236,7 @@ c=IN IP4 5.6.7.8
 t=0 0
 m=audio 4441 RTP/AVP 99
 a=rtpmap:99 AMR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -261,7 +261,7 @@ c=IN IP4 5.6.7.8
 t=0 0
 m=audio 4441 RTP/AVP 99
 a=rtpmap:99 AMR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -428,7 +428,7 @@ v=0
 c=IN IP4 123.12.12.123
 m=audio 5904 RTP/AVP 97
 a=rtpmap:97 GSM-EFR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -493,7 +493,7 @@ v=0
 c=IN IP4 123.12.12.123
 m=audio 5904 RTP/AVP 97
 a=rtpmap:97 GSM-EFR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -564,7 +564,7 @@ v=0
 c=IN IP4 123.12.12.123
 m=audio 5904 RTP/AVP 97
 a=rtpmap:97 GSM-EFR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -626,7 +626,7 @@ v=0
 c=IN IP4 123.12.12.123
 m=audio 0 RTP/AVP 97
 a=rtpmap:97 GSM-EFR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -647,7 +647,7 @@ v=0
 c=IN IP4 123.12.12.123
 m=audio 0 RTP/AVP 96
 a=rtpmap:96 VND.3GPP.IUFP/16000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -668,7 +668,7 @@ v=0
 c=IN IP4 123.12.12.123
 m=audio 5904 RTP/AVP 97
 a=rtpmap:97 GSM-EFR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -686,7 +686,7 @@ v=0
 c=IN IP4 123.12.12.123
 m=audio 5904 RTP/AVP 97
 a=rtpmap:97 GSM-EFR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
@@ -798,7 +798,7 @@ v=0
 c=IN IP4 123.12.12.123
 m=audio 5904 RTP/AVP 97
 a=rtpmap:97 GSM-EFR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 creating message from statically defined input:
@@ -1252,7 +1252,7 @@ c=IN IP4 123.12.12.123
 m=audio 5904 RTP/AVP 18 97
 a=rtpmap:18 G729/8000
 a=rtpmap:97 GSM-EFR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 creating message from statically defined input:
@@ -1269,7 +1269,7 @@ m=audio 5904 RTP/AVP 18 97 101
 a=rtpmap:18 G729/8000
 a=rtpmap:97 GSM-EFR/8000
 a=rtpmap:101 FOO/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 creating message from statically defined input:
@@ -1286,7 +1286,7 @@ m=audio 5904 RTP/AVP
 a=rtpmap:18 G729/8000
 a=rtpmap:97 GSM-EFR/8000
 a=rtpmap:101 FOO/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 creating message from statically defined input:
@@ -1303,7 +1303,7 @@ m=audio 5904 RTP/AVP 18
 a=rtpmap:18 G729/8000
 a=rtpmap:97 GSM-EFR/8000
 a=rtpmap:101 FOO/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 creating message from statically defined input:
@@ -1385,7 +1385,7 @@ v=0
 c=IN IP4 123.12.12.123
 m=audio 5904 RTP/AVP 97
 a=rtpmap:97 GSM-EFR/8000
-a=ptime:40
+a=ptime:20
 
 ---------8<---------
 checking response:
