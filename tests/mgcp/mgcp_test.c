@@ -103,7 +103,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 16002 RTP/AVP 97\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define MDCX3A_RET \
 	"200 18983215 OK\r\n" \
@@ -115,7 +115,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 16002 RTP/AVP 97\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define MDCX3_FMTP_RET \
 	"200 18983215 OK\r\n" \
@@ -127,7 +127,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 16006 RTP/AVP 97\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define MDCX4_ADDR0000 \
 	"MDCX 18983216 1@mgw MGCP 1.0\r\n" \
@@ -142,7 +142,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 4441 RTP/AVP 99\r\n" \
 	"a=rtpmap:99 AMR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define MDCX4_ADDR0000_RET \
 	"527 18983216 FAIL\r\n"
@@ -160,7 +160,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 4441 RTP/AVP 99\r\n" \
 	"a=rtpmap:99 AMR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define MDCX4_RET(Ident) \
 	"200 " Ident " OK\r\n" \
@@ -172,7 +172,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 16002 RTP/AVP 99\r\n" \
 	"a=rtpmap:99 AMR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define MDCX4_RO_RET(Ident) \
 	"200 " Ident " OK\r\n" \
@@ -184,7 +184,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 16002 RTP/AVP 112\r\n" \
 	"a=rtpmap:112 AMR\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define MDCX4_PT1 \
 	"MDCX 18983218 1@mgw MGCP 1.0\r\n" \
@@ -199,7 +199,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 4441 RTP/AVP 99\r\n" \
 	"a=rtpmap:99 AMR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define MDCX4_PT2 \
 	"MDCX 18983219 1@mgw MGCP 1.0\r\n" \
@@ -214,7 +214,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 4441 RTP/AVP 99\r\n" \
 	"a=rtpmap:99 AMR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define MDCX4_PT3 \
 	"MDCX 18983220 1@mgw MGCP 1.0\r\n" \
@@ -229,7 +229,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 4441 RTP/AVP 99\r\n" \
 	"a=rtpmap:99 AMR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 /* Test different upper/lower case in options */
 #define MDCX4_PT4 \
@@ -245,7 +245,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 4441 RTP/AVP 99\r\n" \
 	"a=rtpmap:99 AMR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define MDCX4_SO \
 	"MDCX 18983222 1@mgw MGCP 1.0\r\n" \
@@ -260,7 +260,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 4441 RTP/AVP 99\r\n" \
 	"a=rtpmap:99 AMR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define MDCX4_RO \
 	"MDCX 18983223 1@mgw MGCP 1.0\r\n" \
@@ -297,7 +297,7 @@ static void test_strline(void)
 	"c=IN IP4 123.12.12.123\r\n" \
 	"m=audio 5904 RTP/AVP 97\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_RET \
 	"200 2 OK\r\n" \
@@ -310,7 +310,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 16002 RTP/AVP 97\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_RET_NO_RTPMAP \
 	"200 2 OK\r\n" \
@@ -322,7 +322,7 @@ static void test_strline(void)
 	"c=IN IP4 0.0.0.0\r\n" \
 	"t=0 0\r\n" \
 	"m=audio 16002 RTP/AVP 97\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_FMTP_RET \
 	"200 2 OK\r\n" \
@@ -335,7 +335,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 16006 RTP/AVP 97\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_ZYN \
 	"CRCX 2 1@mgw MGCP 1.0\r\n" \
@@ -371,7 +371,7 @@ static void test_strline(void)
 	"c=IN IP4 123.12.12.123\r\n" \
 	"m=audio 5904 RTP/AVP 97\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_X_OSMO_IGN_RET \
 	"200 2 OK\r\n" \
@@ -384,7 +384,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 16010 RTP/AVP 97\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_PORT_0 \
 	"CRCX 3 1@mgw MGCP 1.0\r\n" \
@@ -396,7 +396,7 @@ static void test_strline(void)
 	"c=IN IP4 123.12.12.123\r\n" \
 	"m=audio 0 RTP/AVP 97\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_PORT_0_RET \
 	"200 3 OK\r\n" \
@@ -409,7 +409,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 16014 RTP/AVP 97\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_PORT_0_IUFP \
 	"CRCX 4 1@mgw MGCP 1.0\r\n" \
@@ -421,7 +421,7 @@ static void test_strline(void)
 	"c=IN IP4 123.12.12.123\r\n" \
 	"m=audio 0 RTP/AVP 96\r\n" \
 	"a=rtpmap:96 VND.3GPP.IUFP/16000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_PORT_0_IUFP_RET \
 	"200 4 OK\r\n" \
@@ -434,7 +434,7 @@ static void test_strline(void)
 	"t=0 0\r\n" \
 	"m=audio 16016 RTP/AVP 96\r\n" \
 	"a=rtpmap:96 VND.3GPP.IUFP/16000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define DLCX \
 	"DLCX 7 1@mgw MGCP 1.0\r\n" \
@@ -491,7 +491,7 @@ static void test_strline(void)
 	"m=audio 5904 RTP/AVP 18 97\r\n" \
 	"a=rtpmap:18 G729/8000\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_MULT_2 \
 	"CRCX 2 2@mgw MGCP 1.0\r\n" \
@@ -506,7 +506,7 @@ static void test_strline(void)
 	"a=rtpmap:18 G729/8000\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
 	"a=rtpmap:101 FOO/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_MULT_3 \
 	"CRCX 2 3@mgw MGCP 1.0\r\n" \
@@ -521,7 +521,7 @@ static void test_strline(void)
 	"a=rtpmap:18 G729/8000\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
 	"a=rtpmap:101 FOO/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_MULT_4 \
 	"CRCX 2 4@mgw MGCP 1.0\r\n" \
@@ -536,7 +536,7 @@ static void test_strline(void)
 	"a=rtpmap:18 G729/8000\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
 	"a=rtpmap:101 FOO/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_MULT_GSM_EXACT \
 	"CRCX 259260421 5@mgw MGCP 1.0\r\n" \
@@ -625,7 +625,7 @@ static void test_strline(void)
 	"c=IN IP4 123.12.12.123\r\n" \
 	"m=audio 5904 RTP/AVP 97\r\n" \
 	"a=rtpmap:97 GSM-EFR/8000\r\n" \
-	"a=ptime:40\r\n"
+	"a=ptime:20\r\n"
 
 #define CRCX_NULL_RET "502 2 FAIL\r\n"
 
