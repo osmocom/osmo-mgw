@@ -1083,17 +1083,6 @@ mgcp_header_done:
 
 	mgcp_rtp_end_config(endp, 0, &conn->end);
 
-	/* check connection mode setting */
-	if (conn->conn->mode != MGCP_CONN_LOOPBACK
-	    && conn->conn->mode != MGCP_CONN_RECV_ONLY
-	    && osmo_sockaddr_port(&conn->end.addr.u.sa) == 0) {
-		LOGPCONN(_conn, DLMGCP, LOGL_ERROR,
-			 "CRCX: selected connection mode type requires an opposite end!\n");
-		error_code = 527;
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_REMOTE_CONN_DESC));
-		goto error2;
-	}
-
 	/* Find a local address for conn based on policy and initial SDP remote
 	   information, then find a free port for it */
 	if (mgcp_get_local_addr(conn->end.local_addr, conn) < 0) {
@@ -1294,17 +1283,6 @@ mgcp_header_done:
 	/* TODO: "codec" probably needs to be moved from endp to conn */
 	if (conn->type == MGCP_RTP_DEFAULT && strcmp(conn->end.codec->subtype_name, "VND.3GPP.IUFP") == 0)
 		rc = mgcp_conn_iuup_init(conn);
-
-	/* check connection mode setting */
-	if (conn->conn->mode != MGCP_CONN_LOOPBACK
-	    && conn->conn->mode != MGCP_CONN_RECV_ONLY
-	    && !mgcp_rtp_end_remote_addr_available(&conn->end)) {
-		LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
-			 "MDCX: selected connection mode type requires an opposite end!\n");
-		error_code = 527;
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_NO_REMOTE_CONN_DESC));
-		goto error3;
-	}
 
 	if (mgcp_conn_rtp_is_osmux(conn)) {
 		OSMO_ASSERT(conn->osmux.local_cid_allocated);
