@@ -145,7 +145,16 @@ static void test_strline(void)
 	"a=ptime:20\r\n"
 
 #define MDCX4_ADDR0000_RET \
-	"527 18983216 FAIL\r\n"
+	"200 18983216 OK\r\n" \
+	"\r\n" \
+	"v=0\r\n" \
+	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
+	"s=-\r\n" \
+	"c=IN IP4 0.0.0.0\r\n" \
+	"t=0 0\r\n" \
+	"m=audio 16002 RTP/AVP 99\r\n" \
+	"a=rtpmap:99 AMR/8000\r\n" \
+	"a=ptime:20\r\n"
 
 #define MDCX4 \
 	"MDCX 18983217 1@mgw MGCP 1.0\r\n" \
