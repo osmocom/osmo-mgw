@@ -101,7 +101,8 @@ Testing MDCX4_ADDR000
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983216 1@mgw MGCP 1.0
-M: sendrecvC: 2
+M: sendrecv
+C: 2
 I: %s
 L: p:20, a:AMR, nt:IN
 
@@ -124,7 +125,8 @@ Testing MDCX4
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983217 1@mgw MGCP 1.0
-M: sendrecvC: 2
+M: sendrecv
+C: 2
 I: %s
 L: p:20, a:AMR, nt:IN
 
@@ -148,7 +150,8 @@ Testing MDCX4_PT1
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983218 1@mgw MGCP 1.0
-M: SENDRECVC: 2
+M: SENDRECV
+C: 2
 I: %s
 L: p:20-40, a:AMR, nt:IN
 
@@ -172,7 +175,8 @@ Testing MDCX4_PT2
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983219 1@mgw MGCP 1.0
-M: sendrecvC: 2
+M: sendrecv
+C: 2
 I: %s
 L: p:20-20, a:AMR, nt:IN
 
@@ -196,7 +200,8 @@ Testing MDCX4_PT3
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983220 1@mgw MGCP 1.0
-M: sendrecvC: 2
+M: sendrecv
+C: 2
 I: %s
 L: a:AMR, nt:IN
 
@@ -220,7 +225,8 @@ Testing MDCX4_PT4
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983221 1@mgw MGCP 1.0
-m: sendrecvc: 2
+m: sendrecv
+c: 2
 i: %s
 l: A:amr, NT:IN
 
@@ -244,7 +250,8 @@ Testing MDCX4_SO
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983222 1@mgw MGCP 1.0
-M: sendonlyC: 2
+M: sendonly
+C: 2
 I: %s
 L: p:20, a:AMR, nt:IN
 
@@ -267,7 +274,8 @@ Testing MDCX4_RO
 creating message from statically defined input:
 ---------8<---------
 MDCX 18983223 1@mgw MGCP 1.0
-M: recvonlyC: 2
+M: recvonly
+C: 2
 I: %s
 L: p:20, a:AMR, nt:IN
 
@@ -296,9 +304,15 @@ Response matches our expectations.
 Testing CRCX_ZYN
 creating message from statically defined input:
 ---------8<---------
-CRCX 2 1@mgw MGCP 1.0M: recvonlyC: 2
+CRCX 2 1@mgw MGCP 1.0
+M: recvonly
+C: 2
 
-v=0c=IN IP4 123.12.12.123m=audio 5904 RTP/AVP 97a=rtpmap:97 GSM-EFR/8000
+v=0
+c=IN IP4 123.12.12.123
+m=audio 5904 RTP/AVP 97
+a=rtpmap:97 GSM-EFR/8000
+
 ---------8<---------
 checking response:
 using message with patched conn_id for comparison

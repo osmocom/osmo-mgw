@@ -131,11 +131,11 @@ static void test_strline(void)
 
 #define MDCX4_ADDR0000 \
 	"MDCX 18983216 1@mgw MGCP 1.0\r\n" \
-	"M: sendrecv\r" \
+	"M: sendrecv\r\n" \
 	"C: 2\r\n" \
 	"I: %s\r\n" \
 	"L: p:20, a:AMR, nt:IN\r\n" \
-	"\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 0.0.0.0\r\n" \
 	"c=IN IP4 0.0.0.0\r\n" \
@@ -149,11 +149,11 @@ static void test_strline(void)
 
 #define MDCX4 \
 	"MDCX 18983217 1@mgw MGCP 1.0\r\n" \
-	"M: sendrecv\r" \
+	"M: sendrecv\r\n" \
 	"C: 2\r\n" \
 	"I: %s\r\n" \
 	"L: p:20, a:AMR, nt:IN\r\n" \
-	"\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 5.6.7.8\r\n" \
 	"c=IN IP4 5.6.7.8\r\n" \
@@ -188,11 +188,11 @@ static void test_strline(void)
 
 #define MDCX4_PT1 \
 	"MDCX 18983218 1@mgw MGCP 1.0\r\n" \
-	"M: SENDRECV\r" \
+	"M: SENDRECV\r\n" \
 	"C: 2\r\n" \
 	"I: %s\r\n" \
 	"L: p:20-40, a:AMR, nt:IN\r\n" \
-	"\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 5.6.7.8\r\n" \
 	"c=IN IP4 5.6.7.8\r\n" \
@@ -203,11 +203,11 @@ static void test_strline(void)
 
 #define MDCX4_PT2 \
 	"MDCX 18983219 1@mgw MGCP 1.0\r\n" \
-	"M: sendrecv\r" \
+	"M: sendrecv\r\n" \
 	"C: 2\r\n" \
 	"I: %s\r\n" \
 	"L: p:20-20, a:AMR, nt:IN\r\n" \
-	"\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 5.6.7.8\r\n" \
 	"c=IN IP4 5.6.7.8\r\n" \
@@ -218,11 +218,11 @@ static void test_strline(void)
 
 #define MDCX4_PT3 \
 	"MDCX 18983220 1@mgw MGCP 1.0\r\n" \
-	"M: sendrecv\r" \
+	"M: sendrecv\r\n" \
 	"C: 2\r\n" \
 	"I: %s\r\n" \
 	"L: a:AMR, nt:IN\r\n" \
-	"\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 5.6.7.8\r\n" \
 	"c=IN IP4 5.6.7.8\r\n" \
@@ -234,11 +234,11 @@ static void test_strline(void)
 /* Test different upper/lower case in options */
 #define MDCX4_PT4 \
 	"MDCX 18983221 1@mgw MGCP 1.0\r\n" \
-	"m: sendrecv\r" \
+	"m: sendrecv\r\n" \
 	"c: 2\r\n" \
 	"i: %s\r\n" \
 	"l: A:amr, NT:IN\r\n" \
-	"\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 5.6.7.8\r\n" \
 	"c=IN IP4 5.6.7.8\r\n" \
@@ -249,11 +249,11 @@ static void test_strline(void)
 
 #define MDCX4_SO \
 	"MDCX 18983222 1@mgw MGCP 1.0\r\n" \
-	"M: sendonly\r" \
+	"M: sendonly\r\n" \
 	"C: 2\r\n" \
 	"I: %s\r\n" \
 	"L: p:20, a:AMR, nt:IN\r\n" \
-	"\n" \
+	"\r\n" \
 	"v=0\r\n" \
 	"o=- %s 23 IN IP4 5.6.7.8\r\n" \
 	"c=IN IP4 5.6.7.8\r\n" \
@@ -264,7 +264,7 @@ static void test_strline(void)
 
 #define MDCX4_RO \
 	"MDCX 18983223 1@mgw MGCP 1.0\r\n" \
-	"M: recvonly\r" \
+	"M: recvonly\r\n" \
 	"C: 2\r\n" \
 	"I: %s\r\n" \
 	"L: p:20, a:AMR, nt:IN\r\n"
@@ -338,14 +338,14 @@ static void test_strline(void)
 	"a=ptime:40\r\n"
 
 #define CRCX_ZYN \
-	"CRCX 2 1@mgw MGCP 1.0\r" \
-	"M: recvonly\r" \
+	"CRCX 2 1@mgw MGCP 1.0\r\n" \
+	"M: recvonly\r\n" \
 	"C: 2\r\n" \
-	"\n" \
-	"v=0\r" \
-	"c=IN IP4 123.12.12.123\r" \
-	"m=audio 5904 RTP/AVP 97\r" \
-	"a=rtpmap:97 GSM-EFR/8000\r"
+	"\r\n" \
+	"v=0\r\n" \
+	"c=IN IP4 123.12.12.123\r\n" \
+	"m=audio 5904 RTP/AVP 97\r\n" \
+	"a=rtpmap:97 GSM-EFR/8000\r\n"
 
 #define CRCX_ZYN_RET \
 	"200 2 OK\r\n" \
