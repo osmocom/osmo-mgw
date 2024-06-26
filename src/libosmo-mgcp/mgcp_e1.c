@@ -465,11 +465,21 @@ static enum osmo_trau_frame_type determine_trau_fr_type(char *sdp_subtype_name, 
 {
 	if (strcmp(sdp_subtype_name, "GSM") == 0)
 		return OSMO_TRAU16_FT_FR;
-	else if (strcmp(sdp_subtype_name, "GSM-EFR") == 0)
+
+	if (strcmp(sdp_subtype_name, "GSM-EFR") == 0)
 		return OSMO_TRAU16_FT_EFR;
-	else if (strcmp(sdp_subtype_name, "GSM-HR-08") == 0)
-		return OSMO_TRAU16_FT_HR;
-	else if (strcmp(sdp_subtype_name, "AMR") == 0) {
+
+	if (strcmp(sdp_subtype_name, "GSM-HR-08") == 0) {
+		if (i460_rate == OSMO_I460_RATE_16k)
+			return OSMO_TRAU16_FT_HR;
+		if (i460_rate == OSMO_I460_RATE_8k)
+			return OSMO_TRAU8_SPEECH;
+		LOGPENDP(endp, DE1, LOGL_ERROR,
+			 "E1-TRAU-TX: unsupported or illegal I.460 rate for HR\n");
+		return OSMO_TRAU_FT_NONE;
+	}
+
+	if (strcmp(sdp_subtype_name, "AMR") == 0) {
 		if (i460_rate == OSMO_I460_RATE_8k) {
 			switch (amr_ft) {
 			case AMR_4_75:
@@ -487,11 +497,11 @@ static enum osmo_trau_frame_type determine_trau_fr_type(char *sdp_subtype_name, 
 			}
 		}
 		return OSMO_TRAU16_FT_AMR;
-	} else {
-		LOGPENDP(endp, DE1, LOGL_ERROR, "E1-TRAU-TX: unsupported or illegal codec subtype name: %s\n",
-			 sdp_subtype_name);
-		return OSMO_TRAU_FT_NONE;
 	}
+
+	LOGPENDP(endp, DE1, LOGL_ERROR, "E1-TRAU-TX: unsupported or illegal codec subtype name: %s\n",
+		 sdp_subtype_name);
+	return OSMO_TRAU_FT_NONE;
 }
 
 /* Determine a suitable TRAU frame type for a given codec */
@@ -500,11 +510,21 @@ static enum osmo_tray_sync_pat_id determine_trau_sync_pat(char *sdp_subtype_name
 {
 	if (strcmp(sdp_subtype_name, "GSM") == 0)
 		return OSMO_TRAU_SYNCP_16_FR_EFR;
-	else if (strcmp(sdp_subtype_name, "GSM-EFR") == 0)
+
+	if (strcmp(sdp_subtype_name, "GSM-EFR") == 0)
 		return OSMO_TRAU_SYNCP_16_FR_EFR;
-	else if (strcmp(sdp_subtype_name, "GSM-HR-08") == 0)
-		return OSMO_TRAU_SYNCP_8_HR;
-	else if (strcmp(sdp_subtype_name, "AMR") == 0) {
+
+	if (strcmp(sdp_subtype_name, "GSM-HR-08") == 0) {
+		if (i460_rate == OSMO_I460_RATE_16k)
+			return OSMO_TRAU_SYNCP_16_FR_EFR;
+		if (i460_rate == OSMO_I460_RATE_8k)
+			return OSMO_TRAU_SYNCP_8_HR;
+		LOGPENDP(endp, DE1, LOGL_ERROR,
+			 "E1-TRAU-TX: unsupported or illegal I.460 rate for HR\n");
+		return OSMO_TRAU_SYNCP_16_FR_EFR;
+	}
+
+	if (strcmp(sdp_subtype_name, "AMR") == 0) {
 		if (i460_rate == OSMO_I460_RATE_8k) {
 			switch (amr_ft) {
 			case AMR_4_75:
@@ -522,11 +542,11 @@ static enum osmo_tray_sync_pat_id determine_trau_sync_pat(char *sdp_subtype_name
 			}
 		}
 		return OSMO_TRAU_SYNCP_16_FR_EFR;
-	} else {
-		LOGPENDP(endp, DE1, LOGL_ERROR, "E1-TRAU-TX: unsupported or illegal codec subtype name: %s\n",
-			 sdp_subtype_name);
-		return OSMO_TRAU_SYNCP_16_FR_EFR;
 	}
+
+	LOGPENDP(endp, DE1, LOGL_ERROR, "E1-TRAU-TX: unsupported or illegal codec subtype name: %s\n",
+		 sdp_subtype_name);
+	return OSMO_TRAU_SYNCP_16_FR_EFR;
 }
 
 /* Find out if a given TRAU frame type is AMR */
