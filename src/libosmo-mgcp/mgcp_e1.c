@@ -324,7 +324,7 @@ static void e1_send_ts_frame(struct e1inp_ts *ts, struct mgcp_trunk *trunk)
 				     msgb_length(msg) > DEBUG_BYTES_MAX ? DEBUG_BYTES_MAX : msgb_length(msg)));
 #endif
 	/* Hand data over to the E1 stack */
-	msgb_enqueue(&ts->raw.tx_queue, msg);
+	e1inp_ts_send_raw(ts, msg);
 	return;
 }
 
