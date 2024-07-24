@@ -1,3 +1,83 @@
+osmo-mgw (1.13.0) unstable; urgency=medium
+
+  [ Neels Hofmeyr ]
+  * add mgcp_conn_rtp_type_names[]
+  * mgcp_parse_audio_port_pt(): fix buffer overflow
+  * client: replace two assertions with graceful error handling
+  * systemd,manual: set LimitNOFILE=65536
+  * IuUP: allow Initialization from any address if not yet set
+  * check_rtp_origin: drop special case for legacy IuUP hack
+  * mgcp_client_test: fix function name
+  * fix possible NULL deref on early media
+  * client: move some items to internal header
+  * client: safely handle dealloc on event dispatch
+  * build: move mgcp/*.h to noinst_HEADERS, drop RPM libosmo-mgcp-devel
+  * client: deprecate legacy API
+  * client: collapse codecs[] and ptmap[]; allow codec variants
+  * client: allow MGCP_MAX_CODECS entries
+  * client SDP: more verbose error logging
+  * mgcp_client_test: add test_parse_response()
+  * drop (now) unused code
+  * tests/mgcp: add update_exp target
+  * drop get_net_downlink_format_cb
+  * drop cfg 'sdp audio fmtp-extra'
+  * mgcp_codec_decide: remove redundant lookup
+  * tweak DEBUG log
+  * mgcp_test: fix false negatives in test output
+  * mgw: do not fail MGCP on codec mismatch
+  * mgcp-client: always send 'm=audio' line
+  * mgcp_test.c: verify osmo-mgw accepts m=audio 0
+  * mgcp_test.c: fix various missing '\r' and '\n'
+  * mgcp_test: test a=ptime:20, not 40
+  * mgcp_test: add CRCX for IUFP in sendrecv
+  * do not FAIL on CRCX in sendrecv mode
+
+  [ Keith Whyte ]
+  * vty and log: also show local port for RTP conns
+
+  [ Andreas Eversberg ]
+  * Use uniform log format for default config files
+
+  [ Pau Espin Pedrol ]
+  * mgcp_network: Improve err logging when rtp pkt from unexpected origin comes in
+  * cosmetic: Fix line indentation
+  * IuUP: Allow Initialization with set rem IP address and unset rem port
+  * mgcp-client: Transmit remote IP addr in CRCX if known and port=0
+  * Fix IuUP RTP hdr seqnr field not incremented
+  * iuup: Increment RTP hdr seqnr even if Tx over UDP fails
+
+  [ Vadim Yanitskiy ]
+  * mgcp: simplify getting msgb tail in mgcp_msg_terminate_nul()
+  * mgcp: reserve once byte for '\0' in mgcp_do_read()
+  * mgcp: correctly put NUL character in mgcp_msg_terminate_nul()
+  * build: include README into the release tarball
+
+  [ neels ]
+  * Revert "drop (now) unused code"
+
+  [ Harald Welte ]
+  * Convert README to README.md and expand like in other projects
+  * migrate mgcp_client from osmo_wqueue to osmo_io
+  * mgw: Add our usual SIGABRT, SIGUSR1 signal handlers
+  * don't log useless "transcoding disabled" message
+  * remove strange loop for non-existant transcoding support
+  * simplify unused transcoding/processing call-back
+  * remove osmo_fd from mgcp_create_bind()
+  * Change msgb ownership in processing of received msgb
+  * cosmetic: make linter happy
+  * Convert RTP/RTCP/OSMUX I/O from osmo_fd to osmo_io
+
+  [ Oliver Smith ]
+  * contrib: remove rpm spec file
+  * contrib/systemd: run as osmocom user
+  * doc: example configs: fix deprecation warnings
+
+  [ Mychaela N. Falconia ]
+  * E1: support HRv1 codec on both 16k and 8k subslots
+  * fix E1 TS output when used with osmo-e1d
+
+ -- Oliver Smith <osmith@sysmocom.de>  Wed, 24 Jul 2024 15:44:47 +0200
+
 osmo-mgw (1.12.1) unstable; urgency=medium
 
   [ Pau Espin Pedrol ]
