@@ -1251,7 +1251,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 		return 0;
 	} else if (!trunk->omit_rtcp) {
 		struct osmo_sockaddr rtcp_addr = rtp_end->addr;
-		osmo_sockaddr_set_port(&rtcp_addr.u.sa, rtp_end->rtcp_port);
+		osmo_sockaddr_set_port(&rtcp_addr.u.sa, ntohs(rtp_end->rtcp_port));
 		LOGPENDP(endp, DRTP, LOGL_DEBUG,
 			 "send to %s %s rtp_port:%u rtcp_port:%u\n",
 			 dest_name, osmo_sockaddr_ntop(&rtcp_addr.u.sa, ipbuf),
