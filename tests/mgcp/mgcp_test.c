@@ -1208,7 +1208,9 @@ static void test_packet_loss_calc(void)
 		_conn =
 		    mgcp_conn_alloc(NULL, &endp, MGCP_CONN_TYPE_RTP,
 				    "test-connection");
+		OSMO_ASSERT(_conn);
 		conn = mgcp_conn_get_rtp(&endp, _conn->id);
+		OSMO_ASSERT(conn);
 		state = &conn->state;
 		packets_rx = rate_ctr_group_get_ctr(conn->ctrg, RTP_PACKETS_RX_CTR);
 
