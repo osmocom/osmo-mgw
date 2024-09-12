@@ -1,3 +1,14 @@
+osmo-mgw (1.13.1) unstable; urgency=medium
+
+  [ Philipp Maier ]
+  * mgcp_network: use an uint16_t to store the port number
+  * mgcp_network: add missing ntohs
+
+  [ Pau Espin Pedrol ]
+  * tests/mgcp/mgcp_test: Add some extra asserts in code
+
+ -- Oliver Smith <osmith@sysmocom.de>  Thu, 12 Sep 2024 13:53:19 +0200
+
 osmo-mgw (1.13.0) unstable; urgency=medium
 
   [ Neels Hofmeyr ]
