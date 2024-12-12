@@ -786,8 +786,10 @@ static void mgcp_read_cb(struct osmo_io_fd *iofd, int res, struct msgb *msg)
 	struct mgcp_client *mgcp = osmo_iofd_get_data(iofd);
 
 	if (res <= 0) {
+		char errbuf[128] = "";
+		strerror_r(-res, errbuf, sizeof(errbuf));
 		LOGPMGW(mgcp, LOGL_ERROR, "Failed to read: %s: %d='%s'\n",
-			osmo_iofd_get_name(iofd), res, strerror(res));
+			osmo_iofd_get_name(iofd), res, errbuf);
 
 		msgb_free(msg);
 		return;
@@ -822,8 +824,10 @@ static void mgcp_write_cb(struct osmo_io_fd *iofd, int res, struct msgb *msg)
 	struct mgcp_client *mgcp = osmo_iofd_get_data(iofd);
 
 	if (OSMO_UNLIKELY(res != msg->len)) {
+		char errbuf[128] = "";
+		strerror_r(-res, errbuf, sizeof(errbuf));
 		LOGPMGW(mgcp, LOGL_ERROR, "Failed to Tx MGCP: %s: %d='%s'; msg: len=%u '%s'...\n",
-			osmo_iofd_get_name(mgcp->iofd), res, strerror(res),
+			osmo_iofd_get_name(mgcp->iofd), res, errbuf,
 			msg->len, osmo_escape_str((const char *)msg->data, OSMO_MIN(42, msg->len)));
 	}
 }
