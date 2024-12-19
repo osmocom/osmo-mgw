@@ -265,7 +265,7 @@ osmux_conn_lookup(const struct mgcp_trunk *trunk, uint8_t local_cid, const struc
 			if (conn->type != MGCP_CONN_TYPE_RTP)
 				continue;
 
-			conn_rtp = &conn->u.rtp;
+			conn_rtp = mgcp_conn_get_conn_rtp(conn);
 			if (!mgcp_conn_rtp_is_osmux(conn_rtp))
 				continue;
 

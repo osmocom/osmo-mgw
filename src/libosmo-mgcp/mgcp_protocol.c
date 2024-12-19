@@ -172,7 +172,7 @@ static int setup_rtp_processing(struct mgcp_endpoint *endp,
 	/* Find the "sister" connection */
 	llist_for_each_entry(_conn, &endp->conns, entry) {
 		if (_conn->id != conn->conn->id) {
-			conn_src = &_conn->u.rtp;
+			conn_src = mgcp_conn_get_conn_rtp(_conn);
 			break;
 		}
 	}
@@ -819,7 +819,7 @@ static int handle_codec_info(struct mgcp_conn_rtp *conn,
 	/* Try to find an destination RTP connection that we can include in the codec decision. */
 	conn_dst = mgcp_find_dst_conn(conn->conn);
 	if (conn_dst && conn_dst->type == MGCP_CONN_TYPE_RTP)
-		conn_dst_rtp = &conn_dst->u.rtp;
+		conn_dst_rtp = mgcp_conn_get_conn_rtp(conn_dst);
 	else
 		conn_dst_rtp = NULL;
 
@@ -1609,7 +1609,7 @@ static void mgcp_keepalive_timer_cb(void *_trunk)
 		llist_for_each_entry(conn, &endp->conns, entry) {
 			if (conn->type == MGCP_CONN_TYPE_RTP &&
 			    conn->mode == MGCP_CONN_RECV_ONLY)
-				send_dummy(endp, &conn->u.rtp);
+				send_dummy(endp, mgcp_conn_get_conn_rtp(conn));
 		}
 	}
 

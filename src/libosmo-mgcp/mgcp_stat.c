@@ -141,7 +141,7 @@ void mgcp_format_stats(char *str, size_t str_len, struct mgcp_conn *conn)
 	 * keep this option open: */
 	switch (conn->type) {
 	case MGCP_CONN_TYPE_RTP:
-		mgcp_format_stats_rtp(str, str_len, &conn->u.rtp);
+		mgcp_format_stats_rtp(str, str_len, mgcp_conn_get_conn_rtp(conn));
 		break;
 	default:
 		break;

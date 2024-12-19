@@ -239,13 +239,16 @@ static void aggregate_rtp_conn_stats(struct mgcp_endpoint *endp, struct mgcp_con
 */
 void mgcp_conn_free(struct mgcp_conn *conn)
 {
+	struct mgcp_conn_rtp *conn_rtp;
+
 	if (!conn)
 		return;
 
 	switch (conn->type) {
 	case MGCP_CONN_TYPE_RTP:
-		aggregate_rtp_conn_stats(conn->endp, &conn->u.rtp);
-		mgcp_rtp_conn_cleanup(&conn->u.rtp);
+		conn_rtp = mgcp_conn_get_conn_rtp(conn);
+		aggregate_rtp_conn_stats(conn->endp, conn_rtp);
+		mgcp_rtp_conn_cleanup(conn_rtp);
 		break;
 	default:
 		/* NOTE: This should never be called with an
@@ -268,24 +271,26 @@ char *mgcp_conn_dump(struct mgcp_conn *conn)
 	static char str[sizeof(conn->name)+sizeof(conn->id)+256];
 	char ipbuf[INET6_ADDRSTRLEN];
 	struct osmo_strbuf sb = { .buf = str, .len = sizeof(str) };
+	struct mgcp_conn_rtp *conn_rtp;
 
 	if (!conn)
 		return "NULL";
 
 	switch (conn->type) {
 	case MGCP_CONN_TYPE_RTP:
+		conn_rtp = mgcp_conn_get_conn_rtp(conn);
 		OSMO_STRBUF_PRINTF(sb, "(%s/%s C:%s r=%s:%u<->l=%s:%u",
 				   conn->name,
 				   mgcp_conn_rtp_type_name(conn->type),
 				   conn->id,
-				   osmo_sockaddr_ntop(&conn->u.rtp.end.addr.u.sa, ipbuf) ? : "NULL",
-				   osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa),
-				   conn->u.rtp.end.local_addr ? : "NULL",
-				   conn->u.rtp.end.local_port);
+				   osmo_sockaddr_ntop(&conn_rtp->end.addr.u.sa, ipbuf) ? : "NULL",
+				   osmo_sockaddr_port(&conn_rtp->end.addr.u.sa),
+				   conn_rtp->end.local_addr ? : "NULL",
+				   conn_rtp->end.local_port);
 
-		switch (conn->u.rtp.type) {
+		switch (conn_rtp->type) {
 		case MGCP_RTP_OSMUX:
-			OSMO_STRBUF_PRINTF(sb, " CID=%u", conn->u.rtp.osmux.local_cid);
+			OSMO_STRBUF_PRINTF(sb, " CID=%u", conn_rtp->osmux.local_cid);
 			break;
 		default:
 			break;
