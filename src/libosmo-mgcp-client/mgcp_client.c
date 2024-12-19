@@ -1051,6 +1051,7 @@ void mgcp_client_disconnect(struct mgcp_client *mgcp)
 	osmo_iofd_txqueue_clear(mgcp->iofd);
 	LOGPMGW(mgcp, LOGL_INFO, "MGCP association: %s -- closed!\n", osmo_iofd_get_name(mgcp->iofd));
 	osmo_iofd_free(mgcp->iofd);
+	mgcp->iofd = NULL;
 }
 
 /*! Get the IP-Aaddress of the associated MGW as string.
