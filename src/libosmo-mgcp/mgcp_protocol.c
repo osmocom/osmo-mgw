@@ -1142,7 +1142,6 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	struct rate_ctr_group *rate_ctrs;
 	char new_local_addr[INET6_ADDRSTRLEN];
 	int error_code = 500;
-	int silent = 0;
 	int have_sdp = 0;
 	char *line;
 	const char *local_options = NULL;
@@ -1206,9 +1205,6 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 			break;
 		case 'M':
 			mode = (const char *)line + 3;
-			break;
-		case 'Z':
-			silent = strcasecmp("noanswer", line + 3) == 0;
 			break;
 		case 'X':
 			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
@@ -1345,8 +1341,6 @@ mgcp_header_done:
 		send_dummy(endp, conn);
 
 	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_SUCCESS));
-	if (silent)
-		goto out_silent;
 
 	LOGPCONN(conn->conn, DLMGCP, LOGL_NOTICE,
 		 "MDCX: connection successfully modified\n");
@@ -1354,10 +1348,6 @@ mgcp_header_done:
 	return create_response_with_sdp(endp, conn, "MDCX", pdata->trans, false, false);
 error3:
 	return create_err_response(endp, endp, error_code, "MDCX", pdata->trans);
-
-out_silent:
-	LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "MDCX: silent exit\n");
-	return NULL;
 }
 
 /* DLCX command handler, processes the received command */
@@ -1368,7 +1358,6 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	struct mgcp_endpoint *endp = rq->endp;
 	struct rate_ctr_group *rate_ctrs;
 	int error_code = 400;
-	int silent = 0;
 	char *line;
 	char stats[1048];
 	const char *conn_id = NULL;
@@ -1452,9 +1441,6 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 				goto error3;
 			}
 			break;
-		case 'Z':
-			silent = strcasecmp("noanswer", line + 3) == 0;
-			break;
 		default:
 			LOGPEPTR(endp, trunk, DLMGCP, LOGL_NOTICE, "DLCX: Unhandled MGCP option: '%c'/%d\n",
 				 line[0], line[0]);
@@ -1513,16 +1499,10 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	}
 
 	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_SUCCESS));
-	if (silent)
-		goto out_silent;
 	return create_ok_resp_with_param(endp, endp, 250, "DLCX", pdata->trans, stats);
 
 error3:
 	return create_err_response(endp, endp, error_code, "DLCX", pdata->trans);
-
-out_silent:
-	LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "DLCX: silent exit\n");
-	return NULL;
 }
 
 /* RSIP command handler, processes the received command */
