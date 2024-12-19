@@ -965,7 +965,7 @@ static void test_messages(void)
 			endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
 			OSMO_ASSERT(endp);
 
-			conn = mgcp_conn_get_rtp(endp, "1");
+			conn = mgcp_endp_get_conn_rtp(endp, "1");
 			if (conn) {
 				OSMO_ASSERT(conn);
 
@@ -1209,7 +1209,7 @@ static void test_packet_loss_calc(void)
 		    mgcp_conn_alloc(NULL, &endp, MGCP_CONN_TYPE_RTP,
 				    "test-connection");
 		OSMO_ASSERT(_conn);
-		conn = mgcp_conn_get_rtp(&endp, _conn->id);
+		conn = mgcp_endp_get_conn_rtp(&endp, _conn->id);
 		OSMO_ASSERT(conn);
 		state = &conn->state;
 		packets_rx = rate_ctr_group_get_ctr(conn->ctrg, RTP_PACKETS_RX_CTR);
@@ -1461,7 +1461,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	_conn = mgcp_conn_alloc(NULL, &endp, MGCP_CONN_TYPE_RTP,
 				"test-connection");
 	OSMO_ASSERT(_conn);
-	conn = mgcp_conn_get_rtp(&endp, _conn->id);
+	conn = mgcp_endp_get_conn_rtp(&endp, _conn->id);
 	OSMO_ASSERT(conn);
 
 	rtp = &conn->end;
@@ -1548,7 +1548,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/1@mgw") == 0);
 	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
 	OSMO_ASSERT(endp);
-	conn = mgcp_conn_get_rtp(endp, conn_id);
+	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 18);
 
@@ -1564,7 +1564,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/2@mgw") == 0);
 	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
 	OSMO_ASSERT(endp);
-	conn = mgcp_conn_get_rtp(endp, conn_id);
+	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 18);
 
@@ -1585,7 +1585,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/3@mgw") == 0);
 	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
 	OSMO_ASSERT(endp);
-	conn = mgcp_conn_get_rtp(endp, conn_id);
+	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
 
@@ -1601,7 +1601,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/4@mgw") == 0);
 	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
 	OSMO_ASSERT(endp);
-	conn = mgcp_conn_get_rtp(endp, conn_id);
+	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 18);
 
@@ -1617,7 +1617,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/5@mgw") == 0);
 	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
 	OSMO_ASSERT(endp);
-	conn = mgcp_conn_get_rtp(endp, conn_id);
+	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
 
@@ -1629,7 +1629,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/5@mgw") == 0);
 	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
 	OSMO_ASSERT(endp);
-	conn = mgcp_conn_get_rtp(endp, conn_id);
+	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 3);
 	OSMO_ASSERT(osmo_sockaddr_port(&conn->end.addr.u.sa) == 16434);
@@ -1646,7 +1646,7 @@ static void test_multilple_codec(void)
 	talloc_free(endp->last_response);
 	talloc_free(endp->last_trans);
 	endp->last_response = endp->last_trans = NULL;
-	conn = mgcp_conn_get_rtp(endp, conn_id);
+	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(!conn);
 
 	last_endpoint[0] = '\0';
@@ -1660,7 +1660,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(strcmp(last_endpoint,"rtpbridge/5@mgw") == 0);
 	endp = mgcp_endp_by_name(NULL, last_endpoint, cfg);
 	OSMO_ASSERT(endp);
-	conn = mgcp_conn_get_rtp(endp, conn_id);
+	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->end.codec->payload_type == 0);
 
@@ -1689,7 +1689,7 @@ static void test_no_cycle(void)
 	_conn = mgcp_conn_alloc(NULL, endp, MGCP_CONN_TYPE_RTP,
 				"test-connection");
 	OSMO_ASSERT(_conn);
-	conn = mgcp_conn_get_rtp(endp, _conn->id);
+	conn = mgcp_endp_get_conn_rtp(endp, _conn->id);
 	OSMO_ASSERT(conn);
 
 	OSMO_ASSERT(conn->state.stats.initialized == 0);
@@ -2332,7 +2332,7 @@ void test_conn_id_matching(void)
 	for (i = 0; i < ARRAY_SIZE(conn_id_request); i++) {
 		const char *needle = conn_id_request[i];
 		printf("needle='%s' ", needle);
-		conn_match = mgcp_conn_get(&endp, needle);
+		conn_match = mgcp_endp_get_conn(&endp, needle);
 		OSMO_ASSERT(conn_match);
 		printf("found '%s'\n", conn_match->id);
 		OSMO_ASSERT(conn_match == conn);

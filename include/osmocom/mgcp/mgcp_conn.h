@@ -240,10 +240,6 @@ static inline bool mgcp_conn_rtp_is_iuup(const struct mgcp_conn_rtp *conn)
 struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 				  enum mgcp_conn_type type, char *name);
 void mgcp_conn_free(struct mgcp_conn *conn);
-struct mgcp_conn *mgcp_conn_get(struct mgcp_endpoint *endp, const char *id);
-struct mgcp_conn_rtp *mgcp_conn_get_rtp(struct mgcp_endpoint *endp,
-					const char *id);
 char *mgcp_conn_dump(struct mgcp_conn *conn);
 struct mgcp_conn *mgcp_find_dst_conn(struct mgcp_conn *conn);
-struct mgcp_conn *mgcp_conn_get_oldest(struct mgcp_endpoint *endp);
 void mgcp_conn_watchdog_kick(struct mgcp_conn *conn);

@@ -294,7 +294,7 @@ int mgcp_verify_ci(struct mgcp_endpoint *endp, const char *conn_id)
 	}
 
 	/* Check if connection exists */
-	if (mgcp_conn_get(endp, conn_id))
+	if (mgcp_endp_get_conn(endp, conn_id))
 		return 0;
 
 	LOGPENDP(endp, DLMGCP, LOGL_ERROR,
