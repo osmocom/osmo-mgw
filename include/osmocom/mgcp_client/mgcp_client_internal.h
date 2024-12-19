@@ -3,6 +3,8 @@
 #include <osmocom/core/osmo_io.h>
 #include <osmocom/core/timer.h>
 
+#include <osmocom/mgcp_client/mgcp_client.h>
+
 #define MSGB_CB_MGCP_TRANS_ID 0
 
 /* Struct that holds one endpoint name */
