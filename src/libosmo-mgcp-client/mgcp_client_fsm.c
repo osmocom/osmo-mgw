@@ -157,6 +157,7 @@ static void set_conn_mode(struct mgcp_msg *mgcp_msg, struct mgcp_conn_peer *peer
 		mgcp_msg->conn_mode = conn_mode;
 }
 
+/* returns message buffer containing MGXP MDCX on success, NULL on error. */
 static struct msgb *make_mdcx_msg(struct mgcp_ctx *mgcp_ctx)
 {
 	struct mgcp_msg mgcp_msg;
@@ -192,6 +193,7 @@ static struct msgb *make_mdcx_msg(struct mgcp_ctx *mgcp_ctx)
 	return mgcp_msg_gen(mgcp_ctx->mgcp, &mgcp_msg);
 }
 
+/* returns message buffer containing MGXP DLCX on success, NULL on error. */
 struct msgb *make_dlcx_msg(struct mgcp_ctx *mgcp_ctx)
 {
 	struct mgcp_msg mgcp_msg;
@@ -231,8 +233,10 @@ static void fsm_crcx_cb(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 		set_conn_mode(&mgcp_msg, &mgcp_ctx->conn_peer_local);
 
 		msg = mgcp_msg_gen(mgcp_ctx->mgcp, &mgcp_msg);
-		OSMO_ASSERT(msg);
-
+		if (!msg) {
+			osmo_fsm_inst_term(fi, OSMO_FSM_TERM_ERROR, NULL);
+			return;
+		}
 		mgcp_ctx->mgw_pending_trans = mgcp_msg_trans_id(msg);
 		mgcp_ctx->mgw_trans_pending = true;
 		rc = mgcp_client_tx(mgcp, msg, mgw_crcx_resp_cb, fi);

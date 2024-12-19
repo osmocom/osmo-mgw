@@ -864,6 +864,10 @@ static void _mgcp_client_send_dlcx(struct mgcp_client *mgcp, const char *epname)
 	};
 	osmo_strlcpy(mgcp_msg_dlcx.endpoint, epname, sizeof(mgcp_msg_dlcx.endpoint));
 	msgb_dlcx = mgcp_msg_gen(mgcp, &mgcp_msg_dlcx);
+	if (msgb_dlcx) {
+		LOGPMGW(mgcp, LOGL_ERROR, "Failed generating MGCP DLCX %s\n", epname);
+		return;
+	}
 	mgcp_client_tx(mgcp, msgb_dlcx, &_ignore_mgcp_response, NULL);
 }
 
@@ -877,6 +881,10 @@ static void _mgcp_client_send_auep(struct mgcp_client *mgcp, const char *epname)
 	};
 	OSMO_STRLCPY_ARRAY(mgcp_msg_auep.endpoint, epname);
 	msgb_auep = mgcp_msg_gen(mgcp, &mgcp_msg_auep);
+	if (msgb_auep) {
+		LOGPMGW(mgcp, LOGL_ERROR, "Failed generating MGCP AUEP %s\n", epname);
+		return;
+	}
 	mgcp_client_tx(mgcp, msgb_auep, &_ignore_mgcp_response, NULL);
 }
 
@@ -1336,7 +1344,9 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 	MSGB_PRINTF_OR_RET("v=0\r\n");
 
 	/* Determine local IP-Address */
-	if (osmo_sock_local_ip(local_ip, mgcp->actual.remote_addr) < 0) {
+	if (mgcp->actual.local_addr) {
+		OSMO_STRLCPY_ARRAY(local_ip, mgcp->actual.local_addr);
+	} else if (osmo_sock_local_ip(local_ip, mgcp->actual.remote_addr) < 0) {
 		LOGPMGW(mgcp, LOGL_ERROR,
 			"Could not determine local IP-Address!\n");
 		return -EINVAL;
