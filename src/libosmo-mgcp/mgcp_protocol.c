@@ -1147,7 +1147,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	const char *local_options = NULL;
 	const char *mode = NULL;
 	struct mgcp_conn_rtp *conn = NULL;
-        const char *conn_id = NULL;
+	const char *conn_id = NULL;
 	int remote_osmux_cid = -2;
 	int rc;
 
