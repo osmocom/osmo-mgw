@@ -741,7 +741,7 @@ struct mgcp_conn_rtp *mgcp_endp_get_conn_rtp(struct mgcp_endpoint *endp,
 		return NULL;
 
 	if (conn->type == MGCP_CONN_TYPE_RTP)
-		return &conn->u.rtp;
+		return mgcp_conn_get_conn_rtp(conn);
 
 	return NULL;
 }

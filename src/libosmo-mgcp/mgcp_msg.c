@@ -110,20 +110,16 @@ int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
 		ret = -1;
 	}
 
-	/* Special handling for RTP connections */
-	if (conn->type == MGCP_CONN_TYPE_RTP) {
-		conn->u.rtp.end.output_enabled = !!(conn->mode & MGCP_CONN_SEND_ONLY);
-	}
-
 	LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "conn:%s\n", mgcp_conn_dump(conn));
-
 	LOGPCONN(conn, DLMGCP, LOGL_DEBUG, "connection mode '%s' %d\n",
 		 mode, conn->mode);
 
-	/* Special handling für RTP connections */
+	/* Special handling for RTP connections */
 	if (conn->type == MGCP_CONN_TYPE_RTP) {
+		struct mgcp_conn_rtp *conn_rtp = mgcp_conn_get_conn_rtp(conn);
+		conn_rtp->end.output_enabled = !!(conn->mode & MGCP_CONN_SEND_ONLY);
 		LOGPCONN(conn, DLMGCP, LOGL_DEBUG, "output_enabled %u\n",
-			 conn->u.rtp.end.output_enabled);
+			 conn_rtp->end.output_enabled);
 	}
 
 	/* The VTY might change the connection mode at any time, so we have

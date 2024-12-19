@@ -28,6 +28,7 @@
 #include <osmocom/mgcp/osmux.h>
 #include <osmocom/core/linuxlist.h>
 #include <osmocom/core/rate_ctr.h>
+#include <osmocom/core/utils.h>
 #include <osmocom/gsm/iuup.h>
 #include <inttypes.h>
 
@@ -235,6 +236,12 @@ static inline bool mgcp_conn_rtp_is_osmux(const struct mgcp_conn_rtp *conn) {
 static inline bool mgcp_conn_rtp_is_iuup(const struct mgcp_conn_rtp *conn)
 {
 	return conn->type == MGCP_RTP_IUUP;
+}
+
+static inline struct mgcp_conn_rtp *mgcp_conn_get_conn_rtp(struct mgcp_conn *conn)
+{
+	OSMO_ASSERT(conn->type == MGCP_CONN_TYPE_RTP);
+	return &conn->u.rtp;
 }
 
 struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,

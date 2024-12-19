@@ -650,6 +650,7 @@ int mgcp_e1_endp_equip(struct mgcp_endpoint *endp, uint8_t ts, uint8_t ss, uint8
 void mgcp_e1_endp_update(struct mgcp_endpoint *endp)
 {
 	struct mgcp_conn *conn;
+	struct mgcp_conn_rtp *conn_rtp;
 	struct mgcp_rtp_codec *codec;
 	enum osmo_tray_sync_pat_id sync_pat_id;
 
@@ -658,7 +659,8 @@ void mgcp_e1_endp_update(struct mgcp_endpoint *endp)
 	 * endpoint no more than one connection should exist. */
 	conn = mgcp_endp_get_conn_oldest(endp);
 	OSMO_ASSERT(conn);
-	codec = conn->u.rtp.end.codec;
+	conn_rtp = mgcp_conn_get_conn_rtp(conn);
+	codec = conn_rtp->end.codec;
 	OSMO_ASSERT(codec);
 
 	/* Update codec information */

@@ -254,7 +254,8 @@ static void dump_endpoint(struct vty *vty, struct mgcp_endpoint *endp,
 			 * connection types (E1) as soon as
 			 * the implementation is available */
 			if (conn->type == MGCP_CONN_TYPE_RTP) {
-				dump_rtp_end(vty, &conn->u.rtp);
+				struct mgcp_conn_rtp *conn_rtp = mgcp_conn_get_conn_rtp(conn);
+				dump_rtp_end(vty, conn_rtp);
 			}
 		}
 	}
@@ -1357,10 +1358,11 @@ DEFUN(loop_conn,
 	endp = trunk->endpoints[endp_no];
 	int loop = atoi(argv[2]);
 	llist_for_each_entry(conn, &endp->conns, entry) {
-		if (conn->type == MGCP_CONN_TYPE_RTP)
+		if (conn->type == MGCP_CONN_TYPE_RTP) {
 			/* Handle it like a MDCX, switch on SSRC patching if enabled */
-			mgcp_rtp_end_config(endp, 1, &conn->u.rtp.end);
-		else {
+			struct mgcp_conn_rtp *conn_rtp = mgcp_conn_get_conn_rtp(conn);
+			mgcp_rtp_end_config(endp, 1, &conn_rtp->end);
+		} else {
 			/* FIXME: Introduce support for other connection (E1)
 			 * types when implementation is available */
 			vty_out(vty, "%%Can't enable SSRC patching,"
