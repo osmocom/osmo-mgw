@@ -1343,13 +1343,13 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg)
 		 * packets back to their origin. We will use the originating
 		 * address data from the UDP packet header to patch the
 		 * outgoing address in connection on the fly */
-		if (osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa) == 0) {
-			memcpy(&conn->u.rtp.end.addr, from_addr,
-			       sizeof(conn->u.rtp.end.addr));
+		if (osmo_sockaddr_port(&conn_src->end.addr.u.sa) == 0) {
+			memcpy(&conn_src->end.addr, from_addr,
+			       sizeof(conn_src->end.addr));
 			LOG_CONN_RTP(conn_src, LOGL_NOTICE,
 				     "loopback mode: implicitly using source address (%s:%u) as destination address\n",
 				     osmo_sockaddr_ntop(&from_addr->u.sa, ipbuf),
-				     osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa));
+				     osmo_sockaddr_port(&conn_src->end.addr.u.sa));
 		}
 		return mgcp_conn_rtp_dispatch_rtp(conn_src, msg);
 	}
@@ -1428,19 +1428,19 @@ int mgcp_dispatch_e1_bridge_cb(struct msgb *msg)
 		 * packets back to their origin. We will use the originating
 		 * address data from the UDP packet header to patch the
 		 * outgoing address in connection on the fly */
-		if (osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa) == 0) {
-			memcpy(&conn->u.rtp.end.addr, from_addr,
-			       sizeof(conn->u.rtp.end.addr));
+		if (osmo_sockaddr_port(&conn_src->end.addr.u.sa) == 0) {
+			memcpy(&conn_src->end.addr, from_addr,
+			       sizeof(conn_src->end.addr));
 			LOG_CONN_RTP(conn_src, LOGL_NOTICE,
 				     "loopback mode: implicitly using source address (%s:%u) as destination address\n",
 				     osmo_sockaddr_ntop(&from_addr->u.sa, ipbuf),
-				     osmo_sockaddr_port(&conn->u.rtp.end.addr.u.sa));
+				     osmo_sockaddr_port(&conn_src->end.addr.u.sa));
 		}
 		return mgcp_conn_rtp_dispatch_rtp(conn_src, msg);
 	}
 
 	/* Forward to E1 */
-	return mgcp_e1_send_rtp(conn->endp, conn->u.rtp.end.codec, msg);
+	return mgcp_e1_send_rtp(conn->endp, conn_src->end.codec, msg);
 }
 
 /*! cleanup an endpoint when a connection on an RTP bridge endpoint is removed.
