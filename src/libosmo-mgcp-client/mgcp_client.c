@@ -1320,6 +1320,36 @@ static int add_lco(struct msgb *msg, struct mgcp_msg *mgcp_msg)
 #undef MSGB_PRINTF_OR_RET
 }
 
+/* Helper function to obtain local IP address used in MGCP towards MGW,
+ * in string format, to fill the SDP "Origin" ("o=") field.
+ * return 0 on success, negative on error.
+ */
+static int get_mgcp_local_addr(const struct mgcp_client *mgcp, char *local_ip, size_t local_ip_len)
+{
+	int fd;
+
+	/* Try to get the socket local IP address if available: */
+	if (mgcp->iofd && ((fd = osmo_iofd_get_fd(mgcp->iofd)) >= 0)) {
+		if (osmo_sock_get_local_ip(fd, local_ip, local_ip_len) == 0)
+			return 0;
+		/* else: continue below */
+	}
+
+	/* If MGCP local address was explicitly specified in config, use it: */
+	if (mgcp->actual.local_addr) {
+		osmo_strlcpy(local_ip, mgcp->actual.local_addr, local_ip_len);
+		return 0;
+	}
+
+	/* Guess our local address based on system routing towards MGW: */
+	OSMO_ASSERT(local_ip_len >= INET6_ADDRSTRLEN);
+	if (osmo_sock_local_ip(local_ip, mgcp->actual.remote_addr) == 0)
+		return 0;
+
+	LOGPMGW(mgcp, LOGL_ERROR, "Could not determine local IP-Address!\n");
+	return -EINVAL;
+}
+
 /* Helper function for mgcp_msg_gen(): Add SDP information to MGCP message */
 static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_client *mgcp)
 {
@@ -1329,6 +1359,7 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 	const char *codec;
 	unsigned int pt;
 	uint16_t audio_port;
+	int rc;
 
 #define MSGB_PRINTF_OR_RET(FMT, ARGS...) do { \
 		if (msgb_printf(msg, FMT, ##ARGS) != 0) { \
@@ -1344,13 +1375,9 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 	MSGB_PRINTF_OR_RET("v=0\r\n");
 
 	/* Determine local IP-Address */
-	if (mgcp->actual.local_addr) {
-		OSMO_STRLCPY_ARRAY(local_ip, mgcp->actual.local_addr);
-	} else if (osmo_sock_local_ip(local_ip, mgcp->actual.remote_addr) < 0) {
-		LOGPMGW(mgcp, LOGL_ERROR,
-			"Could not determine local IP-Address!\n");
-		return -EINVAL;
-	}
+	rc = get_mgcp_local_addr(mgcp, local_ip, sizeof(local_ip));
+	if (rc < 0)
+		return rc;
 	local_ip_family = osmo_ip_str_type(local_ip);
 	if (local_ip_family == AF_UNSPEC)
 		return -EINVAL;
