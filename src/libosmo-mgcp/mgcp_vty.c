@@ -1418,7 +1418,7 @@ DEFUN(tap_rtp,
 	endp = trunk->endpoints[endp_no];
 
 	conn_id = argv[2];
-	conn = mgcp_conn_get_rtp(endp, conn_id);
+	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	if (!conn) {
 		vty_out(vty, "Conn ID %s is invalid.%s",
 			conn_id, VTY_NEWLINE);

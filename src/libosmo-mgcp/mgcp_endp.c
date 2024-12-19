@@ -684,6 +684,68 @@ void mgcp_endp_free_conn_all(struct mgcp_endpoint *endp)
 		mgcp_conn_free(conn);
 }
 
+/*! find a connection by its ID.
+ *  \param[in] endp associated endpoint
+ *  \param[in] id identification number of the connection
+ *  \returns pointer to allocated connection, NULL if not found */
+struct mgcp_conn *mgcp_endp_get_conn(struct mgcp_endpoint *endp, const char *id)
+{
+	struct mgcp_conn *conn;
+	const char *id_upper;
+	const char *conn_id;
+
+	if (!id || !*id)
+		return NULL;
+
+	/* Ignore leading zeros in needle */
+	while (*id == '0')
+		id++;
+
+	/* Use uppercase to compare identifiers, to avoid mismatches: RFC3435 2.1.3.2 "Names of
+	 * Connections" defines the id as a hex string, so clients may return lower case hex even though
+	 * we sent upper case hex in the CRCX response. */
+	id_upper = osmo_str_toupper(id);
+
+	llist_for_each_entry(conn, &endp->conns, entry) {
+		/* Ignore leading zeros in haystack */
+		for (conn_id = conn->id; *conn_id == '0'; conn_id++);
+
+		if (strcmp(conn_id, id_upper) == 0)
+			return conn;
+	}
+
+	return NULL;
+}
+
+/*! get oldest connection in the list.
+ *  \param[in] endp associated endpoint */
+struct mgcp_conn *mgcp_endp_get_conn_oldest(struct mgcp_endpoint *endp)
+{
+	if (llist_empty(&endp->conns))
+		return NULL;
+
+	return llist_last_entry(&endp->conns, struct mgcp_conn, entry);
+}
+
+/*! find an RTP connection by its ID.
+ *  \param[in] endp associated endpoint
+ *  \param[in] id identification number of the connection
+ *  \returns pointer to allocated connection, NULL if not found */
+struct mgcp_conn_rtp *mgcp_endp_get_conn_rtp(struct mgcp_endpoint *endp,
+					const char *id)
+{
+	struct mgcp_conn *conn;
+
+	conn = mgcp_endp_get_conn(endp, id);
+	if (!conn)
+		return NULL;
+
+	if (conn->type == MGCP_CONN_TYPE_RTP)
+		return &conn->u.rtp;
+
+	return NULL;
+}
+
 /*! release endpoint, all open connections are closed.
  *  \param[in] endp endpoint to release */
 void mgcp_endp_release(struct mgcp_endpoint *endp)

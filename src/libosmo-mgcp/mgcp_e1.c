@@ -656,7 +656,7 @@ void mgcp_e1_endp_update(struct mgcp_endpoint *endp)
 	/* In order to determine the codec, find the oldest connection on
 	 * the endpoint and use its codec information. Normally on an E1
 	 * endpoint no more than one connection should exist. */
-	conn = mgcp_conn_get_oldest(endp);
+	conn = mgcp_endp_get_conn_oldest(endp);
 	OSMO_ASSERT(conn);
 	codec = conn->u.rtp.end.codec;
 	OSMO_ASSERT(codec);

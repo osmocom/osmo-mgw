@@ -1022,7 +1022,7 @@ mgcp_header_done:
 		goto error2;
 	}
 
-	conn = mgcp_conn_get_rtp(endp, _conn->id);
+	conn = mgcp_endp_get_conn_rtp(endp, _conn->id);
 	OSMO_ASSERT(conn);
 
 	if (mgcp_parse_conn_mode(mode, endp, conn->conn) != 0) {
@@ -1237,7 +1237,7 @@ mgcp_header_done:
 		return create_err_response(endp, endp, 515, "MDCX", pdata->trans);
 	}
 
-	conn = mgcp_conn_get_rtp(endp, conn_id);
+	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	if (!conn) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_CONN_NOT_FOUND));
 		return create_err_response(endp, endp, 400, "MDCX", pdata->trans);
@@ -1475,7 +1475,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	}
 
 	/* Find the connection */
-	conn = mgcp_conn_get_rtp(endp, conn_id);
+	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	if (!conn) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CONNID));
 		goto error3;
