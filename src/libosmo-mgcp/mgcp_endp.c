@@ -655,6 +655,35 @@ void mgcp_endp_remove_conn(struct mgcp_endpoint *endp, struct mgcp_conn *conn)
 		mgcp_endp_release(endp);
 }
 
+/*! free oldest connection in the list.
+ *  \param[in] endp associated endpoint */
+void mgcp_endp_free_conn_oldest(struct mgcp_endpoint *endp)
+{
+	struct mgcp_conn *conn;
+
+	if (llist_empty(&endp->conns))
+		return;
+
+	conn = llist_last_entry(&endp->conns, struct mgcp_conn, entry);
+	mgcp_conn_free(conn);
+}
+
+/*! free all connections at once.
+ *  \param[in] endp associated endpoint */
+#if defined(__has_attribute)
+#if __has_attribute(no_sanitize)
+__attribute__((no_sanitize("undefined"))) /* ubsan detects a misaligned load */
+#endif
+#endif
+void mgcp_endp_free_conn_all(struct mgcp_endpoint *endp)
+{
+	struct mgcp_conn *conn;
+
+	/* Drop all items in the list, might be consecutive! */
+	while ((conn = llist_first_entry_or_null(&endp->conns, struct mgcp_conn, entry)))
+		mgcp_conn_free(conn);
+}
+
 /*! release endpoint, all open connections are closed.
  *  \param[in] endp endpoint to release */
 void mgcp_endp_release(struct mgcp_endpoint *endp)
@@ -665,7 +694,7 @@ void mgcp_endp_release(struct mgcp_endpoint *endp)
 	 * all connections have been removed already. In case
 	 * that there are still connections open (e.g. when
 	 * RSIP is executed), free them all at once. */
-	mgcp_conn_free_all(endp);
+	mgcp_endp_free_conn_all(endp);
 
 	/* We must only decrement the stat item when the endpoint as actually
 	 * claimed. An endpoint is claimed when a call-id is set */

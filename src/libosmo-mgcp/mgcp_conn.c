@@ -146,7 +146,7 @@ void mgcp_conn_watchdog_cb(void *data)
 {
 	struct mgcp_conn *conn = data;
 	LOGPCONN(conn, DLMGCP, LOGL_ERROR, "connection timed out!\n");
-	mgcp_conn_free(conn->endp, conn->id);
+	mgcp_conn_free(conn);
 }
 
 void mgcp_conn_watchdog_kick(struct mgcp_conn *conn)
@@ -286,20 +286,17 @@ static void aggregate_rtp_conn_stats(struct mgcp_endpoint *endp, struct mgcp_con
 	rate_ctr_inc(rate_ctr_group_get_ctr(all_stats, RTP_NUM_CONNECTIONS));
 }
 
-/*! free a connection by its ID.
- *  \param[in] endp associated endpoint
- *  \param[in] id identification number of the connection */
-void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id)
+/*! free a connection
+ *  \param[in] conn the conn to free. May be NULL.
+*/
+void mgcp_conn_free(struct mgcp_conn *conn)
 {
-	struct mgcp_conn *conn;
-
-	conn = mgcp_conn_get(endp, id);
 	if (!conn)
 		return;
 
 	switch (conn->type) {
 	case MGCP_CONN_TYPE_RTP:
-		aggregate_rtp_conn_stats(endp, &conn->u.rtp);
+		aggregate_rtp_conn_stats(conn->endp, &conn->u.rtp);
 		mgcp_rtp_conn_cleanup(&conn->u.rtp);
 		break;
 	default:
@@ -310,43 +307,9 @@ void mgcp_conn_free(struct mgcp_endpoint *endp, const char *id)
 	}
 
 	osmo_timer_del(&conn->watchdog);
-	mgcp_endp_remove_conn(endp, conn);
+	mgcp_endp_remove_conn(conn->endp, conn);
 	/* WARN: endp may have be freed after call to mgcp_endp_remove_conn */
 	talloc_free(conn);
-}
-
-/*! free oldest connection in the list.
- *  \param[in] endp associated endpoint */
-void mgcp_conn_free_oldest(struct mgcp_endpoint *endp)
-{
-	struct mgcp_conn *conn;
-
-	if (llist_empty(&endp->conns))
-		return;
-
-	conn = llist_last_entry(&endp->conns, struct mgcp_conn, entry);
-	if (!conn)
-		return;
-
-	mgcp_conn_free(endp, conn->id);
-}
-
-/*! free all connections at once.
- *  \param[in] endp associated endpoint */
-#if defined(__has_attribute)
-#if __has_attribute(no_sanitize)
-__attribute__((no_sanitize("undefined"))) /* ubsan detects a misaligned load */
-#endif
-#endif
-void mgcp_conn_free_all(struct mgcp_endpoint *endp)
-{
-	struct mgcp_conn *conn;
-
-	/* Drop all items in the list, might be consecutive! */
-	while ((conn = llist_first_entry_or_null(&endp->conns, struct mgcp_conn, entry)))
-		mgcp_conn_free(endp, conn->id);
-
-	return;
 }
 
 /*! dump basic connection information to human readable string.

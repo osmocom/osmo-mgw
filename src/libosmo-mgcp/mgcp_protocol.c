@@ -975,7 +975,7 @@ mgcp_header_done:
 			/* There is no more room for a connection, make some
 			 * room by blindly tossing the oldest of the two two
 			 * connections */
-			mgcp_conn_free_oldest(endp);
+			mgcp_endp_free_conn_oldest(endp);
 		} else {
 			/* There is no more room for a connection, leave
 			 * everything as it is and return with an error */
@@ -1020,7 +1020,6 @@ mgcp_header_done:
 			 "CRCX: unable to allocate RTP connection\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_ALLOC_CONN));
 		goto error2;
-
 	}
 
 	conn = mgcp_conn_get_rtp(endp, _conn->id);
@@ -1487,7 +1486,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	/* delete connection */
 	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG, "DLCX: deleting conn:%s\n",
 		 mgcp_conn_dump(conn->conn));
-	mgcp_conn_free(endp, conn_id);
+	mgcp_conn_free(conn->conn);
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
 		 "DLCX: connection successfully deleted\n");
 
