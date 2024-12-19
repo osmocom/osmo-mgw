@@ -1230,7 +1230,7 @@ static void test_packet_loss_calc(void)
 			     pl_test_dat[i].expected);
 		}
 
-		mgcp_conn_free_all(&endp);
+		mgcp_endp_free_conn_all(&endp);
 	}
 
 	talloc_free(trunk);
@@ -1513,7 +1513,7 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 	}
 
 	force_monotonic_time_us = -1;
-	mgcp_conn_free_all(&endp);
+	mgcp_endp_free_conn_all(&endp);
 	talloc_free(trunk);
 	talloc_free(cfg);
 }
