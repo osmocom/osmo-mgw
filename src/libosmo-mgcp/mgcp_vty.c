@@ -165,7 +165,7 @@ static void dump_rtp_end(struct vty *vty, struct mgcp_conn_rtp *conn)
 {
 	struct mgcp_rtp_state *state = &conn->state;
 	struct mgcp_rtp_end *end = &conn->end;
-	struct mgcp_rtp_codec *codec = end->codec;
+	struct mgcp_rtp_codec *codec = end->cset.codec;
 	struct rate_ctr *tx_packets, *tx_bytes;
 	struct rate_ctr *rx_packets, *rx_bytes;
 	struct rate_ctr *dropped_packets;

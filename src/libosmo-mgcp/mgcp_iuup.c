@@ -264,6 +264,7 @@ static int bridge_iuup_to_rtp_peer(struct mgcp_conn_rtp *conn_rtp_src, struct mg
 	uint8_t *amr_data;
 	struct rtp_hdr *rtp_hdr;
 	struct amr_hdr *amr_hdr;
+	struct mgcp_rtp_codec *dst_codec;
 	int rc;
 
 	ft = osmo_amr_bytes_to_ft(msgb_l3len(msg));
@@ -275,7 +276,8 @@ static int bridge_iuup_to_rtp_peer(struct mgcp_conn_rtp *conn_rtp_src, struct mg
 	}
 	msgb_pull_to_l3(msg);
 
-	if (mgcp_codec_amr_is_octet_aligned(conn_rtp_dst->end.codec)) {
+	dst_codec = conn_rtp_dst->end.cset.codec;
+	if (mgcp_codec_amr_is_octet_aligned(dst_codec)) {
 		LOGP(DLMGCP, LOGL_DEBUG, "Convert IuUP -> AMR OA: ft %d, len %d\n", ft, msgb_length(msg));
 		amr_hdr = (struct amr_hdr *) msgb_push(msg, sizeof(struct amr_hdr));
 		amr_hdr->cmr = 15; /* no change */
@@ -303,7 +305,7 @@ static int bridge_iuup_to_rtp_peer(struct mgcp_conn_rtp *conn_rtp_src, struct mg
 		.extension = 0,
 		.padding = 0,
 		.version = 0,
-		.payload_type = conn_rtp_dst->end.codec->payload_type,
+		.payload_type = dst_codec->payload_type,
 		.marker = 0,
 		.sequence = frame_nr,
 		.timestamp = 0,
@@ -502,7 +504,7 @@ static int mgcp_send_iuup(struct mgcp_endpoint *endp, struct msgb *msg,
 	 * ignored by the receiver, but still it's useful for debug purposes
 	 * to set it. Moreover, it seems ip.access nano3g produces much worse
 	 * audio output on the air side if timestamp is not set properly. */
-	hdr->timestamp = osmo_htonl(mgcp_get_current_ts(rtp_end->codec->rate));
+	hdr->timestamp = osmo_htonl(mgcp_get_current_ts(rtp_end->cset.codec->rate));
 	hdr->sequence = osmo_htons(rtp_state->alt_rtp_tx_sequence);
 	hdr->ssrc = rtp_state->alt_rtp_tx_ssrc;
 	rtp_state->alt_rtp_tx_sequence++;
@@ -550,7 +552,7 @@ static int _conn_iuup_transport_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
 		.extension = 0,
 		.padding = 0,
 		.version = 2,
-		.payload_type = conn_rtp_dst->end.codec->payload_type,
+		.payload_type = conn_rtp_dst->end.cset.codec->payload_type,
 		.marker = 0,
 		.sequence = 0,
 		.timestamp = 0,
@@ -645,6 +647,7 @@ int mgcp_conn_iuup_send_rtp(struct mgcp_conn_rtp *conn_src_rtp, struct mgcp_conn
 	struct rtp_hdr *rtph;
 	int rc = -1;
 	int iuup_length = 0;
+	struct mgcp_rtp_codec *src_codec;
 	int8_t rfci;
 
 	/* Tx RNL-DATA.req */
@@ -657,13 +660,14 @@ int mgcp_conn_iuup_send_rtp(struct mgcp_conn_rtp *conn_src_rtp, struct mgcp_conn
 
 	/* TODO: CMR handling & multiple frames handling */
 
-	if (strcmp(conn_src_rtp->end.codec->subtype_name, "AMR") != 0) {
+	src_codec = conn_src_rtp->end.cset.codec;
+	if (strcmp(src_codec->subtype_name, "AMR") != 0) {
 		LOG_CONN_RTP(conn_src_rtp, LOGL_ERROR,
 			     "Bridge RTP=>IuUP: Bridging src codec %s to IuUP AMR not supported\n",
-			     conn_src_rtp->end.codec->subtype_name);
+			     src_codec->subtype_name);
 		goto free_ret;
 	}
-	if (mgcp_codec_amr_is_octet_aligned(conn_src_rtp->end.codec)) {
+	if (mgcp_codec_amr_is_octet_aligned(src_codec)) {
 		struct amr_hdr *amr_hdr = (struct amr_hdr *) msgb_data(msg);
 		if (msgb_length(msg) < (sizeof(*amr_hdr))) {
 			LOG_CONN_RTP(conn_src_rtp, LOGL_NOTICE,

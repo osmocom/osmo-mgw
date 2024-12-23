@@ -28,7 +28,7 @@
 
 /* Helper function to dump codec information of a specified codec to a printable
  * string, used by dump_codec_summary() */
-static char *dump_codec(struct mgcp_rtp_codec *codec)
+static char *mgcp_codec_dump(struct mgcp_rtp_codec *codec)
 {
 	static char str[256];
 	char *pt_str;
@@ -49,31 +49,25 @@ static char *dump_codec(struct mgcp_rtp_codec *codec)
 }
 
 /*! Dump a summary of all negotiated codecs to debug log
- *  \param[in] conn related rtp-connection. */
-void mgcp_codec_summary(struct mgcp_conn_rtp *conn)
+ *  \param[in] cset related codecset.
+ *  \param[in] prefix_str Prefix string to print during logging.
+ * */
+void mgcp_codecset_summary(struct mgcp_rtp_codecset *cset, const char *prefix_str)
 {
-	struct mgcp_rtp_end *rtp;
 	unsigned int i;
-	struct mgcp_rtp_codec *codec;
-	struct mgcp_endpoint *endp;
 
-	rtp = &conn->end;
-	endp = conn->conn->endp;
-
-	if (rtp->codecs_assigned == 0) {
-		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "conn:%s no codecs available\n",
-			 mgcp_conn_dump(conn->conn));
+	if (cset->codecs_assigned == 0) {
+		LOGP(DLMGCP, LOGL_ERROR, "%s no codecs available\n", prefix_str);
 		return;
 	}
 
 	/* Store parsed codec information */
-	for (i = 0; i < rtp->codecs_assigned; i++) {
-		codec = &rtp->codecs[i];
+	for (i = 0; i < cset->codecs_assigned; i++) {
+		struct mgcp_rtp_codec *codec = &cset->codecs[i];
 
-		LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "conn:%s codecs[%u]:%s",
-			 mgcp_conn_dump(conn->conn), i, dump_codec(codec));
+		LOGP(DLMGCP, LOGL_DEBUG, "%s codecs[%u]:%s", prefix_str, i, mgcp_codec_dump(codec));
 
-		if (codec == rtp->codec)
+		if (codec == cset->codec)
 			LOGPC(DLMGCP, LOGL_DEBUG, " [selected]");
 
 		LOGPC(DLMGCP, LOGL_DEBUG, "\n");
@@ -81,7 +75,7 @@ void mgcp_codec_summary(struct mgcp_conn_rtp *conn)
 }
 
 /* Initalize or reset codec information with default data. */
-static void codec_init(struct mgcp_rtp_codec *codec)
+static void mgcp_codec_init(struct mgcp_rtp_codec *codec)
 {
 	*codec = (struct mgcp_rtp_codec){
 		.payload_type = -1,
@@ -94,20 +88,20 @@ static void codec_init(struct mgcp_rtp_codec *codec)
 	};
 }
 
-static void codec_free(struct mgcp_rtp_codec *codec)
+static void mgcp_codec_free(struct mgcp_rtp_codec *codec)
 {
 	*codec = (struct mgcp_rtp_codec){};
 }
 
 /*! Initalize or reset codec information with default data.
  *  \param[out] conn related rtp-connection. */
-void mgcp_codec_reset_all(struct mgcp_conn_rtp *conn)
+void mgcp_codecset_reset(struct mgcp_rtp_codecset *cset)
 {
 	int i;
-	for (i = 0; i < conn->end.codecs_assigned; i++)
-		codec_free(&conn->end.codecs[i]);
-	conn->end.codecs_assigned = 0;
-	conn->end.codec = NULL;
+	for (i = 0; i < cset->codecs_assigned; i++)
+		mgcp_codec_free(&cset->codecs[i]);
+	cset->codecs_assigned = 0;
+	cset->codec = NULL;
 }
 
 /*! Add codec configuration depending on payload type and/or codec name. This
@@ -118,23 +112,23 @@ void mgcp_codec_reset_all(struct mgcp_conn_rtp *conn)
  *  \param[in] audio_name audio codec name, in uppercase (e.g. "GSM/8000/1").
  *  \param[in] param optional codec parameters (set to NULL when unused).
  *  \returns 0 on success, -EINVAL on failure. */
-int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *audio_name, const struct mgcp_codec_param *param)
+int mgcp_codecset_add_codec(struct mgcp_rtp_codecset *cset, int payload_type, const char *audio_name, const struct mgcp_codec_param *param)
 {
 	int rate;
 	int channels;
 	struct mgcp_rtp_codec *codec;
-	unsigned int pt_offset = conn->end.codecs_assigned;
+	unsigned int pt_offset = cset->codecs_assigned;
 
 	/* The amount of codecs we can store is limited, make sure we do not
 	 * overrun this limit. */
-	if (conn->end.codecs_assigned >= MGCP_MAX_CODECS)
+	if (cset->codecs_assigned >= MGCP_MAX_CODECS)
 		return -EINVAL;
 
 	/* First unused entry */
-	codec = &conn->end.codecs[conn->end.codecs_assigned];
+	codec = &cset->codecs[cset->codecs_assigned];
 
 	/* Initalize the codec struct with some default data to begin with */
-	codec_init(codec);
+	mgcp_codec_init(codec);
 
 	if (payload_type != PTYPE_UNDEFINED) {
 		/* Make sure we do not get any reserved or undefined type numbers */
@@ -268,11 +262,11 @@ int mgcp_codec_add(struct mgcp_conn_rtp *conn, int payload_type, const char *aud
 	} else
 		codec->param_present = false;
 
-	conn->end.codecs_assigned++;
+	cset->codecs_assigned++;
 	return 0;
 error:
 	/* Make sure we leave a clean codec entry on error. */
-	codec_free(codec);
+	mgcp_codec_free(codec);
 	return -EINVAL;
 }
 
@@ -296,7 +290,7 @@ bool mgcp_codec_amr_is_octet_aligned(const struct mgcp_rtp_codec *codec)
 }
 
 /* Compare two codecs, all parameters must match up */
-static bool codecs_same(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_codec *codec_b)
+static bool codecs_same(const struct mgcp_rtp_codec *codec_a, const struct mgcp_rtp_codec *codec_b)
 {
 	/* All codec properties must match up, except the payload type number. Even though standardisd payload numbers
 	 * exist for certain situations, the call agent may still assign them freely. Hence we must not insist on equal
@@ -325,7 +319,7 @@ static bool codecs_same(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_codec *c
 }
 
 /* Compare two codecs, all parameters must match up, except parameters related to payload formatting (not checked). */
-static bool codecs_convertible(struct mgcp_rtp_codec *codec_a, struct mgcp_rtp_codec *codec_b)
+static bool codecs_convertible(const struct mgcp_rtp_codec *codec_a, const struct mgcp_rtp_codec *codec_b)
 {
 	/* OsmoMGW currently has no ability to transcode from one codec to another. However OsmoMGW is still able to
 	 * translate between different payload formats as long as the encoded voice data itself does not change.
@@ -354,21 +348,18 @@ iufp:
 	return true;
 }
 
-struct mgcp_rtp_codec *mgcp_codec_find_same(struct mgcp_conn_rtp *conn, struct mgcp_rtp_codec *codec)
+struct mgcp_rtp_codec *mgcp_codecset_find_same(struct mgcp_rtp_codecset *cset, const struct mgcp_rtp_codec *codec)
 {
-	struct mgcp_rtp_end *rtp_end;
 	unsigned int i;
 	unsigned int codecs_assigned;
 
-	rtp_end = &conn->end;
-
 	/* Use the codec information from the source and try to find the equivalent of it on the destination side. In
 	 * the first run we will look for an exact match. */
-	codecs_assigned = rtp_end->codecs_assigned;
+	codecs_assigned = cset->codecs_assigned;
 	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
 	for (i = 0; i < codecs_assigned; i++) {
-		if (codecs_same(codec, &rtp_end->codecs[i])) {
-			return &rtp_end->codecs[i];
+		if (codecs_same(codec, &cset->codecs[i])) {
+			return &cset->codecs[i];
 			break;
 		}
 	}
@@ -377,28 +368,26 @@ struct mgcp_rtp_codec *mgcp_codec_find_same(struct mgcp_conn_rtp *conn, struct m
 }
 
 /* For a given codec, find a convertible codec in the given connection. */
-static struct mgcp_rtp_codec *codec_find_convertible(struct mgcp_conn_rtp *conn, struct mgcp_rtp_codec *codec)
+static struct mgcp_rtp_codec *codecset_find_convertible(struct mgcp_rtp_codecset *cset, const struct mgcp_rtp_codec *codec)
 {
-	struct mgcp_rtp_end *rtp_end;
 	unsigned int i;
 	unsigned int codecs_assigned;
 	struct mgcp_rtp_codec *codec_convertible = NULL;
 
-	rtp_end = &conn->end;
 
 	/* Use the codec information from the source and try to find the equivalent of it on the destination side. In
 	 * the first run we will look for an exact match. */
-	codec_convertible = mgcp_codec_find_same(conn, codec);
+	codec_convertible = mgcp_codecset_find_same(cset, codec);
 	if (codec_convertible)
 		return codec_convertible;
 
 	/* In case we weren't able to find an exact match, we will try to find a match that is the same codec, but the
 	 * payload format may be different. This alternative will require a frame format conversion (i.e. AMR bwe->oe) */
-	codecs_assigned = rtp_end->codecs_assigned;
+	codecs_assigned = cset->codecs_assigned;
 	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
 	for (i = 0; i < codecs_assigned; i++) {
-		if (codecs_convertible(codec, &rtp_end->codecs[i])) {
-			codec_convertible = &rtp_end->codecs[i];
+		if (codecs_convertible(codec, &cset->codecs[i])) {
+			codec_convertible = &cset->codecs[i];
 			break;
 		}
 	}
@@ -408,20 +397,20 @@ static struct mgcp_rtp_codec *codec_find_convertible(struct mgcp_conn_rtp *conn,
 
 /*! Decide for one suitable codec on both of the given connections. In case a destination connection is not available,
  *  a tentative decision is made.
- *  \param[inout] conn_src related rtp-connection.
- *  \param[inout] conn_dst related destination rtp-connection (NULL if not present).
+ *  \param[in] cset_src related codec set.
+ *  \param[inout] cset_dst related destination codec set (NULL if not present).
  *  \returns 0 on success, -EINVAL on failure. */
-int mgcp_codec_decide(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn_dst)
+int mgcp_codecset_decide(struct mgcp_rtp_codecset *cset_src, struct mgcp_rtp_codecset *cset_dst)
 {
 	unsigned int i;
 
 	/* In case no destination connection is available (yet), or in case the destination connection exists but has
 	 * no codecs assigned, we are forced to make a simple tentative decision:
 	 * We just use the first codec of the source connection (conn_src) */
-	OSMO_ASSERT(conn_src->end.codecs_assigned <= MGCP_MAX_CODECS);
-	if (!conn_dst || conn_dst->end.codecs_assigned == 0) {
-		if (conn_src->end.codecs_assigned >= 1) {
-			conn_src->end.codec = &conn_src->end.codecs[0];
+	OSMO_ASSERT(cset_src->codecs_assigned <= MGCP_MAX_CODECS);
+	if (!cset_dst || cset_dst->codecs_assigned == 0) {
+		if (cset_src->codecs_assigned >= 1) {
+			cset_src->codec = &cset_src->codecs[0];
 			return 0;
 		} else
 			return -EINVAL;
@@ -430,38 +419,38 @@ int mgcp_codec_decide(struct mgcp_conn_rtp *conn_src, struct mgcp_conn_rtp *conn
 	/* Compare all codecs of the source connection (conn_src) to the codecs of the destination connection (conn_dst). In case
 	 * of a match set this codec on both connections. This would be an ideal selection since no codec conversion would be
 	 * required. */
-	for (i = 0; i < conn_src->end.codecs_assigned; i++) {
-		struct mgcp_rtp_codec *codec_conn_src = &conn_src->end.codecs[i];
-		struct mgcp_rtp_codec *codec_conn_dst = mgcp_codec_find_same(conn_dst, codec_conn_src);
-		if (codec_conn_dst) {
+	for (i = 0; i < cset_src->codecs_assigned; i++) {
+		struct mgcp_rtp_codec *codec_cset_src = &cset_src->codecs[i];
+		struct mgcp_rtp_codec *codec_cset_dst = mgcp_codecset_find_same(cset_dst, codec_cset_src);
+		if (codec_cset_dst) {
 			/* We found the a codec that is exactly the same (same codec, same payload format etc.) on both
 			 * sides. We now set this codec on both connections. */
-			conn_dst->end.codec = codec_conn_dst;
-			conn_src->end.codec = codec_conn_src;
+			cset_dst->codec = codec_cset_dst;
+			cset_src->codec = codec_cset_src;
 			return 0;
 		}
 	}
 
 	/* In case we could not find a codec that is exactly the same, let's at least try to find a codec that we are able
 	 * to convert. */
-	for (i = 0; i < conn_src->end.codecs_assigned; i++) {
-		struct mgcp_rtp_codec *codec_conn_src = &conn_src->end.codecs[i];
-		struct mgcp_rtp_codec *codec_conn_dst = codec_find_convertible(conn_dst, codec_conn_src);
-		if (codec_conn_dst) {
+	for (i = 0; i < cset_src->codecs_assigned; i++) {
+		struct mgcp_rtp_codec *codec_cset_src = &cset_src->codecs[i];
+		struct mgcp_rtp_codec *codec_cset_dst = codecset_find_convertible(cset_dst, codec_cset_src);
+		if (codec_cset_dst) {
 			/* We found the a codec that we can convert to. Set each side to its codec. */
-			conn_dst->end.codec = codec_conn_dst;
-			conn_src->end.codec = codec_conn_src;
+			cset_dst->codec = codec_cset_dst;
+			cset_src->codec = codec_cset_src;
 			return 0;
 		}
 	}
 
-	if (conn_dst->end.codecs_assigned)
-		conn_dst->end.codec = &conn_dst->end.codecs[0];
+	if (cset_dst->codecs_assigned)
+		cset_dst->codec = &cset_dst->codecs[0];
 	else
 		return -EINVAL;
 
-	if (conn_src->end.codecs_assigned)
-		conn_src->end.codec = &conn_src->end.codecs[0];
+	if (cset_src->codecs_assigned)
+		cset_src->codec = &cset_src->codecs[0];
 	else
 		return -EINVAL;
 
@@ -488,38 +477,36 @@ bool mgcp_codec_amr_align_mode_is_indicated(const struct mgcp_rtp_codec *codec)
  * \param match_nr  Index for the match found, first being match_nr == 0. Iterate all matches by calling multiple times
  *                  with incrementing match_nr.
  * \return codec definition for that conn matching the subtype_name, or NULL if no such match_nr is found. */
-const struct mgcp_rtp_codec *mgcp_codec_pt_find_by_subtype_name(struct mgcp_conn_rtp *conn,
+const struct mgcp_rtp_codec *mgcp_codecset_pt_find_by_subtype_name(const struct mgcp_rtp_codecset *cset,
 								const char *subtype_name, unsigned int match_nr)
 {
 	int i;
-	for (i = 0; i < conn->end.codecs_assigned; i++) {
-		if (!strcmp(conn->end.codecs[i].subtype_name, subtype_name)) {
+	for (i = 0; i < cset->codecs_assigned; i++) {
+		if (!strcmp(cset->codecs[i].subtype_name, subtype_name)) {
 			if (match_nr) {
 				match_nr--;
 				continue;
 			}
-			return &conn->end.codecs[i];
+			return &cset->codecs[i];
 		}
 	}
 	return NULL;
 }
 
 /*! Lookup a codec that is assigned to a connection by its payload type number.
- *  \param[in] conn related rtp-connection.
+ *  \param[in] cset related codec set.
  *  \param[in] payload_type number of the codec to look up.
  *  \returns pointer to codec struct on success, NULL on failure. */
-struct mgcp_rtp_codec *mgcp_codec_from_pt(struct mgcp_conn_rtp *conn, int payload_type)
+struct mgcp_rtp_codec *mgcp_codecset_find_codec_from_pt(struct mgcp_rtp_codecset *cset, int payload_type)
 {
-	struct mgcp_rtp_end *rtp_end = &conn->end;
-	unsigned int codecs_assigned = rtp_end->codecs_assigned;
 	struct mgcp_rtp_codec *codec = NULL;
 	size_t i;
 
-	OSMO_ASSERT(codecs_assigned <= MGCP_MAX_CODECS);
+	OSMO_ASSERT(cset->codecs_assigned <= MGCP_MAX_CODECS);
 
-	for (i = 0; i < codecs_assigned; i++) {
-		if (payload_type == rtp_end->codecs[i].payload_type) {
-			codec = &rtp_end->codecs[i];
+	for (i = 0; i < cset->codecs_assigned; i++) {
+		if (payload_type == cset->codecs[i].payload_type) {
+			codec = &cset->codecs[i];
 			break;
 		}
 	}

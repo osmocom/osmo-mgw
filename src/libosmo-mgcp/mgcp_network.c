@@ -332,7 +332,7 @@ static int adjust_rtp_timestamp_offset(const struct mgcp_endpoint *endp,
 				 osmo_sockaddr_ntop(&addr->u.sa, ipbuf),
 				 osmo_sockaddr_port(&addr->u.sa));
 		} else {
-			tsdelta = rtp_end->codec->rate * 20 / 1000;
+			tsdelta = rtp_end->cset.codec->rate * 20 / 1000;
 			LOGPENDP(endp, DRTP, LOGL_NOTICE,
 				 "Fixed packet duration and last timestamp delta "
 				 "are not available, "
@@ -496,11 +496,11 @@ static int mgcp_patch_pt(struct mgcp_conn_rtp *conn_dst, struct msgb *msg)
 	}
 	rtp_hdr = (struct rtp_hdr *)msgb_data(msg);
 
-	if (!conn_dst->end.codec) {
+	if (!conn_dst->end.cset.codec) {
 		LOG_CONN_RTP(conn_dst, LOGL_NOTICE, "no codec set on destination connection!\n");
 		return -EINVAL;
 	}
-	rtp_hdr->payload_type = (uint8_t) conn_dst->end.codec->payload_type;
+	rtp_hdr->payload_type = (uint8_t) conn_dst->end.cset.codec->payload_type;
 
 	return 0;
 }
@@ -523,7 +523,8 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 	uint32_t timestamp, ssrc;
 	bool marker_bit;
 	struct rtp_hdr *rtp_hdr;
-	int payload = rtp_end->codec->payload_type;
+	struct mgcp_rtp_codec *codec = rtp_end->cset.codec;
+	int payload = codec->payload_type;
 	unsigned int len = msgb_length(msg);
 
 	if (len < sizeof(*rtp_hdr))
@@ -532,7 +533,7 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 	rtp_hdr = (struct rtp_hdr *)msgb_data(msg);
 	seq = ntohs(rtp_hdr->sequence);
 	timestamp = ntohl(rtp_hdr->timestamp);
-	arrival_time = mgcp_get_current_ts(rtp_end->codec->rate);
+	arrival_time = mgcp_get_current_ts(codec->rate);
 	ssrc = ntohl(rtp_hdr->ssrc);
 	marker_bit = !!rtp_hdr->marker;
 	transit = arrival_time - timestamp;
@@ -560,7 +561,7 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 			 osmo_sockaddr_port(&addr->u.sa));
 		if (state->packet_duration == 0) {
 			state->packet_duration =
-			    rtp_end->codec->rate * 20 / 1000;
+			    codec->rate * 20 / 1000;
 			LOGPENDP(endp, DRTP, LOGL_NOTICE,
 				 "fixed packet duration is not available, "
 				 "using fixed 20ms instead: %d from %s:%d\n",
@@ -816,8 +817,8 @@ static void gen_rtp_header(struct msgb *msg, struct mgcp_rtp_end *rtp_end,
 		return;
 
 	hdr->version = 2;
-	hdr->payload_type = rtp_end->codec->payload_type;
-	hdr->timestamp = osmo_htonl(mgcp_get_current_ts(rtp_end->codec->rate));
+	hdr->payload_type = rtp_end->cset.codec->payload_type;
+	hdr->timestamp = osmo_htonl(mgcp_get_current_ts(rtp_end->cset.codec->rate));
 	hdr->sequence = osmo_htons(state->alt_rtp_tx_sequence);
 	hdr->ssrc = state->alt_rtp_tx_ssrc;
 }
@@ -1183,6 +1184,8 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 			 osmo_sockaddr_port(&rtp_end->addr.u.sa), ntohs(rtp_end->rtcp_port)
 		    );
 	} else if (is_rtp) {
+		struct mgcp_rtp_codec *src_codec;
+		struct mgcp_rtp_codec *dst_codec;
 		/* Make sure we have a valid RTP header, in cases where no RTP
 		 * header is present, we will generate one. */
 		gen_rtp_header(msg, rtp_end, rtp_state);
@@ -1198,19 +1201,21 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 		if (addr)
 			mgcp_patch_and_count(endp, rtp_state, rtp_end, addr, msg);
 
+		src_codec = conn_src->end.cset.codec;
+		dst_codec = conn_dst->end.cset.codec;
 		if (mgcp_conn_rtp_is_iuup(conn_dst) || mgcp_conn_rtp_is_iuup(conn_src)) {
 			/* the iuup code will correctly transform to the correct AMR mode */
-		} else if (mgcp_codec_amr_align_mode_is_indicated(conn_dst->end.codec)) {
-			rc = amr_oa_bwe_convert(endp, msg, conn_dst->end.codec->param.amr_octet_aligned);
+		} else if (mgcp_codec_amr_align_mode_is_indicated(dst_codec)) {
+			rc = amr_oa_bwe_convert(endp, msg, dst_codec->param.amr_octet_aligned);
 			if (rc < 0) {
 				LOGPENDP(endp, DRTP, LOGL_ERROR,
 					 "Error in AMR octet-aligned <-> bandwidth-efficient mode conversion (target=%s)\n",
-					 conn_dst->end.codec->param.amr_octet_aligned ? "octet-aligned" : "bandwidth-efficient");
+					 dst_codec->param.amr_octet_aligned ? "octet-aligned" : "bandwidth-efficient");
 				msgb_free(msg);
 				return rc;
 			}
 		} else if (rtp_end->rfc5993_hr_convert &&
-			   strcmp(conn_src->end.codec->subtype_name, "GSM-HR-08") == 0) {
+			   strcmp(src_codec->subtype_name, "GSM-HR-08") == 0) {
 			rc = rfc5993_hr_convert(endp, msg);
 			if (rc < 0) {
 				LOGPENDP(endp, DRTP, LOGL_ERROR, "Error while converting to GSM-HR-08\n");
@@ -1434,7 +1439,7 @@ int mgcp_dispatch_e1_bridge_cb(struct msgb *msg)
 	}
 
 	/* Forward to E1 */
-	return mgcp_e1_send_rtp(conn->endp, conn_src->end.codec, msg);
+	return mgcp_e1_send_rtp(conn->endp, conn_src->end.cset.codec, msg);
 }
 
 /*! cleanup an endpoint when a connection on an RTP bridge endpoint is removed.
@@ -1556,18 +1561,18 @@ static int rx_rtp(struct msgb *msg)
 
 	/* Handle AMR frame format conversion (octet-aligned vs. bandwith-efficient) */
 	if (mc->proto == MGCP_PROTO_RTP
-	    && conn_src->end.codec
-	    && mgcp_codec_amr_align_mode_is_indicated(conn_src->end.codec)) {
+	    && conn_src->end.cset.codec
+	    && mgcp_codec_amr_align_mode_is_indicated(conn_src->end.cset.codec)) {
 		/* Make sure that the incoming AMR frame format matches the frame format that the call agent has
 		 * communicated via SDP when the connection was created/modfied. */
 		int oa = amr_oa_check((char*)msgb_data(msg), msgb_length(msg));
 		if (oa < 0)
 			goto out_free;
-		if (((bool)oa) != conn_src->end.codec->param.amr_octet_aligned) {
+		if (((bool)oa) != conn_src->end.cset.codec->param.amr_octet_aligned) {
 			LOG_CONN_RTP(conn_src, LOGL_NOTICE,
 				     "rx_rtp(%u bytes): Expected RTP AMR octet-aligned=%u but got octet-aligned=%u."
 				     " check the config of your call-agent!\n",
-				     msgb_length(msg), conn_src->end.codec->param.amr_octet_aligned, oa);
+				     msgb_length(msg), conn_src->end.cset.codec->param.amr_octet_aligned, oa);
 			goto out_free;
 		}
 	}

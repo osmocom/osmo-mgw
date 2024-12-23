@@ -422,7 +422,7 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	/* Store parsed codec information */
 	for (i = 0; i < codecs_used; i++) {
 		codec_param = param_by_pt(codecs[i].payload_type, fmtp_params, fmtp_used);
-		rc = mgcp_codec_add(conn, codecs[i].payload_type, codecs[i].map_line, codec_param);
+		rc = mgcp_codecset_add_codec(&conn->end.cset, codecs[i].payload_type, codecs[i].map_line, codec_param);
 		if (rc < 0)
 			LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "failed to add codec\n");
 	}
@@ -437,8 +437,8 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 		LOGPC(DLMGCP, LOGL_NOTICE, "none");
 	for (i = 0; i < codecs_used; i++) {
 		LOGPC(DLMGCP, LOGL_NOTICE, "%d=%s",
-		      rtp->codecs[i].payload_type,
-		      strlen(rtp->codecs[i].subtype_name) ? rtp->codecs[i].subtype_name : "unknown");
+		      rtp->cset.codecs[i].payload_type,
+		      strlen(rtp->cset.codecs[i].subtype_name) ? rtp->cset.codecs[i].subtype_name : "unknown");
 		LOGPC(DLMGCP, LOGL_NOTICE, " ");
 	}
 	LOGPC(DLMGCP, LOGL_NOTICE, "\n");
@@ -542,7 +542,7 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 	OSMO_ASSERT(sdp);
 	OSMO_ASSERT(addr);
 
-	codec = conn->end.codec;
+	codec = conn->end.cset.codec;
 
 	audio_name = codec->audio_name;
 	payload_type = codec->payload_type;

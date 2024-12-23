@@ -115,7 +115,7 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 	mgcp_rtp_end_init(&conn_rtp->end);
 
 	/* Make sure codec table is reset */
-	mgcp_codec_reset_all(conn_rtp);
+	mgcp_codecset_reset(&conn_rtp->end.cset);
 
 	return 0;
 }
@@ -129,7 +129,7 @@ static void mgcp_rtp_conn_cleanup(struct mgcp_conn_rtp *conn_rtp)
 		mgcp_conn_iuup_cleanup(conn_rtp);
 	mgcp_rtp_end_free_port(&conn_rtp->end);
 	rate_ctr_group_free(conn_rtp->ctrg);
-	mgcp_codec_reset_all(conn_rtp);
+	mgcp_codecset_reset(&conn_rtp->end.cset);
 }
 
 void mgcp_conn_watchdog_cb(void *data)

@@ -651,7 +651,7 @@ int conn_osmux_enable(struct mgcp_conn_rtp *conn)
 	osmux_xfrm_output_set_rtp_ssrc(conn->osmux.out,
 				       (conn->osmux.remote_cid * rtp_ssrc_winlen) +
 				       (random() % rtp_ssrc_winlen));
-	osmux_xfrm_output_set_rtp_pl_type(conn->osmux.out, conn->end.codec->payload_type);
+	osmux_xfrm_output_set_rtp_pl_type(conn->osmux.out, conn->end.cset.codec->payload_type);
 	osmux_xfrm_output_set_tx_cb(conn->osmux.out,
 				    scheduled_from_osmux_tx_rtp_cb, conn);
 

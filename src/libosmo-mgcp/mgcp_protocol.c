@@ -744,19 +744,20 @@ uint32_t mgcp_rtp_packet_duration(const struct mgcp_endpoint *endp,
 				  const struct mgcp_rtp_end *rtp)
 {
 	int f = 0;
+	struct mgcp_rtp_codec *codec = rtp->cset.codec;
 
 	/* Get the number of frames per channel and packet */
 	if (rtp->frames_per_packet)
 		f = rtp->frames_per_packet;
-	else if (rtp->packet_duration_ms && rtp->codec->frame_duration_num) {
-		int den = 1000 * rtp->codec->frame_duration_num;
-		f = (rtp->packet_duration_ms * rtp->codec->frame_duration_den +
+	else if (rtp->packet_duration_ms && codec->frame_duration_num) {
+		int den = 1000 * codec->frame_duration_num;
+		f = (rtp->packet_duration_ms * codec->frame_duration_den +
 		     den / 2)
 		    / den;
 	}
 
-	return rtp->codec->rate * f * rtp->codec->frame_duration_num /
-	    rtp->codec->frame_duration_den;
+	return codec->rate * f * codec->frame_duration_num /
+	    codec->frame_duration_den;
 }
 
 /*! Initializes osmux socket if not yet initialized. Parses Osmux CID from MGCP line.
@@ -784,6 +785,7 @@ static int handle_codec_info(struct mgcp_conn_rtp *conn,
 	struct mgcp_endpoint *endp = rq->endp;
 	struct mgcp_conn *conn_dst;
 	struct mgcp_conn_rtp *conn_dst_rtp;
+	struct mgcp_rtp_codecset *cset = &conn->end.cset;
 
 	int rc;
 	char *cmd;
@@ -797,7 +799,7 @@ static int handle_codec_info(struct mgcp_conn_rtp *conn,
 	if (have_sdp) {
 		/* If we have SDP, we ignore the local connection options and
 		 * use only the SDP information. */
-		mgcp_codec_reset_all(conn);
+		mgcp_codecset_reset(cset);
 		rc = mgcp_parse_sdp_data(endp, conn, rq->pdata);
 		if (rc != 0) {
 			LOGPCONN(conn->conn, DLMGCP,  LOGL_ERROR,
@@ -809,19 +811,19 @@ static int handle_codec_info(struct mgcp_conn_rtp *conn,
 	} else if (endp->local_options.codec) {
 		/* When no SDP is available, we use the codec information from
 		 * the local connection options (if present) */
-		mgcp_codec_reset_all(conn);
-		rc = mgcp_codec_add(conn, PTYPE_UNDEFINED, endp->local_options.codec, NULL);
+		mgcp_codecset_reset(cset);
+		rc = mgcp_codecset_add_codec(cset, PTYPE_UNDEFINED, endp->local_options.codec, NULL);
 		if (rc != 0)
 			goto error;
 	}
 
 	/* Make sure we always set a sane default codec */
-	if (conn->end.codecs_assigned == 0) {
+	if (cset->codecs_assigned == 0) {
 		/* When SDP and/or LCO did not supply any codec information,
 		 * than it makes sense to pick a sane default: (payload-type 0,
 		 * PCMU), see also: OS#2658 */
-		mgcp_codec_reset_all(conn);
-		rc = mgcp_codec_add(conn, 0, NULL, NULL);
+		mgcp_codecset_reset(cset);
+		rc = mgcp_codecset_add_codec(cset, 0, NULL, NULL);
 		if (rc != 0)
 			goto error;
 	}
@@ -834,7 +836,7 @@ static int handle_codec_info(struct mgcp_conn_rtp *conn,
 		conn_dst_rtp = NULL;
 
 	/* Make codec decision */
-	if (mgcp_codec_decide(conn, conn_dst_rtp) != 0)
+	if (mgcp_codecset_decide(&conn->end.cset, conn_dst_rtp ? &conn_dst_rtp->end.cset : NULL) != 0)
 		goto error;
 
 	return 0;
@@ -1074,7 +1076,7 @@ mgcp_header_done:
 
 	/* Handle codec information and decide for a suitable codec */
 	rc = handle_codec_info(conn_rtp, rq, have_sdp, true);
-	mgcp_codec_summary(conn_rtp);
+	mgcp_codecset_summary(&conn_rtp->end.cset, mgcp_conn_dump(conn));
 	if (rc) {
 		error_code = rc;
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_CODEC_NEGOTIATION));
@@ -1082,7 +1084,8 @@ mgcp_header_done:
 	}
 	/* Upgrade the conn type RTP_DEFAULT->RTP_IUUP if needed based on requested codec: */
 	/* TODO: "codec" probably needs to be moved from endp to conn */
-	if (conn_rtp->type == MGCP_RTP_DEFAULT && strcmp(conn_rtp->end.codec->subtype_name, "VND.3GPP.IUFP") == 0) {
+	if (conn_rtp->type == MGCP_RTP_DEFAULT &&
+	    strcmp(conn_rtp->end.cset.codec->subtype_name, "VND.3GPP.IUFP") == 0) {
 		rc = mgcp_conn_iuup_init(conn_rtp);
 	}
 
@@ -1285,14 +1288,15 @@ mgcp_header_done:
 
 	/* Handle codec information and decide for a suitable codec */
 	rc = handle_codec_info(conn_rtp, rq, have_sdp, false);
-	mgcp_codec_summary(conn_rtp);
+	mgcp_codecset_summary(&conn_rtp->end.cset, mgcp_conn_dump(conn));
 	if (rc) {
 		error_code = rc;
 		goto error3;
 	}
 	/* Upgrade the conn type RTP_DEFAULT->RTP_IUUP if needed based on requested codec: */
 	/* TODO: "codec" probably needs to be moved from endp to conn */
-	if (conn_rtp->type == MGCP_RTP_DEFAULT && strcmp(conn_rtp->end.codec->subtype_name, "VND.3GPP.IUFP") == 0)
+	if (conn_rtp->type == MGCP_RTP_DEFAULT &&
+	    strcmp(conn_rtp->end.cset.codec->subtype_name, "VND.3GPP.IUFP") == 0)
 		rc = mgcp_conn_iuup_init(conn_rtp);
 
 	if (mgcp_conn_rtp_is_osmux(conn_rtp)) {

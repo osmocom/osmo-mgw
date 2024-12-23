@@ -660,7 +660,7 @@ void mgcp_e1_endp_update(struct mgcp_endpoint *endp)
 	conn = mgcp_endp_get_conn_oldest(endp);
 	OSMO_ASSERT(conn);
 	conn_rtp = mgcp_conn_get_conn_rtp(conn);
-	codec = conn_rtp->end.codec;
+	codec = conn_rtp->end.cset.codec;
 	OSMO_ASSERT(codec);
 
 	/* Update codec information */

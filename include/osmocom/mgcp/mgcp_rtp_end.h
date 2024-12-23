@@ -17,14 +17,7 @@ struct mgcp_rtp_end {
 	/* in network byte order */
 	uint16_t rtcp_port;
 
-	/* currently selected audio codec */
-	struct mgcp_rtp_codec *codec;
-
-	/* array with assigned audio codecs to choose from (SDP) */
-	struct mgcp_rtp_codec codecs[MGCP_MAX_CODECS];
-
-	/* number of assigned audio codecs (SDP) */
-	unsigned int codecs_assigned;
+	struct mgcp_rtp_codecset cset;
 
 	/* per endpoint data */
 	int  frames_per_packet;

@@ -1023,14 +1023,14 @@ static void test_messages(void)
 			fprintf(stderr, "endpoint:%s: "
 				"payload type %d (expected %d)\n",
 				last_endpoint,
-				conn->end.codec->payload_type, t->ptype);
+				conn->end.cset.codec->payload_type, t->ptype);
 
 			if (t->ptype != PTYPE_IGNORE)
-				OSMO_ASSERT(conn->end.codec->payload_type ==
+				OSMO_ASSERT(conn->end.cset.codec->payload_type ==
 					    t->ptype);
 
 			/* Reset them again for next test */
-			conn->end.codec->payload_type = PTYPE_NONE;
+			conn->end.cset.codec->payload_type = PTYPE_NONE;
 		}
 	}
 
@@ -1466,8 +1466,8 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 
 	rtp = &conn->end;
 
-	OSMO_ASSERT(mgcp_codec_add(conn, PTYPE_UNDEFINED, "AMR/8000/1", NULL) == 0);
-	rtp->codec = &rtp->codecs[0];
+	OSMO_ASSERT(mgcp_codecset_add_codec(&conn->end.cset, PTYPE_UNDEFINED, "AMR/8000/1", NULL) == 0);
+	rtp->cset.codec = &rtp->cset.codecs[0];
 
 	for (i = 0; i < ARRAY_SIZE(test_rtp_packets1); ++i) {
 		struct rtp_packet_info *info = test_rtp_packets1 + i;
@@ -1550,7 +1550,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(endp);
 	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec->payload_type == 18);
+	OSMO_ASSERT(conn->end.cset.codec->payload_type == 18);
 
 	/* Allocate 2@mgw with three codecs, last one ignored */
 	last_endpoint[0] = '\0';
@@ -1566,7 +1566,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(endp);
 	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec->payload_type == 18);
+	OSMO_ASSERT(conn->end.cset.codec->payload_type == 18);
 
 	/* Allocate 3@mgw with no codecs, check for PT == 0 */
 	/* Note: It usually makes no sense to leave the payload type list
@@ -1587,7 +1587,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(endp);
 	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec->payload_type == 0);
+	OSMO_ASSERT(conn->end.cset.codec->payload_type == 0);
 
 	/* Allocate 4@mgw with a single codec */
 	last_endpoint[0] = '\0';
@@ -1603,7 +1603,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(endp);
 	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec->payload_type == 18);
+	OSMO_ASSERT(conn->end.cset.codec->payload_type == 18);
 
 	/* Allocate 5@mgw and let osmo-mgw pick a codec from the list */
 	last_endpoint[0] = '\0';
@@ -1619,7 +1619,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(endp);
 	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec->payload_type == 0);
+	OSMO_ASSERT(conn->end.cset.codec->payload_type == 0);
 
 	inp = create_msg(MDCX_NAT_DUMMY, conn_id);
 	last_endpoint[0] = '\0';
@@ -1631,7 +1631,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(endp);
 	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec->payload_type == 3);
+	OSMO_ASSERT(conn->end.cset.codec->payload_type == 3);
 	OSMO_ASSERT(osmo_sockaddr_port(&conn->end.addr.u.sa) == 16434);
 	memset(&addr, 0, sizeof(addr));
 	inet_aton("8.8.8.8", &addr);
@@ -1662,7 +1662,7 @@ static void test_multilple_codec(void)
 	OSMO_ASSERT(endp);
 	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
 	OSMO_ASSERT(conn);
-	OSMO_ASSERT(conn->end.codec->payload_type == 0);
+	OSMO_ASSERT(conn->end.cset.codec->payload_type == 0);
 
 	mgcp_endpoints_release(trunk);
 	talloc_free(cfg);
@@ -2195,7 +2195,7 @@ static bool codec_decision(struct mgcp_conn_rtp *conn, unsigned int index_conn_s
 	int payload_type_conn_dst;
 
 	printf(" - mgcp_codec_decide(&conn[%u], &conn[%u]):\n", index_conn_src, index_conn_dst);
-	if (mgcp_codec_decide(&conn[index_conn_src], &conn[index_conn_dst]) != 0) {
+	if (mgcp_codecset_decide(&conn[index_conn_src].end.cset, &conn[index_conn_dst].end.cset) != 0) {
 		if (expect->payload_type_map[index_conn_src] == -EINVAL
 		    && expect->payload_type_map[index_conn_dst] == -EINVAL)
 			printf("    codec decision failed (expected)!\n");
@@ -2205,19 +2205,19 @@ static bool codec_decision(struct mgcp_conn_rtp *conn, unsigned int index_conn_s
 		}
 	} else {
 		printf("    Codec decision result:\n");
-		if (conn[index_conn_src].end.codec) {
-			payload_type_conn_src = conn[index_conn_src].end.codec->payload_type;
+		if (conn[index_conn_src].end.cset.codec) {
+			payload_type_conn_src = conn[index_conn_src].end.cset.codec->payload_type;
 			printf("    conn[%u]: codec:%s, pt:%d\n",
-			       index_conn_src, conn[index_conn_src].end.codec->subtype_name, payload_type_conn_src);
+			       index_conn_src, conn[index_conn_src].end.cset.codec->subtype_name, payload_type_conn_src);
 		} else {
 			payload_type_conn_src = -EINVAL;
 			printf("    conn[%u]: codec:none, pt:none\n", index_conn_src);
 		}
 
-		if (conn[index_conn_dst].end.codec) {
-			payload_type_conn_dst = conn[index_conn_dst].end.codec->payload_type;
+		if (conn[index_conn_dst].end.cset.codec) {
+			payload_type_conn_dst = conn[index_conn_dst].end.cset.codec->payload_type;
 			printf("    conn[%u]: codec:%s, pt:%d\n",
-			       index_conn_dst, conn[index_conn_dst].end.codec->subtype_name,
+			       index_conn_dst, conn[index_conn_dst].end.cset.codec->subtype_name,
 			       payload_type_conn_dst);
 		} else {
 			payload_type_conn_dst = -EINVAL;
@@ -2265,8 +2265,8 @@ static void test_mgcp_codec_decide(void)
 				if (!codec->audio_name)
 					break;
 
-				rc = mgcp_codec_add(&conn[conn_i], codec->payload_type, codec->audio_name,
-						    codec->param);
+				rc = mgcp_codecset_add_codec(&conn[conn_i].end.cset, codec->payload_type,
+							     codec->audio_name, codec->param);
 
 				printf("   %2d: %3d %s%s  -> rc=%d\n", c, codec->payload_type, codec->audio_name,
 				       codec->param ?
