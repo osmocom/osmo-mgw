@@ -544,7 +544,7 @@ static int _conn_iuup_transport_prim_cb(struct osmo_prim_hdr *oph, void *ctx)
 
 	msgb_pull_to_l2(msg);
 	rtph = (struct rtp_hdr *)msgb_push(msg, sizeof(*rtph));
-	/* TODO: fill rtph properly: */
+	/* rtph is further filled in mgcp_send_iuup() below. */
 	*rtph = (struct rtp_hdr){
 		.csrc_count = 0,
 		.extension = 0,
