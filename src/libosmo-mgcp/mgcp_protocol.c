@@ -727,7 +727,7 @@ void mgcp_rtp_end_config(struct mgcp_endpoint *endp, int expect_ssrc_change,
 {
 	struct mgcp_trunk *trunk = endp->trunk;
 
-	int patch_ssrc = expect_ssrc_change && trunk->force_constant_ssrc;
+	bool patch_ssrc = expect_ssrc_change && trunk->force_constant_ssrc;
 
 	rtp->force_aligned_timing = trunk->force_aligned_timing;
 	rtp->force_constant_ssrc = patch_ssrc ? 1 : 0;
