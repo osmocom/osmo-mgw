@@ -569,6 +569,24 @@ bool mgcp_endp_avail(const struct mgcp_endpoint *endp)
 	return false;
 }
 
+/*! Get number of conns in an endpoint.
+ *  \param[in] endp endpoint to check.
+ *  \returns Number of connections present in the endpoint. */
+unsigned int mgcp_endp_num_conns(const struct mgcp_endpoint *endp)
+{
+	return llist_count(&endp->conns);
+}
+
+/*! check if an endpoint can in current state allocate new conns.
+ *  \param[in] endp endpoint to check.
+ *  \returns true if more connections can be allowed on endpoint, false if it is already busy. */
+bool mgcp_endp_is_full(const struct mgcp_endpoint *endp)
+{
+	if (endp->type->max_conns == 0)
+		return false;
+	return mgcp_endp_num_conns(endp) >= endp->type->max_conns;
+}
+
 /*! claim endpoint, sets callid and activates endpoint, should be called at the
  *  beginning of the CRCX procedure when it is clear that a new call should be
  *  created.

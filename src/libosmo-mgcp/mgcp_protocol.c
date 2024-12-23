@@ -967,7 +967,7 @@ mgcp_header_done:
 	}
 
 	/* Check if we are able to accept the creation of another connection */
-	if (endp->type->max_conns > 0 && llist_count(&endp->conns) >= endp->type->max_conns) {
+	if (mgcp_endp_is_full(endp)) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			"CRCX: endpoint full, max. %i connections allowed!\n",
 			endp->type->max_conns);
@@ -1173,7 +1173,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "MDCX: selected endpoint not available!\n");
 		return create_err_response(rq->trunk, NULL, 501, "MDCX", pdata->trans);
 	}
-	if (llist_count(&endp->conns) <= 0) {
+	if (mgcp_endp_num_conns(endp) <= 0) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "MDCX: endpoint is not holding a connection.\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_NO_CONN));
@@ -1396,7 +1396,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	if (rq->wildcarded) {
 		int num_conns = 0;
 		for (i = 0; i < trunk->number_endpoints; i++) {
-			num_conns += llist_count(&trunk->endpoints[i]->conns);
+			num_conns += mgcp_endp_num_conns(trunk->endpoints[i]);
 			mgcp_endp_release(trunk->endpoints[i]);
 		}
 		rate_ctr_add(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_SUCCESS), num_conns);
@@ -1458,7 +1458,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	 * that we drop all connections on that specific endpoint at once.
 	 * (See also RFC3435 Section F.7) */
 	if (!conn_id) {
-		int num_conns = llist_count(&endp->conns);
+		int num_conns = mgcp_endp_num_conns(endp);
 		LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
 			 "DLCX: missing ci (connectionIdentifier), will remove all connections (%d total) at once\n",
 			 num_conns);
@@ -1492,7 +1492,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 
 	/* When all connections are closed, the endpoint will be released
 	 * in order to be ready to be used by another call. */
-	if (llist_count(&endp->conns) <= 0) {
+	if (mgcp_endp_num_conns(endp) <= 0) {
 		mgcp_endp_release(endp);
 		LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "DLCX: endpoint released\n");
 	}
