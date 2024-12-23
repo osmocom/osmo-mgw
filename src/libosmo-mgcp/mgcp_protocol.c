@@ -883,8 +883,8 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 	enum mgcp_connection_mode mode = MGCP_CONN_NONE;
 	char *line;
 	int have_sdp = 0, remote_osmux_cid = -2;
-	struct mgcp_conn_rtp *conn = NULL;
-	struct mgcp_conn *_conn = NULL;
+	struct mgcp_conn *conn = NULL;
+	struct mgcp_conn_rtp *conn_rtp = NULL;
 	char conn_name[512];
 	int rc;
 
@@ -1025,35 +1025,35 @@ mgcp_header_done:
 	}
 
 	snprintf(conn_name, sizeof(conn_name), "%s", callid);
-	_conn = mgcp_conn_alloc(trunk->endpoints, endp, MGCP_CONN_TYPE_RTP, conn_name);
-	if (!_conn) {
+	conn = mgcp_conn_alloc(trunk->endpoints, endp, MGCP_CONN_TYPE_RTP, conn_name);
+	if (!conn) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "CRCX: unable to allocate RTP connection\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_ALLOC_CONN));
 		goto error2;
 	}
 
-	if (mgcp_conn_set_mode(_conn, mode) < 0) {
+	if (mgcp_conn_set_mode(conn, mode) < 0) {
 		error_code = 517;
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_INVALID_MODE));
 		goto error2;
 	}
 
-	conn = mgcp_conn_get_conn_rtp(_conn);
-	OSMO_ASSERT(conn);
+	conn_rtp = mgcp_conn_get_conn_rtp(conn);
+	OSMO_ASSERT(conn_rtp);
 
 	/* If X-Osmux (remote CID) was received (-1 is wilcard), alloc next avail CID as local CID */
 	if (remote_osmux_cid >= -1) {
-		if (osmux_init_conn(conn) < 0) {
+		if (osmux_init_conn(conn_rtp) < 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
 			goto error2;
 		}
 		if (remote_osmux_cid >= 0) {
-			conn->osmux.remote_cid_present = true;
-			conn->osmux.remote_cid = remote_osmux_cid;
+			conn_rtp->osmux.remote_cid_present = true;
+			conn_rtp->osmux.remote_cid = remote_osmux_cid;
 		}
 	} else if (endp->trunk->cfg->osmux.usage == OSMUX_USAGE_ONLY) {
-		LOGPCONN(_conn, DLMGCP, LOGL_ERROR,
+		LOGPCONN(conn, DLMGCP, LOGL_ERROR,
 			 "CRCX: osmux only and no osmux offered\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
 		goto error2;
@@ -1064,7 +1064,7 @@ mgcp_header_done:
 		rc = set_local_cx_options(trunk->endpoints,
 					  &endp->local_options, local_options);
 		if (rc != 0) {
-			LOGPCONN(_conn, DLMGCP, LOGL_ERROR,
+			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
 				 "CRCX: invalid local connection options!\n");
 			error_code = rc;
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_INVALID_CONN_OPTIONS));
@@ -1073,8 +1073,8 @@ mgcp_header_done:
 	}
 
 	/* Handle codec information and decide for a suitable codec */
-	rc = handle_codec_info(conn, rq, have_sdp, true);
-	mgcp_codec_summary(conn);
+	rc = handle_codec_info(conn_rtp, rq, have_sdp, true);
+	mgcp_codec_summary(conn_rtp);
 	if (rc) {
 		error_code = rc;
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_CODEC_NEGOTIATION));
@@ -1082,60 +1082,60 @@ mgcp_header_done:
 	}
 	/* Upgrade the conn type RTP_DEFAULT->RTP_IUUP if needed based on requested codec: */
 	/* TODO: "codec" probably needs to be moved from endp to conn */
-	if (conn->type == MGCP_RTP_DEFAULT && strcmp(conn->end.codec->subtype_name, "VND.3GPP.IUFP") == 0) {
-		rc = mgcp_conn_iuup_init(conn);
+	if (conn_rtp->type == MGCP_RTP_DEFAULT && strcmp(conn_rtp->end.codec->subtype_name, "VND.3GPP.IUFP") == 0) {
+		rc = mgcp_conn_iuup_init(conn_rtp);
 	}
 
 	if (pdata->cfg->force_ptime) {
-		conn->end.packet_duration_ms = pdata->cfg->force_ptime;
-		conn->end.force_output_ptime = 1;
+		conn_rtp->end.packet_duration_ms = pdata->cfg->force_ptime;
+		conn_rtp->end.force_output_ptime = 1;
 	}
 
-	mgcp_rtp_end_config(endp, 0, &conn->end);
+	mgcp_rtp_end_config(endp, 0, &conn_rtp->end);
 
 	/* Find a local address for conn based on policy and initial SDP remote
 	   information, then find a free port for it */
-	if (mgcp_get_local_addr(conn->end.local_addr, conn) < 0) {
+	if (mgcp_get_local_addr(conn_rtp->end.local_addr, conn_rtp) < 0) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
 		goto error2;
 	}
-	if (allocate_port(endp, conn) != 0) {
+	if (allocate_port(endp, conn_rtp) != 0) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
 		goto error2;
 	}
 
-	if (setup_rtp_processing(endp, conn) != 0) {
-		LOGPCONN(_conn, DLMGCP, LOGL_ERROR,
+	if (setup_rtp_processing(endp, conn_rtp) != 0) {
+		LOGPCONN(conn, DLMGCP, LOGL_ERROR,
 			 "CRCX: could not start RTP processing!\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_START_RTP));
 		goto error2;
 	}
 
 	/* Notify Osmux conn that CRCX was received */
-	if (mgcp_conn_rtp_is_osmux(conn)) {
-		if (conn_osmux_event_rx_crcx_mdcx(conn) < 0) {
-			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR, "CRCX: Osmux handling failed!\n");
+	if (mgcp_conn_rtp_is_osmux(conn_rtp)) {
+		if (conn_osmux_event_rx_crcx_mdcx(conn_rtp) < 0) {
+			LOGPCONN(conn, DLMGCP, LOGL_ERROR, "CRCX: Osmux handling failed!\n");
 			goto error2;
 		}
 	}
 
-	LOGPCONN(_conn, DLMGCP, LOGL_DEBUG,
-		 "CRCX: Creating connection: port: %u\n", conn->end.local_port);
+	LOGPCONN(conn, DLMGCP, LOGL_DEBUG,
+		 "CRCX: Creating connection: port: %u\n", conn_rtp->end.local_port);
 
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
 	OSMO_ASSERT(trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
-	if (_conn->mode & MGCP_CONN_RECV_ONLY &&
+	if (conn->mode & MGCP_CONN_RECV_ONLY &&
 	    trunk->keepalive_interval != MGCP_KEEPALIVE_NEVER)
-		send_dummy(endp, conn);
+		send_dummy(endp, conn_rtp);
 
-	LOGPCONN(_conn, DLMGCP, LOGL_NOTICE,
+	LOGPCONN(conn, DLMGCP, LOGL_NOTICE,
 		 "CRCX: connection successfully created\n");
 	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_SUCCESS));
 	mgcp_endp_update(endp);
 
 	/* NOTE: Only in the virtual trunk we allow dynamic endpoint names */
 	bool add_epname = rq->wildcarded && trunk->trunk_type == MGCP_TRUNK_VIRTUAL;
-	return create_response_with_sdp(endp, conn, "CRCX", pdata->trans, add_epname, true);
+	return create_response_with_sdp(endp, conn_rtp, "CRCX", pdata->trans, add_epname, true);
 error2:
 	mgcp_endp_release(endp);
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
@@ -1156,7 +1156,8 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	char *line;
 	const char *local_options = NULL;
 	enum mgcp_connection_mode mode = MGCP_CONN_NONE;
-	struct mgcp_conn_rtp *conn = NULL;
+	struct mgcp_conn *conn = NULL;
+	struct mgcp_conn_rtp *conn_rtp = NULL;
 	const char *conn_id = NULL;
 	int remote_osmux_cid = -2;
 	int rc;
@@ -1248,22 +1249,22 @@ mgcp_header_done:
 		return create_err_response(endp, endp, 515, "MDCX", pdata->trans);
 	}
 
-	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
+	conn = mgcp_endp_get_conn(endp, conn_id);
 	if (!conn) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_CONN_NOT_FOUND));
 		return create_err_response(endp, endp, 400, "MDCX", pdata->trans);
 	}
 
-	mgcp_conn_watchdog_kick(conn->conn);
+	mgcp_conn_watchdog_kick(conn);
 
 	if (mode != MGCP_CONN_NONE) {
-		if (mgcp_conn_set_mode(conn->conn, mode) < 0) {
+		if (mgcp_conn_set_mode(conn, mode) < 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_MODE));
 			error_code = 517;
 			goto error3;
 		}
 	} else {
-		conn->conn->mode = conn->conn->mode_orig;
+		conn->mode = conn->mode_orig;
 	}
 
 	/* Set local connection options, if present */
@@ -1271,7 +1272,7 @@ mgcp_header_done:
 		rc = set_local_cx_options(trunk->endpoints,
 					  &endp->local_options, local_options);
 		if (rc != 0) {
-			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
 				 "MDCX: invalid local connection options!\n");
 			error_code = rc;
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_CONN_OPTIONS));
@@ -1279,38 +1280,41 @@ mgcp_header_done:
 		}
 	}
 
+	conn_rtp = mgcp_conn_get_conn_rtp(conn);
+	OSMO_ASSERT(conn_rtp);
+
 	/* Handle codec information and decide for a suitable codec */
-	rc = handle_codec_info(conn, rq, have_sdp, false);
-	mgcp_codec_summary(conn);
+	rc = handle_codec_info(conn_rtp, rq, have_sdp, false);
+	mgcp_codec_summary(conn_rtp);
 	if (rc) {
 		error_code = rc;
 		goto error3;
 	}
 	/* Upgrade the conn type RTP_DEFAULT->RTP_IUUP if needed based on requested codec: */
 	/* TODO: "codec" probably needs to be moved from endp to conn */
-	if (conn->type == MGCP_RTP_DEFAULT && strcmp(conn->end.codec->subtype_name, "VND.3GPP.IUFP") == 0)
-		rc = mgcp_conn_iuup_init(conn);
+	if (conn_rtp->type == MGCP_RTP_DEFAULT && strcmp(conn_rtp->end.codec->subtype_name, "VND.3GPP.IUFP") == 0)
+		rc = mgcp_conn_iuup_init(conn_rtp);
 
-	if (mgcp_conn_rtp_is_osmux(conn)) {
-		OSMO_ASSERT(conn->osmux.local_cid_allocated);
+	if (mgcp_conn_rtp_is_osmux(conn_rtp)) {
+		OSMO_ASSERT(conn_rtp->osmux.local_cid_allocated);
 		if (remote_osmux_cid < -1) {
-			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
 				 "MDCX: Failed to parse Osmux CID!\n");
 			goto error3;
 		} else if (remote_osmux_cid == -1) {
-			LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
 				 "MDCX: wilcard in MDCX is not supported!\n");
 			goto error3;
-		} else if (conn->osmux.remote_cid_present &&
-				remote_osmux_cid != conn->osmux.remote_cid) {
-				LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
-					"MDCX: changing already allocated CID is not supported!\n");
-				goto error3;
+		} else if (conn_rtp->osmux.remote_cid_present &&
+			   remote_osmux_cid != conn_rtp->osmux.remote_cid) {
+			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
+				"MDCX: changing already allocated CID is not supported!\n");
+			goto error3;
 		} else {
-			conn->osmux.remote_cid_present = true;
-			conn->osmux.remote_cid = remote_osmux_cid;
-			if (conn_osmux_event_rx_crcx_mdcx(conn) < 0) {
-				LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
+			conn_rtp->osmux.remote_cid_present = true;
+			conn_rtp->osmux.remote_cid = remote_osmux_cid;
+			if (conn_osmux_event_rx_crcx_mdcx(conn_rtp) < 0) {
+				LOGPCONN(conn, DLMGCP, LOGL_ERROR,
 					"MDCX: Osmux handling failed!\n");
 				goto error3;
 			}
@@ -1321,42 +1325,42 @@ mgcp_header_done:
 	   to update our announced IP addr and re-bind our local end. This can
 	   happen for instance if MGW initially provided an IPv4 during CRCX
 	   ACK, and now MDCX tells us the remote has an IPv6 address. */
-	if (mgcp_get_local_addr(new_local_addr, conn) < 0) {
+	if (mgcp_get_local_addr(new_local_addr, conn_rtp) < 0) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
 		goto error3;
 	}
-	if (strcmp(new_local_addr, conn->end.local_addr)) {
-		osmo_strlcpy(conn->end.local_addr, new_local_addr, sizeof(conn->end.local_addr));
-		mgcp_free_rtp_port(&conn->end);
-		if (allocate_port(endp, conn) != 0) {
+	if (strcmp(new_local_addr, conn_rtp->end.local_addr)) {
+		osmo_strlcpy(conn_rtp->end.local_addr, new_local_addr, sizeof(conn_rtp->end.local_addr));
+		mgcp_free_rtp_port(&conn_rtp->end);
+		if (allocate_port(endp, conn_rtp) != 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
 			goto error3;
 		}
 	}
 
-	if (setup_rtp_processing(endp, conn) != 0) {
+	if (setup_rtp_processing(endp, conn_rtp) != 0) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_START_RTP));
 		goto error3;
 	}
 
-	mgcp_rtp_end_config(endp, 1, &conn->end);
+	mgcp_rtp_end_config(endp, 1, &conn_rtp->end);
 
 	/* modify */
-	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
-		 "MDCX: modified conn:%s\n", mgcp_conn_dump(conn->conn));
+	LOGPCONN(conn, DLMGCP, LOGL_DEBUG,
+		 "MDCX: modified conn:%s\n", mgcp_conn_dump(conn));
 
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
 	OSMO_ASSERT(trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
-	if (conn->conn->mode & MGCP_CONN_RECV_ONLY &&
+	if (conn->mode & MGCP_CONN_RECV_ONLY &&
 	    trunk->keepalive_interval != MGCP_KEEPALIVE_NEVER)
-		send_dummy(endp, conn);
+		send_dummy(endp, conn_rtp);
 
 	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_SUCCESS));
 
-	LOGPCONN(conn->conn, DLMGCP, LOGL_NOTICE,
+	LOGPCONN(conn, DLMGCP, LOGL_NOTICE,
 		 "MDCX: connection successfully modified\n");
 	mgcp_endp_update(endp);
-	return create_response_with_sdp(endp, conn, "MDCX", pdata->trans, false, false);
+	return create_response_with_sdp(endp, conn_rtp, "MDCX", pdata->trans, false, false);
 error3:
 	return create_err_response(endp, endp, error_code, "MDCX", pdata->trans);
 }
@@ -1372,7 +1376,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	char *line;
 	char stats[1048];
 	const char *conn_id = NULL;
-	struct mgcp_conn_rtp *conn = NULL;
+	struct mgcp_conn *conn = NULL;
 	unsigned int i;
 
 	/* NOTE: In this handler we can not take it for granted that the endp
@@ -1487,18 +1491,18 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	}
 
 	/* Find the connection */
-	conn = mgcp_endp_get_conn_rtp(endp, conn_id);
+	conn = mgcp_endp_get_conn(endp, conn_id);
 	if (!conn) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CONNID));
 		goto error3;
 	}
 	/* save the statistics of the current connection */
-	mgcp_format_stats(stats, sizeof(stats), conn->conn);
+	mgcp_format_stats(stats, sizeof(stats), conn);
 
 	/* delete connection */
-	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG, "DLCX: deleting conn:%s\n",
-		 mgcp_conn_dump(conn->conn));
-	mgcp_conn_free(conn->conn);
+	LOGPCONN(conn, DLMGCP, LOGL_DEBUG, "DLCX: deleting conn:%s\n",
+		 mgcp_conn_dump(conn));
+	mgcp_conn_free(conn);
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
 		 "DLCX: connection successfully deleted\n");
 
