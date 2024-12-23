@@ -976,6 +976,7 @@ mgcp_header_done:
 			 * room by blindly tossing the oldest of the two two
 			 * connections */
 			mgcp_endp_free_conn_oldest(endp);
+			OSMO_ASSERT(!mgcp_endp_is_full(endp));
 		} else {
 			/* There is no more room for a connection, leave
 			 * everything as it is and return with an error */
