@@ -1719,28 +1719,3 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 
 	return bind_rtp(endp->trunk->cfg, conn->end.local_addr, end, endp);
 }
-
-/***********************
- * mgcp_rtp_end
- **********************/
-
-bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end)
-{
-	return (osmo_sockaddr_port(&rtp_end->addr.u.sa) != 0) &&
-	       (osmo_sockaddr_is_any(&rtp_end->addr) == 0);
-}
-
-/*! free allocated RTP and RTCP ports.
- *  \param[in] end RTP end */
-void mgcp_rtp_end_free_port(struct mgcp_rtp_end *end)
-{
-	if (end->rtp) {
-		osmo_iofd_free(end->rtp);
-		end->rtp = NULL;
-	}
-
-	if (end->rtcp) {
-		osmo_iofd_free(end->rtcp);
-		end->rtcp = NULL;
-	}
-}

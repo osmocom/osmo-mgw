@@ -31,6 +31,7 @@
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/iuup.h>
+#include <osmocom/mgcp/mgcp_rtp_end.h>
 #include <inttypes.h>
 
 #define LOGPCONN(conn, cat, level, fmt, args...) \

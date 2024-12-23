@@ -1,5 +1,9 @@
 #pragma once
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <osmocom/mgcp/mgcp_common.h>
+
 #define DEFAULT_RTP_AUDIO_FRAME_DUR_NUM 20
 #define DEFAULT_RTP_AUDIO_FRAME_DUR_DEN 1000
 #define DEFAULT_RTP_AUDIO_PACKET_DURATION_MS 20
@@ -7,6 +11,20 @@
 #define DEFAULT_RTP_AUDIO_DEFAULT_CHANNELS 1
 
 #define PTYPE_UNDEFINED (-1)
+
+struct mgcp_rtp_codec {
+	uint32_t rate;
+	int channels;
+	uint32_t frame_duration_num;
+	uint32_t frame_duration_den;
+
+	int payload_type;
+	char audio_name[64];
+	char subtype_name[64];
+
+	bool param_present;
+	struct mgcp_codec_param param;
+};
 
 struct mgcp_conn_rtp;
 

@@ -1,6 +1,7 @@
 noinst_HEADERS = \
 	vty.h \
 	mgcp_msg.h \
+	mgcp_codec.h \
 	mgcp_conn.h \
 	mgcp_stat.h \
 	mgcp_endp.h \
@@ -13,4 +14,5 @@ noinst_HEADERS = \
 	mgcp_network.h \
 	mgcp_protocol.h \
 	mgcp_iuup.h \
+	mgcp_rtp_end.h \
 	$(NULL)
