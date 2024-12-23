@@ -263,6 +263,37 @@ void mgcp_conn_free(struct mgcp_conn *conn)
 	talloc_free(conn);
 }
 
+/*! Parse connection mode.
+ *  \param[in] conn Connection whose mode is being set
+ *  \param[in] mode Mode to set
+ *  \returns 0 on success, -1 on error */
+int mgcp_conn_set_mode(struct mgcp_conn *conn, enum mgcp_connection_mode mode)
+{
+	OSMO_ASSERT(conn);
+	if (mode == MGCP_CONN_NONE) {
+		LOGPCONN(conn, DLMGCP, LOGL_ERROR,
+			 "missing connection mode\n");
+		return -1;
+	}
+	conn->mode = mode;
+	LOGPCONN(conn, DLMGCP, LOGL_DEBUG, "connection mode '%s' %d\n",
+		 mgcp_cmode_name(mode), conn->mode);
+
+	/* Special handling for RTP connections */
+	if (conn->type == MGCP_CONN_TYPE_RTP) {
+		struct mgcp_conn_rtp *conn_rtp = mgcp_conn_get_conn_rtp(conn);
+		conn_rtp->end.output_enabled = !!(conn->mode & MGCP_CONN_SEND_ONLY);
+		LOGPCONN(conn, DLMGCP, LOGL_DEBUG, "output_enabled %u\n",
+			 conn_rtp->end.output_enabled);
+	}
+
+	/* The VTY might change the connection mode at any time, so we have
+	 * to hold a copy of the original connection mode */
+	conn->mode_orig = conn->mode;
+
+	return 0;
+}
+
 /*! dump basic connection information to human readable string.
  *  \param[in] conn to dump
  *  \returns human readable string */

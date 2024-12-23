@@ -1,5 +1,8 @@
 #pragma once
 
+#include <osmocom/core/utils.h>
+#include <osmocom/mgcp/mgcp_common.h>
+
 /* Internal structure while parsing a request */
 struct mgcp_parse_data {
 	struct mgcp_config *cfg;
@@ -28,3 +31,9 @@ void mgcp_rtp_end_config(struct mgcp_endpoint *endp, int expect_ssrc_change,
 
 uint32_t mgcp_rtp_packet_duration(const struct mgcp_endpoint *endp,
 				  const struct mgcp_rtp_end *rtp);
+
+extern const struct value_string mgcp_connection_mode_strs[];
+static inline const char *mgcp_cmode_name(enum mgcp_connection_mode mode)
+{
+	return get_value_string(mgcp_connection_mode_strs, mode);
+}

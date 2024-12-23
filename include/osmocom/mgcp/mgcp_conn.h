@@ -24,6 +24,7 @@
 #pragma once
 
 #include <osmocom/mgcp/mgcp.h>
+#include <osmocom/mgcp/mgcp_common.h>
 #include <osmocom/mgcp/mgcp_network.h>
 #include <osmocom/mgcp/osmux.h>
 #include <osmocom/core/linuxlist.h>
@@ -247,6 +248,7 @@ static inline struct mgcp_conn_rtp *mgcp_conn_get_conn_rtp(struct mgcp_conn *con
 struct mgcp_conn *mgcp_conn_alloc(void *ctx, struct mgcp_endpoint *endp,
 				  enum mgcp_conn_type type, char *name);
 void mgcp_conn_free(struct mgcp_conn *conn);
+int mgcp_conn_set_mode(struct mgcp_conn *conn, enum mgcp_connection_mode mode);
 char *mgcp_conn_dump(struct mgcp_conn *conn);
 struct mgcp_conn *mgcp_find_dst_conn(struct mgcp_conn *conn);
 void mgcp_conn_watchdog_kick(struct mgcp_conn *conn);

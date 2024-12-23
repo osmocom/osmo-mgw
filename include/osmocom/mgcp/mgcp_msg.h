@@ -27,6 +27,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <osmocom/mgcp/mgcp_common.h>
+
 struct mgcp_conn;
 struct mgcp_parse_data;
 struct mgcp_endpoint;
@@ -34,8 +36,7 @@ struct mgcp_trunk;
 
 void mgcp_disp_msg(unsigned char *message, unsigned int len, char *preamble);
 
-int mgcp_parse_conn_mode(const char *msg, struct mgcp_endpoint *endp,
-			 struct mgcp_conn *conn);
+enum mgcp_connection_mode mgcp_parse_conn_mode(const char *msg);
 
 int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data);
 

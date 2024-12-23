@@ -59,6 +59,16 @@ char *mgcp_debug_get_last_endpoint_name(void)
 	return debug_last_endpoint_name;
 }
 
+const struct value_string mgcp_connection_mode_strs[] = {
+	{ MGCP_CONN_NONE, "none" },
+	{ MGCP_CONN_RECV_SEND, "sendrecv" },
+	{ MGCP_CONN_SEND_ONLY, "sendonly" },
+	{ MGCP_CONN_RECV_ONLY, "recvonly" },
+	{ MGCP_CONN_CONFECHO, "confecho" },
+	{ MGCP_CONN_LOOPBACK, "loopback" },
+	{ 0, NULL }
+};
+
 /* A combination of LOGPENDP and LOGPTRUNK that automatically falls back to
  * LOGPTRUNK when the endp parameter is NULL */
 #define LOGPEPTR(endp, trunk, cat, level, fmt, args...) \
@@ -870,7 +880,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 	int error_code = 400;
 	const char *local_options = NULL;
 	const char *callid = NULL;
-	const char *mode = NULL;
+	enum mgcp_connection_mode mode = MGCP_CONN_NONE;
 	char *line;
 	int have_sdp = 0, remote_osmux_cid = -2;
 	struct mgcp_conn_rtp *conn = NULL;
@@ -922,7 +932,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 			return create_err_response(rq->trunk, NULL, 523, "CRCX", pdata->trans);
 			break;
 		case 'M':
-			mode = (const char *)line + 3;
+			mode = mgcp_parse_conn_mode((const char *)line + 3);
 			break;
 		case 'X':
 			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
@@ -959,9 +969,9 @@ mgcp_header_done:
 		return create_err_response(endp, endp, 516, "CRCX", pdata->trans);
 	}
 
-	if (!mode) {
+	if (mode == MGCP_CONN_NONE) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
-			 "CRCX: insufficient parameters, missing mode\n");
+			 "CRCX: insufficient parameters, invalid mode\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_INVALID_MODE));
 		return create_err_response(endp, endp, 517, "CRCX", pdata->trans);
 	}
@@ -1023,14 +1033,14 @@ mgcp_header_done:
 		goto error2;
 	}
 
-	conn = mgcp_conn_get_conn_rtp(_conn);
-	OSMO_ASSERT(conn);
-
-	if (mgcp_parse_conn_mode(mode, endp, _conn) != 0) {
+	if (mgcp_conn_set_mode(_conn, mode) < 0) {
 		error_code = 517;
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_INVALID_MODE));
 		goto error2;
 	}
+
+	conn = mgcp_conn_get_conn_rtp(_conn);
+	OSMO_ASSERT(conn);
 
 	/* If X-Osmux (remote CID) was received (-1 is wilcard), alloc next avail CID as local CID */
 	if (remote_osmux_cid >= -1) {
@@ -1145,7 +1155,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	int have_sdp = 0;
 	char *line;
 	const char *local_options = NULL;
-	const char *mode = NULL;
+	enum mgcp_connection_mode mode = MGCP_CONN_NONE;
 	struct mgcp_conn_rtp *conn = NULL;
 	const char *conn_id = NULL;
 	int remote_osmux_cid = -2;
@@ -1204,7 +1214,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 			local_options = (const char *)line + 3;
 			break;
 		case 'M':
-			mode = (const char *)line + 3;
+			mode = mgcp_parse_conn_mode((const char *)line + 3);
 			break;
 		case 'X':
 			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
@@ -1246,14 +1256,15 @@ mgcp_header_done:
 
 	mgcp_conn_watchdog_kick(conn->conn);
 
-	if (mode) {
-		if (mgcp_parse_conn_mode(mode, endp, conn->conn) != 0) {
+	if (mode != MGCP_CONN_NONE) {
+		if (mgcp_conn_set_mode(conn->conn, mode) < 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_MODE));
 			error_code = 517;
 			goto error3;
 		}
-	} else
+	} else {
 		conn->conn->mode = conn->conn->mode_orig;
+	}
 
 	/* Set local connection options, if present */
 	if (local_options) {

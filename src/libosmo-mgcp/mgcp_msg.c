@@ -76,57 +76,24 @@ void mgcp_disp_msg(unsigned char *message, unsigned int len, char *preamble)
 
 /*! Parse connection mode.
  *  \param[in] mode as string (recvonly, sendrecv, sendonly confecho or loopback)
- *  \param[in] endp pointer to endpoint (only used for log output)
- *  \param[out] associated connection to be modified accordingly
- *  \returns 0 on success, -1 on error */
-int mgcp_parse_conn_mode(const char *mode, struct mgcp_endpoint *endp,
-			 struct mgcp_conn *conn)
+ *  \returns MGCP_CONN_* on success, MGCP_CONN_NONE on error */
+enum mgcp_connection_mode mgcp_parse_conn_mode(const char *mode)
 {
-	int ret = 0;
 
-	if (!mode) {
-		LOGPCONN(conn, DLMGCP, LOGL_ERROR,
-			 "missing connection mode\n");
-		return -1;
-	}
-	if (!conn)
-		return -1;
-	if (!endp)
-		return -1;
+	if (!mode)
+		return MGCP_CONN_NONE;
 
 	if (strcasecmp(mode, "recvonly") == 0)
-		conn->mode = MGCP_CONN_RECV_ONLY;
-	else if (strcasecmp(mode, "sendrecv") == 0)
-		conn->mode = MGCP_CONN_RECV_SEND;
-	else if (strcasecmp(mode, "sendonly") == 0)
-		conn->mode = MGCP_CONN_SEND_ONLY;
-	else if (strcasecmp(mode, "confecho") == 0)
-		conn->mode = MGCP_CONN_CONFECHO;
-	else if (strcasecmp(mode, "loopback") == 0)
-		conn->mode = MGCP_CONN_LOOPBACK;
-	else {
-		LOGPCONN(conn, DLMGCP, LOGL_ERROR,
-			 "unknown connection mode: '%s'\n", mode);
-		ret = -1;
-	}
-
-	LOGPENDP(endp, DLMGCP, LOGL_DEBUG, "conn:%s\n", mgcp_conn_dump(conn));
-	LOGPCONN(conn, DLMGCP, LOGL_DEBUG, "connection mode '%s' %d\n",
-		 mode, conn->mode);
-
-	/* Special handling for RTP connections */
-	if (conn->type == MGCP_CONN_TYPE_RTP) {
-		struct mgcp_conn_rtp *conn_rtp = mgcp_conn_get_conn_rtp(conn);
-		conn_rtp->end.output_enabled = !!(conn->mode & MGCP_CONN_SEND_ONLY);
-		LOGPCONN(conn, DLMGCP, LOGL_DEBUG, "output_enabled %u\n",
-			 conn_rtp->end.output_enabled);
-	}
-
-	/* The VTY might change the connection mode at any time, so we have
-	 * to hold a copy of the original connection mode */
-	conn->mode_orig = conn->mode;
-
-	return ret;
+		return MGCP_CONN_RECV_ONLY;
+	if (strcasecmp(mode, "sendrecv") == 0)
+		return MGCP_CONN_RECV_SEND;
+	if (strcasecmp(mode, "sendonly") == 0)
+		return MGCP_CONN_SEND_ONLY;
+	if (strcasecmp(mode, "confecho") == 0)
+		return MGCP_CONN_CONFECHO;
+	if (strcasecmp(mode, "loopback") == 0)
+		return MGCP_CONN_LOOPBACK;
+	return MGCP_CONN_NONE;
 }
 
 /*! Analyze and parse the the hader of an MGCP messeage string.
