@@ -137,7 +137,7 @@ static void mgcp_rtp_conn_cleanup(struct mgcp_conn_rtp *conn_rtp)
 		conn_osmux_disable(conn_rtp);
 	if (mgcp_conn_rtp_is_iuup(conn_rtp))
 		mgcp_conn_iuup_cleanup(conn_rtp);
-	mgcp_free_rtp_port(&conn_rtp->end);
+	mgcp_rtp_end_free_port(&conn_rtp->end);
 	rate_ctr_group_free(conn_rtp->ctrg);
 	mgcp_codec_reset_all(conn_rtp);
 }

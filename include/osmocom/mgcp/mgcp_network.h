@@ -132,6 +132,7 @@ struct mgcp_rtp_end {
 };
 
 bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end);
+void mgcp_rtp_end_free_port(struct mgcp_rtp_end *end);
 
 struct mgcp_rtp_tap {
 	/* is this tap active (1) or not (0) */
@@ -152,7 +153,6 @@ int mgcp_dispatch_e1_bridge_cb(struct msgb *msg);
 void mgcp_cleanup_e1_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *conn);
 int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 			   struct mgcp_conn_rtp *conn);
-void mgcp_free_rtp_port(struct mgcp_rtp_end *end);
 void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_state *state,
 			  struct mgcp_rtp_end *rtp_end,

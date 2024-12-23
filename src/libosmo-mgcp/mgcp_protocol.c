@@ -1331,7 +1331,7 @@ mgcp_header_done:
 	}
 	if (strcmp(new_local_addr, conn_rtp->end.local_addr)) {
 		osmo_strlcpy(conn_rtp->end.local_addr, new_local_addr, sizeof(conn_rtp->end.local_addr));
-		mgcp_free_rtp_port(&conn_rtp->end);
+		mgcp_rtp_end_free_port(&conn_rtp->end);
 		if (allocate_port(endp, conn_rtp) != 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
 			goto error3;

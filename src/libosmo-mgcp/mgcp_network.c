@@ -85,12 +85,6 @@ static inline struct msgb *mgw_msgb_copy_c(void *ctx, struct msgb *msg, const ch
 
 static int rx_rtp(struct msgb *msg);
 
-bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end)
-{
-	return (osmo_sockaddr_port(&rtp_end->addr.u.sa) != 0) &&
-	       (osmo_sockaddr_is_any(&rtp_end->addr) == 0);
-}
-
 /*! Determine the local rtp bind IP-address.
  *  \param[out] addr caller provided memory to store the resulting IP-Address.
  *  \param[in] endp mgcp endpoint, that holds a copy of the VTY parameters.
@@ -1726,9 +1720,19 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 	return bind_rtp(endp->trunk->cfg, conn->end.local_addr, end, endp);
 }
 
+/***********************
+ * mgcp_rtp_end
+ **********************/
+
+bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end)
+{
+	return (osmo_sockaddr_port(&rtp_end->addr.u.sa) != 0) &&
+	       (osmo_sockaddr_is_any(&rtp_end->addr) == 0);
+}
+
 /*! free allocated RTP and RTCP ports.
  *  \param[in] end RTP end */
-void mgcp_free_rtp_port(struct mgcp_rtp_end *end)
+void mgcp_rtp_end_free_port(struct mgcp_rtp_end *end)
 {
 	if (end->rtp) {
 		osmo_iofd_free(end->rtp);
