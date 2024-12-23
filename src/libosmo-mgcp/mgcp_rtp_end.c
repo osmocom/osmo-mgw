@@ -29,10 +29,25 @@
 #include <osmocom/core/socket.h>
 #include <osmocom/core/osmo_io.h>
 #include <osmocom/mgcp/mgcp_rtp_end.h>
+#include <osmocom/mgcp/mgcp_codec.h>
 
 /***********************
  * mgcp_rtp_end
  **********************/
+
+void mgcp_rtp_end_init(struct mgcp_rtp_end *end)
+{
+	end->rtp = NULL;
+	end->rtcp = NULL;
+	memset(&end->addr, 0, sizeof(end->addr));
+	end->rtcp_port = 0;
+
+	/* Set default values */
+	end->frames_per_packet = 0;	/* unknown */
+	end->packet_duration_ms = DEFAULT_RTP_AUDIO_PACKET_DURATION_MS;
+	end->output_enabled = false;
+	end->maximum_packet_time = -1;
+}
 
 bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end)
 {

@@ -88,7 +88,6 @@ static int mgcp_alloc_id(struct mgcp_endpoint *endp, char *id)
 /* Initialize rtp connection struct with default values */
 static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *conn)
 {
-	struct mgcp_rtp_end *end = &conn_rtp->end;
 	/* FIXME: Each new rate counter group requires an unique index. At the
 	 * moment we generate this index using this counter, but perhaps there
 	 * is a more concious way to assign the indexes. */
@@ -106,23 +105,14 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 	/* backpointer to the generic part of the connection */
 	conn->u.rtp.conn = conn;
 
-	end->rtp = NULL;
-	end->rtcp = NULL;
-	memset(&end->addr, 0, sizeof(end->addr));
-	end->rtcp_port = 0;
-
-	/* Set default values */
-	end->frames_per_packet = 0;	/* unknown */
-	end->packet_duration_ms = DEFAULT_RTP_AUDIO_PACKET_DURATION_MS;
-	end->output_enabled = false;
-	end->maximum_packet_time = -1;
-
 	conn_rtp->ctrg = rate_ctr_group_alloc(conn, &rate_ctr_group_desc, rate_ctr_index++);
 	if (!conn_rtp->ctrg)
 		return -1;
 
 	conn_rtp->state.in_stream.err_ts_ctr = rate_ctr_group_get_ctr(conn_rtp->ctrg, IN_STREAM_ERR_TSTMP_CTR);
 	conn_rtp->state.out_stream.err_ts_ctr = rate_ctr_group_get_ctr(conn_rtp->ctrg, OUT_STREAM_ERR_TSTMP_CTR);
+
+	mgcp_rtp_end_init(&conn_rtp->end);
 
 	/* Make sure codec table is reset */
 	mgcp_codec_reset_all(conn_rtp);
