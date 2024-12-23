@@ -30,13 +30,19 @@
 #include <osmocom/core/osmo_io.h>
 #include <osmocom/mgcp/mgcp_rtp_end.h>
 #include <osmocom/mgcp/mgcp_codec.h>
+#include <osmocom/mgcp/mgcp_conn.h>
+#include <osmocom/mgcp/mgcp_endp.h>
+#include <osmocom/mgcp/mgcp_trunk.h>
 
 /***********************
  * mgcp_rtp_end
  **********************/
 
-void mgcp_rtp_end_init(struct mgcp_rtp_end *end)
+void mgcp_rtp_end_init(struct mgcp_rtp_end *end, struct mgcp_conn_rtp *conn_rtp)
 {
+	struct mgcp_config *cfg = conn_rtp->conn->endp->trunk->cfg;
+
+	end->conn_rtp = conn_rtp;
 	end->rtp = NULL;
 	end->rtcp = NULL;
 	memset(&end->addr, 0, sizeof(end->addr));
@@ -44,9 +50,16 @@ void mgcp_rtp_end_init(struct mgcp_rtp_end *end)
 
 	/* Set default values */
 	end->frames_per_packet = 0;	/* unknown */
-	end->packet_duration_ms = DEFAULT_RTP_AUDIO_PACKET_DURATION_MS;
 	end->output_enabled = false;
 	end->maximum_packet_time = -1;
+
+
+	if (cfg->force_ptime) {
+		end->packet_duration_ms = cfg->force_ptime;
+		end->force_output_ptime = 1;
+	} else {
+		end->packet_duration_ms = DEFAULT_RTP_AUDIO_PACKET_DURATION_MS;
+	}
 
 	/* Make sure codec table is reset */
 	mgcp_codecset_reset(&end->cset);
@@ -56,6 +69,13 @@ void mgcp_rtp_end_cleanup(struct mgcp_rtp_end *end)
 {
 	mgcp_rtp_end_free_port(end);
 	mgcp_codecset_reset(&end->cset);
+}
+
+void mgcp_rtp_end_set_packet_duration_ms(struct mgcp_rtp_end *end, uint32_t packet_duration_ms)
+{
+	if (end->force_output_ptime)
+		return;
+	end->packet_duration_ms = packet_duration_ms;
 }
 
 bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end)

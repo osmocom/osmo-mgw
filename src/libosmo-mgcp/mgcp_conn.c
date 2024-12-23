@@ -112,7 +112,7 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 	conn_rtp->state.in_stream.err_ts_ctr = rate_ctr_group_get_ctr(conn_rtp->ctrg, IN_STREAM_ERR_TSTMP_CTR);
 	conn_rtp->state.out_stream.err_ts_ctr = rate_ctr_group_get_ctr(conn_rtp->ctrg, OUT_STREAM_ERR_TSTMP_CTR);
 
-	mgcp_rtp_end_init(&conn_rtp->end);
+	mgcp_rtp_end_init(&conn_rtp->end, conn_rtp);
 	return 0;
 }
 

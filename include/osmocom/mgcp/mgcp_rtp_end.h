@@ -11,6 +11,7 @@
 
 /* 'mgcp_rtp_end': basically a wrapper around the RTP+RTCP ports */
 struct mgcp_rtp_end {
+	struct mgcp_conn_rtp *conn_rtp; /* backpointer */
 	/* remote IP address of the RTP socket */
 	struct osmo_sockaddr addr;
 
@@ -45,7 +46,8 @@ struct mgcp_rtp_end {
 	char local_addr[INET6_ADDRSTRLEN];
 };
 
-void mgcp_rtp_end_init(struct mgcp_rtp_end *end);
+void mgcp_rtp_end_init(struct mgcp_rtp_end *end, struct mgcp_conn_rtp *conn_rtp);
 void mgcp_rtp_end_cleanup(struct mgcp_rtp_end *end);
+void mgcp_rtp_end_set_packet_duration_ms(struct mgcp_rtp_end *end, uint32_t packet_duration_ms);
 bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end);
 void mgcp_rtp_end_free_port(struct mgcp_rtp_end *end);

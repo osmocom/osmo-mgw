@@ -361,9 +361,9 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 
 			if (sscanf(line, "a=ptime:%d-%d", &ptime, &ptime2) >= 1) {
 				if (ptime2 > 0 && ptime2 != ptime)
-					rtp->packet_duration_ms = 0;
+					mgcp_rtp_end_set_packet_duration_ms(rtp, 0);
 				else
-					rtp->packet_duration_ms = ptime;
+					mgcp_rtp_end_set_packet_duration_ms(rtp, ptime);
 				break;
 			}
 

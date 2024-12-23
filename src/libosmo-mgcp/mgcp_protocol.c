@@ -1089,11 +1089,6 @@ mgcp_header_done:
 		rc = mgcp_conn_iuup_init(conn_rtp);
 	}
 
-	if (pdata->cfg->force_ptime) {
-		conn_rtp->end.packet_duration_ms = pdata->cfg->force_ptime;
-		conn_rtp->end.force_output_ptime = 1;
-	}
-
 	mgcp_rtp_end_config(endp, 0, &conn_rtp->end);
 
 	/* Find a local address for conn based on policy and initial SDP remote
