@@ -58,7 +58,7 @@ static char *gen_virtual_epname(void *ctx, const char *domain,
 }
 
 /* Generate E1 endpoint name from given numeric parameters */
-static char *gen_e1_epname(void *ctx, const char *domain, unsigned int trunk_nr,
+static char *gen_e1_epname(const void *ctx, const char *domain, unsigned int trunk_nr,
 			   uint8_t ts_nr, uint8_t ss_nr)
 {
 	unsigned int rate;
@@ -446,7 +446,7 @@ static uint8_t e1_ss_nr_from_epname(const char *epname)
 /* Check if the selected E1 endpoint is avalable, which means that none of
  * the overlapping endpoints are currently serving a call. (if the system
  * is properly configured such a situation should never ocurr!) */
-static bool endp_avail_e1(struct mgcp_endpoint *endp)
+static bool endp_avail_e1(const struct mgcp_endpoint *endp)
 {
 	/* The following map shows the overlapping of the subslots and their
 	 * respective rates. The numbers on the right running from top to bottom
@@ -552,7 +552,7 @@ static bool endp_avail_e1(struct mgcp_endpoint *endp)
 /*! check if an endpoint is available for any kind of operation.
  *  \param[in] endp endpoint to check.
  *  \returns true if endpoint is avalable, false it is blocked for any reason. */
-bool mgcp_endp_avail(struct mgcp_endpoint *endp)
+bool mgcp_endp_avail(const struct mgcp_endpoint *endp)
 {
 	switch (endp->trunk->trunk_type) {
 	case MGCP_TRUNK_VIRTUAL:
