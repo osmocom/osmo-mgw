@@ -47,6 +47,15 @@ void mgcp_rtp_end_init(struct mgcp_rtp_end *end)
 	end->packet_duration_ms = DEFAULT_RTP_AUDIO_PACKET_DURATION_MS;
 	end->output_enabled = false;
 	end->maximum_packet_time = -1;
+
+	/* Make sure codec table is reset */
+	mgcp_codecset_reset(&end->cset);
+}
+
+void mgcp_rtp_end_cleanup(struct mgcp_rtp_end *end)
+{
+	mgcp_rtp_end_free_port(end);
+	mgcp_codecset_reset(&end->cset);
 }
 
 bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end)

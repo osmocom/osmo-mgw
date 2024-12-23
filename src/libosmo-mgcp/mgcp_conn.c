@@ -113,10 +113,6 @@ static int mgcp_rtp_conn_init(struct mgcp_conn_rtp *conn_rtp, struct mgcp_conn *
 	conn_rtp->state.out_stream.err_ts_ctr = rate_ctr_group_get_ctr(conn_rtp->ctrg, OUT_STREAM_ERR_TSTMP_CTR);
 
 	mgcp_rtp_end_init(&conn_rtp->end);
-
-	/* Make sure codec table is reset */
-	mgcp_codecset_reset(&conn_rtp->end.cset);
-
 	return 0;
 }
 
@@ -127,9 +123,8 @@ static void mgcp_rtp_conn_cleanup(struct mgcp_conn_rtp *conn_rtp)
 		conn_osmux_disable(conn_rtp);
 	if (mgcp_conn_rtp_is_iuup(conn_rtp))
 		mgcp_conn_iuup_cleanup(conn_rtp);
-	mgcp_rtp_end_free_port(&conn_rtp->end);
+	mgcp_rtp_end_cleanup(&conn_rtp->end);
 	rate_ctr_group_free(conn_rtp->ctrg);
-	mgcp_codecset_reset(&conn_rtp->end.cset);
 }
 
 void mgcp_conn_watchdog_cb(void *data)

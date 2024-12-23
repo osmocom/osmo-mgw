@@ -46,5 +46,6 @@ struct mgcp_rtp_end {
 };
 
 void mgcp_rtp_end_init(struct mgcp_rtp_end *end);
+void mgcp_rtp_end_cleanup(struct mgcp_rtp_end *end);
 bool mgcp_rtp_end_remote_addr_available(const struct mgcp_rtp_end *rtp_end);
 void mgcp_rtp_end_free_port(struct mgcp_rtp_end *end);
