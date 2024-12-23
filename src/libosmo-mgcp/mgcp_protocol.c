@@ -1022,10 +1022,10 @@ mgcp_header_done:
 		goto error2;
 	}
 
-	conn = mgcp_endp_get_conn_rtp(endp, _conn->id);
+	conn = mgcp_conn_get_conn_rtp(_conn);
 	OSMO_ASSERT(conn);
 
-	if (mgcp_parse_conn_mode(mode, endp, conn->conn) != 0) {
+	if (mgcp_parse_conn_mode(mode, endp, _conn) != 0) {
 		error_code = 517;
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_INVALID_MODE));
 		goto error2;
@@ -1108,12 +1108,12 @@ mgcp_header_done:
 		}
 	}
 
-	LOGPCONN(conn->conn, DLMGCP, LOGL_DEBUG,
+	LOGPCONN(_conn, DLMGCP, LOGL_DEBUG,
 		 "CRCX: Creating connection: port: %u\n", conn->end.local_port);
 
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
 	OSMO_ASSERT(trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
-	if (conn->conn->mode & MGCP_CONN_RECV_ONLY &&
+	if (_conn->mode & MGCP_CONN_RECV_ONLY &&
 	    trunk->keepalive_interval != MGCP_KEEPALIVE_NEVER)
 		send_dummy(endp, conn);
 
