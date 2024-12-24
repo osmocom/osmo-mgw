@@ -513,7 +513,7 @@ static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 		if (range->last_port >= range->range_end)
 			range->last_port = range->range_start;
 
-		rc = mgcp_bind_net_rtp_port(endp, range->last_port, conn);
+		rc = mgcp_conn_rtp_bind_rtp_ports(conn, range->last_port);
 
 		range->last_port += 2;
 		if (rc == 0) {

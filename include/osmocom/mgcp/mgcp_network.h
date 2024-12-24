@@ -91,8 +91,7 @@ int mgcp_dispatch_rtp_bridge_cb(struct msgb *msg);
 void mgcp_cleanup_rtp_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *conn);
 int mgcp_dispatch_e1_bridge_cb(struct msgb *msg);
 void mgcp_cleanup_e1_bridge_cb(struct mgcp_endpoint *endp, struct mgcp_conn *conn);
-int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
-			   struct mgcp_conn_rtp *conn);
+int mgcp_conn_rtp_bind_rtp_ports(struct mgcp_conn_rtp *conn, int rtp_port);
 void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_state *state,
 			  struct mgcp_rtp_end *rtp_end,

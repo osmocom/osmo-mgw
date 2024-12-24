@@ -1625,78 +1625,23 @@ int mgcp_create_bind(const char *source_addr, int port, uint8_t dscp, uint8_t pr
 	return rc;
 }
 
-/* Bind RTP and RTCP port (helper function for mgcp_bind_net_rtp_port()) */
-static int bind_rtp(struct mgcp_config *cfg, const char *source_addr,
-		    struct mgcp_rtp_end *rtp_end, struct mgcp_endpoint *endp)
-{
-	int rc, rtp_fd, rtcp_fd;
-
-	/* NOTE: The port that is used for RTCP is the RTP port incremented by one
-	 * (e.g. RTP-Port = 16000 ==> RTCP-Port = 16001) */
-
-	rc = mgcp_create_bind(source_addr, rtp_end->local_port, cfg->endp_dscp, cfg->endp_priority);
-	if (rc < 0) {
-		LOGPENDP(endp, DRTP, LOGL_ERROR,
-			 "failed to create RTP port: %s:%d\n",
-			 source_addr, rtp_end->local_port);
-		goto cleanup0;
-	}
-	rtp_fd = rc;
-
-	rc = mgcp_create_bind(source_addr, rtp_end->local_port + 1, cfg->endp_dscp, cfg->endp_priority);
-	if (rc < 0) {
-		LOGPENDP(endp, DRTP, LOGL_ERROR,
-			 "failed to create RTCP port: %s:%d\n",
-			 source_addr, rtp_end->local_port + 1);
-		goto cleanup1;
-	}
-	rtcp_fd = rc;
-
-	if (osmo_iofd_register(rtp_end->rtp, rtp_fd) < 0) {
-		LOGPENDP(endp, DRTP, LOGL_ERROR,
-			 "failed to register RTP port %d\n",
-			 rtp_end->local_port);
-		goto cleanup2;
-	}
-
-	if (osmo_iofd_register(rtp_end->rtcp, rtcp_fd) != 0) {
-		LOGPENDP(endp, DRTP, LOGL_ERROR,
-			 "failed to register RTCP port %d\n",
-			 rtp_end->local_port + 1);
-		goto cleanup3;
-	}
-
-	return 0;
-
-cleanup3:
-	osmo_iofd_unregister(rtp_end->rtp);
-cleanup2:
-	close(rtcp_fd);
-cleanup1:
-	close(rtp_fd);
-cleanup0:
-	return -1;
-}
-
 /*! bind RTP port to endpoint/connection.
- *  \param[in] endp endpoint that holds the RTP connection.
- *  \param[in] rtp_port port number to bind on.
  *  \param[in] conn associated RTP connection.
+ *  \param[in] rtp_port port number to bind on.
  *  \returns 0 on success, -1 on ERROR. */
-int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
-			   struct mgcp_conn_rtp *conn)
+int mgcp_conn_rtp_bind_rtp_ports(struct mgcp_conn_rtp *conn_rtp, int rtp_port)
 {
 	char name[512];
-	struct mgcp_rtp_end *end;
+	struct mgcp_conn *conn = conn_rtp->conn;
+	struct mgcp_config *cfg = conn->endp->trunk->cfg;
+	struct mgcp_rtp_end *end = &conn_rtp->end;
+	int rc, rtp_fd, rtcp_fd;
 
-	snprintf(name, sizeof(name), "%s-%s", conn->conn->name, conn->conn->id);
-	end = &conn->end;
+	snprintf(name, sizeof(name), "%s-%s", conn->name, conn->id);
 
 	if ((end->rtp && osmo_iofd_get_fd(end->rtp) != -1) ||
 	    (end->rtcp && osmo_iofd_get_fd(end->rtcp) != -1)) {
-		LOGPENDP(endp, DRTP, LOGL_ERROR, "%u was already bound on conn:%s\n",
-			 rtp_port, mgcp_conn_dump(conn->conn));
-
+		LOG_CONN_RTP(conn_rtp, LOGL_ERROR, "%u was already bound\n", rtp_port);
 		/* Double bindings should never occour! Since we always allocate
 		 * connections dynamically and free them when they are not
 		 * needed anymore, there must be no previous binding leftover.
@@ -1706,18 +1651,55 @@ int mgcp_bind_net_rtp_port(struct mgcp_endpoint *endp, int rtp_port,
 	}
 
 	end->local_port = rtp_port;
-	end->rtp = osmo_iofd_setup(conn->conn, -1, name, OSMO_IO_FD_MODE_RECVFROM_SENDTO, &rtp_ioops, conn);
+	end->rtp = osmo_iofd_setup(conn, -1, name, OSMO_IO_FD_MODE_RECVFROM_SENDTO, &rtp_ioops, conn_rtp);
 	if (!end->rtp)
-		return -EIO;
+		goto free_iofd_ret;
 	osmo_iofd_set_alloc_info(end->rtp, RTP_BUF_SIZE, 0);
-	end->rtcp = osmo_iofd_setup(conn->conn, -1, name, OSMO_IO_FD_MODE_RECVFROM_SENDTO, &rtp_ioops, conn);
-	if (!end->rtcp) {
-		osmo_iofd_free(end->rtp);
-		end->rtp = NULL;
-		return -EIO;
-	}
+	end->rtcp = osmo_iofd_setup(conn, -1, name, OSMO_IO_FD_MODE_RECVFROM_SENDTO, &rtp_ioops, conn_rtp);
+	if (!end->rtcp)
+		goto free_iofd_ret;
 	osmo_iofd_set_alloc_info(end->rtcp, RTP_BUF_SIZE, 0);
 	osmo_iofd_set_priv_nr(end->rtcp, 1); /* we use priv_nr as identifier for RTCP */
 
-	return bind_rtp(endp->trunk->cfg, conn->end.local_addr, end, endp);
+	/* NOTE: The port that is used for RTCP is the RTP port incremented by one
+	 * (e.g. RTP-Port = 16000 ==> RTCP-Port = 16001) */
+
+	rc = mgcp_create_bind(end->local_addr, end->local_port, cfg->endp_dscp, cfg->endp_priority);
+	if (rc < 0) {
+		LOG_CONN_RTP(conn_rtp, LOGL_ERROR, "failed to create RTP port: %s:%d\n", end->local_addr, end->local_port);
+		goto free_iofd_ret;
+	}
+	rtp_fd = rc;
+
+	rc = mgcp_create_bind(end->local_addr, end->local_port + 1, cfg->endp_dscp, cfg->endp_priority);
+	if (rc < 0) {
+		LOG_CONN_RTP(conn_rtp, LOGL_ERROR, "failed to create RTCP port: %s:%d\n", end->local_addr, end->local_port + 1);
+		goto cleanup1;
+	}
+	rtcp_fd = rc;
+
+	if (osmo_iofd_register(end->rtp, rtp_fd) < 0) {
+		LOG_CONN_RTP(conn_rtp, LOGL_ERROR, "failed to register RTP port %d\n", end->local_port);
+		goto cleanup2;
+	}
+
+	if (osmo_iofd_register(end->rtcp, rtcp_fd) != 0) {
+		LOG_CONN_RTP(conn_rtp, LOGL_ERROR, "failed to register RTCP port %d\n", end->local_port + 1);
+		goto cleanup3;
+	}
+
+	return 0;
+
+cleanup3:
+	osmo_iofd_unregister(end->rtp);
+cleanup2:
+	close(rtcp_fd);
+cleanup1:
+	close(rtp_fd);
+free_iofd_ret:
+	osmo_iofd_free(end->rtcp);
+	end->rtcp = NULL;
+	osmo_iofd_free(end->rtp);
+	end->rtp = NULL;
+	return -EIO;
 }
