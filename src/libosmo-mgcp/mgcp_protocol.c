@@ -489,46 +489,6 @@ static struct msgb *handle_audit_endpoint(struct mgcp_request_data *rq)
 	return create_ok_response(rq->trunk, rq->endp, 200, "AUEP", rq->pdata->trans);
 }
 
-/* Try to find a free port by attempting to bind on it. Also handle the
- * counter that points on the next free port. Since we have a pointer
- * to the next free port, binding should in work on the first attempt in
- * general. In case of failure the next port is tried until the whole port
- * range is tried once. */
-static int allocate_port(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
-{
-	int i;
-	struct mgcp_port_range *range;
-	unsigned int tries;
-
-	OSMO_ASSERT(conn);
-
-	range = &endp->trunk->cfg->net_ports;
-
-	pthread_mutex_lock(&range->lock);
-	/* attempt to find a port */
-	tries = (range->range_end - range->range_start) / 2;
-	for (i = 0; i < tries; ++i) {
-		int rc;
-
-		if (range->last_port >= range->range_end)
-			range->last_port = range->range_start;
-
-		rc = mgcp_conn_rtp_bind_rtp_ports(conn, range->last_port);
-
-		range->last_port += 2;
-		if (rc == 0) {
-			pthread_mutex_unlock(&range->lock);
-			return 0;
-		}
-
-	}
-	pthread_mutex_unlock(&range->lock);
-	LOGPENDP(endp, DLMGCP, LOGL_ERROR,
-	     "Allocating a RTP/RTCP port failed %u times.\n",
-	     tries);
-	return -1;
-}
-
 /*! Helper function for check_local_cx_options() to get a pointer of the next
  *  lco option identifier
  *  \param[in] lco string
@@ -1077,7 +1037,7 @@ mgcp_header_done:
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
 		goto error2;
 	}
-	if (allocate_port(endp, conn_rtp) != 0) {
+	if (mgcp_trunk_allocate_conn_rtp_ports(trunk, conn_rtp) != 0) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
 		goto error2;
 	}
@@ -1311,7 +1271,7 @@ mgcp_header_done:
 	if (strcmp(new_local_addr, conn_rtp->end.local_addr)) {
 		osmo_strlcpy(conn_rtp->end.local_addr, new_local_addr, sizeof(conn_rtp->end.local_addr));
 		mgcp_rtp_end_free_port(&conn_rtp->end);
-		if (allocate_port(endp, conn_rtp) != 0) {
+		if (mgcp_trunk_allocate_conn_rtp_ports(trunk, conn_rtp) != 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
 			goto error3;
 		}

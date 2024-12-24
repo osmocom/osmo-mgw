@@ -2,8 +2,9 @@
 
 #include <osmocom/gsm/i460_mux.h>
 #include <osmocom/abis/e1_input.h>
+#include <osmocom/mgcp/mgcp_conn.h>
+#include <osmocom/mgcp/mgcp_network.h>
 #include <osmocom/mgcp/mgcp_ratectr.h>
-
 
 #define LOGPTRUNK(trunk, cat, level, fmt, args...) \
 LOGP(cat, level, "trunk:%u " fmt, \
@@ -78,6 +79,7 @@ struct mgcp_trunk *mgcp_trunk_by_num(const struct mgcp_config *cfg, enum mgcp_tr
 struct mgcp_trunk *mgcp_trunk_by_name(const struct mgcp_config *cfg, const char *epname);
 int e1_trunk_nr_from_epname(unsigned int *trunk_nr, const char *epname);
 struct mgcp_trunk *mgcp_trunk_by_line_num(const struct mgcp_config *cfg, unsigned int num);
+int mgcp_trunk_allocate_conn_rtp_ports(struct mgcp_trunk *trunk, struct mgcp_conn_rtp *conn_rtp);
 
 /* The virtual trunk is always created on trunk id 0 for historical reasons,
  * use this define constant as ID when allocating a virtual trunk. Other

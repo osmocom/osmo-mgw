@@ -306,3 +306,43 @@ struct mgcp_trunk *mgcp_trunk_by_line_num(const struct mgcp_config *cfg, unsigne
 
 	return NULL;
 }
+
+/* Try to find a free port by attempting to bind on it. Also handle the
+ * counter that points on the next free port. Since we have a pointer
+ * to the next free port, binding should in work on the first attempt in
+ * general. In case of failure the next port is tried until the whole port
+ * range is tried once. */
+int mgcp_trunk_allocate_conn_rtp_ports(struct mgcp_trunk *trunk, struct mgcp_conn_rtp *conn_rtp)
+{
+	int i;
+	struct mgcp_port_range *range;
+	unsigned int tries;
+
+	OSMO_ASSERT(trunk);
+	OSMO_ASSERT(conn_rtp);
+
+	range = &trunk->cfg->net_ports;
+
+	pthread_mutex_lock(&range->lock);
+	/* attempt to find a port */
+	tries = (range->range_end - range->range_start) / 2;
+	for (i = 0; i < tries; ++i) {
+		int rc;
+
+		if (range->last_port >= range->range_end)
+			range->last_port = range->range_start;
+
+		rc = mgcp_conn_rtp_bind_rtp_ports(conn_rtp, range->last_port);
+
+		range->last_port += 2;
+		if (rc == 0) {
+			pthread_mutex_unlock(&range->lock);
+			return 0;
+		}
+
+	}
+	pthread_mutex_unlock(&range->lock);
+	LOGPCONN(conn_rtp->conn, DLMGCP, LOGL_ERROR,
+		 "Allocating a RTP/RTCP port failed %u times.\n", tries);
+	return -1;
+}
