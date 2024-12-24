@@ -23,6 +23,7 @@
  */
 
 #include <limits.h>
+#include <ctype.h>
 
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/osmux.h>
@@ -32,6 +33,10 @@
 #include <osmocom/mgcp/mgcp_conn.h>
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
+
+/* (same fmt as LOGPENDP()) */
+#define LOG_MGCP_PDATA(PDATA, LEVEL, FMT, ARGS...) \
+	LOGP(DLMGCP, LEVEL, "endpoint:%s " FMT, (PDATA) ? ((PDATA)->epname ? : "null-epname") : "null-pdata", ##ARGS)
 
 /*! Display an mgcp message on the log output.
  *  \param[in] message mgcp message string
@@ -122,8 +127,7 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 			break;
 		case 2:
 			if (strcasecmp("MGCP", elem)) {
-				LOGP(DLMGCP, LOGL_ERROR,
-				     "MGCP header parsing error\n");
+				LOG_MGCP_PDATA(pdata, LOGL_ERROR, "MGCP header parsing error\n");
 				return -510;
 			}
 			break;
@@ -136,10 +140,86 @@ int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data)
 	}
 
 	if (i != 4) {
-		LOGP(DLMGCP, LOGL_ERROR, "MGCP status line too short.\n");
+		LOG_MGCP_PDATA(pdata, LOGL_ERROR, "MGCP status line too short.\n");
 		return -510;
 	}
 
+	return 0;
+}
+
+static bool parse_x_osmo_ign(struct mgcp_parse_data *pdata, char *line)
+{
+	char *saveptr = NULL;
+
+	if (strncasecmp(line, MGCP_X_OSMO_IGN_HEADER, strlen(MGCP_X_OSMO_IGN_HEADER)))
+		return false;
+	line += strlen(MGCP_X_OSMO_IGN_HEADER);
+
+	while (1) {
+		char *token = strtok_r(line, " ", &saveptr);
+		line = NULL;
+		if (!token)
+			break;
+
+		if (!strcasecmp(token, "C"))
+			pdata->hpars.x_osmo_ign |= MGCP_X_OSMO_IGN_CALLID;
+		else
+			LOG_MGCP_PDATA(pdata, LOGL_ERROR,"received unknown X-Osmo-IGN item '%s'\n", token);
+	}
+
+	return true;
+}
+
+/*! Analyze and parse the the header of an MGCP message string.
+ *  \param[inout] pdata caller provided memory to store the parsing results.
+ *  \returns 0 when parsing was successful, negative (MGCP cause code) on error. */
+int mgcp_parse_hdr_pars(struct mgcp_parse_data *pdata)
+{
+	struct mgcp_parse_hdr_pars *hp = &pdata->hpars;
+	char *line;
+
+	mgcp_parse_hdr_pars_init(hp);
+
+	for_each_line(line, pdata->save) {
+		if (!mgcp_check_param(line)) {
+			LOG_MGCP_PDATA(pdata, LOGL_NOTICE, "wrong MGCP option format: '%s'\n", line);
+			continue;
+		}
+
+		switch (toupper(line[0])) {
+		case 'L':
+			hp->local_options = (const char *)line + 3;
+			break;
+		case 'C':
+			hp->callid = (const char *)line + 3;
+			break;
+		case 'I':
+			/* It is illegal to send a connection identifier
+			 * together with a CRCX, the MGW will assign the
+			 * connection identifier by itself on CRCX */
+			return -523;
+		case 'M':
+			hp->mode = mgcp_parse_conn_mode((const char *)line + 3);
+			break;
+		case 'X':
+			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
+				hp->remote_osmux_cid = mgcp_parse_osmux_cid(line);
+				break;
+			}
+			if (parse_x_osmo_ign(pdata, line))
+				break;
+			/* Ignore unknown X-headers */
+			break;
+		case '\0':
+			hp->have_sdp = true;
+			goto mgcp_header_done;
+		default:
+			LOG_MGCP_PDATA(pdata, LOGL_NOTICE, "CRCX: unhandled option: '%c'/%d\n", *line, *line);
+			return -539;
+		}
+	}
+
+mgcp_header_done:
 	return 0;
 }
 
@@ -153,19 +233,19 @@ int mgcp_parse_osmux_cid(const char *line)
 
 	if (strcasecmp(line + 2, "Osmux: *") == 0) {
 		LOGP(DLMGCP, LOGL_DEBUG, "Parsed wilcard Osmux CID\n");
-		return -1;
+		return MGCP_PARSE_HDR_PARS_OSMUX_CID_WILDCARD;
 	}
 
 	if (sscanf(line + 2 + 7, "%u", &osmux_cid) != 1) {
 		LOGP(DLMGCP, LOGL_ERROR, "Failed parsing Osmux in MGCP msg line: %s\n",
 		     line);
-		return -2;
+		return MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET;
 	}
 
 	if (osmux_cid > OSMUX_CID_MAX) {
 		LOGP(DLMGCP, LOGL_ERROR, "Osmux ID too large: %u > %u\n",
 		     osmux_cid, OSMUX_CID_MAX);
-		return -2;
+		return MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET;
 	}
 	LOGP(DLMGCP, LOGL_DEBUG, "MGCP client offered Osmux CID %u\n", osmux_cid);
 
@@ -173,20 +253,13 @@ int mgcp_parse_osmux_cid(const char *line)
 }
 
 /*! Check MGCP parameter line (string) for plausibility.
- *  \param[in] endp pointer to endpoint (only used for log output, may be NULL)
- *  \param[in] trunk pointer to trunk (only used for log output, may be NULL if endp is not NULL)
  *  \param[in] line single parameter line from the MGCP message
  *  \returns true when line seems plausible, false on error */
-bool mgcp_check_param(const struct mgcp_endpoint *endp, struct mgcp_trunk *trunk, const char *line)
+bool mgcp_check_param(const char *line)
 {
 	const size_t line_len = strlen(line);
-	if (line[0] != '\0' && line_len < 2) {
-		if (endp)
-			LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "wrong MGCP option format: '%s'\n", line);
-		else
-			LOGPTRUNK(trunk, DLMGCP, LOGL_NOTICE, "wrong MGCP option format: '%s'\n", line);
+	if (line[0] != '\0' && line_len < 2)
 		return false;
-	}
 
 	/* FIXME: A couple more checks wouldn't hurt... */
 

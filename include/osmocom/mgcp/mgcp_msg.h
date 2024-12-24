@@ -39,10 +39,11 @@ void mgcp_disp_msg(unsigned char *message, unsigned int len, char *preamble);
 enum mgcp_connection_mode mgcp_parse_conn_mode(const char *msg);
 
 int mgcp_parse_header(struct mgcp_parse_data *pdata, char *data);
+int mgcp_parse_hdr_pars(struct mgcp_parse_data *pdata);
 
 int mgcp_parse_osmux_cid(const char *line);
 
-bool mgcp_check_param(const struct mgcp_endpoint *endp, struct mgcp_trunk *trunk, const char *line);
+bool mgcp_check_param(const char *line);
 
 int mgcp_verify_call_id(struct mgcp_endpoint *endp, const char *callid);
 
