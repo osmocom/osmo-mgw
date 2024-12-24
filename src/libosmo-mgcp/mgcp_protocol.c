@@ -729,9 +729,7 @@ void mgcp_rtp_end_config(struct mgcp_endpoint *endp, int expect_ssrc_change,
 
 	bool patch_ssrc = expect_ssrc_change && trunk->force_constant_ssrc;
 
-	rtp->force_aligned_timing = trunk->force_aligned_timing;
 	rtp->force_constant_ssrc = patch_ssrc ? 1 : 0;
-	rtp->rfc5993_hr_convert = trunk->rfc5993_hr_convert;
 
 	LOGPENDP(endp, DLMGCP, LOGL_DEBUG,
 		 "Configuring RTP endpoint: local port %d%s%s\n",

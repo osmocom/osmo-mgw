@@ -40,7 +40,8 @@
 
 void mgcp_rtp_end_init(struct mgcp_rtp_end *end, struct mgcp_conn_rtp *conn_rtp)
 {
-	struct mgcp_config *cfg = conn_rtp->conn->endp->trunk->cfg;
+	struct mgcp_trunk *trunk = conn_rtp->conn->endp->trunk;
+	struct mgcp_config *cfg = trunk->cfg;
 
 	end->conn_rtp = conn_rtp;
 	end->rtp = NULL;
@@ -53,6 +54,8 @@ void mgcp_rtp_end_init(struct mgcp_rtp_end *end, struct mgcp_conn_rtp *conn_rtp)
 	end->output_enabled = false;
 	end->maximum_packet_time = -1;
 
+	end->force_aligned_timing = trunk->force_aligned_timing;
+	end->rfc5993_hr_convert = trunk->rfc5993_hr_convert;
 
 	if (cfg->force_ptime) {
 		end->packet_duration_ms = cfg->force_ptime;
