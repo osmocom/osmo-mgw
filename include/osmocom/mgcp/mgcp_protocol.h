@@ -3,12 +3,39 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/mgcp/mgcp_common.h>
 
+#define MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET (-2)
+#define MGCP_PARSE_HDR_PARS_OSMUX_CID_WILDCARD (-1)
+
+struct mgcp_parse_hdr_pars {
+	const char *local_options;
+	const char *callid;
+	enum mgcp_connection_mode mode;
+	int remote_osmux_cid;
+	bool have_sdp;
+	/*! MGCP_X_OSMO_IGN_* flags from 'X-Osmo-IGN:' header */
+	uint32_t x_osmo_ign;
+};
+
+static inline void mgcp_parse_hdr_pars_init(struct mgcp_parse_hdr_pars *hpars)
+{
+	*hpars = (struct mgcp_parse_hdr_pars){
+		.local_options = NULL,
+		.callid = NULL,
+		.mode = MGCP_CONN_NONE,
+		.remote_osmux_cid = MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET,
+		.have_sdp = false,
+		.x_osmo_ign = 0,
+	};
+}
+
 /* Internal structure while parsing a request */
 struct mgcp_parse_data {
 	struct mgcp_config *cfg;
+	char *save;
+	/* MGCP Header: */
 	char *epname;
 	char *trans;
-	char *save;
+	struct mgcp_parse_hdr_pars hpars;
 };
 
 /* Local connection options */

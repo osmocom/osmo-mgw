@@ -702,6 +702,20 @@ uint32_t mgcp_rtp_packet_duration(const struct mgcp_endpoint *endp,
 	    codec->frame_duration_den;
 }
 
+static int mgcp_trunk_osmux_init_if_needed(struct mgcp_trunk *trunk)
+{
+	if (trunk->cfg->osmux.initialized)
+		return 0;
+
+	if (osmux_init(trunk) < 0) {
+		LOGPTRUNK(trunk, DOSMUX, LOGL_ERROR, "Cannot init OSMUX\n");
+		return -3;
+	}
+	LOGPTRUNK(trunk, DOSMUX, LOGL_NOTICE, "OSMUX socket has been set up\n");
+
+	return 0;
+}
+
 /*! Initializes osmux socket if not yet initialized. Parses Osmux CID from MGCP line.
  *  \param[in] endp Endpoint willing to initialize osmux
  *  \param[in] line Line X-Osmux from MGCP header msg to parse
@@ -709,13 +723,8 @@ uint32_t mgcp_rtp_packet_duration(const struct mgcp_endpoint *endp,
  */
 static int mgcp_osmux_setup(struct mgcp_endpoint *endp, const char *line)
 {
-	if (!endp->trunk->cfg->osmux.initialized) {
-		if (osmux_init(endp->trunk) < 0) {
-			LOGPENDP(endp, DOSMUX, LOGL_ERROR, "Cannot init OSMUX\n");
-			return -3;
-		}
-		LOGPENDP(endp, DOSMUX, LOGL_NOTICE, "OSMUX socket has been set up\n");
-	}
+	if (mgcp_trunk_osmux_init_if_needed(endp->trunk) < 0)
+		return -3;
 
 	return mgcp_parse_osmux_cid(line);
 }
@@ -791,42 +800,16 @@ error:
 	return 534;
 }
 
-static bool parse_x_osmo_ign(struct mgcp_endpoint *endp, char *line)
-{
-	char *saveptr = NULL;
-
-	if (strncasecmp(line, MGCP_X_OSMO_IGN_HEADER, strlen(MGCP_X_OSMO_IGN_HEADER)))
-		return false;
-	line += strlen(MGCP_X_OSMO_IGN_HEADER);
-
-	while (1) {
-		char *token = strtok_r(line, " ", &saveptr);
-		line = NULL;
-		if (!token)
-			break;
-
-		if (!strcasecmp(token, "C"))
-			endp->x_osmo_ign |= MGCP_X_OSMO_IGN_CALLID;
-		else
-			LOGPENDP(endp, DLMGCP, LOGL_ERROR, "received unknown X-Osmo-IGN item '%s'\n", token);
-	}
-
-	return true;
-}
-
 /* CRCX command handler, processes the received command */
 static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 {
 	struct mgcp_parse_data *pdata = rq->pdata;
 	struct mgcp_trunk *trunk = rq->trunk;
 	struct mgcp_endpoint *endp = rq->endp;
+	struct mgcp_parse_hdr_pars *hpars = &pdata->hpars;
 	struct rate_ctr_group *rate_ctrs;
 	int error_code = 400;
-	const char *local_options = NULL;
-	const char *callid = NULL;
-	enum mgcp_connection_mode mode = MGCP_CONN_NONE;
-	char *line;
-	int have_sdp = 0, remote_osmux_cid = -2;
+	int remote_osmux_cid;
 	struct mgcp_conn *conn = NULL;
 	struct mgcp_conn_rtp *conn_rtp = NULL;
 	char conn_name[512];
@@ -857,68 +840,43 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 	}
 
 	/* parse CallID C: and LocalParameters L: */
-	for_each_line(line, pdata->save) {
-		if (!mgcp_check_param(endp, trunk, line))
-			continue;
-
-		switch (toupper(line[0])) {
-		case 'L':
-			local_options = (const char *)line + 3;
-			break;
-		case 'C':
-			callid = (const char *)line + 3;
-			break;
-		case 'I':
-			/* It is illegal to send a connection identifier
-			 * together with a CRCX, the MGW will assign the
-			 * connection identifier by itself on CRCX */
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BAD_ACTION));
-			return create_err_response(rq->trunk, NULL, 523, "CRCX", pdata->trans);
-			break;
-		case 'M':
-			mode = mgcp_parse_conn_mode((const char *)line + 3);
-			break;
-		case 'X':
-			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
-				/* If osmux is disabled, just skip setting it up */
-				if (rq->endp->trunk->cfg->osmux.usage == OSMUX_USAGE_OFF)
-					break;
-				remote_osmux_cid = mgcp_osmux_setup(endp, line);
-				break;
-			}
-
-			if (parse_x_osmo_ign(endp, line))
-				break;
-
-			/* Ignore unknown X-headers */
-			break;
-		case '\0':
-			have_sdp = 1;
-			goto mgcp_header_done;
-		default:
-			LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
-				 "CRCX: unhandled option: '%c'/%d\n", *line, *line);
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_UNHANDLED_PARAM));
-			return create_err_response(rq->trunk, NULL, 539, "CRCX", pdata->trans);
-			break;
-		}
+	rc = mgcp_parse_hdr_pars(pdata);
+	switch (rc) {
+	case 0:
+		break; /* all good, continue below */
+	case -523:
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BAD_ACTION));
+		return create_err_response(rq->trunk, NULL, -rc, "CRCX", pdata->trans);
+	case -539:
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_UNHANDLED_PARAM));
+		return create_err_response(rq->trunk, NULL, -rc, "CRCX", pdata->trans);
+	default:
+		return create_err_response(rq->trunk, NULL, -rc, "CRCX", pdata->trans);
 	}
 
-mgcp_header_done:
 	/* Check parameters */
-	if (!callid) {
+	if (!hpars->callid) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "CRCX: insufficient parameters, missing callid\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_MISSING_CALLID));
 		return create_err_response(endp, endp, 516, "CRCX", pdata->trans);
 	}
 
-	if (mode == MGCP_CONN_NONE) {
+	if (hpars->mode == MGCP_CONN_NONE) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "CRCX: insufficient parameters, invalid mode\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_INVALID_MODE));
 		return create_err_response(endp, endp, 517, "CRCX", pdata->trans);
 	}
+
+	remote_osmux_cid = hpars->remote_osmux_cid;
+	/* If osmux is disabled, just skip setting it up */
+	if (trunk->cfg->osmux.usage == OSMUX_USAGE_OFF)
+		remote_osmux_cid = MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET;
+
+	/* Make sure osmux is setup: */
+	if (remote_osmux_cid != MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET)
+		mgcp_trunk_osmux_init_if_needed(trunk);
 
 	/* Check if we are able to accept the creation of another connection */
 	if (mgcp_endp_is_full(endp)) {
@@ -939,9 +897,12 @@ mgcp_header_done:
 		}
 	}
 
+	/* Update endp->x_osmo_ign: */
+	endp->x_osmo_ign |= hpars->x_osmo_ign;
+
 	/* Check if this endpoint already serves a call, if so, check if the
 	 * callids match up so that we are sure that this is our call */
-	if (endp->callid && mgcp_verify_call_id(endp, callid)) {
+	if (endp->callid && mgcp_verify_call_id(endp, hpars->callid)) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "CRCX: already seized by other call (%s)\n",
 			 endp->callid);
@@ -961,14 +922,14 @@ mgcp_header_done:
 		/* Claim endpoint resources. This will also set the callid,
 		 * creating additional connections will only be possible if
 		 * the callid matches up (see above). */
-		rc = mgcp_endp_claim(endp, callid);
+		rc = mgcp_endp_claim(endp, hpars->callid);
 		if (rc != 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_CLAIM));
 			return create_err_response(endp, endp, 502, "CRCX", pdata->trans);
 		}
 	}
 
-	snprintf(conn_name, sizeof(conn_name), "%s", callid);
+	snprintf(conn_name, sizeof(conn_name), "%s", hpars->callid);
 	conn = mgcp_conn_alloc(trunk->endpoints, endp, MGCP_CONN_TYPE_RTP, conn_name);
 	if (!conn) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
@@ -977,7 +938,7 @@ mgcp_header_done:
 		goto error2;
 	}
 
-	if (mgcp_conn_set_mode(conn, mode) < 0) {
+	if (mgcp_conn_set_mode(conn, hpars->mode) < 0) {
 		error_code = 517;
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_INVALID_MODE));
 		goto error2;
@@ -1004,9 +965,9 @@ mgcp_header_done:
 	}
 
 	/* Set local connection options, if present */
-	if (local_options) {
+	if (hpars->local_options) {
 		rc = set_local_cx_options(trunk->endpoints,
-					  &endp->local_options, local_options);
+					  &endp->local_options, hpars->local_options);
 		if (rc != 0) {
 			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
 				 "CRCX: invalid local connection options!\n");
@@ -1017,7 +978,7 @@ mgcp_header_done:
 	}
 
 	/* Handle codec information and decide for a suitable codec */
-	rc = handle_codec_info(conn_rtp, rq, have_sdp, true);
+	rc = handle_codec_info(conn_rtp, rq, hpars->have_sdp, true);
 	mgcp_codecset_summary(&conn_rtp->end.cset, mgcp_conn_dump(conn));
 	if (rc) {
 		error_code = rc;
@@ -1131,7 +1092,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	}
 
 	for_each_line(line, pdata->save) {
-		if (!mgcp_check_param(endp, trunk, line))
+		if (!mgcp_check_param(line))
 			continue;
 
 		switch (toupper(line[0])) {
@@ -1357,7 +1318,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	}
 
 	for_each_line(line, pdata->save) {
-		if (!mgcp_check_param(endp, trunk, line))
+		if (!mgcp_check_param(line))
 			continue;
 
 		switch (toupper(line[0])) {
