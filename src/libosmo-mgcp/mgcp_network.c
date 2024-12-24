@@ -542,16 +542,16 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 
 	if (!state->initialized) {
 		state->initialized = 1;
+		state->packet_duration = mgcp_rtp_packet_duration(endp, rtp_end);
 		state->in_stream.last_seq = seq - 1;
-		state->in_stream.ssrc = state->patch.orig_ssrc = ssrc;
+		state->in_stream.ssrc = ssrc;
 		state->in_stream.last_tsdelta = 0;
-		state->packet_duration =
-		    mgcp_rtp_packet_duration(endp, rtp_end);
 		state->out_stream.last_seq = seq - 1;
-		state->out_stream.ssrc = state->patch.orig_ssrc = ssrc;
 		state->out_stream.last_tsdelta = 0;
 		state->out_stream.last_timestamp = timestamp;
 		state->out_stream.ssrc = ssrc - 1;	/* force output SSRC change */
+		state->patch.orig_ssrc = ssrc;
+		state->patch.patch_ssrc = rtp_end->force_constant_ssrc;
 		LOGPENDP(endp, DRTP, LOGL_INFO,
 			 "initializing stream, SSRC: %u timestamp: %u "
 			 "pkt-duration: %d, from %s:%d\n",
@@ -578,7 +578,7 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 			 osmo_sockaddr_port(&addr->u.sa));
 
 		state->in_stream.ssrc = ssrc;
-		if (rtp_end->force_constant_ssrc) {
+		if (state->patch.patch_ssrc) {
 			int16_t delta_seq;
 
 			/* Always increment seqno by 1 */
@@ -594,10 +594,7 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 			adjust_rtp_timestamp_offset(endp, state, rtp_end, addr,
 						    delta_seq, timestamp, marker_bit);
 
-			state->patch.patch_ssrc = true;
 			ssrc = state->patch.orig_ssrc;
-			if (rtp_end->force_constant_ssrc != -1)
-				rtp_end->force_constant_ssrc -= 1;
 
 			LOGPENDP(endp, DRTP, LOGL_NOTICE,
 				 "SSRC patching enabled, SSRC: %u "

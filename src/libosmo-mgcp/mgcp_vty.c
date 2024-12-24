@@ -857,7 +857,7 @@ DEFUN_USRATTR(cfg_mgcp_patch_rtp_ssrc,
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
-	trunk->force_constant_ssrc = 1;
+	trunk->force_constant_ssrc = true;
 	return CMD_SUCCESS;
 }
 
@@ -868,7 +868,7 @@ DEFUN_USRATTR(cfg_mgcp_no_patch_rtp_ssrc,
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
-	trunk->force_constant_ssrc = 0;
+	trunk->force_constant_ssrc = false;
 	return CMD_SUCCESS;
 }
 
@@ -923,7 +923,7 @@ DEFUN_USRATTR(cfg_mgcp_no_patch_rtp,
 {
 	struct mgcp_trunk *trunk = mgcp_trunk_by_num(g_cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID);
 	OSMO_ASSERT(trunk);
-	trunk->force_constant_ssrc = 0;
+	trunk->force_constant_ssrc = false;
 	trunk->force_aligned_timing = 0;
 	trunk->rfc5993_hr_convert = false;
 	return CMD_SUCCESS;
@@ -1197,7 +1197,7 @@ DEFUN_USRATTR(cfg_trunk_patch_rtp_ssrc,
 	      "rtp-patch ssrc", RTP_PATCH_STR "Force a fixed SSRC\n")
 {
 	struct mgcp_trunk *trunk = vty->index;
-	trunk->force_constant_ssrc = 1;
+	trunk->force_constant_ssrc = true;
 	return CMD_SUCCESS;
 }
 
@@ -1207,7 +1207,7 @@ DEFUN_USRATTR(cfg_trunk_no_patch_rtp_ssrc,
 	      "no rtp-patch ssrc", NO_STR RTP_PATCH_STR "Force a fixed SSRC\n")
 {
 	struct mgcp_trunk *trunk = vty->index;
-	trunk->force_constant_ssrc = 0;
+	trunk->force_constant_ssrc = false;
 	return CMD_SUCCESS;
 }
 
@@ -1257,7 +1257,7 @@ DEFUN_USRATTR(cfg_trunk_no_patch_rtp,
 	      "no rtp-patch", NO_STR RTP_PATCH_STR)
 {
 	struct mgcp_trunk *trunk = vty->index;
-	trunk->force_constant_ssrc = 0;
+	trunk->force_constant_ssrc = false;
 	trunk->force_aligned_timing = 0;
 	trunk->rfc5993_hr_convert = false;
 	return CMD_SUCCESS;
@@ -1361,7 +1361,7 @@ DEFUN(loop_conn,
 		if (conn->type == MGCP_CONN_TYPE_RTP) {
 			/* Handle it like a MDCX, switch on SSRC patching if enabled */
 			struct mgcp_conn_rtp *conn_rtp = mgcp_conn_get_conn_rtp(conn);
-			mgcp_rtp_end_config(endp, 1, &conn_rtp->end);
+			conn_rtp->state.patch.patch_ssrc = true;
 		} else {
 			/* FIXME: Introduce support for other connection (E1)
 			 * types when implementation is available */

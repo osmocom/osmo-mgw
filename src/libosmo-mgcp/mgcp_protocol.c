@@ -722,22 +722,6 @@ static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
 	return 0;
 }
 
-void mgcp_rtp_end_config(struct mgcp_endpoint *endp, int expect_ssrc_change,
-			 struct mgcp_rtp_end *rtp)
-{
-	struct mgcp_trunk *trunk = endp->trunk;
-
-	bool patch_ssrc = expect_ssrc_change && trunk->force_constant_ssrc;
-
-	rtp->force_constant_ssrc = patch_ssrc ? 1 : 0;
-
-	LOGPENDP(endp, DLMGCP, LOGL_DEBUG,
-		 "Configuring RTP endpoint: local port %d%s%s\n",
-		 osmo_sockaddr_port(&rtp->addr.u.sa),
-		 rtp->force_aligned_timing ? ", force constant timing" : "",
-		 rtp->force_constant_ssrc ? ", force constant ssrc" : "");
-}
-
 uint32_t mgcp_rtp_packet_duration(const struct mgcp_endpoint *endp,
 				  const struct mgcp_rtp_end *rtp)
 {
@@ -1087,8 +1071,6 @@ mgcp_header_done:
 		rc = mgcp_conn_iuup_init(conn_rtp);
 	}
 
-	mgcp_rtp_end_config(endp, 0, &conn_rtp->end);
-
 	/* Find a local address for conn based on policy and initial SDP remote
 	   information, then find a free port for it */
 	if (mgcp_get_local_addr(conn_rtp->end.local_addr, conn_rtp) < 0) {
@@ -1339,8 +1321,6 @@ mgcp_header_done:
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_START_RTP));
 		goto error3;
 	}
-
-	mgcp_rtp_end_config(endp, 1, &conn_rtp->end);
 
 	/* modify */
 	LOGPCONN(conn, DLMGCP, LOGL_DEBUG,

@@ -34,7 +34,7 @@ struct mgcp_trunk {
 	int keepalive_interval;
 
 	/* RTP patching */
-	int force_constant_ssrc; /* 0: don't, 1: once */
+	bool force_constant_ssrc;
 	int force_aligned_timing;
 	bool rfc5993_hr_convert;
 

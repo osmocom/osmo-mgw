@@ -30,7 +30,7 @@ struct mgcp_rtp_end {
 	int force_output_ptime;
 
 	/* RTP patching */
-	int force_constant_ssrc; /* -1: always, 0: don't, 1: once */
+	bool force_constant_ssrc;
 	/* should we perform align_rtp_timestamp_offset() (1) or not (0) */
 	int force_aligned_timing;
 	bool rfc5993_hr_convert;

@@ -26,8 +26,6 @@ int check_local_cx_options(void *ctx, const char *options);
 
 struct mgcp_rtp_end;
 struct mgcp_endpoint;
-void mgcp_rtp_end_config(struct mgcp_endpoint *endp, int expect_ssrc_change,
-			 struct mgcp_rtp_end *rtp);
 
 uint32_t mgcp_rtp_packet_duration(const struct mgcp_endpoint *endp,
 				  const struct mgcp_rtp_end *rtp);

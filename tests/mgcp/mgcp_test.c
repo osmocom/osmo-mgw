@@ -1479,7 +1479,6 @@ static void test_packet_error_detection(int patch_ssrc, int patch_ts)
 		OSMO_ASSERT(info->len >= 0);
 		msg->l3h = msgb_put(msg, info->len);
 		memcpy((char*)msgb_l3(msg), info->data, info->len);
-		mgcp_rtp_end_config(&endp, 1, rtp);
 
 		mgcp_patch_and_count(&endp, &state, rtp, &addr, msg);
 
