@@ -194,10 +194,8 @@ int mgcp_parse_hdr_pars(struct mgcp_parse_data *pdata)
 			hp->callid = (const char *)line + 3;
 			break;
 		case 'I':
-			/* It is illegal to send a connection identifier
-			 * together with a CRCX, the MGW will assign the
-			 * connection identifier by itself on CRCX */
-			return -523;
+			hp->connid = (const char *)line + 3;
+			break;
 		case 'M':
 			hp->mode = mgcp_parse_conn_mode((const char *)line + 3);
 			break;

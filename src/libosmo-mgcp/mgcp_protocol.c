@@ -716,19 +716,6 @@ static int mgcp_trunk_osmux_init_if_needed(struct mgcp_trunk *trunk)
 	return 0;
 }
 
-/*! Initializes osmux socket if not yet initialized. Parses Osmux CID from MGCP line.
- *  \param[in] endp Endpoint willing to initialize osmux
- *  \param[in] line Line X-Osmux from MGCP header msg to parse
- *  \returns OSMUX CID, -1 for wildcard, -2 on parse error, -3 on osmux initalize error
- */
-static int mgcp_osmux_setup(struct mgcp_endpoint *endp, const char *line)
-{
-	if (mgcp_trunk_osmux_init_if_needed(endp->trunk) < 0)
-		return -3;
-
-	return mgcp_parse_osmux_cid(line);
-}
-
 /* Process codec information contained in CRCX/MDCX */
 static int handle_codec_info(struct mgcp_conn_rtp *conn,
 			     struct mgcp_request_data *rq, int have_sdp, bool crcx)
@@ -844,9 +831,6 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 	switch (rc) {
 	case 0:
 		break; /* all good, continue below */
-	case -523:
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BAD_ACTION));
-		return create_err_response(rq->trunk, NULL, -rc, "CRCX", pdata->trans);
 	case -539:
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_UNHANDLED_PARAM));
 		return create_err_response(rq->trunk, NULL, -rc, "CRCX", pdata->trans);
@@ -867,6 +851,15 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 			 "CRCX: insufficient parameters, invalid mode\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_INVALID_MODE));
 		return create_err_response(endp, endp, 517, "CRCX", pdata->trans);
+	}
+
+	/* It is illegal to send a connection identifier
+	 * together with a CRCX, the MGW will assign the
+	 * connection identifier by itself on CRCX */
+	if (hpars->connid) {
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: 'I: %s' not expected!\n", hpars->connid);
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BAD_ACTION));
+		return create_err_response(endp, endp, 523, "CRCX", pdata->trans);
 	}
 
 	remote_osmux_cid = hpars->remote_osmux_cid;
@@ -1048,17 +1041,12 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	struct mgcp_parse_data *pdata = rq->pdata;
 	struct mgcp_trunk *trunk = rq->trunk;
 	struct mgcp_endpoint *endp = rq->endp;
+	struct mgcp_parse_hdr_pars *hpars = &pdata->hpars;
 	struct rate_ctr_group *rate_ctrs;
 	char new_local_addr[INET6_ADDRSTRLEN];
 	int error_code = 500;
-	int have_sdp = 0;
-	char *line;
-	const char *local_options = NULL;
-	enum mgcp_connection_mode mode = MGCP_CONN_NONE;
 	struct mgcp_conn *conn = NULL;
 	struct mgcp_conn_rtp *conn_rtp = NULL;
-	const char *conn_id = NULL;
-	int remote_osmux_cid = -2;
 	int rc;
 
 	LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "MDCX: modifying existing connection ...\n");
@@ -1091,64 +1079,33 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		return create_err_response(endp, endp, 400, "MDCX", pdata->trans);
 	}
 
-	for_each_line(line, pdata->save) {
-		if (!mgcp_check_param(line))
-			continue;
-
-		switch (toupper(line[0])) {
-		case 'C':
-			if (mgcp_verify_call_id(endp, line + 3) != 0) {
-				rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_CALLID));
-				error_code = 516;
-				goto error3;
-			}
-			break;
-		case 'I':
-			conn_id = (const char *)line + 3;
-			if ((error_code = mgcp_verify_ci(endp, conn_id))) {
-				rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_CONNID));
-				goto error3;
-			}
-			break;
-		case 'L':
-			local_options = (const char *)line + 3;
-			break;
-		case 'M':
-			mode = mgcp_parse_conn_mode((const char *)line + 3);
-			break;
-		case 'X':
-			if (strncasecmp("Osmux: ", line + 2, strlen("Osmux: ")) == 0) {
-				/* If osmux is disabled, just skip setting it up */
-				if (endp->trunk->cfg->osmux.usage == OSMUX_USAGE_OFF)
-					break;
-				remote_osmux_cid = mgcp_osmux_setup(endp, line);
-				break;
-			}
-			/* Ignore unknown X-headers */
-			break;
-		case '\0':
-			have_sdp = 1;
-			goto mgcp_header_done;
-			break;
-		default:
-			LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
-				 "MDCX: Unhandled MGCP option: '%c'/%d\n",
-				 line[0], line[0]);
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_UNHANDLED_PARAM));
-			return create_err_response(rq->trunk, NULL, 539, "MDCX", pdata->trans);
-			break;
-		}
+	rc = mgcp_parse_hdr_pars(pdata);
+	switch (rc) {
+	case 0:
+		break; /* all good, continue below */
+	case -539:
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_UNHANDLED_PARAM));
+		return create_err_response(rq->trunk, NULL, -rc, "MDCX", pdata->trans);
+	default:
+		return create_err_response(rq->trunk, NULL, -rc, "MDCX", pdata->trans);
 	}
 
-mgcp_header_done:
-	if (!conn_id) {
+	if (hpars->callid && mgcp_verify_call_id(endp, hpars->callid) < 0) {
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_CALLID));
+		return create_err_response(endp, endp, 516, "MDCX", pdata->trans);
+	}
+
+	if (!hpars->connid) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "MDCX: insufficient parameters, missing ci (connectionIdentifier)\n");
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_NO_CONNID));
 		return create_err_response(endp, endp, 515, "MDCX", pdata->trans);
+	} else if ((error_code = mgcp_verify_ci(endp, hpars->connid)) != 0) {
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_CONNID));
+		return create_err_response(endp, endp, error_code, "MDCX", pdata->trans);
 	}
 
-	conn = mgcp_endp_get_conn(endp, conn_id);
+	conn = mgcp_endp_get_conn(endp, hpars->connid);
 	if (!conn) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_CONN_NOT_FOUND));
 		return create_err_response(endp, endp, 400, "MDCX", pdata->trans);
@@ -1156,20 +1113,18 @@ mgcp_header_done:
 
 	mgcp_conn_watchdog_kick(conn);
 
-	if (mode != MGCP_CONN_NONE) {
-		if (mgcp_conn_set_mode(conn, mode) < 0) {
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_MODE));
-			error_code = 517;
-			goto error3;
-		}
-	} else {
+	if (hpars->mode == MGCP_CONN_NONE) {
+		/* Reset conn mode in case it was tweaked through VTY: */
 		conn->mode = conn->mode_orig;
+	} else if (mgcp_conn_set_mode(conn, hpars->mode) < 0) {
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_MODE));
+		return create_err_response(endp, endp, 517, "MDCX", pdata->trans);
 	}
 
 	/* Set local connection options, if present */
-	if (local_options) {
+	if (hpars->local_options) {
 		rc = set_local_cx_options(trunk->endpoints,
-					  &endp->local_options, local_options);
+					  &endp->local_options, hpars->local_options);
 		if (rc != 0) {
 			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
 				 "MDCX: invalid local connection options!\n");
@@ -1183,7 +1138,7 @@ mgcp_header_done:
 	OSMO_ASSERT(conn_rtp);
 
 	/* Handle codec information and decide for a suitable codec */
-	rc = handle_codec_info(conn_rtp, rq, have_sdp, false);
+	rc = handle_codec_info(conn_rtp, rq, hpars->have_sdp, false);
 	mgcp_codecset_summary(&conn_rtp->end.cset, mgcp_conn_dump(conn));
 	if (rc) {
 		error_code = rc;
@@ -1197,22 +1152,22 @@ mgcp_header_done:
 
 	if (mgcp_conn_rtp_is_osmux(conn_rtp)) {
 		OSMO_ASSERT(conn_rtp->osmux.local_cid_allocated);
-		if (remote_osmux_cid < -1) {
+		if (hpars->remote_osmux_cid < -1) {
 			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
 				 "MDCX: Failed to parse Osmux CID!\n");
 			goto error3;
-		} else if (remote_osmux_cid == -1) {
+		} else if (hpars->remote_osmux_cid == -1) {
 			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
 				 "MDCX: wilcard in MDCX is not supported!\n");
 			goto error3;
 		} else if (conn_rtp->osmux.remote_cid_present &&
-			   remote_osmux_cid != conn_rtp->osmux.remote_cid) {
+			   hpars->remote_osmux_cid != conn_rtp->osmux.remote_cid) {
 			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
 				"MDCX: changing already allocated CID is not supported!\n");
 			goto error3;
 		} else {
 			conn_rtp->osmux.remote_cid_present = true;
-			conn_rtp->osmux.remote_cid = remote_osmux_cid;
+			conn_rtp->osmux.remote_cid = hpars->remote_osmux_cid;
 			if (conn_osmux_event_rx_crcx_mdcx(conn_rtp) < 0) {
 				LOGPCONN(conn, DLMGCP, LOGL_ERROR,
 					"MDCX: Osmux handling failed!\n");
