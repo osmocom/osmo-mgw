@@ -716,36 +716,59 @@ static int mgcp_trunk_osmux_init_if_needed(struct mgcp_trunk *trunk)
 	return 0;
 }
 
+/* Apply parsed SDP information stored in struct mgcp_parse_sdp to conn_rtp: */
+static int handle_sdp(struct mgcp_conn_rtp *conn, struct mgcp_request_data *rq)
+{
+	OSMO_ASSERT(conn);
+	OSMO_ASSERT(rq);
+	struct mgcp_parse_data *p = rq->pdata;
+	OSMO_ASSERT(p);
+	OSMO_ASSERT(p->hpars.have_sdp);
+	struct mgcp_parse_sdp *sdp = &p->sdp;
+	struct mgcp_rtp_end *rtp;
+
+	rtp = &conn->end;
+
+	if (sdp->ptime != MGCP_PARSE_SDP_PTIME_UNSET)
+		mgcp_rtp_end_set_packet_duration_ms(rtp, sdp->ptime);
+
+	if (sdp->maxptime != MGCP_PARSE_SDP_MAXPTIME_UNSET)
+		rtp->maximum_packet_time = sdp->maxptime;
+
+	if (sdp->rem_addr.u.sa.sa_family != AF_UNSPEC) {
+		/* Keep port, only apply ip address: */
+		uint16_t port = osmo_sockaddr_port(&rtp->addr.u.sa);
+		memcpy(&rtp->addr, &sdp->rem_addr, sizeof(rtp->addr));
+		osmo_sockaddr_set_port(&rtp->addr.u.sa, port);
+	}
+
+	if (sdp->rtp_port != MGCP_PARSE_SDP_RTP_PORT_UNSET) {
+		osmo_sockaddr_set_port(&rtp->addr.u.sa, sdp->rtp_port);
+		rtp->rtcp_port = htons(sdp->rtp_port + 1);
+	}
+
+	/* Copy parsed codec set to conn: */
+	rtp->cset = sdp->cset;
+
+	return 0;
+}
+
 /* Process codec information contained in CRCX/MDCX */
-static int handle_codec_info(struct mgcp_conn_rtp *conn,
-			     struct mgcp_request_data *rq, int have_sdp, bool crcx)
+static int handle_codec_info(struct mgcp_conn_rtp *conn, struct mgcp_request_data *rq)
 {
 	struct mgcp_endpoint *endp = rq->endp;
 	struct mgcp_conn *conn_dst;
 	struct mgcp_conn_rtp *conn_dst_rtp;
 	struct mgcp_rtp_codecset *cset = &conn->end.cset;
-
 	int rc;
-	char *cmd;
-
-	if (crcx)
-		cmd = "CRCX";
-	else
-		cmd = "MDCX";
 
 	/* Collect codec information */
-	if (have_sdp) {
+	if (rq->pdata->hpars.have_sdp) {
 		/* If we have SDP, we ignore the local connection options and
 		 * use only the SDP information. */
-		mgcp_codecset_reset(cset);
-		rc = mgcp_parse_sdp_data(endp, conn, rq->pdata);
-		if (rc != 0) {
-			LOGPCONN(conn->conn, DLMGCP,  LOGL_ERROR,
-				 "%s: sdp not parseable\n", cmd);
-
-			/* See also RFC 3661: Protocol error */
-			return 510;
-		}
+		rc = handle_sdp(conn, rq);
+		if (rc != 0)
+			goto error;
 	} else if (endp->local_options.codec) {
 		/* When no SDP is available, we use the codec information from
 		 * the local connection options (if present) */
@@ -780,9 +803,7 @@ static int handle_codec_info(struct mgcp_conn_rtp *conn,
 	return 0;
 
 error:
-	LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR,
-	     "%s: codec negotiation failure\n", cmd);
-
+	LOGPCONN(conn->conn, DLMGCP, LOGL_ERROR, "%s: codec negotiation failure\n", rq->name);
 	/* See also RFC 3661: Codec negotiation failure */
 	return 534;
 }
@@ -860,6 +881,15 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: 'I: %s' not expected!\n", hpars->connid);
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BAD_ACTION));
 		return create_err_response(endp, endp, 523, "CRCX", pdata->trans);
+	}
+
+	/* Parse SDP if found: */
+	if (hpars->have_sdp) {
+		rc = mgcp_parse_sdp_data(pdata);
+		if (rc < 0) { /* See also RFC 3661: Protocol error */
+			LOGPENDP(endp, DLMGCP,  LOGL_ERROR, "CRCX: sdp not parseable\n");
+			return create_err_response(endp, endp, 510, "CRCX", pdata->trans);
+		}
 	}
 
 	remote_osmux_cid = hpars->remote_osmux_cid;
@@ -971,7 +1001,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 	}
 
 	/* Handle codec information and decide for a suitable codec */
-	rc = handle_codec_info(conn_rtp, rq, hpars->have_sdp, true);
+	rc = handle_codec_info(conn_rtp, rq);
 	mgcp_codecset_summary(&conn_rtp->end.cset, mgcp_conn_dump(conn));
 	if (rc) {
 		error_code = rc;
@@ -1105,6 +1135,16 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		return create_err_response(endp, endp, error_code, "MDCX", pdata->trans);
 	}
 
+	/* Parse SDP if found: */
+	if (hpars->have_sdp) {
+		rc = mgcp_parse_sdp_data(pdata);
+		if (rc < 0) {
+			/* See also RFC 3661: Protocol error */
+			LOGPENDP(endp, DLMGCP,  LOGL_ERROR, "MDCX: sdp not parseable\n");
+			return create_err_response(endp, endp, 510, "MDCX", pdata->trans);
+		}
+	}
+
 	conn = mgcp_endp_get_conn(endp, hpars->connid);
 	if (!conn) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_CONN_NOT_FOUND));
@@ -1138,7 +1178,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	OSMO_ASSERT(conn_rtp);
 
 	/* Handle codec information and decide for a suitable codec */
-	rc = handle_codec_info(conn_rtp, rq, hpars->have_sdp, false);
+	rc = handle_codec_info(conn_rtp, rq);
 	mgcp_codecset_summary(&conn_rtp->end.cset, mgcp_conn_dump(conn));
 	if (rc) {
 		error_code = rc;

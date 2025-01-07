@@ -312,16 +312,13 @@ static struct mgcp_codec_param *param_by_pt(int pt, struct sdp_fmtp_param *fmtp_
 }
 
 /*! Analyze SDP input string.
- *  \param[in] endp trunk endpoint.
- *  \param[out] conn associated rtp connection.
- *  \param[out] caller provided memory to store the parsing results.
+ *  \param[inout] p provided memory to store the parsing results.
  *
- *  Note: In conn (conn->end) the function returns the packet duration,
- *  rtp port, rtcp port and the codec information.
  *  \returns 0 on success, -1 on failure. */
-int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
-			struct mgcp_conn_rtp *conn, struct mgcp_parse_data *p)
+int mgcp_parse_sdp_data(struct mgcp_parse_data *p)
 {
+	OSMO_ASSERT(p);
+	struct mgcp_parse_sdp *sdp = &p->sdp;
 	struct sdp_rtp_map codecs[MGCP_MAX_CODECS];
 	unsigned int codecs_used = 0;
 	struct sdp_fmtp_param fmtp_params[MGCP_MAX_CODECS];
@@ -331,19 +328,14 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	char *line;
 	unsigned int i;
 	void *tmp_ctx = talloc_new(NULL);
-	struct mgcp_rtp_end *rtp;
 
 	int payload_type;
 	int ptime, ptime2 = 0;
 	char audio_name[64];
 	int port, rc;
 
-	OSMO_ASSERT(endp);
-	OSMO_ASSERT(conn);
-	OSMO_ASSERT(p);
-
-	rtp = &conn->end;
 	memset(&codecs, 0, sizeof(codecs));
+	mgcp_parse_sdp_init(sdp);
 
 	for_each_line(line, p->save) {
 		switch (line[0]) {
@@ -361,19 +353,19 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 
 			if (sscanf(line, "a=ptime:%d-%d", &ptime, &ptime2) >= 1) {
 				if (ptime2 > 0 && ptime2 != ptime)
-					mgcp_rtp_end_set_packet_duration_ms(rtp, 0);
+					sdp->ptime = 0;
 				else
-					mgcp_rtp_end_set_packet_duration_ms(rtp, ptime);
+					sdp->ptime = ptime;
 				break;
 			}
 
 			if (sscanf(line, "a=maxptime:%d", &ptime2) == 1) {
-				rtp->maximum_packet_time = ptime2;
+				sdp->maxptime = ptime2;
 				break;
 			}
 
 			if (strncmp("a=fmtp:", line, 6) == 0) {
-				rc = fmtp_from_sdp(conn->conn, &fmtp_params[fmtp_used], line);
+				rc = fmtp_from_sdp(tmp_ctx, &fmtp_params[fmtp_used], line);
 				if (rc >= 0)
 					fmtp_used++;
 				break;
@@ -382,33 +374,23 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 			break;
 		case 'm':
 			rc = sscanf(line, "m=audio %d RTP/AVP", &port);
-			if (rc == 1) {
-				osmo_sockaddr_set_port(&rtp->addr.u.sa, port);
-				rtp->rtcp_port = htons(port + 1);
-			}
+			if (rc == 1)
+				sdp->rtp_port = port;
 
-			rc = pt_from_sdp(conn->conn, codecs,
-					 ARRAY_SIZE(codecs), line);
+			rc = pt_from_sdp(tmp_ctx, codecs, ARRAY_SIZE(codecs), line);
 			if (rc > 0)
 				codecs_used = rc;
 			break;
 		case 'c':
-			if (audio_ip_from_sdp(&rtp->addr, line) < 0) {
+			if (audio_ip_from_sdp(&sdp->rem_addr, line) < 0) {
 				talloc_free(tmp_ctx);
 				return -1;
 			}
 			break;
 		default:
-			if (endp)
-				/* TODO: Check spec: We used the bare endpoint number before,
-				 * now we use the endpoint name as a whole? Is this allowed? */
-				LOGP(DLMGCP, LOGL_NOTICE,
-				     "Unhandled SDP option: '%c'/%d on %s\n",
-				     line[0], line[0], endp->name);
-			else
-				LOGP(DLMGCP, LOGL_NOTICE,
-				     "Unhandled SDP option: '%c'/%d\n",
-				     line[0], line[0]);
+			LOGP(DLMGCP, LOGL_NOTICE,
+			     "Unhandled SDP option: '%c'/%d on %s\n",
+			     line[0], line[0], p->epname);
 			break;
 		}
 	}
@@ -422,23 +404,22 @@ int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
 	/* Store parsed codec information */
 	for (i = 0; i < codecs_used; i++) {
 		codec_param = param_by_pt(codecs[i].payload_type, fmtp_params, fmtp_used);
-		rc = mgcp_codecset_add_codec(&conn->end.cset, codecs[i].payload_type, codecs[i].map_line, codec_param);
+		rc = mgcp_codecset_add_codec(&sdp->cset, codecs[i].payload_type, codecs[i].map_line, codec_param);
 		if (rc < 0)
-			LOGPENDP(endp, DLMGCP, LOGL_NOTICE, "failed to add codec\n");
+			LOGP(DLMGCP, LOGL_NOTICE, "%s: failed to add codec\n", p->epname);
 	}
 
 	talloc_free(tmp_ctx);
 
-	LOGPCONN(conn->conn, DLMGCP, LOGL_NOTICE,
-	     "Got media info via SDP: port:%d, addr:%s, duration:%d, payload-types:",
-	     osmo_sockaddr_port(&rtp->addr.u.sa), osmo_sockaddr_ntop(&rtp->addr.u.sa, ipbuf),
-	     rtp->packet_duration_ms);
+	LOGP(DLMGCP, LOGL_NOTICE,
+	     "%s: Got media info via SDP: port:%d, addr:%s, duration:%d, payload-types:",
+	     p->epname, sdp->rtp_port, osmo_sockaddr_ntop(&sdp->rem_addr.u.sa, ipbuf), sdp->ptime);
 	if (codecs_used == 0)
 		LOGPC(DLMGCP, LOGL_NOTICE, "none");
 	for (i = 0; i < codecs_used; i++) {
 		LOGPC(DLMGCP, LOGL_NOTICE, "%d=%s",
-		      rtp->cset.codecs[i].payload_type,
-		      strlen(rtp->cset.codecs[i].subtype_name) ? rtp->cset.codecs[i].subtype_name : "unknown");
+		      sdp->cset.codecs[i].payload_type,
+		      strlen(sdp->cset.codecs[i].subtype_name) ? sdp->cset.codecs[i].subtype_name : "unknown");
 		LOGPC(DLMGCP, LOGL_NOTICE, " ");
 	}
 	LOGPC(DLMGCP, LOGL_NOTICE, "\n");

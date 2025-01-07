@@ -1,7 +1,35 @@
 #pragma once
 
+#include <stdint.h>
+#include <sys/socket.h>
+
 #include <osmocom/core/utils.h>
+#include <osmocom/core/socket.h>
 #include <osmocom/mgcp/mgcp_common.h>
+#include <osmocom/mgcp/mgcp_codec.h>
+
+
+#define MGCP_PARSE_SDP_PTIME_UNSET (-1)
+#define MGCP_PARSE_SDP_MAXPTIME_UNSET (-1)
+#define MGCP_PARSE_SDP_RTP_PORT_UNSET (0)
+
+struct mgcp_parse_sdp {
+	int ptime;
+	int maxptime;
+	int rtp_port;
+	struct osmo_sockaddr rem_addr; /* Only IP address, port is in rtp_port above */
+	struct mgcp_rtp_codecset cset;
+};
+
+static inline void mgcp_parse_sdp_init(struct mgcp_parse_sdp *sdp)
+{
+	sdp->ptime = MGCP_PARSE_SDP_PTIME_UNSET;
+	sdp->maxptime = MGCP_PARSE_SDP_MAXPTIME_UNSET;
+	sdp->rtp_port = MGCP_PARSE_SDP_RTP_PORT_UNSET;
+	sdp->rem_addr = (struct osmo_sockaddr){ .u.sa.sa_family = AF_UNSPEC };
+	mgcp_codecset_reset(&sdp->cset);
+}
+
 
 #define MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET (-2)
 #define MGCP_PARSE_HDR_PARS_OSMUX_CID_WILDCARD (-1)
@@ -38,6 +66,8 @@ struct mgcp_parse_data {
 	char *epname;
 	char *trans;
 	struct mgcp_parse_hdr_pars hpars;
+	/* MGCP Body: */
+	struct mgcp_parse_sdp sdp;
 };
 
 /* Local connection options */
