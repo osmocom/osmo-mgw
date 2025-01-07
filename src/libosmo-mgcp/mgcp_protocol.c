@@ -1192,26 +1192,23 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	if (mgcp_conn_rtp_is_osmux(conn_rtp)) {
 		OSMO_ASSERT(conn_rtp->osmux.local_cid_allocated);
 		if (hpars->remote_osmux_cid < -1) {
-			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
-				 "MDCX: Failed to parse Osmux CID!\n");
+			LOGPCONN(conn, DLMGCP, LOGL_ERROR, "MDCX: Failed to parse Osmux CID!\n");
 			goto error3;
-		} else if (hpars->remote_osmux_cid == -1) {
-			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
-				 "MDCX: wilcard in MDCX is not supported!\n");
+		}
+		if (hpars->remote_osmux_cid == -1) {
+			LOGPCONN(conn, DLMGCP, LOGL_ERROR, "MDCX: wilcard in MDCX is not supported!\n");
 			goto error3;
-		} else if (conn_rtp->osmux.remote_cid_present &&
-			   hpars->remote_osmux_cid != conn_rtp->osmux.remote_cid) {
-			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
-				"MDCX: changing already allocated CID is not supported!\n");
+		}
+		if (conn_rtp->osmux.remote_cid_present &&
+		    hpars->remote_osmux_cid != conn_rtp->osmux.remote_cid) {
+			LOGPCONN(conn, DLMGCP, LOGL_ERROR, "MDCX: changing already allocated CID is not supported!\n");
 			goto error3;
-		} else {
-			conn_rtp->osmux.remote_cid_present = true;
-			conn_rtp->osmux.remote_cid = hpars->remote_osmux_cid;
-			if (conn_osmux_event_rx_crcx_mdcx(conn_rtp) < 0) {
-				LOGPCONN(conn, DLMGCP, LOGL_ERROR,
-					"MDCX: Osmux handling failed!\n");
-				goto error3;
-			}
+		}
+		conn_rtp->osmux.remote_cid_present = true;
+		conn_rtp->osmux.remote_cid = hpars->remote_osmux_cid;
+		if (conn_osmux_event_rx_crcx_mdcx(conn_rtp) < 0) {
+			LOGPCONN(conn, DLMGCP, LOGL_ERROR, "MDCX: Osmux handling failed!\n");
+			goto error3;
 		}
 	}
 
