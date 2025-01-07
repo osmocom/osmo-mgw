@@ -22,9 +22,9 @@
 
 #pragma once
 
-int mgcp_parse_sdp_data(const struct mgcp_endpoint *endp,
-			struct mgcp_conn_rtp *conn,
-			struct mgcp_parse_data *p);
+struct mgcp_parse_data;
+
+int mgcp_parse_sdp_data(struct mgcp_parse_data *p);
 
 int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 			    const struct mgcp_conn_rtp *conn, struct msgb *sdp,
