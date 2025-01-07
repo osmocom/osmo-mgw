@@ -1224,13 +1224,12 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	struct mgcp_parse_data *pdata = rq->pdata;
 	struct mgcp_trunk *trunk = rq->trunk;
 	struct mgcp_endpoint *endp = rq->endp;
+	struct mgcp_parse_hdr_pars *hpars = &pdata->hpars;
 	struct rate_ctr_group *rate_ctrs;
-	int error_code = 400;
-	char *line;
 	char stats[1048];
-	const char *conn_id = NULL;
 	struct mgcp_conn *conn = NULL;
 	unsigned int i;
+	int rc;
 
 	/* NOTE: In this handler we can not take it for granted that the endp
 	 * pointer will be populated, however a trunk is always guaranteed (except for 'null' endp).
@@ -1272,49 +1271,42 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 		return create_ok_response(trunk, NULL, 200, "DLCX", pdata->trans);
 	}
 
-	for_each_line(line, pdata->save) {
-		if (!mgcp_check_param(line))
-			continue;
+	rc = mgcp_parse_hdr_pars(pdata);
+	switch (rc) {
+	case 0:
+		break; /* all good, continue below */
+	case -539:
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
+		return create_err_response(rq->trunk, NULL, -rc, "DLCX", pdata->trans);
+	default:
+		return create_err_response(rq->trunk, NULL, -rc, "DLCX", pdata->trans);
+	}
 
-		switch (toupper(line[0])) {
-		case 'C':
-			/* If we have no endpoint, but a call id in the request,
-			   then this request cannot be handled */
-			if (!endp) {
-				LOGPTRUNK(trunk, DLMGCP, LOGL_NOTICE,
-					  "cannot handle requests with call-id (C) without endpoint -- abort!");
-				rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
-				return create_err_response(rq->trunk, NULL, 539, "DLCX", pdata->trans);
-			}
-
-			if (mgcp_verify_call_id(endp, line + 3) != 0) {
-				error_code = 516;
-				rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CALLID));
-				goto error3;
-			}
-			break;
-		case 'I':
-			/* If we have no endpoint, but a connection id in the request,
-			   then this request cannot be handled */
-			if (!endp) {
-				LOGPTRUNK(trunk, DLMGCP, LOGL_NOTICE,
-					  "cannot handle requests with conn-id (I) without endpoint -- abort!");
-				rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
-				return create_err_response(rq->trunk, NULL, 539, "DLCX", pdata->trans);
-			}
-
-			conn_id = (const char *)line + 3;
-			if ((error_code = mgcp_verify_ci(endp, conn_id))) {
-				rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CONNID));
-				goto error3;
-			}
-			break;
-		default:
-			LOGPEPTR(endp, trunk, DLMGCP, LOGL_NOTICE, "DLCX: Unhandled MGCP option: '%c'/%d\n",
-				 line[0], line[0]);
+	if (hpars->callid) {
+		/* If we have no endpoint, but a call id in the request, then this request cannot be handled */
+		if (!endp) {
+			LOGPTRUNK(trunk, DLMGCP, LOGL_NOTICE,
+				"cannot handle requests with call-id (C) without endpoint -- abort!");
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
 			return create_err_response(rq->trunk, NULL, 539, "DLCX", pdata->trans);
-			break;
+		}
+		if (mgcp_verify_call_id(endp, hpars->callid) != 0) {
+			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CALLID));
+			return create_err_response(endp, endp, 516, "DLCX", pdata->trans);
+		}
+	}
+
+	if (hpars->connid) {
+		/* If we have no endpoint, but a connection id in the request, then this request cannot be handled */
+		if (!endp) {
+			LOGPTRUNK(trunk, DLMGCP, LOGL_NOTICE,
+				  "cannot handle requests with conn-id (I) without endpoint -- abort!");
+			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
+			return create_err_response(rq->trunk, NULL, 539, "DLCX", pdata->trans);
+		}
+		if ((rc = mgcp_verify_ci(endp, hpars->connid)) != 0) {
+			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CONNID));
+			return create_err_response(endp, endp, rc, "DLCX", pdata->trans);
 		}
 	}
 
@@ -1326,7 +1318,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	 * wildcarded DLCX that refers to the selected endpoint. This means
 	 * that we drop all connections on that specific endpoint at once.
 	 * (See also RFC3435 Section F.7) */
-	if (!conn_id) {
+	if (!hpars->connid) {
 		int num_conns = mgcp_endp_num_conns(endp);
 		LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
 			 "DLCX: missing ci (connectionIdentifier), will remove all connections (%d total) at once\n",
@@ -1344,10 +1336,10 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	}
 
 	/* Find the connection */
-	conn = mgcp_endp_get_conn(endp, conn_id);
+	conn = mgcp_endp_get_conn(endp, hpars->connid);
 	if (!conn) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CONNID));
-		goto error3;
+		return create_err_response(endp, endp, 400, "DLCX", pdata->trans);
 	}
 	/* save the statistics of the current connection */
 	mgcp_format_stats(stats, sizeof(stats), conn);
@@ -1368,9 +1360,6 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 
 	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_SUCCESS));
 	return create_ok_resp_with_param(endp, endp, 250, "DLCX", pdata->trans, stats);
-
-error3:
-	return create_err_response(endp, endp, error_code, "DLCX", pdata->trans);
 }
 
 /* RSIP command handler, processes the received command */
