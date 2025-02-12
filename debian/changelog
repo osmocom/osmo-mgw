@@ -1,3 +1,52 @@
+osmo-mgw (1.14.0) unstable; urgency=medium
+
+  [ Pau Espin Pedrol ]
+  * jenkins.sh: libosmo-netif no longer depends on libosmo-abis
+  * jenkins.sh: Use --disable-doxygen configure param
+  * mgcp-client: Fix wrong value passed to strerror()
+  * mgcp_client_internal.h: Add missing header dependency
+  * mgcp-cli: Mark iofd ptr as NULL when freed
+  * mgcp-cli: Improve error handling around mgcp_msg_gen() return
+  * mgcp-cli: Fix filling in wrong local IP address of SDP Origin o=
+  * mgw: Drop own MGCP extension 'noanswer'
+  * cosmetic: mgw: Fix indentation whitespace
+  * mgcp-client: Fix regression checking null ptr
+  * mgw: Rename and move code freeing endp connection
+  * mgw: Rename and move several get_conn funcs acting on endp object
+  * mgw: mgcp_network.c: Simplify use of conn_rtp ptr
+  * mgw: Clean up access to conn_rtp from conn
+  * mgw: Avoid 2nd lookup of conn in endp during CRCX
+  * cosmetic: mgw: iuup: Update comment
+  * mgw: constify mgcp_endp_avail() param
+  * mgcp_endp: Add helpers accessing endp connections
+  * mgw: mgcp_protocol: assert freeing last conn allows creating new conn
+  * mgw: Split conn mode parsing and applying into conn
+  * mgw: CRCXMDCX/DLCX: rename conn and conn_rtp variables
+  * mgw: Use bool instead of int in local var
+  * Rename mgcp_free_rtp_port() to mgcp_rtp_end_free_port()
+  * mgw: Split mgcp_rtp_end to its own file
+  * mgw: Introduce mgcp_rtp_end_init()
+  * mgw: Introduce struct mgcp_codecset struct
+  * mgw: Cleanup rtp_endp fields in its own function
+  * mgw: Move force_ptime logic outside of main CRCX func handler
+  * mgw: Move several params setting to mgcp_rtp_end_init()
+  * mgw: Simplify and redo code around ssrc patch feature
+  * mgw: Clean up code allocating conn_rtp rtp/rtcp sockets
+  * mgw: Rename and cleanup code allocating rtp/rtcp ports in trunk
+  * mgw: CRCX: Split mgcp header pars parsing into a previous step
+  * mgw: MDCX: Split mgcp header pars parsing into a previous step
+  * mgw: DLCX: Split mgcp header pars parsing into a previous step
+  * mgw: Decouple SDP parsing step from conn obj update
+  * mgw: Remove wrong TODO comment
+  * mgw: MDCX: Simplify early return code paths
+
+  [ Mychaela N. Falconia ]
+  * E1 cosmetic: reduce white space in hard-coded TRAU-DL frames
+  * E1: replace idle_tf_efr[] with a better version
+  * E1: replace idle_tf_fr[] with a better version
+
+ -- Oliver Smith <osmith@sysmocom.de>  Wed, 12 Feb 2025 12:30:33 +0100
+
 osmo-mgw (1.13.1) unstable; urgency=medium
 
   [ Philipp Maier ]
