@@ -249,17 +249,6 @@ static int read_call_agent(struct osmo_fd *fd, unsigned int what)
 	return 0;
 }
 
-int mgcp_vty_is_config_node(struct vty *vty, int node)
-{
-	switch (node) {
-	case CONFIG_NODE:
-		return 0;
-
-	default:
-		return 1;
-	}
-}
-
 int mgcp_vty_go_parent(struct vty *vty)
 {
 	switch (vty->node) {
@@ -269,7 +258,7 @@ int mgcp_vty_go_parent(struct vty *vty)
 		break;
 	case MGCP_NODE:
 	default:
-		if (mgcp_vty_is_config_node(vty, vty->node))
+		if (vty->node != CONFIG_NODE)
 			vty->node = CONFIG_NODE;
 		else
 			vty->node = ENABLE_NODE;
@@ -310,7 +299,6 @@ static struct vty_app_info vty_info = {
 	.name 		= "OsmoMGW",
 	.version	= PACKAGE_VERSION,
 	.go_parent_cb	= mgcp_vty_go_parent,
-	.is_config_node	= mgcp_vty_is_config_node,
 };
 
 static const struct log_info_cat log_categories[] = {
