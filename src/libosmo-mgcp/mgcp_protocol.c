@@ -817,7 +817,6 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 	struct mgcp_parse_hdr_pars *hpars = &pdata->hpars;
 	struct rate_ctr_group *rate_ctrs;
 	int error_code = 400;
-	int remote_osmux_cid;
 	struct mgcp_conn *conn = NULL;
 	struct mgcp_conn_rtp *conn_rtp = NULL;
 	char conn_name[512];
@@ -892,13 +891,22 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		}
 	}
 
-	remote_osmux_cid = hpars->remote_osmux_cid;
-	/* If osmux is disabled, just skip setting it up */
-	if (trunk->cfg->osmux.usage == OSMUX_USAGE_OFF)
-		remote_osmux_cid = MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET;
+	/* Reject osmux if disabled by config */
+	if (trunk->cfg->osmux.usage == OSMUX_USAGE_OFF &&
+	    hpars->remote_osmux_cid != MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET) {
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: Request with Osmux but it is disabled by config!\n");
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
+		return create_err_response(endp, endp, 511, "CRCX", pdata->trans);
+	}
+	/* Reject non-osmux if required by config */
+	if (trunk->cfg->osmux.usage == OSMUX_USAGE_ONLY &&
+	    hpars->remote_osmux_cid == MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET) {
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: Request without Osmux but it is required by config!\n");
+		return create_err_response(endp, endp, 517, "CRCX", pdata->trans);
+	}
 
 	/* Make sure osmux is setup: */
-	if (remote_osmux_cid != MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET)
+	if (hpars->remote_osmux_cid != MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET)
 		mgcp_trunk_osmux_init_if_needed(trunk);
 
 	/* Check if we are able to accept the creation of another connection */
@@ -970,21 +978,16 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 	conn_rtp = mgcp_conn_get_conn_rtp(conn);
 	OSMO_ASSERT(conn_rtp);
 
-	/* If X-Osmux (remote CID) was received (-1 is wilcard), alloc next avail CID as local CID */
-	if (remote_osmux_cid >= -1) {
+	/* If X-Osmux (remote CID) was received, alloc next avail CID as local CID */
+	if (hpars->remote_osmux_cid != MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET) {
 		if (osmux_init_conn(conn_rtp) < 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
 			goto error2;
 		}
-		if (remote_osmux_cid >= 0) {
+		if (hpars->remote_osmux_cid >= 0) {
 			conn_rtp->osmux.remote_cid_present = true;
-			conn_rtp->osmux.remote_cid = remote_osmux_cid;
-		}
-	} else if (endp->trunk->cfg->osmux.usage == OSMUX_USAGE_ONLY) {
-		LOGPCONN(conn, DLMGCP, LOGL_ERROR,
-			 "CRCX: osmux only and no osmux offered\n");
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
-		goto error2;
+			conn_rtp->osmux.remote_cid = hpars->remote_osmux_cid;
+		} /* else: -1 (wildcard) */
 	}
 
 	/* Set local connection options, if present */
