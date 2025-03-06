@@ -332,6 +332,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 	memset(&rq, 0, sizeof(rq));
 	rq.cfg = cfg;
 	memset(&pdata, 0, sizeof(pdata));
+	pdata.rq = &rq;
 
 	/* Parse command name: */
 	memcpy(rq.name, (const char *)&msg->l2h[0], sizeof(rq.name)-1);

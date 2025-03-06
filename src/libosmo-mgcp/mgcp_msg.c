@@ -36,7 +36,7 @@
 
 /* (same fmt as LOGPENDP()) */
 #define LOG_MGCP_PDATA(PDATA, LEVEL, FMT, ARGS...) \
-	LOGP(DLMGCP, LEVEL, "endpoint:%s " FMT, (PDATA) ? ((PDATA)->epname ? : "null-epname") : "null-pdata", ##ARGS)
+	LOGP(DLMGCP, LEVEL, "%s: endpoint(%s) " FMT, (PDATA)->rq->name, (PDATA)->epname ? : "null-epname", ##ARGS)
 
 /*! Display an mgcp message on the log output.
  *  \param[in] message mgcp message string
@@ -212,7 +212,7 @@ int mgcp_parse_hdr_pars(struct mgcp_parse_data *pdata)
 			hp->have_sdp = true;
 			goto mgcp_header_done;
 		default:
-			LOG_MGCP_PDATA(pdata, LOGL_NOTICE, "CRCX: unhandled option: '%c'/%d\n", *line, *line);
+			LOG_MGCP_PDATA(pdata, LOGL_NOTICE, "unhandled option: '%c'/%d\n", *line, *line);
 			return -539;
 		}
 	}
