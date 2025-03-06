@@ -495,6 +495,9 @@ int osmux_init(struct mgcp_trunk *trunk)
 	int ret, fd;
 	struct mgcp_config *cfg = trunk->cfg;
 
+	if (cfg->osmux.initialized)
+		return 0;
+
 	/* So far we only support running on one trunk: */
 	OSMO_ASSERT(trunk == mgcp_trunk_by_num(cfg, MGCP_TRUNK_VIRTUAL, MGCP_VIRT_TRUNK_ID));
 
@@ -507,19 +510,19 @@ int osmux_init(struct mgcp_trunk *trunk)
 		ret = mgcp_create_bind(cfg->osmux.local_addr_v4, cfg->osmux.local_port,
 					cfg->endp_dscp, cfg->endp_priority);
 		if (ret < 0) {
-			LOGP(DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv4 socket to %s:%u\n",
-			     cfg->osmux.local_addr_v4, cfg->osmux.local_port);
+			LOGPTRUNK(trunk, DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv4 socket to %s:%u\n",
+				  cfg->osmux.local_addr_v4, cfg->osmux.local_port);
 			goto out_free_v4;
 		}
 		fd = ret;
 
 		ret = osmo_iofd_register(osmux_fd_v4, fd);
 		if (ret < 0) {
-			LOGP(DOSMUX, LOGL_ERROR, "Cannot register OSMUX IPv4 socket %s\n", osmo_sock_get_name2(fd));
+			LOGPTRUNK(trunk, DOSMUX, LOGL_ERROR, "Cannot register OSMUX IPv4 socket %s\n", osmo_sock_get_name2(fd));
 			close(fd);
 			goto out_free_v4;
 		}
-		LOGP(DOSMUX, LOGL_INFO, "OSMUX IPv4 socket listening on %s\n", osmo_sock_get_name2(fd));
+		LOGPTRUNK(trunk, DOSMUX, LOGL_INFO, "OSMUX IPv4 socket listening on %s\n", osmo_sock_get_name2(fd));
 	}
 
 	osmux_fd_v6 = osmo_iofd_setup(trunk, -1, "osmux_fd_v6", OSMO_IO_FD_MODE_RECVFROM_SENDTO, &osmux_ioops, trunk);
@@ -531,8 +534,8 @@ int osmux_init(struct mgcp_trunk *trunk)
 		ret = mgcp_create_bind(cfg->osmux.local_addr_v6, cfg->osmux.local_port,
 					cfg->endp_dscp, cfg->endp_priority);
 		if (ret < 0) {
-			LOGP(DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv6 socket to [%s]:%u\n",
-			     cfg->osmux.local_addr_v6, cfg->osmux.local_port);
+			LOGPTRUNK(trunk, DOSMUX, LOGL_ERROR, "Cannot bind OSMUX IPv6 socket to [%s]:%u\n",
+				  cfg->osmux.local_addr_v6, cfg->osmux.local_port);
 			goto out_free_v6;
 		}
 		fd = ret;
@@ -543,9 +546,10 @@ int osmux_init(struct mgcp_trunk *trunk)
 			close(fd);
 			goto out_free_v6;
 		}
-		LOGP(DOSMUX, LOGL_INFO, "OSMUX IPv6 socket listening on %s\n", osmo_sock_get_name2(fd));
+		LOGPTRUNK(trunk, DOSMUX, LOGL_INFO, "OSMUX IPv6 socket listening on %s\n", osmo_sock_get_name2(fd));
 	}
 	cfg->osmux.initialized = true;
+	LOGPTRUNK(trunk, DOSMUX, LOGL_NOTICE, "OSMUX socket has been set up\n");
 	return 0;
 
 out_free_v6:
@@ -557,6 +561,7 @@ out_free_v4:
 	osmo_iofd_free(osmux_fd_v4);
 	osmux_fd_v4 = NULL;
 out:
+	LOGPTRUNK(trunk, DOSMUX, LOGL_ERROR, "Cannot init OSMUX\n");
 	return -1;
 }
 
