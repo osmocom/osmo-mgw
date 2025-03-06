@@ -8,6 +8,18 @@
 #include <osmocom/mgcp/mgcp_common.h>
 #include <osmocom/mgcp/mgcp_codec.h>
 
+enum mgcp_verb {
+	MGCP_VERB_CRCX,
+	MGCP_VERB_MDCX,
+	MGCP_VERB_DLCX,
+	MGCP_VERB_AUEP,
+	MGCP_VERB_RQNT,
+	MGCP_VERB_RSIP,
+};
+extern const struct value_string mgcp_verb_names[];
+static inline const char *mgcp_verb_name(enum mgcp_verb val)
+{ return get_value_string(mgcp_verb_names, val); }
+
 
 #define MGCP_PARSE_SDP_PTIME_UNSET (-1)
 #define MGCP_PARSE_SDP_MAXPTIME_UNSET (-1)

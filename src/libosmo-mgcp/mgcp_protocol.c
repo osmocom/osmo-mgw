@@ -59,6 +59,16 @@ char *mgcp_debug_get_last_endpoint_name(void)
 	return debug_last_endpoint_name;
 }
 
+const struct value_string mgcp_verb_names[] = {
+	{ MGCP_VERB_CRCX, "CRCX" },
+	{ MGCP_VERB_MDCX, "MDCX" },
+	{ MGCP_VERB_DLCX, "DLCX" },
+	{ MGCP_VERB_AUEP, "AUEP" },
+	{ MGCP_VERB_RSIP, "RSIP" },
+	{ MGCP_VERB_RQNT, "RQNT" },
+	{}
+};
+
 const struct value_string mgcp_connection_mode_strs[] = {
 	{ MGCP_CONN_NONE, "none" },
 	{ MGCP_CONN_RECV_SEND, "sendrecv" },
@@ -81,7 +91,8 @@ do { \
 
 /* Request data passed to the request handler */
 struct mgcp_request_data {
-	/* request name (e.g. "MDCX") */
+	enum mgcp_verb verb;
+	/* Verb string (e.g. "MDCX") */
 	char name[4+1];
 
 	/* parsing results from the MGCP header (trans id, endpoint name ...) */
@@ -103,55 +114,12 @@ struct mgcp_request_data {
 	int mgcp_cause;
 };
 
-/* Request handler specification, here we specify an array with function
- * pointers to the various MGCP requests implemented below */
-struct mgcp_request {
-	/* request name (e.g. "MDCX") */
-	char *name;
-
-	/* function pointer to the request handler */
-	struct msgb *(*handle_request)(struct mgcp_request_data *data);
-
-	/* a human readable name that describes the request */
-	char *debug_name;
-};
-
 static struct msgb *handle_audit_endpoint(struct mgcp_request_data *data);
 static struct msgb *handle_create_con(struct mgcp_request_data *data);
 static struct msgb *handle_delete_con(struct mgcp_request_data *data);
 static struct msgb *handle_modify_con(struct mgcp_request_data *data);
 static struct msgb *handle_rsip(struct mgcp_request_data *data);
 static struct msgb *handle_noti_req(struct mgcp_request_data *data);
-static const struct mgcp_request mgcp_requests[] = {
-	{ .name = "AUEP", .handle_request = handle_audit_endpoint, .debug_name = "AuditEndpoint" },
-	{
-		.name = "CRCX",
-		.handle_request = handle_create_con,
-		.debug_name = "CreateConnection",
-	},
-	{
-		.name = "DLCX",
-		.handle_request = handle_delete_con,
-		.debug_name = "DeleteConnection",
-	},
-	{
-		.name = "MDCX",
-		.handle_request = handle_modify_con,
-		.debug_name = "ModifiyConnection",
-	},
-	{
-		.name = "RQNT",
-		.handle_request = handle_noti_req,
-		.debug_name = "NotificationRequest",
-	},
-
-	/* SPEC extension */
-	{
-		.name = "RSIP",
-		.handle_request = handle_rsip,
-		.debug_name = "ReSetInProgress",
-	},
-};
 
 /* Initalize transcoder */
 static int setup_rtp_processing(struct mgcp_endpoint *endp,
@@ -356,7 +324,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 	struct rate_ctr_group *rate_ctrs = cfg->ratectr.mgcp_general_ctr_group;
 	struct mgcp_parse_data pdata;
 	struct mgcp_request_data rq;
-	int rc, i, code, handled = 0;
+	int rc, code;
 	struct msgb *resp = NULL;
 	char *data;
 
@@ -385,12 +353,23 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 		return NULL;
 	}
 
-
-	/* Parse message, extract endpoint name and transaction identifier and request name etc. */
+	/* Initialize parsing data. */
 	memset(&pdata, 0, sizeof(pdata));
 	memset(&rq, 0, sizeof(rq));
 	pdata.cfg = cfg;
+
+	/* Parse command name: */
 	memcpy(rq.name, (const char *)&msg->l2h[0], sizeof(rq.name)-1);
+	rc = get_string_value(mgcp_verb_names, rq.name);
+	if (rc < 0) {
+		LOGP(DLMGCP, LOGL_ERROR, "%s: failed to parse command name in MCGP message\n", rq.name);
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_FAIL_MSG_PARSE));
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_MSGS_UNHANDLED));
+		return create_err_response(cfg, NULL, 504, rq.name, "000000");
+	}
+	rq.verb = rc;
+
+	/* Parse message, extract endpoint name and transaction identifier and request name etc. */
 	msg->l3h = &msg->l2h[4];
 	data = mgcp_strline((char *)msg->l3h, &pdata.save);
 	rc = mgcp_parse_header(&pdata, data);
@@ -443,31 +422,36 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 		}
 	}
 
-	/* Find an appropriate handler for the current request and execute it */
-	for (i = 0; i < ARRAY_SIZE(mgcp_requests); i++) {
-		if (strcmp(mgcp_requests[i].name, rq.name) == 0) {
-			/* Execute request handler */
-			if (rq.endp)
-				LOGP(DLMGCP, LOGL_INFO,
-				     "%s: executing request handler \"%s\" for endpoint resource \"%s\"\n", rq.name,
-				     mgcp_requests[i].debug_name, rq.endp->name);
-			else
-				LOGP(DLMGCP, LOGL_INFO,
-				     "%s: executing request handler \"%s\" for trunk resource of endpoint \"%s\"\n",
-				     rq.name, mgcp_requests[i].debug_name, pdata.epname);
-			resp = mgcp_requests[i].handle_request(&rq);
-			handled = 1;
-			break;
-		}
+	/* Execute request handler */
+	if (rq.endp)
+		LOGP(DLMGCP, LOGL_INFO, "%s: executing request handler for endpoint resource \"%s\"\n",
+		     rq.name, rq.endp->name);
+	else
+		LOGP(DLMGCP, LOGL_INFO, "%s: executing request handler for trunk resource of endpoint \"%s\"\n",
+		     rq.name, pdata.epname);
+	switch (rq.verb) {
+	case MGCP_VERB_AUEP:
+		resp = handle_audit_endpoint(&rq);
+		break;
+	case MGCP_VERB_CRCX:
+		resp = handle_create_con(&rq);
+		break;
+	case MGCP_VERB_DLCX:
+		resp = handle_delete_con(&rq);
+		break;
+	case MGCP_VERB_MDCX:
+		resp = handle_modify_con(&rq);
+		break;
+	case MGCP_VERB_RQNT:
+		resp = handle_noti_req(&rq);
+		break;
+	case MGCP_VERB_RSIP:
+		resp = handle_rsip(&rq);
+		break;
+	default:
+		OSMO_ASSERT(0);
 	}
-
-	/* Check if the MGCP request was handled and increment rate counters accordingly. */
-	if (handled) {
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_MSGS_HANDLED));
-	} else {
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_MSGS_UNHANDLED));
-		LOGP(DLMGCP, LOGL_ERROR, "MSG with type: '%.4s' not handled\n", &msg->l2h[0]);
-	}
+	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_MSGS_HANDLED));
 
 	return resp;
 }
