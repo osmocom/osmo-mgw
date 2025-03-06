@@ -567,6 +567,87 @@ error:
 	return 534;
 }
 
+/* Read-only checks for parsed CRCX request.
+ * Returns negative MGCP error code on failure, 0 on scucess. */
+static int validate_parsed_crcx(struct mgcp_request_data *rq)
+{
+	struct mgcp_parse_data *pdata = rq->pdata;
+	struct mgcp_trunk *trunk = rq->trunk;
+	struct mgcp_endpoint *endp = rq->endp;
+	struct mgcp_parse_hdr_pars *hpars = &pdata->hpars;
+	struct rate_ctr_group *rate_ctrs = trunk->ratectr.mgcp_crcx_ctr_group;
+
+	/* Check parameters */
+	if (!hpars->callid) {
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+			 "CRCX: insufficient parameters, missing callid\n");
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_MISSING_CALLID));
+		return -516;
+	}
+
+	if (hpars->mode == MGCP_CONN_NONE) {
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+			 "CRCX: insufficient parameters, invalid mode\n");
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_INVALID_MODE));
+		return -517;
+	}
+
+	/* It is illegal to send a connection identifier
+	 * together with a CRCX, the MGW will assign the
+	 * connection identifier by itself on CRCX */
+	if (hpars->connid) {
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: 'I: %s' not expected!\n", hpars->connid);
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BAD_ACTION));
+		return -523;
+	}
+
+	/* Reject osmux if disabled by config */
+	if (trunk->cfg->osmux.usage == OSMUX_USAGE_OFF &&
+	    hpars->remote_osmux_cid != MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET) {
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: Request with Osmux but it is disabled by config!\n");
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
+		return -511;
+	}
+	/* Reject non-osmux if required by config */
+	if (trunk->cfg->osmux.usage == OSMUX_USAGE_ONLY &&
+	    hpars->remote_osmux_cid == MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET) {
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: Request without Osmux but it is required by config!\n");
+		return -517;
+	}
+
+	/* Read-only checks here, force_realloc case done out of there afterwards.*/
+	if (!trunk->force_realloc) {
+		/* Check if we are able to accept the creation of another connection */
+		if (mgcp_endp_is_full(endp)) {
+			/* There is no more room for a connection, leave
+			 * everything as it is and return with an error */
+			LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: endpoint full, max. %d connections allowed!\n",
+				 endp->type->max_conns);
+			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_LIMIT_EXCEEDED));
+			return -540;
+		}
+
+		/* Check if this endpoint already serves a call, if so, check if the
+		* callids match up so that we are sure that this is our call.
+		* Do check only if endpoint was (or is by current CRCX) configured
+		* to explicitly ignore it ("X-Osmo-IGN: C").
+		*/
+		if (endp->callid &&
+		    !((endp->x_osmo_ign | hpars->x_osmo_ign) & MGCP_X_OSMO_IGN_CALLID) &&
+		    mgcp_verify_call_id(endp, hpars->callid)) {
+			/* This is not our call, leave everything as it is and
+			 * return with an error. */
+			LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: already seized by other call (%s)\n",
+				 endp->callid);
+			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_UNKNOWN_CALLID));
+			return -400;
+		}
+	}
+
+	/* Everything fine, continue */
+	return 0;
+}
+
 /* CRCX command handler, processes the received command */
 static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 {
@@ -589,6 +670,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		return create_err_response(rq->cfg, NULL, 502, "CRCX", pdata->trans);
 	}
 
+	/* rq->trunk is available (non-null) from here on. */
 	rate_ctrs = trunk->ratectr.mgcp_crcx_ctr_group;
 
 	/* we must have a free ep */
@@ -617,30 +699,6 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		return create_err_response(rq->trunk, NULL, -rc, "CRCX", pdata->trans);
 	}
 
-	/* Check parameters */
-	if (!hpars->callid) {
-		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
-			 "CRCX: insufficient parameters, missing callid\n");
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_MISSING_CALLID));
-		return create_err_response(endp, endp, 516, "CRCX", pdata->trans);
-	}
-
-	if (hpars->mode == MGCP_CONN_NONE) {
-		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
-			 "CRCX: insufficient parameters, invalid mode\n");
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_INVALID_MODE));
-		return create_err_response(endp, endp, 517, "CRCX", pdata->trans);
-	}
-
-	/* It is illegal to send a connection identifier
-	 * together with a CRCX, the MGW will assign the
-	 * connection identifier by itself on CRCX */
-	if (hpars->connid) {
-		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: 'I: %s' not expected!\n", hpars->connid);
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BAD_ACTION));
-		return create_err_response(endp, endp, 523, "CRCX", pdata->trans);
-	}
-
 	/* Parse SDP if found: */
 	if (hpars->have_sdp) {
 		rc = mgcp_parse_sdp_data(pdata);
@@ -650,66 +708,36 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		}
 	}
 
-	/* Reject osmux if disabled by config */
-	if (trunk->cfg->osmux.usage == OSMUX_USAGE_OFF &&
-	    hpars->remote_osmux_cid != MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET) {
-		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: Request with Osmux but it is disabled by config!\n");
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
-		return create_err_response(endp, endp, 511, "CRCX", pdata->trans);
-	}
-	/* Reject non-osmux if required by config */
-	if (trunk->cfg->osmux.usage == OSMUX_USAGE_ONLY &&
-	    hpars->remote_osmux_cid == MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET) {
-		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: Request without Osmux but it is required by config!\n");
-		return create_err_response(endp, endp, 517, "CRCX", pdata->trans);
-	}
-
-	/* Check if we are able to accept the creation of another connection */
-	if (mgcp_endp_is_full(endp)) {
-		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
-			"CRCX: endpoint full, max. %i connections allowed!\n",
-			endp->type->max_conns);
-		if (trunk->force_realloc) {
-			/* There is no more room for a connection, make some
-			 * room by blindly tossing the oldest of the two two
-			 * connections */
-			mgcp_endp_free_conn_oldest(endp);
-			OSMO_ASSERT(!mgcp_endp_is_full(endp));
-		} else {
-			/* There is no more room for a connection, leave
-			 * everything as it is and return with an error */
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_LIMIT_EXCEEDED));
-			return create_err_response(endp, endp, 540, "CRCX", pdata->trans);
-		}
-	}
-
-	/* Check if this endpoint already serves a call, if so, check if the
-	 * callids match up so that we are sure that this is our call.
-	 * Do check only if endpoint was (or is by current CRCX) configured
-	 * to explicitly ignore it ("X-Osmo-IGN: C").
-	 */
-	if (endp->callid &&
-	    !((endp->x_osmo_ign | hpars->x_osmo_ign) & MGCP_X_OSMO_IGN_CALLID) &&
-	    mgcp_verify_call_id(endp, hpars->callid)) {
-		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
-			 "CRCX: already seized by other call (%s)\n",
-			 endp->callid);
-		if (trunk->force_realloc)
-			/* This is not our call, toss everything by releasing
-			 * the entire endpoint. (rude!) */
-			mgcp_endp_release(endp);
-		else {
-			/* This is not our call, leave everything as it is and
-			 * return with an error. */
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_UNKNOWN_CALLID));
-			return create_err_response(endp, endp, 400, "CRCX", pdata->trans);
-		}
-	}
+	rc = validate_parsed_crcx(rq);
+	if (rc < 0)
+		return create_err_response(endp, endp, -rc, "CRCX", pdata->trans);
 
 	/*******************************************************************
 	 * Allocate and update endpoint and conn.
-	 * From here on below we start updating endpoing and creating conn:
+	 * From here on below we start updating endpoint and creating conn:
 	 *******************************************************************/
+
+	if (trunk->force_realloc) {
+		/* Check if we are able to accept the creation of another connection */
+		if (mgcp_endp_is_full(endp)) {
+			/* There is no more room for a connection, make some
+			 * room by blindly tossing the oldest of the two two
+			 * connections */
+			LOGPENDP(endp, DLMGCP, LOGL_ERROR, "CRCX: endpoint full, max. %d connections allowed!\n",
+				endp->type->max_conns);
+			mgcp_endp_free_conn_oldest(endp);
+			OSMO_ASSERT(!mgcp_endp_is_full(endp));
+		}
+
+		/* Check if this endpoint already serves a call and then check if the callids match up */
+		if (endp->callid &&
+		    !((endp->x_osmo_ign | hpars->x_osmo_ign) & MGCP_X_OSMO_IGN_CALLID) &&
+		    mgcp_verify_call_id(endp, hpars->callid)) {
+			/* This is not our call, toss everything by releasing
+			 * the entire endpoint. (rude!) */
+			mgcp_endp_release(endp);
+		}
+	}
 
 	/* Update endp->x_osmo_ign: */
 	endp->x_osmo_ign |= hpars->x_osmo_ign;
