@@ -40,6 +40,8 @@
 
 #include "mgcp_ratectr.h"
 
+extern void *tall_mgw_ctx;
+
 #define RTP_PORT_DEFAULT_RANGE_START 16002
 #define RTP_PORT_DEFAULT_RANGE_END RTP_PORT_DEFAULT_RANGE_START + 64
 
