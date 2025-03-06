@@ -276,10 +276,6 @@ int mgcp_verify_call_id(struct mgcp_endpoint *endp, const char *callid)
 	if (!endp)
 		return -1;
 
-	/* Accept any CallID for "X-Osmo-IGN: C" */
-	if (endp->x_osmo_ign & MGCP_X_OSMO_IGN_CALLID)
-		return 0;
-
 	if (!callid)
 		return -1;
 	if (!endp->callid)

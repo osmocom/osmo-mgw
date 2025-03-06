@@ -928,12 +928,14 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		}
 	}
 
-	/* Update endp->x_osmo_ign: */
-	endp->x_osmo_ign |= hpars->x_osmo_ign;
-
 	/* Check if this endpoint already serves a call, if so, check if the
-	 * callids match up so that we are sure that this is our call */
-	if (endp->callid && mgcp_verify_call_id(endp, hpars->callid)) {
+	 * callids match up so that we are sure that this is our call.
+	 * Do check only if endpoint was (or is by current CRCX) configured
+	 * to explicitly ignore it ("X-Osmo-IGN: C").
+	 */
+	if (endp->callid &&
+	    !((endp->x_osmo_ign | hpars->x_osmo_ign) & MGCP_X_OSMO_IGN_CALLID) &&
+	    mgcp_verify_call_id(endp, hpars->callid)) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
 			 "CRCX: already seized by other call (%s)\n",
 			 endp->callid);
@@ -948,6 +950,14 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 			return create_err_response(endp, endp, 400, "CRCX", pdata->trans);
 		}
 	}
+
+	/*******************************************************************
+	 * Allocate and update endpoint and conn.
+	 * From here on below we start updating endpoing and creating conn:
+	 *******************************************************************/
+
+	/* Update endp->x_osmo_ign: */
+	endp->x_osmo_ign |= hpars->x_osmo_ign;
 
 	if (!endp->callid) {
 		/* Claim endpoint resources. This will also set the callid,
@@ -1122,7 +1132,11 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		return create_err_response(rq->trunk, NULL, -rc, "MDCX", pdata->trans);
 	}
 
-	if (hpars->callid && mgcp_verify_call_id(endp, hpars->callid) < 0) {
+	/* If a CallID is provided during MDCX, validate (unless endp was explicitly configured to ignore it
+	 * through "X-Osmo-IGN: C") that it matches the one previously set. */
+	if (hpars->callid &&
+	    !(endp->x_osmo_ign & MGCP_X_OSMO_IGN_CALLID) &&
+	    mgcp_verify_call_id(endp, hpars->callid) < 0) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_CALLID));
 		return create_err_response(endp, endp, 516, "MDCX", pdata->trans);
 	}
@@ -1328,7 +1342,8 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
 			return create_err_response(rq->trunk, NULL, 539, "DLCX", pdata->trans);
 		}
-		if (mgcp_verify_call_id(endp, hpars->callid) != 0) {
+		if (!(endp->x_osmo_ign & MGCP_X_OSMO_IGN_CALLID) &&
+		    mgcp_verify_call_id(endp, hpars->callid) != 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CALLID));
 			return create_err_response(endp, endp, 516, "DLCX", pdata->trans);
 		}
