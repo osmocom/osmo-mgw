@@ -329,9 +329,9 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 	}
 
 	/* Initialize parsing data. */
-	memset(&pdata, 0, sizeof(pdata));
 	memset(&rq, 0, sizeof(rq));
-	pdata.cfg = cfg;
+	rq.cfg = cfg;
+	memset(&pdata, 0, sizeof(pdata));
 
 	/* Parse command name: */
 	memcpy(rq.name, (const char *)&msg->l2h[0], sizeof(rq.name)-1);
@@ -360,7 +360,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 	if (!rq.wildcarded)
 		rq.null_endp = mgcp_endp_is_null(pdata.epname);
 	if (!rq.null_endp)
-		rq.endp = mgcp_endp_by_name(&rc, pdata.epname, pdata.cfg);
+		rq.endp = mgcp_endp_by_name(&rc, pdata.epname, rq.cfg);
 	rq.mgcp_cause = rc;
 	if (!rq.endp) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_FAIL_NO_ENDPOINT));
@@ -371,7 +371,7 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 			LOGP(DLMGCP, LOGL_NOTICE,
 			     "%s: cannot find endpoint \"%s\", cause=%d -- trying to identify trunk...\n", rq.name,
 			     pdata.epname, -rq.mgcp_cause);
-			rq.trunk = mgcp_trunk_by_name(pdata.cfg, pdata.epname);
+			rq.trunk = mgcp_trunk_by_name(rq.cfg, pdata.epname);
 			if (!rq.trunk) {
 				LOGP(DLMGCP, LOGL_ERROR, "%s: failed to identify trunk for endpoint \"%s\" -- abort\n",
 				     rq.name, pdata.epname);
@@ -438,7 +438,7 @@ static struct msgb *handle_audit_endpoint(struct mgcp_request_data *rq)
 
 	/* Auditing "null" endpoint is allowed for keepalive purposes. There's no rq->endp nor rq->trunk in this case. */
 	if (rq->null_endp)
-		return create_ok_response(rq->pdata->cfg, NULL, 200, "AUEP", rq->pdata->trans);
+		return create_ok_response(rq->cfg, NULL, 200, "AUEP", rq->pdata->trans);
 
 	if (!rq->endp || !mgcp_endp_avail(rq->endp)) {
 		LOGPENDP(rq->endp, DLMGCP, LOGL_ERROR, "AUEP: selected endpoint not available!\n");
@@ -772,7 +772,7 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 	if (rq->null_endp) {
 		/* trunk not available so rate_ctr aren't available either. */
 		LOGP(DLMGCP, LOGL_ERROR, "CRCX: Not allowed in 'null' endpoint!\n");
-		return create_err_response(pdata->cfg, NULL, 502, "CRCX", pdata->trans);
+		return create_err_response(rq->cfg, NULL, 502, "CRCX", pdata->trans);
 	}
 
 	rate_ctrs = trunk->ratectr.mgcp_crcx_ctr_group;
@@ -1042,7 +1042,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	if (rq->null_endp) {
 		/* trunk not available so rate_ctr aren't available either. */
 		LOGP(DLMGCP, LOGL_ERROR, "MDCX: Not allowed in 'null' endpoint!\n");
-		return create_err_response(pdata->cfg, NULL, 502, "MDCX", pdata->trans);
+		return create_err_response(rq->cfg, NULL, 502, "MDCX", pdata->trans);
 	}
 
 	rate_ctrs = trunk->ratectr.mgcp_mdcx_ctr_group;
@@ -1238,7 +1238,7 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	if (rq->null_endp) {
 		/* trunk not available so rate_ctr aren't available either. */
 		LOGP(DLMGCP, LOGL_ERROR, "DLCX: Not allowed in 'null' endpoint!\n");
-		return create_err_response(pdata->cfg, NULL, 502, "DLCX", pdata->trans);
+		return create_err_response(rq->cfg, NULL, 502, "DLCX", pdata->trans);
 	}
 
 	rate_ctrs = trunk->ratectr.mgcp_dlcx_ctr_group;
@@ -1377,11 +1377,11 @@ static struct msgb *handle_rsip(struct mgcp_request_data *rq)
 	if (rq->null_endp) {
 		/* trunk not available so rate_ctr aren't available either. */
 		LOGP(DLMGCP, LOGL_ERROR, "RSIP: Not allowed in 'null' endpoint!\n");
-		return create_err_response(rq->pdata->cfg, NULL, 502, "RSIP", rq->pdata->trans);
+		return create_err_response(rq->cfg, NULL, 502, "RSIP", rq->pdata->trans);
 	}
 
-	if (rq->pdata->cfg->reset_cb)
-		rq->pdata->cfg->reset_cb(rq->endp->trunk);
+	if (rq->cfg->reset_cb)
+		rq->cfg->reset_cb(rq->endp->trunk);
 	return NULL;
 }
 
@@ -1408,7 +1408,7 @@ static struct msgb *handle_noti_req(struct mgcp_request_data *rq)
 	if (rq->null_endp) {
 		/* trunk not available so rate_ctr aren't available either. */
 		LOGP(DLMGCP, LOGL_ERROR, "RQNT: Not allowed in 'null' endpoint!\n");
-		return create_err_response(rq->pdata->cfg, NULL, 502, "RQNT", rq->pdata->trans);
+		return create_err_response(rq->cfg, NULL, 502, "RQNT", rq->pdata->trans);
 	}
 
 	for_each_line(line, rq->pdata->save) {
@@ -1423,8 +1423,8 @@ static struct msgb *handle_noti_req(struct mgcp_request_data *rq)
 	if (tone == CHAR_MAX)
 		return create_ok_response(rq->endp, rq->endp, 200, "RQNT", rq->pdata->trans);
 
-	if (rq->pdata->cfg->rqnt_cb)
-		res = rq->pdata->cfg->rqnt_cb(rq->endp, tone);
+	if (rq->cfg->rqnt_cb)
+		res = rq->cfg->rqnt_cb(rq->endp, tone);
 
 	return res == 0 ? create_ok_response(rq->endp, rq->endp, 200, "RQNT", rq->pdata->trans) :
 				create_err_response(rq->endp, rq->endp, res, "RQNT", rq->pdata->trans);
