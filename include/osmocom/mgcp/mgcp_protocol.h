@@ -71,7 +71,9 @@ static inline void mgcp_parse_hdr_pars_init(struct mgcp_parse_hdr_pars *hpars)
 }
 
 /* Internal structure while parsing a request */
+struct mgcp_request_data;
 struct mgcp_parse_data {
+	struct mgcp_request_data *rq; /* backpointer to request context */
 	char *save;
 	/* MGCP Header: */
 	char *epname;
