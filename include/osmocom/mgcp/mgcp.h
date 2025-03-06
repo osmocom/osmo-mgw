@@ -50,11 +50,6 @@ struct mgcp_endpoint;
 struct mgcp_config;
 struct mgcp_trunk;
 struct mgcp_rtp_end;
-
-#define MGCP_ENDP_CRCX 1
-#define MGCP_ENDP_DLCX 2
-#define MGCP_ENDP_MDCX 3
-
 /*
  * what to do with the msg?
  *	- continue as usual?
