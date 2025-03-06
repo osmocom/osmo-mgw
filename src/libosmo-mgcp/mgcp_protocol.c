@@ -702,20 +702,6 @@ uint32_t mgcp_rtp_packet_duration(const struct mgcp_endpoint *endp,
 	    codec->frame_duration_den;
 }
 
-static int mgcp_trunk_osmux_init_if_needed(struct mgcp_trunk *trunk)
-{
-	if (trunk->cfg->osmux.initialized)
-		return 0;
-
-	if (osmux_init(trunk) < 0) {
-		LOGPTRUNK(trunk, DOSMUX, LOGL_ERROR, "Cannot init OSMUX\n");
-		return -3;
-	}
-	LOGPTRUNK(trunk, DOSMUX, LOGL_NOTICE, "OSMUX socket has been set up\n");
-
-	return 0;
-}
-
 /* Apply parsed SDP information stored in struct mgcp_parse_sdp to conn_rtp: */
 static int handle_sdp(struct mgcp_conn_rtp *conn, struct mgcp_request_data *rq)
 {
@@ -905,10 +891,6 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		return create_err_response(endp, endp, 517, "CRCX", pdata->trans);
 	}
 
-	/* Make sure osmux is setup: */
-	if (hpars->remote_osmux_cid != MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET)
-		mgcp_trunk_osmux_init_if_needed(trunk);
-
 	/* Check if we are able to accept the creation of another connection */
 	if (mgcp_endp_is_full(endp)) {
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
@@ -990,6 +972,11 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 
 	/* If X-Osmux (remote CID) was received, alloc next avail CID as local CID */
 	if (hpars->remote_osmux_cid != MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET) {
+		/* Make sure osmux is setup: */
+		if (osmux_init(trunk) < 0) {
+			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
+			goto error2;
+		}
 		if (osmux_init_conn(conn_rtp) < 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_NO_OSMUX));
 			goto error2;
