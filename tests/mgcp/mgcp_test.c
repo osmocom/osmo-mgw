@@ -43,6 +43,8 @@
 #include <math.h>
 #include <ctype.h>
 
+void *tall_mgw_ctx;
+
 char *strline_r(char *str, char **saveptr);
 
 const char *strline_test_data =
@@ -2323,7 +2325,7 @@ void test_conn_id_matching(void)
 
 	INIT_LLIST_HEAD(&endp.conns);
 
-	conn = talloc_zero(NULL, struct mgcp_conn);
+	conn = talloc_zero(tall_mgw_ctx, struct mgcp_conn);
 	OSMO_ASSERT(conn);
 	osmo_strlcpy(conn->id, conn_id_generated, sizeof(conn->id));
 	llist_add(&conn->entry, &endp.conns);

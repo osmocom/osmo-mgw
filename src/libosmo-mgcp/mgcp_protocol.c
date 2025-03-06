@@ -1505,7 +1505,7 @@ struct mgcp_config *mgcp_config_alloc(void)
 	 * appropiate place! */
 	struct mgcp_config *cfg;
 
-	cfg = talloc_zero(NULL, struct mgcp_config);
+	cfg = talloc_zero(tall_mgw_ctx, struct mgcp_config);
 	if (!cfg) {
 		LOGP(DLMGCP, LOGL_FATAL, "Failed to allocate config.\n");
 		return NULL;
