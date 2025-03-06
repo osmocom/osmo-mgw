@@ -1009,7 +1009,6 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		goto error2;
 	}
 	/* Upgrade the conn type RTP_DEFAULT->RTP_IUUP if needed based on requested codec: */
-	/* TODO: "codec" probably needs to be moved from endp to conn */
 	if (conn_rtp->type == MGCP_RTP_DEFAULT &&
 	    strcmp(conn_rtp->end.cset.codec->subtype_name, "VND.3GPP.IUFP") == 0) {
 		rc = mgcp_conn_iuup_init(conn_rtp);
