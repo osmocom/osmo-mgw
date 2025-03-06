@@ -297,8 +297,8 @@ static void send_dummy(struct mgcp_endpoint *endp, struct mgcp_conn_rtp *conn)
 struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 {
 	struct rate_ctr_group *rate_ctrs = cfg->ratectr.mgcp_general_ctr_group;
-	struct mgcp_parse_data pdata;
-	struct mgcp_request_data rq;
+	struct mgcp_parse_data *pdata = NULL;
+	struct mgcp_request_data *rq = NULL;
 	int rc, code;
 	struct msgb *resp = NULL;
 	char *data;
@@ -329,106 +329,112 @@ struct msgb *mgcp_handle_message(struct mgcp_config *cfg, struct msgb *msg)
 	}
 
 	/* Initialize parsing data. */
-	memset(&rq, 0, sizeof(rq));
-	rq.cfg = cfg;
-	memset(&pdata, 0, sizeof(pdata));
-	pdata.rq = &rq;
+	rq = talloc_zero(tall_mgw_ctx, struct mgcp_request_data);
+	rq->cfg = cfg;
+	rq->pdata = pdata = talloc_zero(rq, struct mgcp_parse_data);
+	pdata->rq = rq;
 
 	/* Parse command name: */
-	memcpy(rq.name, (const char *)&msg->l2h[0], sizeof(rq.name)-1);
-	rc = get_string_value(mgcp_verb_names, rq.name);
+	memcpy(rq->name, (const char *)&msg->l2h[0], sizeof(rq->name)-1);
+	rc = get_string_value(mgcp_verb_names, rq->name);
 	if (rc < 0) {
-		LOGP(DLMGCP, LOGL_ERROR, "%s: failed to parse command name in MCGP message\n", rq.name);
+		LOGP(DLMGCP, LOGL_ERROR, "%s: failed to parse command name in MCGP message\n", rq->name);
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_FAIL_MSG_PARSE));
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_MSGS_UNHANDLED));
-		return create_err_response(cfg, NULL, 504, rq.name, "000000");
+		resp = create_err_response(cfg, NULL, 504, rq->name, "000000");
+		goto ret_free;
 	}
-	rq.verb = rc;
+	rq->verb = rc;
 
 	/* Parse message, extract endpoint name and transaction identifier and request name etc. */
 	msg->l3h = &msg->l2h[4];
-	data = mgcp_strline((char *)msg->l3h, &pdata.save);
-	rc = mgcp_parse_header(&pdata, data);
+	data = mgcp_strline((char *)msg->l3h, &pdata->save);
+	rc = mgcp_parse_header(pdata, data);
 	if (rc < 0) {
-		LOGP(DLMGCP, LOGL_ERROR, "%s: failed to parse MCGP message\n", rq.name);
+		LOGP(DLMGCP, LOGL_ERROR, "%s: failed to parse MCGP message\n", rq->name);
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_FAIL_MSG_PARSE));
-		return create_err_response(cfg, NULL, -rc, rq.name, "000000");
+		resp = create_err_response(cfg, NULL, -rc, rq->name, "000000");
+		goto ret_free;
 	}
 
 	/* Locate endpoint and trunk, if no endpoint can be located try at least to identify the trunk. */
-	rq.pdata = &pdata;
-	rq.wildcarded = mgcp_endp_is_wildcarded(pdata.epname);
-	if (!rq.wildcarded)
-		rq.null_endp = mgcp_endp_is_null(pdata.epname);
-	if (!rq.null_endp)
-		rq.endp = mgcp_endp_by_name(&rc, pdata.epname, rq.cfg);
-	rq.mgcp_cause = rc;
-	if (!rq.endp) {
+	rq->wildcarded = mgcp_endp_is_wildcarded(pdata->epname);
+	if (!rq->wildcarded)
+		rq->null_endp = mgcp_endp_is_null(pdata->epname);
+	if (!rq->null_endp)
+		rq->endp = mgcp_endp_by_name(&rc, pdata->epname, rq->cfg);
+	rq->mgcp_cause = rc;
+	if (!rq->endp) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_FAIL_NO_ENDPOINT));
-		if (rq.wildcarded) {
+		if (rq->wildcarded) {
 			/* If we are unable to find the endpoint we still may be able to identify the trunk. Some
 			 * request handlers will still be able to perform a useful action if the request refers to
 			 * the whole trunk (wildcarded request). */
 			LOGP(DLMGCP, LOGL_NOTICE,
-			     "%s: cannot find endpoint \"%s\", cause=%d -- trying to identify trunk...\n", rq.name,
-			     pdata.epname, -rq.mgcp_cause);
-			rq.trunk = mgcp_trunk_by_name(rq.cfg, pdata.epname);
-			if (!rq.trunk) {
+			     "%s: cannot find endpoint \"%s\", cause=%d -- trying to identify trunk...\n", rq->name,
+			     pdata->epname, -rq->mgcp_cause);
+			rq->trunk = mgcp_trunk_by_name(rq->cfg, pdata->epname);
+			if (!rq->trunk) {
 				LOGP(DLMGCP, LOGL_ERROR, "%s: failed to identify trunk for endpoint \"%s\" -- abort\n",
-				     rq.name, pdata.epname);
-				return create_err_response(cfg, NULL, -rq.mgcp_cause, rq.name, pdata.trans);
+				     rq->name, pdata->epname);
+				resp = create_err_response(cfg, NULL, -rq->mgcp_cause, rq->name, pdata->trans);
+				goto ret_free;
 			}
-		} else if (!rq.null_endp) {
+		} else if (!rq->null_endp) {
 			/* If the endpoint name suggests that the request refers to a specific endpoint, then the
 			 * request cannot be handled and we must stop early. */
 			LOGP(DLMGCP, LOGL_NOTICE,
-			     "%s: cannot find endpoint \"%s\", cause=%d -- abort\n", rq.name,
-			     pdata.epname, -rq.mgcp_cause);
-			return create_err_response(cfg, NULL, -rq.mgcp_cause, rq.name, pdata.trans);
-		} /* else: Handle special "null" endpoint below (with rq.endp=NULL, rq.trunk=NULL) */
+			     "%s: cannot find endpoint \"%s\", cause=%d -- abort\n", rq->name,
+			     pdata->epname, -rq->mgcp_cause);
+			resp = create_err_response(cfg, NULL, -rq->mgcp_cause, rq->name, pdata->trans);
+			goto ret_free;
+		} /* else: Handle special "null" endpoint below (with rq->endp=NULL, rq->trunk=NULL) */
 	} else {
-		osmo_strlcpy(debug_last_endpoint_name, rq.endp->name, sizeof(debug_last_endpoint_name));
-		rq.trunk = rq.endp->trunk;
-		rq.mgcp_cause = 0;
+		osmo_strlcpy(debug_last_endpoint_name, rq->endp->name, sizeof(debug_last_endpoint_name));
+		rq->trunk = rq->endp->trunk;
+		rq->mgcp_cause = 0;
 
 		/* Check if we have to retransmit a response from a previous transaction */
-		if (pdata.trans && rq.endp->last_trans && strcmp(rq.endp->last_trans, pdata.trans) == 0) {
+		if (pdata->trans && rq->endp->last_trans && strcmp(rq->endp->last_trans, pdata->trans) == 0) {
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_MSGS_RETRANSMITTED));
-			return create_retransmission_response(rq.endp);
+			resp = create_retransmission_response(rq->endp);
+			goto ret_free;
 		}
 	}
 
 	/* Execute request handler */
-	if (rq.endp)
+	if (rq->endp)
 		LOGP(DLMGCP, LOGL_INFO, "%s: executing request handler for endpoint resource \"%s\"\n",
-		     rq.name, rq.endp->name);
+		     rq->name, rq->endp->name);
 	else
 		LOGP(DLMGCP, LOGL_INFO, "%s: executing request handler for trunk resource of endpoint \"%s\"\n",
-		     rq.name, pdata.epname);
-	switch (rq.verb) {
+		     rq->name, pdata->epname);
+	switch (rq->verb) {
 	case MGCP_VERB_AUEP:
-		resp = handle_audit_endpoint(&rq);
+		resp = handle_audit_endpoint(rq);
 		break;
 	case MGCP_VERB_CRCX:
-		resp = handle_create_con(&rq);
+		resp = handle_create_con(rq);
 		break;
 	case MGCP_VERB_DLCX:
-		resp = handle_delete_con(&rq);
+		resp = handle_delete_con(rq);
 		break;
 	case MGCP_VERB_MDCX:
-		resp = handle_modify_con(&rq);
+		resp = handle_modify_con(rq);
 		break;
 	case MGCP_VERB_RQNT:
-		resp = handle_noti_req(&rq);
+		resp = handle_noti_req(rq);
 		break;
 	case MGCP_VERB_RSIP:
-		resp = handle_rsip(&rq);
+		resp = handle_rsip(rq);
 		break;
 	default:
 		OSMO_ASSERT(0);
 	}
 	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_GENERAL_RX_MSGS_HANDLED));
 
+ret_free:
+	talloc_free(rq);
 	return resp;
 }
 
