@@ -72,7 +72,6 @@ static inline void mgcp_parse_hdr_pars_init(struct mgcp_parse_hdr_pars *hpars)
 
 /* Internal structure while parsing a request */
 struct mgcp_parse_data {
-	struct mgcp_config *cfg;
 	char *save;
 	/* MGCP Header: */
 	char *epname;
@@ -87,6 +86,9 @@ struct mgcp_request_data {
 	enum mgcp_verb verb;
 	/* Verb string (e.g. "MDCX") */
 	char name[4+1];
+
+	/* Global MGW config */
+	struct mgcp_config *cfg;
 
 	/* parsing results from the MGCP header (trans id, endpoint name ...) */
 	struct mgcp_parse_data *pdata;
