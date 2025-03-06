@@ -42,12 +42,26 @@ static inline void mgcp_parse_sdp_init(struct mgcp_parse_sdp *sdp)
 	mgcp_codecset_reset(&sdp->cset);
 }
 
+/* Local connection options */
+struct mgcp_lco {
+	bool present;
+	char *codec; /* talloc-allocated to some parent */
+	int pkt_period_min; /* time in ms */
+	int pkt_period_max; /* time in ms */
+};
+static inline void mgcp_lco_init(struct mgcp_lco *lco)
+{
+	*lco = (struct mgcp_lco){};
+}
+char *get_lco_identifier(const char *options);
+int check_local_cx_options(void *ctx, const char *options);
 
 #define MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET (-2)
 #define MGCP_PARSE_HDR_PARS_OSMUX_CID_WILDCARD (-1)
 
 struct mgcp_parse_hdr_pars {
-	const char *local_options;
+	const char *lco_string;
+	struct mgcp_lco lco;
 	const char *callid;
 	const char *connid;
 	enum mgcp_connection_mode mode;
@@ -59,15 +73,14 @@ struct mgcp_parse_hdr_pars {
 
 static inline void mgcp_parse_hdr_pars_init(struct mgcp_parse_hdr_pars *hpars)
 {
-	*hpars = (struct mgcp_parse_hdr_pars){
-		.local_options = NULL,
-		.callid = NULL,
-		.connid = NULL,
-		.mode = MGCP_CONN_NONE,
-		.remote_osmux_cid = MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET,
-		.have_sdp = false,
-		.x_osmo_ign = 0,
-	};
+	hpars->lco_string = NULL;
+	mgcp_lco_init(&hpars->lco);
+	hpars->callid = NULL;
+	hpars->connid = NULL;
+	hpars->mode = MGCP_CONN_NONE;
+	hpars->remote_osmux_cid = MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET;
+	hpars->have_sdp = false;
+	hpars->x_osmo_ign = 0;
 }
 
 /* Internal structure while parsing a request */
@@ -111,18 +124,8 @@ struct mgcp_request_data {
 	int mgcp_cause;
 };
 
-/* Local connection options */
-struct mgcp_lco {
-	char *string;
-	char *codec;
-	int pkt_period_min; /* time in ms */
-	int pkt_period_max; /* time in ms */
-};
-
 char *mgcp_debug_get_last_endpoint_name(void);
 
-char *get_lco_identifier(const char *options);
-int check_local_cx_options(void *ctx, const char *options);
 
 struct mgcp_rtp_end;
 struct mgcp_endpoint;
