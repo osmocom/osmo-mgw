@@ -455,199 +455,6 @@ static struct msgb *handle_audit_endpoint(struct mgcp_request_data *rq)
 	return create_ok_response(rq->trunk, rq->endp, 200, "AUEP", rq->pdata->trans);
 }
 
-/*! Helper function for check_local_cx_options() to get a pointer of the next
- *  lco option identifier
- *  \param[in] lco string
- *  \returns pointer to the beginning of the LCO identifier, NULL on failure */
-char *get_lco_identifier(const char *options)
-{
-	char *ptr;
-	unsigned int count = 0;
-
-	/* Jump to the end of the lco identifier */
-	ptr = strstr(options, ":");
-	if (!ptr)
-		return NULL;
-
-	/* Walk backwards until the pointer points to the beginning of the
-	 * lco identifier. We know that we stand at the beginning when we
-	 * are either at the beginning of the memory or see a space or
-	 * comma. (this is tolerant, it will accept a:10, b:11 as well as
-	 * a:10,b:11) */
-	while (1) {
-		/* Endless loop protection */
-		if (count > 10000)
-			return NULL;
-		else if (ptr < options || *ptr == ' ' || *ptr == ',') {
-			ptr++;
-			break;
-		}
-		ptr--;
-		count++;
-	}
-
-	/* Check if we got any result */
-	if (*ptr == ':')
-		return NULL;
-
-	return ptr;
-}
-
-/*! Check the LCO option. This function checks for multiple appearence of LCO
- *  options, which is illegal
- *  \param[in] ctx talloc context
- *  \param[in] lco string
- *  \returns 0 on success, -1 on failure */
-int check_local_cx_options(void *ctx, const char *options)
-{
-	int i;
-	char *options_copy;
-	char *lco_identifier;
-	char *lco_identifier_end;
-	char *next_lco_identifier;
-
-	char **lco_seen;
-	unsigned int lco_seen_n = 0;
-
-	if (!options)
-		return -1;
-
-	lco_seen =
-	    (char **)talloc_zero_size(ctx, strlen(options) * sizeof(char *));
-	options_copy = talloc_strdup(ctx, options);
-	lco_identifier = options_copy;
-
-	do {
-		/* Move the lco_identifier pointer to the beginning of the
-		 * current lco option identifier */
-		lco_identifier = get_lco_identifier(lco_identifier);
-		if (!lco_identifier)
-			goto error;
-
-		/* Look ahead to the next LCO option early, since we
-		 * will parse destructively */
-		next_lco_identifier = strstr(lco_identifier + 1, ",");
-
-		/* Pinch off the end of the lco field identifier name
-		 * and see if we still got something, also check if
-		 * there is some value after the colon. */
-		lco_identifier_end = strstr(lco_identifier, ":");
-		if (!lco_identifier_end)
-			goto error;
-		if (*(lco_identifier_end + 1) == ' '
-		    || *(lco_identifier_end + 1) == ','
-		    || *(lco_identifier_end + 1) == '\0')
-			goto error;
-		*lco_identifier_end = '\0';
-		if (strlen(lco_identifier) == 0)
-			goto error;
-
-		/* Check if we have already seen the current field identifier
-		 * before. If yes, we must bail, an LCO must only appear once
-		 * in the LCO string */
-		for (i = 0; i < lco_seen_n; i++) {
-			if (strcasecmp(lco_seen[i], lco_identifier) == 0)
-				goto error;
-		}
-		lco_seen[lco_seen_n] = lco_identifier;
-		lco_seen_n++;
-
-		/* The first identifier must always be found at the beginnning
-		 * of the LCO string */
-		if (lco_seen[0] != options_copy)
-			goto error;
-
-		/* Go to the next lco option */
-		lco_identifier = next_lco_identifier;
-	} while (lco_identifier);
-
-	talloc_free(lco_seen);
-	talloc_free(options_copy);
-	return 0;
-error:
-	talloc_free(lco_seen);
-	talloc_free(options_copy);
-	return -1;
-}
-
-/* Set the LCO from a string (see RFC 3435).
- * The string is stored in the 'string' field. A NULL string is handled exactly
- * like an empty string, the 'string' field is never NULL after this function
- * has been called. */
-static int set_local_cx_options(void *ctx, struct mgcp_lco *lco,
-				 const char *options)
-{
-	char *lco_id;
-	char codec[17];
-	char nt[17];
-	int len;
-
-	if (!options)
-		return 0;
-	if (strlen(options) == 0)
-		return 0;
-
-	/* Make sure the encoding of the LCO is consistant before we proceed */
-	if (check_local_cx_options(ctx, options) != 0) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "local CX options: Internal inconsistency in Local Connection Options!\n");
-		return 524;
-	}
-
-	talloc_free(lco->string);
-	lco->string = talloc_strdup(ctx, options);
-
-	lco_id = lco->string;
-	while ((lco_id = get_lco_identifier(lco_id))) {
-		switch (tolower(lco_id[0])) {
-		case 'p':
-			if (sscanf(lco_id + 1, ":%d-%d",
-				   &lco->pkt_period_min, &lco->pkt_period_max) == 1)
-				lco->pkt_period_max = lco->pkt_period_min;
-			break;
-		case 'a':
-			/* FIXME: LCO also supports the negotiation of more than one codec.
-			 * (e.g. a:PCMU;G726-32) But this implementation only supports a single
-			 * codec only. Ignoring all but the first codec. */
-			if (sscanf(lco_id + 1, ":%16[^,;]", codec) == 1) {
-				talloc_free(lco->codec);
-				/* MGCP header is case insensive, and we'll need
-				   codec in uppercase when using it later: */
-				len = strlen(codec);
-				lco->codec = talloc_size(ctx, len + 1);
-				osmo_str_toupper_buf(lco->codec, len + 1, codec);
-			}
-			break;
-		case 'n':
-			if (lco_id[1] == 't' && sscanf(lco_id + 2, ":%16[^,]", nt) == 1)
-				break;
-			/* else: fall throught to print notice log */
-		default:
-			LOGP(DLMGCP, LOGL_NOTICE,
-			     "LCO: unhandled option: '%c'/%d in \"%s\"\n",
-			     *lco_id, *lco_id, lco->string);
-			break;
-		}
-
-		lco_id = strchr(lco_id, ',');
-		if (!lco_id)
-			break;
-	}
-
-	LOGP(DLMGCP, LOGL_DEBUG,
-	     "local CX options: lco->pkt_period_max: %i, lco->codec: %s\n",
-	     lco->pkt_period_max, lco->codec);
-
-	/* Check if the packetization fits the 20ms raster */
-	if (lco->pkt_period_min % 20 && lco->pkt_period_max % 20) {
-		LOGP(DLMGCP, LOGL_ERROR,
-		     "local CX options: packetization interval is not a multiple of 20ms!\n");
-		return 535;
-	}
-
-	return 0;
-}
-
 uint32_t mgcp_rtp_packet_duration(const struct mgcp_endpoint *endp,
 				  const struct mgcp_rtp_end *rtp)
 {
@@ -907,6 +714,10 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 	/* Update endp->x_osmo_ign: */
 	endp->x_osmo_ign |= hpars->x_osmo_ign;
 
+	/* Set local connection options, if present */
+	if (hpars->lco.present)
+		mgcp_endp_update_lco(endp, &hpars->lco);
+
 	if (!endp->callid) {
 		/* Claim endpoint resources. This will also set the callid,
 		 * creating additional connections will only be possible if
@@ -951,19 +762,6 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 			conn_rtp->osmux.remote_cid_present = true;
 			conn_rtp->osmux.remote_cid = hpars->remote_osmux_cid;
 		} /* else: -1 (wildcard) */
-	}
-
-	/* Set local connection options, if present */
-	if (hpars->local_options) {
-		rc = set_local_cx_options(trunk->endpoints,
-					  &endp->local_options, hpars->local_options);
-		if (rc != 0) {
-			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
-				 "CRCX: invalid local connection options!\n");
-			error_code = rc;
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_INVALID_CONN_OPTIONS));
-			goto error2;
-		}
 	}
 
 	/* Handle codec information and decide for a suitable codec */
@@ -1120,6 +918,10 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		return create_err_response(endp, endp, 400, "MDCX", pdata->trans);
 	}
 
+	/* Set local connection options, if present */
+	if (hpars->lco.present)
+		mgcp_endp_update_lco(endp, &hpars->lco);
+
 	mgcp_conn_watchdog_kick(conn);
 
 	if (hpars->mode == MGCP_CONN_NONE) {
@@ -1128,19 +930,6 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	} else if (mgcp_conn_set_mode(conn, hpars->mode) < 0) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_MODE));
 		return create_err_response(endp, endp, 517, "MDCX", pdata->trans);
-	}
-
-	/* Set local connection options, if present */
-	if (hpars->local_options) {
-		rc = set_local_cx_options(trunk->endpoints,
-					  &endp->local_options, hpars->local_options);
-		if (rc != 0) {
-			LOGPCONN(conn, DLMGCP, LOGL_ERROR,
-				 "MDCX: invalid local connection options!\n");
-			error_code = rc;
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_CONN_OPTIONS));
-			goto error3;
-		}
 	}
 
 	conn_rtp = mgcp_conn_get_conn_rtp(conn);

@@ -764,6 +764,22 @@ struct mgcp_conn_rtp *mgcp_endp_get_conn_rtp(struct mgcp_endpoint *endp,
 	return NULL;
 }
 
+/* Helps assigning a new lco structure, since "codec" is talloc allocated. */
+void mgcp_endp_update_lco(struct mgcp_endpoint *endp, const struct mgcp_lco *lco)
+{
+	/* First free old talloc allocated codec string: */
+	talloc_free(endp->local_options.codec);
+	endp->local_options.codec = NULL;
+
+	if (lco) {
+		endp->local_options = *lco;
+		if (lco->codec)
+			endp->local_options.codec = talloc_strdup(endp, lco->codec);
+	} else {
+		endp->local_options = (struct mgcp_lco){0};
+	}
+}
+
 /*! release endpoint, all open connections are closed.
  *  \param[in] endp endpoint to release */
 void mgcp_endp_release(struct mgcp_endpoint *endp)
@@ -785,10 +801,7 @@ void mgcp_endp_release(struct mgcp_endpoint *endp)
 	/* Reset endpoint parameters and states */
 	talloc_free(endp->callid);
 	endp->callid = NULL;
-	talloc_free(endp->local_options.string);
-	endp->local_options.string = NULL;
-	talloc_free(endp->local_options.codec);
-	endp->local_options.codec = NULL;
+	mgcp_endp_update_lco(endp, NULL);
 
 	if (endp->trunk->trunk_type == MGCP_TRUNK_E1) {
 		uint8_t ts = e1_ts_nr_from_epname(endp->name);

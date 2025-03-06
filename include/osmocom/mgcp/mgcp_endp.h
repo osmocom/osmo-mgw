@@ -150,6 +150,7 @@ void mgcp_endp_strip_name(char *epname_stripped, const char *epname,
 			 const struct mgcp_trunk *trunk);
 struct mgcp_endpoint *mgcp_endp_find_specific(const char *epname,
 			const struct mgcp_trunk *trunk);
+void mgcp_endp_update_lco(struct mgcp_endpoint *endp, const struct mgcp_lco *lco);
 void mgcp_endp_release(struct mgcp_endpoint *endp);
 
 struct mgcp_conn *mgcp_endp_get_conn(struct mgcp_endpoint *endp, const char *id);
