@@ -82,6 +82,31 @@ struct mgcp_parse_data {
 	struct mgcp_parse_sdp sdp;
 };
 
+/* Request data passed to the request handler */
+struct mgcp_request_data {
+	enum mgcp_verb verb;
+	/* Verb string (e.g. "MDCX") */
+	char name[4+1];
+
+	/* parsing results from the MGCP header (trans id, endpoint name ...) */
+	struct mgcp_parse_data *pdata;
+
+	/* pointer to endpoint resource (may be NULL for wildcarded requests) */
+	struct mgcp_endpoint *endp;
+
+	/* pointer to trunk resource */
+	struct mgcp_trunk *trunk;
+
+	/* set to true when the request has been classified as wildcarded */
+	bool wildcarded;
+
+	/* Set to true when the request is targeted at the "null" endpoint */
+	bool null_endp;
+
+	/* contains cause code in case of problems during endp/trunk resolution */
+	int mgcp_cause;
+};
+
 /* Local connection options */
 struct mgcp_lco {
 	char *string;
