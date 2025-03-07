@@ -1073,6 +1073,49 @@ error3:
 	return create_err_response(endp, endp, error_code, "MDCX", pdata->trans);
 }
 
+/* Read-only checks for parsed DLCX request, applied to existing found conn.
+ * Returns negative MGCP error code on failure, 0 on scucess.
+ * NOTE: rq->endp may be NULL here! */
+static int validate_parsed_dlcx(struct mgcp_request_data *rq)
+{
+	struct mgcp_parse_data *pdata = rq->pdata;
+	struct mgcp_parse_hdr_pars *hpars = &pdata->hpars;
+	struct rate_ctr_group *rate_ctrs = rq->trunk->ratectr.mgcp_dlcx_ctr_group;
+	int rc;
+
+	if (hpars->callid) {
+		/* If we have no endpoint, but a call id in the request, then this request cannot be handled */
+		if (!rq->endp) {
+			LOGPTRUNK(rq->trunk, DLMGCP, LOGL_NOTICE,
+				  "cannot handle requests with call-id (C) without endpoint -- abort!");
+			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
+			return -539;
+		}
+		if (!(rq->endp->x_osmo_ign & MGCP_X_OSMO_IGN_CALLID) &&
+		    mgcp_verify_call_id(rq->endp, hpars->callid) != 0) {
+			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CALLID));
+			return -516;
+		}
+	}
+
+	if (hpars->connid) {
+		/* If we have no endpoint, but a connection id in the request, then this request cannot be handled */
+		if (!rq->endp) {
+			LOGPTRUNK(rq->trunk, DLMGCP, LOGL_NOTICE,
+				  "cannot handle requests with conn-id (I) without endpoint -- abort!");
+			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
+			return -539;
+		}
+		if ((rc = mgcp_verify_ci(rq->endp, hpars->connid)) != 0) {
+			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CONNID));
+			return -rc;
+		}
+	}
+
+	/* Everything fine, continue */
+	return 0;
+}
+
 /* DLCX command handler, processes the received command */
 static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 {
@@ -1130,38 +1173,17 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	if (rc < 0)
 		return create_err_response(rq->trunk, NULL, -rc, "DLCX", pdata->trans);
 
-	if (hpars->callid) {
-		/* If we have no endpoint, but a call id in the request, then this request cannot be handled */
-		if (!endp) {
-			LOGPTRUNK(trunk, DLMGCP, LOGL_NOTICE,
-				"cannot handle requests with call-id (C) without endpoint -- abort!");
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
-			return create_err_response(rq->trunk, NULL, 539, "DLCX", pdata->trans);
-		}
-		if (!(endp->x_osmo_ign & MGCP_X_OSMO_IGN_CALLID) &&
-		    mgcp_verify_call_id(endp, hpars->callid) != 0) {
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CALLID));
-			return create_err_response(endp, endp, 516, "DLCX", pdata->trans);
-		}
-	}
-
-	if (hpars->connid) {
-		/* If we have no endpoint, but a connection id in the request, then this request cannot be handled */
-		if (!endp) {
-			LOGPTRUNK(trunk, DLMGCP, LOGL_NOTICE,
-				  "cannot handle requests with conn-id (I) without endpoint -- abort!");
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
-			return create_err_response(rq->trunk, NULL, 539, "DLCX", pdata->trans);
-		}
-		if ((rc = mgcp_verify_ci(endp, hpars->connid)) != 0) {
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_INVALID_CONNID));
-			return create_err_response(endp, endp, rc, "DLCX", pdata->trans);
-		}
-	}
+	rc = validate_parsed_dlcx(rq);
+	if (rc < 0)
+		return create_err_response(rq->trunk, NULL, -rc, "DLCX", pdata->trans);
 
 	/* The logic does not permit to go past this point without having the
 	 * the endp pointer populated. */
 	OSMO_ASSERT(endp);
+
+	/*****************************************************************************
+	 * From here on below we start, delete conn and potentially release endpoint.
+	 *****************************************************************************/
 
 	/* When no connection id is supplied, we will interpret this as a
 	 * wildcarded DLCX that refers to the selected endpoint. This means
