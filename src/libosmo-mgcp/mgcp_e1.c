@@ -40,6 +40,7 @@
 #include <osmocom/mgcp/debug.h>
 #include <osmocom/mgcp/mgcp_e1.h>
 #include <osmocom/codec/codec.h>
+#include <osmocom/gsm/rtp_extensions.h>
 
 #define DEBUG_BITS_MAX 80
 #define DEBUG_BYTES_MAX 40
@@ -294,6 +295,7 @@ static void sync_frame_out_cb(void *user_data, const ubit_t *bits, unsigned int 
 	/* Convert decoded trau frame to RTP frame */
 	struct osmo_trau2rtp_state t2rs = {
 		.type = fr.type,
+		.rtp_extensions = endp->e1.rtp_extensions,
 	};
 	rc = osmo_trau2rtp(msgb_data(msg) + rtp_hdr_len, msg->data_len - rtp_hdr_len, &fr, &t2rs);
 	if (rc <= 0) {
@@ -681,6 +683,13 @@ void mgcp_e1_endp_update(struct mgcp_endpoint *endp)
 	endp->e1.trau_rtp_st->type =
 	    determine_trau_fr_type(codec->subtype_name, endp->e1.scd.rate, endp->e1.last_amr_ft, endp);
 	endp->e1.last_codec = codec;
+
+	/* possible RTP extensions, codec-associated */
+	endp->e1.rtp_extensions = 0;
+	if (codec->param_present && codec->param.fr_efr_twts001)
+		endp->e1.rtp_extensions |= OSMO_RTP_EXT_TWTS001;
+	if (codec->param_present && codec->param.hr_twts002)
+		endp->e1.rtp_extensions |= OSMO_RTP_EXT_TWTS002;
 
 	/* Update sync pattern */
 	sync_pat_id = determine_trau_sync_pat(codec->subtype_name, endp->e1.scd.rate, endp->e1.last_amr_ft, endp);

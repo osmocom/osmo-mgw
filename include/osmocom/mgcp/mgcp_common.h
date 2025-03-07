@@ -63,6 +63,10 @@ enum mgcp_x_osmo_ign {
 struct mgcp_codec_param {
 	bool amr_octet_aligned_present;
 	bool amr_octet_aligned;
+	bool fr_efr_twts001_present;
+	bool fr_efr_twts001;
+	bool hr_twts002_present;
+	bool hr_twts002;
 };
 
 /* Ensure that the msg->l2h is NUL terminated. */

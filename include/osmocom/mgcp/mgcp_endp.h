@@ -124,6 +124,7 @@ struct mgcp_endpoint {
 		struct osmo_fsm_inst *trau_sync_fi;
 		struct osmo_trau2rtp_state *trau_rtp_st;
 		uint8_t last_amr_ft;
+		uint8_t rtp_extensions;
 		struct mgcp_rtp_codec *last_codec;
 	} e1;
 

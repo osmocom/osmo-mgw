@@ -70,3 +70,85 @@ a=ptime:40
 === `X-Osmux`
 
 See <<mgcp-extension-osmux>>
+
+=== Non-standard SDP codec parameters
+
+CRCX command message normally includes an SDP block that specifies the RTP
+address of the connecting peer and the list of codecs accepted by that entity.
+Codec specifications may include optional parameters given via `a=fmtp` lines;
+one well-known parameter is `octet-align`, defined for AMR and AMR-WB codecs.
+
+In addition to standard (RFC-defined) codec parameters (of which the
+just-mentioned `octet-align` parameter is the only one implemented so far),
+OsmoMGW also understands some non-standard (Osmocom-private) codec parameters
+as listed below.
+These Osmocom-private codec parameters are meaningful only in the context
+of OsmoBSC driving an E1 Abis MGW, which may be either OsmoMGW or a specialized
+third-party replacement.
+
+The MGCP extension described in this section is meaningful only for E1
+endpoints - it has absolutely no effect on `rtpbridge` endpoints!
+
+==== `tw-ts-001` parameter for FR and EFR codecs
+
+GSM Full Rate codec is known in SDP as `GSM`; GSM Enhanced Full Rate codec
+is known in SDP as `GSM-EFR`.
+When either codec is to be transported in RTP, there is a choice between
+two different payload formats: RFC 3551 or TW-TS-001.
+RFC 3551 is the standard in non-GSM Internet applications, and it is the
+format specified in later 3GPP releases for IP-based transport of
+compressed speech - however, it exhibits functional regressions compared
+to the original TRAU-UL frame format of GSM 08.60.
+TW-TS-001 is an enhanced alternative payload format for the same codecs
+that restores the original functionality and semantics of TRAU-UL frames.
+
+In the context of CRCX or MDCX command messages from OsmoBSC to an E1 Abis MGW,
+`tw-ts-001` codec parameter (attached to either `GSM` or `GSM-EFR` codec)
+instructs the MGW whether or not it should emit the extended payload format
+of TW-TS-001 for GSM uplink traffic converted to RTP.
+In the absence of this parameter, IETF-standard and 3GPP-standard RFC 3551
+format is emitted; if TW-TS-001 output is desired, please specify
+`tw-ts-001=1` on the appropriate `a=fmtp` line.
+
+.Example: `CRCX` message requesting EFR codec with TW-TS-001 extensions
+----
+CRCX 2 ds/e1-0/s-2/su16-2@mgw MGCP 1.0
+M: recvonly
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 1234 RTP/AVP 110
+a=rtpmap:110 GSM-EFR/8000/1
+a=fmtp:110 tw-ts-001=1
+----
+
+==== `tw-ts-002` parameter for HR codec
+
+GSM Half Rate codec is known in SDP as `GSM-HR-08`.
+The same dichotomy that exists between RFC 3551 and TW-TS-001 RTP payload
+formats for FR and EFR codecs also exists for HR codec, except that
+the two opposing alternatives are now RFC 5993 and TW-TS-002.
+
+In the context of CRCX or MDCX command messages from OsmoBSC to an E1 Abis MGW,
+`tw-ts-002` codec parameter (attached to `GSM-HR-08` codec)
+instructs the MGW whether or not it should emit the extended payload format
+of TW-TS-002 for GSM uplink traffic converted to RTP.
+In the absence of this parameter, IETF-standard and 3GPP-standard RFC 5993
+format is emitted; if TW-TS-002 output is desired, please specify
+`tw-ts-002=1` on the appropriate `a=fmtp` line.
+
+.Example: `CRCX` message requesting HR codec with TW-TS-002 extensions
+----
+CRCX 2 ds/e1-0/s-2/su8-2@mgw MGCP 1.0
+M: recvonly
+C: 2
+L: p:20
+
+v=0
+c=IN IP4 123.12.12.123
+m=audio 1234 RTP/AVP 111
+a=rtpmap:111 GSM-HR-08/8000/1
+a=fmtp:111 tw-ts-002=1
+----
