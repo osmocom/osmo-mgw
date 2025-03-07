@@ -689,15 +689,8 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 
 	/* parse CallID C: and LocalParameters L: */
 	rc = mgcp_parse_hdr_pars(pdata);
-	switch (rc) {
-	case 0:
-		break; /* all good, continue below */
-	case -539:
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_UNHANDLED_PARAM));
+	if (rc < 0)
 		return create_err_response(rq->trunk, NULL, -rc, "CRCX", pdata->trans);
-	default:
-		return create_err_response(rq->trunk, NULL, -rc, "CRCX", pdata->trans);
-	}
 
 	/* Parse SDP if found: */
 	if (hpars->have_sdp) {
@@ -901,15 +894,8 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	}
 
 	rc = mgcp_parse_hdr_pars(pdata);
-	switch (rc) {
-	case 0:
-		break; /* all good, continue below */
-	case -539:
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_UNHANDLED_PARAM));
+	if (rc < 0)
 		return create_err_response(rq->trunk, NULL, -rc, "MDCX", pdata->trans);
-	default:
-		return create_err_response(rq->trunk, NULL, -rc, "MDCX", pdata->trans);
-	}
 
 	/* If a CallID is provided during MDCX, validate (unless endp was explicitly configured to ignore it
 	 * through "X-Osmo-IGN: C") that it matches the one previously set. */
@@ -1094,15 +1080,8 @@ static struct msgb *handle_delete_con(struct mgcp_request_data *rq)
 	}
 
 	rc = mgcp_parse_hdr_pars(pdata);
-	switch (rc) {
-	case 0:
-		break; /* all good, continue below */
-	case -539:
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_DLCX_FAIL_UNHANDLED_PARAM));
+	if (rc < 0)
 		return create_err_response(rq->trunk, NULL, -rc, "DLCX", pdata->trans);
-	default:
-		return create_err_response(rq->trunk, NULL, -rc, "DLCX", pdata->trans);
-	}
 
 	if (hpars->callid) {
 		/* If we have no endpoint, but a call id in the request, then this request cannot be handled */
