@@ -422,6 +422,22 @@ int mgcp_parse_hdr_pars(struct mgcp_parse_data *pdata)
 			goto mgcp_header_done;
 		default:
 			LOG_MGCP_PDATA(pdata, LOGL_NOTICE, "unhandled option: '%c'/%d\n", *line, *line);
+			switch (pdata->rq->verb) {
+			case MGCP_VERB_CRCX:
+				rate_ctr_inc(rate_ctr_group_get_ctr(pdata->rq->trunk->ratectr.mgcp_crcx_ctr_group,
+								    MGCP_CRCX_FAIL_UNHANDLED_PARAM));
+				break;
+			case MGCP_VERB_MDCX:
+				rate_ctr_inc(rate_ctr_group_get_ctr(pdata->rq->trunk->ratectr.mgcp_mdcx_ctr_group,
+								    MGCP_MDCX_FAIL_UNHANDLED_PARAM));
+				break;
+			case MGCP_VERB_DLCX:
+				rate_ctr_inc(rate_ctr_group_get_ctr(pdata->rq->trunk->ratectr.mgcp_dlcx_ctr_group,
+								    MGCP_DLCX_FAIL_UNHANDLED_PARAM));
+				break;
+			default:
+				break;
+			}
 			return -539;
 		}
 	}
