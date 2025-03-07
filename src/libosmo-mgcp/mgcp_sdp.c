@@ -199,7 +199,7 @@ static int fmtp_from_sdp(void *ctx, struct sdp_fmtp_param *fmtp_param, char *sdp
 	unsigned int pt;
 	unsigned int count = 0;
 	char delimiter;
-	unsigned int amr_octet_aligned;
+	unsigned int param_val;
 
 	memset(fmtp_param, 0, sizeof(*fmtp_param));
 
@@ -239,12 +239,30 @@ static int fmtp_from_sdp(void *ctx, struct sdp_fmtp_param *fmtp_param, char *sdp
 		if (delimiter == ';' || delimiter == ',')
 			str_ptr[strlen(str_ptr) - 1] = '\0';
 
-		/* AMR octet aligned parameter (see also RFC 3267, section 8.3) */
-		if (sscanf(param_str, "octet-align=%d", &amr_octet_aligned) == 1) {
+		/* We support the following codec parameters:
+		 *
+		 * AMR: octet-align parameter of RFC 4867 section 8.3;
+		 * FR & EFR: tw-ts-001 parameter, Osmocom private;
+		 * HR: tw-ts-002 parameter, Osmocom private.
+		 *
+		 * tw-ts-001 and tw-ts-002 Osmocom-private parameters are used
+		 * only in the context of OsmoBSC driving an E1 MGW endpoint.
+		 */
+		if (sscanf(param_str, "octet-align=%d", &param_val) == 1) {
 			fmtp_param->param.amr_octet_aligned_present = true;
 			fmtp_param->param.amr_octet_aligned = false;
-			if (amr_octet_aligned == 1)
+			if (param_val == 1)
 				fmtp_param->param.amr_octet_aligned = true;
+		} else if (sscanf(param_str, "tw-ts-001=%d", &param_val) == 1) {
+			fmtp_param->param.fr_efr_twts001_present = true;
+			fmtp_param->param.fr_efr_twts001 = false;
+			if (param_val == 1)
+				fmtp_param->param.fr_efr_twts001 = true;
+		} else if (sscanf(param_str, "tw-ts-002=%d", &param_val) == 1) {
+			fmtp_param->param.hr_twts002_present = true;
+			fmtp_param->param.hr_twts002 = false;
+			if (param_val == 1)
+				fmtp_param->param.hr_twts002 = true;
 		}
 
 		param_str = strtok(NULL, " ");
@@ -559,7 +577,23 @@ int mgcp_write_response_sdp(const struct mgcp_endpoint *endp,
 				goto buffer_too_small;
 		}
 
-		if (codec->param_present) {
+		/* Include a=fmtp line in MGCP response only for AMR
+		 * octet-align parameter, not for tw-ts-* parameters.
+		 * Rationale:
+		 *
+		 * - tw-ts-* parameters exist meaningfully only for E1
+		 *   endpoints driven by OsmoBSC, not in any other
+		 *   context.  libosmo-mgcp-client used by OsmoBSC
+		 *   completely ignores all fmtp lines, has no code
+		 *   to parse them at all.
+		 *
+		 * - The SDP we return is supposed to indicate what
+		 *   _we_ accept, conceptually independent from what
+		 *   the remote accepts.  And we always accept TW-TS-001
+		 *   and TW-TS-002 RTP formats going to E1 DL, whether
+		 *   or not we send them in UL per client request.
+		 */
+		if (codec->param_present && codec->param.amr_octet_aligned_present) {
 			fmtp_param.payload_type = payload_type;
 			fmtp_param.param = codec->param;
 			fmtp_params[0] = fmtp_param;

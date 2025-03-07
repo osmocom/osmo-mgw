@@ -1426,15 +1426,32 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 	/* Add optional codec parameters (fmtp) */
 	if (mgcp_msg->param_present) {
 		for (i = 0; i < mgcp_msg->ptmap_len; i++) {
-			/* The following is only applicable for AMR */
-			if (mgcp_msg->ptmap[i].codec != CODEC_AMR_8000_1
-			    && mgcp_msg->ptmap[i].codec != CODEC_AMRWB_16000_1)
-				continue;
 			pt = mgcp_msg->ptmap[i].pt;
-			if (mgcp_msg->param.amr_octet_aligned_present && mgcp_msg->param.amr_octet_aligned)
-				MSGB_PRINTF_OR_RET("a=fmtp:%u octet-align=1\r\n", pt);
-			else if (mgcp_msg->param.amr_octet_aligned_present && !mgcp_msg->param.amr_octet_aligned)
-				MSGB_PRINTF_OR_RET("a=fmtp:%u octet-align=0\r\n", pt);
+			switch (mgcp_msg->ptmap[i].codec) {
+			case CODEC_AMR_8000_1:
+			case CODEC_AMRWB_16000_1:
+				if (!mgcp_msg->param.amr_octet_aligned_present)
+					break;
+				MSGB_PRINTF_OR_RET("a=fmtp:%u octet-align=%d\r\n",
+						   pt, (int)mgcp_msg->param.amr_octet_aligned);
+				break;
+			case CODEC_GSM_8000_1:
+			case CODEC_GSMEFR_8000_1:
+				if (!mgcp_msg->param.fr_efr_twts001_present)
+					break;
+				MSGB_PRINTF_OR_RET("a=fmtp:%u tw-ts-001=%d\r\n",
+						   pt, (int)mgcp_msg->param.fr_efr_twts001);
+				break;
+			case CODEC_GSMHR_8000_1:
+				if (!mgcp_msg->param.hr_twts002_present)
+					break;
+				MSGB_PRINTF_OR_RET("a=fmtp:%u tw-ts-002=%d\r\n",
+						   pt, (int)mgcp_msg->param.hr_twts002);
+				break;
+			default:
+				/* no parameters for the remaining codecs */
+				break;
+			}
 		}
 	}
 
