@@ -849,6 +849,48 @@ error2:
 	return create_err_response(endp, endp, error_code, "CRCX", pdata->trans);
 }
 
+/* Read-only checks for parsed MDCX request.
+ * Returns negative MGCP error code on failure, 0 on scucess. */
+static int validate_parsed_mdcx(struct mgcp_request_data *rq)
+{
+	struct mgcp_parse_data *pdata = rq->pdata;
+	struct mgcp_trunk *trunk = rq->trunk;
+	struct mgcp_endpoint *endp = rq->endp;
+	struct mgcp_parse_hdr_pars *hpars = &pdata->hpars;
+	struct rate_ctr_group *rate_ctrs = trunk->ratectr.mgcp_mdcx_ctr_group;
+	int error_code;
+
+	if (mgcp_endp_num_conns(endp) <= 0) {
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+			 "MDCX: endpoint is not holding a connection.\n");
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_NO_CONN));
+		return -400;
+	}
+
+	/* If a CallID is provided during MDCX, validate (unless endp was explicitly configured to ignore
+	 * it through "X-Osmo-IGN: C") that it matches the one previously set. */
+	if (hpars->callid &&
+	    !(endp->x_osmo_ign & MGCP_X_OSMO_IGN_CALLID) &&
+	    mgcp_verify_call_id(endp, hpars->callid) < 0) {
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_CALLID));
+		return -516;
+	}
+
+	if (!hpars->connid) {
+		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
+			"MDCX: insufficient parameters, missing ci (connectionIdentifier)\n");
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_NO_CONNID));
+		return -515;
+	}
+	if ((error_code = mgcp_verify_ci(endp, hpars->connid)) != 0) {
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_CONNID));
+		return -error_code;
+	}
+
+	/* Everything fine, continue */
+	return 0;
+}
+
 /* MDCX command handler, processes the received command */
 static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 {
@@ -870,7 +912,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		LOGP(DLMGCP, LOGL_ERROR, "MDCX: Not allowed in 'null' endpoint!\n");
 		return create_err_response(rq->cfg, NULL, 502, "MDCX", pdata->trans);
 	}
-
+	/* rq->trunk is available (non-null) from here on. */
 	rate_ctrs = trunk->ratectr.mgcp_mdcx_ctr_group;
 
 	/* Prohibit wildcarded requests */
@@ -886,35 +928,10 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		LOGPENDP(endp, DLMGCP, LOGL_ERROR, "MDCX: selected endpoint not available!\n");
 		return create_err_response(rq->trunk, NULL, 501, "MDCX", pdata->trans);
 	}
-	if (mgcp_endp_num_conns(endp) <= 0) {
-		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
-			 "MDCX: endpoint is not holding a connection.\n");
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_NO_CONN));
-		return create_err_response(endp, endp, 400, "MDCX", pdata->trans);
-	}
 
 	rc = mgcp_parse_hdr_pars(pdata);
 	if (rc < 0)
 		return create_err_response(rq->trunk, NULL, -rc, "MDCX", pdata->trans);
-
-	/* If a CallID is provided during MDCX, validate (unless endp was explicitly configured to ignore it
-	 * through "X-Osmo-IGN: C") that it matches the one previously set. */
-	if (hpars->callid &&
-	    !(endp->x_osmo_ign & MGCP_X_OSMO_IGN_CALLID) &&
-	    mgcp_verify_call_id(endp, hpars->callid) < 0) {
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_CALLID));
-		return create_err_response(endp, endp, 516, "MDCX", pdata->trans);
-	}
-
-	if (!hpars->connid) {
-		LOGPENDP(endp, DLMGCP, LOGL_ERROR,
-			 "MDCX: insufficient parameters, missing ci (connectionIdentifier)\n");
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_NO_CONNID));
-		return create_err_response(endp, endp, 515, "MDCX", pdata->trans);
-	} else if ((error_code = mgcp_verify_ci(endp, hpars->connid)) != 0) {
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_INVALID_CONNID));
-		return create_err_response(endp, endp, error_code, "MDCX", pdata->trans);
-	}
 
 	/* Parse SDP if found: */
 	if (hpars->have_sdp) {
@@ -925,6 +942,10 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 			return create_err_response(endp, endp, 510, "MDCX", pdata->trans);
 		}
 	}
+
+	rc = validate_parsed_mdcx(rq);
+	if (rc < 0)
+		return create_err_response(rq->trunk, NULL, -rc, "MDCX", pdata->trans);
 
 	conn = mgcp_endp_get_conn(endp, hpars->connid);
 	if (!conn) {
