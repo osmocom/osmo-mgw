@@ -27,6 +27,7 @@ osmo_mgw_SOURCES = \
 osmo_mgw_LDADD = \
 	$(top_builddir)/src/libosmo-mgcp/libosmo-mgcp.a \
 	$(LIBOSMOCORE_LIBS) \
+	$(LIBOSMOCODEC_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
 	$(LIBOSMOGSM_LIBS) \
 	$(LIBOSMOCTRL_LIBS) \

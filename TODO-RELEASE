@@ -9,3 +9,4 @@
 #library	what			description / commit summary line
 libosmocore		bump_dep; workaround	Bump libosmocore version dependency after I68328adb952ca8833ba047cb3b49ccc6f8a1f1b5
 						has been merged to libosmocore.git; then remove my_msgb_copy_c wrapper function.
+libosmocodec		bump_dep		We depend on the additions of I2c510ac62a0786c137115c45eee7a48b9736265f

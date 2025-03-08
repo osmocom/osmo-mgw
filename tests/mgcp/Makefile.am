@@ -36,6 +36,7 @@ mgcp_test_SOURCES = \
 mgcp_test_LDADD = \
 	$(top_builddir)/src/libosmo-mgcp/libosmo-mgcp.a \
 	$(LIBOSMOCORE_LIBS) \
+	$(LIBOSMOCODEC_LIBS) \
 	$(LIBOSMOVTY_LIBS) \
 	$(LIBOSMOGSM_LIBS) \
 	$(LIBOSMOABIS_LIBS) \
