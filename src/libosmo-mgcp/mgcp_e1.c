@@ -82,6 +82,11 @@ static void e1_i460_mux_empty_cb(struct osmo_i460_subchan *schan, void *user_dat
 		dummy_fill_pl = osmo_gsm660_homing_frame;
 		dummy_fill_pl_len = GSM_EFR_BYTES;
 		break;
+	case OSMO_TRAU16_FT_HR:
+	case OSMO_TRAU8_SPEECH:
+		dummy_fill_pl = osmo_gsm620_silence_frame;
+		dummy_fill_pl_len = GSM_HR_BYTES;
+		break;
 	default:
 		LOGPENDP(endp, DE1, LOGL_ERROR, "E1-I.460-IDLE-TX: unsupported frame type\n");
 		goto skip;
