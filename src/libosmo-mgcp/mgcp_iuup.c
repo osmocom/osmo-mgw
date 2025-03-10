@@ -753,3 +753,44 @@ int mgcp_conn_iuup_send_dummy(struct mgcp_conn_rtp *conn_rtp)
 
 	return 0;
 }
+
+/* To be called every time an CRCX/MDCX is received.
+ * returns: 0 if conn can continue, MGCP negative code if an error ocurred during setup */
+int mgcp_conn_iuup_event_rx_crcx_mdcx(struct mgcp_conn_rtp *conn_rtp)
+{
+	struct mgcp_conn *peer_conn;
+	struct mgcp_conn_rtp *peer_conn_rtp;
+	OSMO_ASSERT(mgcp_conn_rtp_is_iuup(conn_rtp));
+
+	/* keep waiting to receive remote address through CRCX/MDCX */
+	if (!mgcp_rtp_end_remote_addr_available(&conn_rtp->end))
+		return 0;
+
+	/* Conn already IuUP-configured/initialized, nothing to be done. */
+	if (conn_rtp->iuup.configured)
+		return 0;
+
+	/* Reached this point, conn_rtp is an IuUP conn which can be configured
+	 * and was not yet configured. If its sister conn in the endpoint was
+	 * already configured as IuUP "passive", then we know this one can be
+	 * configured as IuUP "active" right now. In that case, do so.
+	 * This usually happens on an HNBGW co-located MGW, where during
+	 * RAB-ASS-REQ the RAN-side conn (sister conn here) was already
+	 * configured and then upon rx of RAB-ASS-RESP it sets up (CRCX) the
+	 * CN-side IuUP conn (rt_conn here).
+	 */
+	peer_conn = mgcp_find_dst_conn(conn_rtp->conn);
+	/* No peer conn yet, nothing to be done. */
+	if (!peer_conn)
+		return 0;
+	peer_conn_rtp = mgcp_conn_get_conn_rtp(peer_conn);
+
+	if (mgcp_conn_rtp_is_iuup(peer_conn_rtp) &&
+	    peer_conn_rtp->iuup.configured &&
+	    !conn_rtp->iuup.active_init) {
+		LOG_CONN_RTP(conn_rtp, LOGL_INFO, "Sister IuUP conn in endp configured as passive, init this one as active\n");
+		OSMO_ASSERT(peer_conn_rtp->iuup.init_ind);
+		_conn_iuup_configure_as_active(conn_rtp, peer_conn_rtp->iuup.init_ind);
+	}
+	return 0;
+}

@@ -24,6 +24,7 @@
 #include <osmocom/mgcp/mgcp.h>
 #include <osmocom/mgcp/mgcp_protocol.h>
 #include <osmocom/mgcp/mgcp_conn.h>
+#include <osmocom/mgcp/mgcp_iuup.h>
 #include <osmocom/mgcp/mgcp_endp.h>
 #include <osmocom/mgcp/mgcp_trunk.h>
 
@@ -677,7 +678,7 @@ static int mgcp_endp_update_virtual(struct mgcp_endpoint *endp, struct mgcp_conn
 		}
 		break;
 	case MGCP_RTP_IUUP:
-		break;
+		return mgcp_conn_iuup_event_rx_crcx_mdcx(conn_rtp);
 	default:
 		return -523;
 	}
