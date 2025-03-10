@@ -768,6 +768,15 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 	conn_rtp = mgcp_conn_get_conn_rtp(conn);
 	OSMO_ASSERT(conn_rtp);
 
+	/* Handle codec information and decide for a suitable codec */
+	rc = handle_codec_info(conn_rtp, rq);
+	mgcp_codecset_summary(&conn_rtp->end.cset, mgcp_conn_dump(conn));
+	if (rc) {
+		error_code = rc;
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_CODEC_NEGOTIATION));
+		goto error2;
+	}
+
 	/* If X-Osmux (remote CID) was received, alloc next avail CID as local CID */
 	if (hpars->remote_osmux_cid != MGCP_PARSE_HDR_PARS_OSMUX_CID_UNSET) {
 		/* Make sure osmux is setup: */
@@ -785,14 +794,6 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		} /* else: -1 (wildcard) */
 	}
 
-	/* Handle codec information and decide for a suitable codec */
-	rc = handle_codec_info(conn_rtp, rq);
-	mgcp_codecset_summary(&conn_rtp->end.cset, mgcp_conn_dump(conn));
-	if (rc) {
-		error_code = rc;
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_CODEC_NEGOTIATION));
-		goto error2;
-	}
 	/* Upgrade the conn type RTP_DEFAULT->RTP_IUUP if needed based on requested codec: */
 	if (conn_rtp->type == MGCP_RTP_DEFAULT &&
 	    strcmp(conn_rtp->end.cset.codec->subtype_name, "VND.3GPP.IUFP") == 0) {
@@ -1017,6 +1018,7 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		error_code = rc;
 		goto error3;
 	}
+
 	/* Upgrade the conn type RTP_DEFAULT->RTP_IUUP if needed based on requested codec: */
 	if (conn_rtp->type == MGCP_RTP_DEFAULT &&
 	    strcmp(conn_rtp->end.cset.codec->subtype_name, "VND.3GPP.IUFP") == 0)
