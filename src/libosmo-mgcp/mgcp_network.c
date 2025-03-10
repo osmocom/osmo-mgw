@@ -408,31 +408,6 @@ static int align_rtp_timestamp_offset(const struct mgcp_endpoint *endp,
 	return ts_error;
 }
 
-/*! dummy callback to disable transcoding (see also cfg->rtp_processing_cb).
- *  \param[in] associated endpoint.
- *  \param[in] destination RTP end.
- *  \param[in,out] msg message bufffer containing data. Function might change length.
- *  \returns ignores input parameters, return always 0. */
-int mgcp_rtp_processing_default(struct mgcp_endpoint *endp,
-				struct mgcp_rtp_end *dst_end,
-				struct msgb *msg)
-{
-	return 0;
-}
-
-/*! dummy callback to disable transcoding (see also cfg->setup_rtp_processing_cb).
- *  \param[in] associated endpoint.
- *  \param[in] destination RTP connnection.
- *  \param[in] source RTP connection.
- *  \returns ignores input parameters, return always 0. */
-int mgcp_setup_rtp_processing_default(struct mgcp_endpoint *endp,
-				      struct mgcp_conn_rtp *conn_dst,
-				      struct mgcp_conn_rtp *conn_src)
-{
-	LOGPENDP(endp, DRTP, LOGL_DEBUG, "transcoding disabled\n");
-	return 0;
-}
-
 void mgcp_rtp_annex_count(const struct mgcp_endpoint *endp,
 			  struct mgcp_rtp_state *state, const uint16_t seq,
 			  const int32_t transit, const uint32_t ssrc,
@@ -1187,13 +1162,7 @@ int mgcp_send(struct mgcp_endpoint *endp, int is_rtp, struct osmo_sockaddr *addr
 		 * header is present, we will generate one. */
 		gen_rtp_header(msg, rtp_end, rtp_state);
 
-		/* Run transcoder */
-		rc = endp->trunk->cfg->rtp_processing_cb(endp, rtp_end, msg);
-		if (rc < 0) {
-			LOGPENDP(endp, DRTP, LOGL_ERROR, "Error %d during transcoding\n", rc);
-			msgb_free(msg);
-			return rc;
-		}
+		/* TODO: Run transcoder */
 
 		if (addr)
 			mgcp_patch_and_count(endp, rtp_state, rtp_end, addr, msg);
