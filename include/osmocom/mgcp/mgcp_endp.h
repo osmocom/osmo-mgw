@@ -132,7 +132,7 @@ struct mgcp_endpoint {
 
 struct mgcp_endpoint *mgcp_endp_alloc(struct mgcp_trunk *trunk, unsigned int index);
 int mgcp_endp_claim(struct mgcp_endpoint *endp, const char *callid);
-void mgcp_endp_update(struct mgcp_endpoint *endp);
+int mgcp_endp_update(struct mgcp_endpoint *endp, struct mgcp_conn *conn, enum mgcp_verb verb);
 bool mgcp_endp_is_wildcarded(const char *epname);
 bool mgcp_endp_is_null(const char *epname);
 struct mgcp_endpoint *mgcp_endp_by_name_trunk(int *cause, const char *epname,

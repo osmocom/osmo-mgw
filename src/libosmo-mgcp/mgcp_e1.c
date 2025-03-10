@@ -546,7 +546,7 @@ int mgcp_e1_endp_equip(struct mgcp_endpoint *endp, uint8_t ts, uint8_t ss, uint8
 
 /*! Update E1 related parameters (codec and sync pattern).
  *  \param[in] endp endpoint to update. */
-void mgcp_e1_endp_update(struct mgcp_endpoint *endp)
+int mgcp_e1_endp_update(struct mgcp_endpoint *endp)
 {
 	struct mgcp_conn *conn;
 	struct mgcp_conn_rtp *conn_rtp;
@@ -577,6 +577,7 @@ void mgcp_e1_endp_update(struct mgcp_endpoint *endp)
 	/* Update sync pattern */
 	sync_pat_id = determine_trau_sync_pat(codec->subtype_name, endp->e1.scd.rate, endp->e1.last_amr_ft, endp);
 	osmo_trau_sync_set_pat(endp->e1.trau_sync_fi, sync_pat_id);
+	return 0;
 }
 
 /*! Remove E1 resources from endpoint

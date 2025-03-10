@@ -763,26 +763,11 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		rc = mgcp_conn_iuup_init(conn_rtp);
 	}
 
-	/* Find a local address for conn based on policy and initial SDP remote
-	   information, then find a free port for it */
-	if (mgcp_get_local_addr(conn_rtp->end.local_addr, conn_rtp) < 0) {
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
+	rc = mgcp_endp_update(endp, conn, rq->verb);
+	if (rc < 0) {
+		error_code = -rc;
 		goto error2;
 	}
-	if (mgcp_trunk_allocate_conn_rtp_ports(trunk, conn_rtp) != 0) {
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
-		goto error2;
-	}
-
-	/* Notify Osmux conn that CRCX was received */
-	if (mgcp_conn_rtp_is_osmux(conn_rtp)) {
-		if (conn_osmux_event_rx_crcx_mdcx(conn_rtp) < 0) {
-			LOGPCONN(conn, DLMGCP, LOGL_ERROR, "CRCX: Osmux handling failed!\n");
-			goto error2;
-		}
-	}
-
-	mgcp_endp_update(endp);
 
 	LOGPCONN(conn, DLMGCP, LOGL_NOTICE,
 		 "CRCX: connection successfully created: %s\n", mgcp_conn_dump(conn));
@@ -885,7 +870,6 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	struct mgcp_endpoint *endp = rq->endp;
 	struct mgcp_parse_hdr_pars *hpars = &pdata->hpars;
 	struct rate_ctr_group *rate_ctrs;
-	char new_local_addr[INET6_ADDRSTRLEN];
 	int error_code = 500;
 	struct mgcp_conn *conn = NULL;
 	struct mgcp_conn_rtp *conn_rtp = NULL;
@@ -981,30 +965,13 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	if (mgcp_conn_rtp_is_osmux(conn_rtp)) {
 		conn_rtp->osmux.remote_cid_present = true;
 		conn_rtp->osmux.remote_cid = hpars->remote_osmux_cid;
-		if (conn_osmux_event_rx_crcx_mdcx(conn_rtp) < 0) {
-			LOGPCONN(conn, DLMGCP, LOGL_ERROR, "MDCX: Osmux handling failed!\n");
-			goto error3;
-		}
 	}
 
-	/* MDCX may have provided a new remote address, which means we may need
-	   to update our announced IP addr and re-bind our local end. This can
-	   happen for instance if MGW initially provided an IPv4 during CRCX
-	   ACK, and now MDCX tells us the remote has an IPv6 address. */
-	if (mgcp_get_local_addr(new_local_addr, conn_rtp) < 0) {
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_BIND_PORT));
+	rc = mgcp_endp_update(endp, conn, rq->verb);
+	if (rc < 0) {
+		error_code = -rc;
 		goto error3;
 	}
-	if (strcmp(new_local_addr, conn_rtp->end.local_addr)) {
-		osmo_strlcpy(conn_rtp->end.local_addr, new_local_addr, sizeof(conn_rtp->end.local_addr));
-		mgcp_rtp_end_free_port(&conn_rtp->end);
-		if (mgcp_trunk_allocate_conn_rtp_ports(trunk, conn_rtp) != 0) {
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_BIND_PORT));
-			goto error3;
-		}
-	}
-
-	mgcp_endp_update(endp);
 
 	LOGPCONN(conn, DLMGCP, LOGL_NOTICE,
 		 "MDCX: connection successfully modified: %s\n", mgcp_conn_dump(conn));

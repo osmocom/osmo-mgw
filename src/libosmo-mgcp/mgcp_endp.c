@@ -640,17 +640,78 @@ int mgcp_endp_claim(struct mgcp_endpoint *endp, const char *callid)
 
 /*! update endpoint, updates internal endpoint specific data, should be
  *  after when MDCX or CRCX has been executed successuflly.
- *  \param[in] endp endpoint to update. */
-void mgcp_endp_update(struct mgcp_endpoint *endp)
+ *  \param[in] endp endpoint to update.
+ *  \returns zero on success, mgcp negative error on failure. */
+static int mgcp_endp_update_virtual(struct mgcp_endpoint *endp, struct mgcp_conn *conn, enum mgcp_verb verb)
+{
+	OSMO_ASSERT(conn);
+	OSMO_ASSERT(conn->type == MGCP_CONN_TYPE_RTP);
+	struct mgcp_trunk *trunk = endp->trunk;
+	struct mgcp_conn_rtp *conn_rtp = mgcp_conn_get_conn_rtp(conn);
+	char new_local_addr[INET6_ADDRSTRLEN];
+
+	/* CRCX: Find a local address for conn based on policy and initial SDP remote
+	 * information, then find a free port for it.
+	 * MDCX: msg may have provided a new remote address, which means we may need
+	 * to update our announced IP addr and re-bind our local end. This can
+	 * happen for instance if MGW initially provided an IPv4 during CRCX
+	 * ACK, and now MDCX tells us the remote has an IPv6 address.
+	 */
+	if (mgcp_get_local_addr(new_local_addr, conn_rtp) < 0)
+		goto fail_bind_port_ret;
+
+	if (strcmp(new_local_addr, conn_rtp->end.local_addr)) {
+		osmo_strlcpy(conn_rtp->end.local_addr, new_local_addr, sizeof(conn_rtp->end.local_addr));
+		mgcp_rtp_end_free_port(&conn_rtp->end);
+		if (mgcp_trunk_allocate_conn_rtp_ports(trunk, conn_rtp) != 0)
+			goto fail_bind_port_ret;
+	}
+
+	switch (conn_rtp->type) {
+	case MGCP_RTP_DEFAULT:
+		break;
+	case MGCP_RTP_OSMUX:
+		if (conn_osmux_event_rx_crcx_mdcx(conn_rtp) < 0) {
+			LOGPCONN(conn, DLMGCP, LOGL_ERROR, "CRCX: Osmux handling failed!\n");
+			return -500;
+		}
+		break;
+	case MGCP_RTP_IUUP:
+		break;
+	default:
+		return -523;
+	}
+
+	return 0;
+
+fail_bind_port_ret:
+	switch (verb) {
+	case MGCP_VERB_CRCX:
+		rate_ctr_inc(rate_ctr_group_get_ctr(trunk->ratectr.mgcp_crcx_ctr_group,
+			     MGCP_CRCX_FAIL_BIND_PORT));
+		break;
+	case MGCP_VERB_MDCX:
+		rate_ctr_inc(rate_ctr_group_get_ctr(trunk->ratectr.mgcp_mdcx_ctr_group,
+			     MGCP_MDCX_FAIL_BIND_PORT));
+		break;
+	default:
+		break;
+	}
+	return -500;
+}
+
+/*! update endpoint, updates internal endpoint specific data, should be
+ *  after when MDCX or CRCX has been executed successuflly.
+ *  \param[in] endp endpoint to update.
+ *  \returns zero on success, mgcp negative error on failure. */
+int mgcp_endp_update(struct mgcp_endpoint *endp, struct mgcp_conn *conn, enum mgcp_verb verb)
 {
 	/* Allocate resources */
 	switch (endp->trunk->trunk_type) {
 	case MGCP_TRUNK_VIRTUAL:
-		/* No updating initaliziation required for virtual endpoints. */
-		break;
+		return mgcp_endp_update_virtual(endp, conn, verb);
 	case MGCP_TRUNK_E1:
-		mgcp_e1_endp_update(endp);
-		break;
+		return mgcp_e1_endp_update(endp);
 	default:
 		OSMO_ASSERT(false);
 	}
