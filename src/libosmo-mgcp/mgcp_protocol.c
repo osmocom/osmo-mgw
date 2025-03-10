@@ -96,43 +96,6 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *data);
 static struct msgb *handle_rsip(struct mgcp_request_data *data);
 static struct msgb *handle_noti_req(struct mgcp_request_data *data);
 
-/* Initalize transcoder */
-static int setup_rtp_processing(struct mgcp_endpoint *endp,
-				struct mgcp_conn_rtp *conn)
-{
-	struct mgcp_config *cfg = endp->trunk->cfg;
-	struct mgcp_conn_rtp *conn_src = NULL;
-	struct mgcp_conn_rtp *conn_dst = conn;
-	struct mgcp_conn *_conn;
-
-	switch (conn->type) {
-	case MGCP_RTP_DEFAULT:
-	case MGCP_RTP_OSMUX:
-	case MGCP_RTP_IUUP:
-		break;
-	default:
-		LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
-			 "RTP-setup: Endpoint is not configured as RTP default, stopping here!\n");
-		return 0;
-	}
-
-	if (conn->conn->mode == MGCP_CONN_LOOPBACK) {
-		LOGPENDP(endp, DLMGCP, LOGL_NOTICE,
-			 "RTP-setup: Endpoint is in loopback mode, stopping here!\n");
-		return 0;
-	}
-
-	/* Find the "sister" connection */
-	llist_for_each_entry(_conn, &endp->conns, entry) {
-		if (_conn->id != conn->conn->id) {
-			conn_src = mgcp_conn_get_conn_rtp(_conn);
-			break;
-		}
-	}
-
-	return cfg->setup_rtp_processing_cb(endp, conn_dst, conn_src);
-}
-
 /* Helper function to allocate some memory for responses and retransmissions */
 static struct msgb *mgcp_msgb_alloc(void *ctx)
 {
@@ -811,13 +774,6 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		goto error2;
 	}
 
-	if (setup_rtp_processing(endp, conn_rtp) != 0) {
-		LOGPCONN(conn, DLMGCP, LOGL_ERROR,
-			 "CRCX: could not start RTP processing!\n");
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_START_RTP));
-		goto error2;
-	}
-
 	/* Notify Osmux conn that CRCX was received */
 	if (mgcp_conn_rtp_is_osmux(conn_rtp)) {
 		if (conn_osmux_event_rx_crcx_mdcx(conn_rtp) < 0) {
@@ -1048,11 +1004,6 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
 			goto error3;
 		}
-	}
-
-	if (setup_rtp_processing(endp, conn_rtp) != 0) {
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_START_RTP));
-		goto error3;
 	}
 
 	/* modify */
@@ -1393,9 +1344,6 @@ struct mgcp_config *mgcp_config_alloc(void)
 
 	cfg->source_port = 2427;
 	osmo_strlcpy(cfg->source_addr, "0.0.0.0", sizeof(cfg->source_addr));
-
-	cfg->rtp_processing_cb = &mgcp_rtp_processing_default;
-	cfg->setup_rtp_processing_cb = &mgcp_setup_rtp_processing_default;
 
 	INIT_LLIST_HEAD(&cfg->trunks);
 

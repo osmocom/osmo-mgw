@@ -130,10 +130,6 @@ struct mgcp_config {
 	char source_addr[INET6_ADDRSTRLEN];
 	char call_agent_addr[INET6_ADDRSTRLEN];
 
-	/* RTP processing */
-	mgcp_processing rtp_processing_cb;
-	mgcp_processing_setup setup_rtp_processing_cb;
-
 	struct osmo_wqueue gw_fd;
 
 	struct mgcp_port_range net_ports;

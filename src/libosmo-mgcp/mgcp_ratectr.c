@@ -93,7 +93,6 @@ static const struct rate_ctr_desc mgcp_mdcx_ctr_desc[] = {
 	[MGCP_MDCX_FAIL_INVALID_CONN_OPTIONS] = { "mdcx:conn_opt", "connection options invalid." },
 	[MGCP_MDCX_FAIL_NO_REMOTE_CONN_DESC] =
 	    { "mdcx:no_remote_conn_desc", "no opposite end specified for connection." },
-	[MGCP_MDCX_FAIL_START_RTP] = { "mdcx:start_rtp_failure", "failure to start RTP processing." },
 	[MGCP_MDCX_FAIL_AVAIL] = { "mdcx:unavailable", "endpoint unavailable." },
 };
 

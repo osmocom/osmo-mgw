@@ -98,18 +98,6 @@ void mgcp_patch_and_count(const struct mgcp_endpoint *endp,
 			  struct osmo_sockaddr *addr, struct msgb *msg);
 int mgcp_get_local_addr(char *addr, struct mgcp_conn_rtp *conn);
 
-/* payload processing default functions */
-int mgcp_rtp_processing_default(struct mgcp_endpoint *endp, struct mgcp_rtp_end *dst_end, struct msgb *msg);
-
-int mgcp_setup_rtp_processing_default(struct mgcp_endpoint *endp,
-				      struct mgcp_conn_rtp *conn_dst,
-				      struct mgcp_conn_rtp *conn_src);
-
-void mgcp_get_net_downlink_format_default(struct mgcp_endpoint *endp,
-					  const struct mgcp_rtp_codec **codec,
-					  const char **fmtp_extra,
-					  struct mgcp_conn_rtp *conn);
-
 /* internal RTP Annex A counting */
 void mgcp_rtp_annex_count(const struct mgcp_endpoint *endp, struct mgcp_rtp_state *state,
 			const uint16_t seq, const int32_t transit,
