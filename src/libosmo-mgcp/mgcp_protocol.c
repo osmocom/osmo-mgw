@@ -992,14 +992,14 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	   happen for instance if MGW initially provided an IPv4 during CRCX
 	   ACK, and now MDCX tells us the remote has an IPv6 address. */
 	if (mgcp_get_local_addr(new_local_addr, conn_rtp) < 0) {
-		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
+		rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_BIND_PORT));
 		goto error3;
 	}
 	if (strcmp(new_local_addr, conn_rtp->end.local_addr)) {
 		osmo_strlcpy(conn_rtp->end.local_addr, new_local_addr, sizeof(conn_rtp->end.local_addr));
 		mgcp_rtp_end_free_port(&conn_rtp->end);
 		if (mgcp_trunk_allocate_conn_rtp_ports(trunk, conn_rtp) != 0) {
-			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_FAIL_BIND_PORT));
+			rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_FAIL_BIND_PORT));
 			goto error3;
 		}
 	}
