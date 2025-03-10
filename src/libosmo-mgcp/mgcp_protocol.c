@@ -782,19 +782,17 @@ static struct msgb *handle_create_con(struct mgcp_request_data *rq)
 		}
 	}
 
-	LOGPCONN(conn, DLMGCP, LOGL_DEBUG,
-		 "CRCX: Creating connection: port: %u\n", conn_rtp->end.local_port);
+	mgcp_endp_update(endp);
+
+	LOGPCONN(conn, DLMGCP, LOGL_NOTICE,
+		 "CRCX: connection successfully created: %s\n", mgcp_conn_dump(conn));
+	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_SUCCESS));
 
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
 	OSMO_ASSERT(trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
 	if (conn->mode & MGCP_CONN_RECV_ONLY &&
 	    trunk->keepalive_interval != MGCP_KEEPALIVE_NEVER)
 		send_dummy(endp, conn_rtp);
-
-	LOGPCONN(conn, DLMGCP, LOGL_NOTICE,
-		 "CRCX: connection successfully created\n");
-	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_CRCX_SUCCESS));
-	mgcp_endp_update(endp);
 
 	/* NOTE: Only in the virtual trunk we allow dynamic endpoint names */
 	bool add_epname = rq->wildcarded && trunk->trunk_type == MGCP_TRUNK_VIRTUAL;
@@ -1006,9 +1004,11 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 		}
 	}
 
-	/* modify */
-	LOGPCONN(conn, DLMGCP, LOGL_DEBUG,
-		 "MDCX: modified conn:%s\n", mgcp_conn_dump(conn));
+	mgcp_endp_update(endp);
+
+	LOGPCONN(conn, DLMGCP, LOGL_NOTICE,
+		 "MDCX: connection successfully modified: %s\n", mgcp_conn_dump(conn));
+	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_SUCCESS));
 
 	/* Send dummy packet, see also comments in mgcp_keepalive_timer_cb() */
 	OSMO_ASSERT(trunk->keepalive_interval >= MGCP_KEEPALIVE_ONCE);
@@ -1016,11 +1016,6 @@ static struct msgb *handle_modify_con(struct mgcp_request_data *rq)
 	    trunk->keepalive_interval != MGCP_KEEPALIVE_NEVER)
 		send_dummy(endp, conn_rtp);
 
-	rate_ctr_inc(rate_ctr_group_get_ctr(rate_ctrs, MGCP_MDCX_SUCCESS));
-
-	LOGPCONN(conn, DLMGCP, LOGL_NOTICE,
-		 "MDCX: connection successfully modified\n");
-	mgcp_endp_update(endp);
 	return create_response_with_sdp(endp, conn_rtp, "MDCX", pdata->trans, false, false);
 error3:
 	return create_err_response(endp, endp, error_code, "MDCX", pdata->trans);
