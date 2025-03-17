@@ -647,6 +647,33 @@ static int mgcp_endp_update_virtual(struct mgcp_endpoint *endp, struct mgcp_conn
 {
 	OSMO_ASSERT(conn);
 	OSMO_ASSERT(conn->type == MGCP_CONN_TYPE_RTP);
+	struct mgcp_conn_rtp *conn_rtp = mgcp_conn_get_conn_rtp(conn);
+
+	switch (conn_rtp->type) {
+	case MGCP_RTP_DEFAULT:
+		break;
+	case MGCP_RTP_OSMUX:
+		if (conn_osmux_event_rx_crcx_mdcx(conn_rtp) < 0) {
+			LOGPCONN(conn, DLMGCP, LOGL_ERROR, "CRCX: Osmux handling failed!\n");
+			return -500;
+		}
+		break;
+	case MGCP_RTP_IUUP:
+		return mgcp_conn_iuup_event_rx_crcx_mdcx(conn_rtp);
+	default:
+		return -523;
+	}
+
+	return 0;
+}
+
+/*! update endpoint, updates internal endpoint specific data, should be
+ *  after when MDCX or CRCX has been executed successuflly.
+ *  \param[in] endp endpoint to update.
+ *  \returns zero on success, mgcp negative error on failure. */
+int mgcp_endp_update(struct mgcp_endpoint *endp, struct mgcp_conn *conn, enum mgcp_verb verb)
+{
+	OSMO_ASSERT(conn);
 	struct mgcp_trunk *trunk = endp->trunk;
 	struct mgcp_conn_rtp *conn_rtp = mgcp_conn_get_conn_rtp(conn);
 	char new_local_addr[INET6_ADDRSTRLEN];
@@ -668,21 +695,15 @@ static int mgcp_endp_update_virtual(struct mgcp_endpoint *endp, struct mgcp_conn
 			goto fail_bind_port_ret;
 	}
 
-	switch (conn_rtp->type) {
-	case MGCP_RTP_DEFAULT:
-		break;
-	case MGCP_RTP_OSMUX:
-		if (conn_osmux_event_rx_crcx_mdcx(conn_rtp) < 0) {
-			LOGPCONN(conn, DLMGCP, LOGL_ERROR, "CRCX: Osmux handling failed!\n");
-			return -500;
-		}
-		break;
-	case MGCP_RTP_IUUP:
-		return mgcp_conn_iuup_event_rx_crcx_mdcx(conn_rtp);
+	/* Allocate resources */
+	switch (endp->trunk->trunk_type) {
+	case MGCP_TRUNK_VIRTUAL:
+		return mgcp_endp_update_virtual(endp, conn, verb);
+	case MGCP_TRUNK_E1:
+		return mgcp_e1_endp_update(endp);
 	default:
-		return -523;
+		OSMO_ASSERT(false);
 	}
-
 	return 0;
 
 fail_bind_port_ret:
@@ -699,23 +720,6 @@ fail_bind_port_ret:
 		break;
 	}
 	return -500;
-}
-
-/*! update endpoint, updates internal endpoint specific data, should be
- *  after when MDCX or CRCX has been executed successuflly.
- *  \param[in] endp endpoint to update.
- *  \returns zero on success, mgcp negative error on failure. */
-int mgcp_endp_update(struct mgcp_endpoint *endp, struct mgcp_conn *conn, enum mgcp_verb verb)
-{
-	/* Allocate resources */
-	switch (endp->trunk->trunk_type) {
-	case MGCP_TRUNK_VIRTUAL:
-		return mgcp_endp_update_virtual(endp, conn, verb);
-	case MGCP_TRUNK_E1:
-		return mgcp_e1_endp_update(endp);
-	default:
-		OSMO_ASSERT(false);
-	}
 }
 
 void mgcp_endp_add_conn(struct mgcp_endpoint *endp, struct mgcp_conn *conn)
