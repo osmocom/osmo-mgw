@@ -211,6 +211,7 @@ osmux_handle_find_or_create(const struct mgcp_trunk *trunk, const struct osmo_so
 int conn_osmux_send_rtp(struct mgcp_conn_rtp *conn, struct msgb *msg)
 {
 	int ret;
+	size_t msg_len;
 
 	if (!conn->end.output_enabled) {
 		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_DROPPED_CTR);
@@ -234,15 +235,17 @@ int conn_osmux_send_rtp(struct mgcp_conn_rtp *conn, struct msgb *msg)
 		return -1;
 	}
 
+	msg_len = msgb_length(msg);
 	while ((ret = osmux_xfrm_input(conn->osmux.in, msg, conn->osmux.remote_cid)) > 0) {
 		/* batch full, build and deliver it */
 		osmux_xfrm_input_deliver(conn->osmux.in);
 	}
+	/* NOTE: At this point msg is now owned by osmux subsystem and may have been potentially freed. */
 	if (ret < 0) {
 		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_DROPPED_CTR);
 	} else {
 		rtpconn_osmux_rate_ctr_inc(conn, OSMUX_RTP_PACKETS_TX_CTR);
-		rtpconn_osmux_rate_ctr_add(conn, OSMUX_AMR_OCTETS_TX_CTR, msgb_length(msg) - sizeof(struct rtp_hdr));
+		rtpconn_osmux_rate_ctr_add(conn, OSMUX_AMR_OCTETS_TX_CTR, msg_len - sizeof(struct rtp_hdr));
 	}
 	return 0;
 }
