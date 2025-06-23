@@ -9,6 +9,7 @@ Makefile.in
 bscconfig.h
 bscconfig.h.in
 include/osmocom/mgcp_client/mgcp_common.h
+include/osmocom/mgcp_client/version.h
 src/osmo-mgw/osmo-mgw
 *.*~
 *.sw?
