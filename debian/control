@@ -9,7 +9,6 @@ Build-Depends: debhelper (>= 10),
                libosmocore-dev (>= 1.11.0),
                libosmo-netif-dev (>= 1.6.0),
                libosmo-abis-dev (>= 2.0.0),
-               osmo-gsm-manuals-dev (>= 1.6.0)
 Standards-Version: 3.9.8
 Vcs-Git: https://gitea.osmocom.org/cellular-infrastructure/osmo-mgw
 Vcs-Browser: https://gitea.osmocom.org/cellular-infrastructure/osmo-mgw
@@ -36,11 +35,3 @@ Multi-Arch: same
 Depends: libosmo-mgcp-client14 (= ${binary:Version}), ${misc:Depends}
 Description: libosmo-mgcp-client: Osmocom's Media Gateway Control Protocol client utilities
 
-Package: osmo-mgw-doc
-Architecture: all
-Section: doc
-Priority: optional
-Depends: ${misc:Depends}
-Description: ${misc:Package} PDF documentation
- Various manuals: user manual, VTY reference manual and/or
- protocol/interface manuals.
