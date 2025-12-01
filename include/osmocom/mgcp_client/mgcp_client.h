@@ -58,6 +58,7 @@ enum mgcp_codecs {
 	CODEC_AMRWB_16000_1 = 113,	/* 3GPP TS 48.103 table 5.4.2.2.1 */
 	CODEC_IUFP = 96,
 	CODEC_CLEARMODE = 120,		/* 3GPP TS 48.103 table 5.4.2.2.1 */
+	CODEC_COMPR_CSD = 127,		/* compressed CSD per TW-TS-007 */
 };
 /* Note: when new codec types are added, the corresponding value strings
  * in mgcp_client.c (codec_table) must be updated as well. Enumerations
