@@ -1,3 +1,44 @@
+osmo-mgw (1.15.0) unstable; urgency=medium
+
+  [ Pau Espin Pedrol ]
+  * Drop use of deprecated vty is_config_node() cb
+  * cosmetic: Drop incorrect comment
+  * mgw: Early reject CRCX with X-Osmux if disabled by config
+  * mgw: Validate CallID before updating endp->x_osmo_ign
+  * mgw: Delay osmux trunk setup to point where it is really needed
+  * mgw: Store Command as enum in struct mgcp_request_data
+  * mgw: Move struct mgcp_request_data definition to header file
+  * mgw: Move cfg pointer from pdata to rq
+  * mgw: Add backpointer from pdata to req to have context available
+  * mgw: Use tall_mgw_ctx to allocate struct mgcp_config
+  * mgw: Allocate req and pdata with talloc
+  * mgw: Split MGCP LocalConnectionOptions parsing from updating endpoint
+  * mgw: Split CRCX read-only validations into its own function
+  * mgw: Increment rate_ctr MGCP_*_FAIL_UNHANDLED_PARAM during parsing
+  * mgw: Split MDCX read-only validations into its own function
+  * mgw: Split MDCX read-only validation on conn into its own function
+  * mgw: Split DLCX read-only validations into its own function
+  * mgw: CRCX: Handle codec information before initializing osmux
+  * mgw: Drop rtp_processing transcoding stubs
+  * mgw: Rearrange last steps of CRCX and MDCX
+  * mgw: mdcx: Fix inc of non-existing ctr in mdcx counter group
+  * mgw: Move endpoint/conn updating logic to helper function
+  * mgw: iuup: Trigger Init on CN-side CRCX if RAN-side was already initialized
+  * mgw: Update RTP local address on E1 endpoints too
+  * mgw: osmux: Fix heap-use-after-free
+
+  [ Mychaela N. Falconia ]
+  * cosmetic: add copy of mgcp_common.h to .gitignore
+  * MGCP extension: add parameters for TW-TS-001 & TW-TS-002
+  * E1: change dummy fill frame generation method
+  * E1: implement dummy fill for HRv1 codec
+  * mgcp_client: add support for VND.THEMWI.CCSD codec
+
+  [ Oliver Smith ]
+  * Generate a version.h file
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Wed, 03 Dec 2025 19:09:46 +0100
+
 osmo-mgw (1.14.0) unstable; urgency=medium
 
   [ Pau Espin Pedrol ]
