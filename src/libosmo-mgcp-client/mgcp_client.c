@@ -1425,34 +1425,45 @@ static int add_sdp(struct msgb *msg, struct mgcp_msg *mgcp_msg, struct mgcp_clie
 	MSGB_PRINTF_OR_RET("\r\n");
 
 	/* Add optional codec parameters (fmtp) */
-	if (mgcp_msg->param_present) {
-		for (i = 0; i < mgcp_msg->ptmap_len; i++) {
-			pt = mgcp_msg->ptmap[i].pt;
-			switch (mgcp_msg->ptmap[i].codec) {
-			case CODEC_AMR_8000_1:
-			case CODEC_AMRWB_16000_1:
-				if (!mgcp_msg->param.amr_octet_aligned_present)
-					break;
-				MSGB_PRINTF_OR_RET("a=fmtp:%u octet-align=%d\r\n",
-						   pt, (int)mgcp_msg->param.amr_octet_aligned);
+	for (i = 0; i < mgcp_msg->ptmap_len; i++) {
+		pt = mgcp_msg->ptmap[i].pt;
+
+		/* Add fmtp string, if any is set. */
+		if (mgcp_msg->ptmap[i].fmtp[0]) {
+			MSGB_PRINTF_OR_RET("a=fmtp:%u %s\r\n", pt,
+					   mgcp_msg->ptmap[i].fmtp);
+			continue;
+		}
+
+		/* LEGACY COMPAT. Fill in fmtp with the legacy mgcp_msg->param,
+		 * if any, when no individual fmtp is set on the codec. */
+		if (!mgcp_msg->param_present)
+			continue;
+
+		switch (mgcp_msg->ptmap[i].codec) {
+		case CODEC_AMR_8000_1:
+		case CODEC_AMRWB_16000_1:
+			if (!mgcp_msg->param.amr_octet_aligned_present)
 				break;
-			case CODEC_GSM_8000_1:
-			case CODEC_GSMEFR_8000_1:
-				if (!mgcp_msg->param.fr_efr_twts001_present)
-					break;
-				MSGB_PRINTF_OR_RET("a=fmtp:%u tw-ts-001=%d\r\n",
-						   pt, (int)mgcp_msg->param.fr_efr_twts001);
+			MSGB_PRINTF_OR_RET("a=fmtp:%u octet-align=%d\r\n",
+					   pt, (int)mgcp_msg->param.amr_octet_aligned);
+			break;
+		case CODEC_GSM_8000_1:
+		case CODEC_GSMEFR_8000_1:
+			if (!mgcp_msg->param.fr_efr_twts001_present)
 				break;
-			case CODEC_GSMHR_8000_1:
-				if (!mgcp_msg->param.hr_twts002_present)
-					break;
-				MSGB_PRINTF_OR_RET("a=fmtp:%u tw-ts-002=%d\r\n",
-						   pt, (int)mgcp_msg->param.hr_twts002);
+			MSGB_PRINTF_OR_RET("a=fmtp:%u tw-ts-001=%d\r\n",
+					   pt, (int)mgcp_msg->param.fr_efr_twts001);
+			break;
+		case CODEC_GSMHR_8000_1:
+			if (!mgcp_msg->param.hr_twts002_present)
 				break;
-			default:
-				/* no parameters for the remaining codecs */
-				break;
-			}
+			MSGB_PRINTF_OR_RET("a=fmtp:%u tw-ts-002=%d\r\n",
+					   pt, (int)mgcp_msg->param.hr_twts002);
+			break;
+		default:
+			/* no parameters for the remaining codecs */
+			break;
 		}
 	}
 
@@ -1686,5 +1697,8 @@ int ptmap_cmp(const struct ptmap *a, const struct ptmap *b)
 	rc = OSMO_CMP(a->codec, b->codec);
 	if (rc)
 		return rc;
-	return OSMO_CMP(a->pt, b->pt);
+	rc = OSMO_CMP(a->pt, b->pt);
+	if (rc)
+		return rc;
+	return strcmp(a->fmtp, b->fmtp);
 }
