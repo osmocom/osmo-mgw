@@ -82,6 +82,10 @@ int mgcp_conn_modify(struct osmo_fsm_inst *fi, uint32_t parent_evt, struct mgcp_
 void mgcp_conn_delete(struct osmo_fsm_inst *fi)
 	OSMO_DEPRECATED_OUTSIDE_LIBOSMOMGCPCLIENT("use osmo_mgcpc_ep_ci_dlcx() instead");
 
+int mgcp_conn_send_signal(struct osmo_fsm_inst *fi, uint32_t parent_evt,
+			  const char *signal_req)
+	OSMO_DEPRECATED_OUTSIDE_LIBOSMOMGCPCLIENT("use osmo_mgcpc_ep_ci_signal() instead");
+
 const char *mgcp_conn_get_ci(struct osmo_fsm_inst *fi)
 	OSMO_DEPRECATED_OUTSIDE_LIBOSMOMGCPCLIENT("use osmo_mgcpc_ep_ci.mgcp_ci_str instead");
 struct mgcp_client *mgcp_conn_get_client(struct osmo_fsm_inst *fi);

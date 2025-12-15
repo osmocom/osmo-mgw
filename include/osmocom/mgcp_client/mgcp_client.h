@@ -91,6 +91,7 @@ enum mgcp_verb {
 	MGCP_VERB_DLCX,
 	MGCP_VERB_AUEP,
 	MGCP_VERB_RSIP,
+	MGCP_VERB_XSIG,
 };
 
 struct mgcp_client_conf *mgcp_client_conf_alloc(void *ctx);

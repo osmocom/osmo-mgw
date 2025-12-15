@@ -101,6 +101,9 @@ struct osmo_mgcpc_ep_ci {
 	bool got_port_info;
 	struct mgcp_conn_peer rtp_info;
 	char mgcp_ci_str[MGCP_CONN_ID_LENGTH];
+
+	/* Signals to be sent to the MGW */
+	char signal_req[MGCP_SIGNAL_REQ_MAXLEN];
 };
 
 /*! An MGW endpoint with N connections, like "rtpbridge/23@mgw". */
@@ -136,6 +139,7 @@ const struct value_string osmo_mgcp_verb_names[] = {
 	{ MGCP_VERB_DLCX, "DLCX" },
 	{ MGCP_VERB_AUEP, "AUEP" },
 	{ MGCP_VERB_RSIP, "RSIP" },
+	{ MGCP_VERB_XSIG, "XSIG" },
 	{}
 };
 
@@ -776,6 +780,95 @@ dispatch_error:
 		osmo_fsm_inst_dispatch(notify, event_failure, notify_data);
 }
 
+/*! Send named signal (XSIG) toward MGW, tied to a given connection.
+ *
+ * If the 'notify' instance deallocates before it received a notification of event_success or event_failure,
+ * osmo_mgcpc_ep_ci_cancel_notify() or osmo_mgcpc_ep_cancel_notify() must be called. It is not harmful to cancel
+ * notification after an event has been received.
+ *
+ * \param ci  Connection identifier as obtained from osmo_mgcpc_ep_ci_add().
+ * \param signal_req  SignalRequests string.
+ * \param notify  Peer FSM instance to notify of completed/failed operation.
+ * \param event_success  Which event to dispatch to 'notify' upon OK response.
+ * \param event_failure  Which event to dispatch to 'notify' upon failure response.
+ * \param notify_data  Data pointer to pass to the event dispatch for both success and failure.
+ */
+void osmo_mgcpc_ep_ci_signal(struct osmo_mgcpc_ep_ci *ci,
+			     const char *signal_req,
+			     struct osmo_fsm_inst *notify,
+			     uint32_t event_success, uint32_t event_failure,
+			     void *notify_data)
+{
+	struct osmo_mgcpc_ep *ep;
+	struct osmo_fsm_inst *fi;
+	struct osmo_mgcpc_ep_ci cleared_ci;
+	ci = osmo_mgcpc_ep_check_ci(ci);
+
+	if (!ci) {
+		LOGP(DLMGCP, LOGL_ERROR, "Invalid MGW endpoint request: no ci\n");
+		goto dispatch_error;
+	}
+	if (!signal_req || !signal_req[0]) {
+		LOG_CI(ci, LOGL_ERROR,
+		   "Invalid XSIG request: missing SignalRequests string\n");
+		goto dispatch_error;
+	}
+	if (strlen(signal_req) > (MGCP_SIGNAL_REQ_MAXLEN - 1)) {
+		LOG_CI(ci, LOGL_ERROR,
+		   "Invalid XSIG request: SignalRequests string is too long\n");
+		goto dispatch_error;
+	}
+
+	ep = ci->ep;
+	fi = ep->fi;
+
+	/* Clear volatile state by explicitly keeping those that should remain. Because we can't assign
+	 * the char[] directly, dance through cleared_ci and copy back. */
+	cleared_ci = (struct osmo_mgcpc_ep_ci){
+		.ep = ep,
+		.mgcp_client_fi = ci->mgcp_client_fi,
+		.got_port_info = ci->got_port_info,
+		.rtp_info = ci->rtp_info,
+		.verb_info = ci->verb_info,
+
+		.occupied = true,
+		/* .pending = true follows below */
+		.verb = MGCP_VERB_XSIG,
+		.notify = {
+			.fi = notify,
+			.success = event_success,
+			.failure = event_failure,
+			.data = notify_data,
+		}
+	};
+	osmo_strlcpy(cleared_ci.label, ci->label, sizeof(cleared_ci.label));
+	osmo_strlcpy(cleared_ci.mgcp_ci_str, ci->mgcp_ci_str, sizeof(cleared_ci.mgcp_ci_str));
+	*ci = cleared_ci;
+
+	osmo_strlcpy(ci->signal_req, signal_req, sizeof(ci->signal_req));
+
+	LOG_CI_VERB(ci, LOGL_DEBUG, "notify=%s\n", osmo_fsm_inst_name(ci->notify.fi));
+
+	if (!ci->mgcp_client_fi) {
+		LOG_CI_VERB(ci, LOGL_ERROR, "The first verb on an unused MGW endpoint CI must be CRCX, not %s\n",
+			    osmo_mgcp_verb_name(ci->verb));
+		on_failure(ci);
+		return;
+	}
+
+	ci->pending = true;
+
+	LOG_CI_VERB(ci, LOGL_DEBUG, "Scheduling\n");
+
+	if (ep->fi->state != OSMO_MGCPC_EP_ST_WAIT_MGW_RESPONSE)
+		osmo_mgcpc_ep_fsm_state_chg(OSMO_MGCPC_EP_ST_WAIT_MGW_RESPONSE);
+
+	return;
+dispatch_error:
+	if (notify)
+		osmo_fsm_inst_dispatch(notify, event_failure, notify_data);
+}
+
 /*! No longer notify for any state changes for any conns of this endpoint.
  * Useful if the notify instance passed to osmo_mgcpc_ep_ci_request() is about to deallocate.
  * \param ep  The endpoint FSM instance.
@@ -855,6 +948,20 @@ static int send_verb(struct osmo_mgcpc_ep_ci *ci)
 		 * right away. So we must be ready with a cleared *ci. */
 		if (notify.fi)
 			osmo_fsm_inst_dispatch(notify.fi, notify.success, notify.data);
+		break;
+
+	case MGCP_VERB_XSIG:
+		OSMO_ASSERT(ci->mgcp_client_fi);
+		LOG_CI(ci, LOGL_DEBUG, "Sending MGCP: %s %s\n",
+		       osmo_mgcp_verb_name(ci->verb), ci->signal_req);
+		rc = mgcp_conn_send_signal(ci->mgcp_client_fi,
+					   CI_EV_SUCCESS(ci), ci->signal_req);
+		ci->sent = true;
+		if (rc) {
+			LOG_CI_VERB(ci, LOGL_ERROR, "Cannot send (rc=%d %s)\n", rc, strerror(-rc));
+			on_failure(ci);
+			return -EINVAL;
+		}
 		break;
 
 	default:

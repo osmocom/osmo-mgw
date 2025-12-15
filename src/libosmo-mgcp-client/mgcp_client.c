@@ -1288,6 +1288,8 @@ static mgcp_trans_id_t mgcp_client_next_trans_id(struct mgcp_client *mgcp)
 #define MGCP_DLCX_MANDATORY (MGCP_MSG_PRESENCE_ENDPOINT)
 #define MGCP_AUEP_MANDATORY (MGCP_MSG_PRESENCE_ENDPOINT)
 #define MGCP_RSIP_MANDATORY 0	/* none */
+#define MGCP_XSIG_MANDATORY (MGCP_MSG_PRESENCE_ENDPOINT | \
+			     MGCP_MSG_PRESENCE_SIGNAL_REQ)
 
 /* Helper function for mgcp_msg_gen(): Add LCO information to MGCP message */
 static int add_lco(struct msgb *msg, struct mgcp_msg *mgcp_msg)
@@ -1545,6 +1547,10 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		mandatory_mask = MGCP_RSIP_MANDATORY;
 		MSGB_PRINTF_OR_RET("RSIP %u", trans_id);
 		break;
+	case MGCP_VERB_XSIG:
+		mandatory_mask = MGCP_XSIG_MANDATORY;
+		MSGB_PRINTF_OR_RET("XSIG %u", trans_id);
+		break;
 	default:
 		LOGPMGW(mgcp, LOGL_ERROR, "Invalid command verb, can not generate MGCP message\n");
 		goto exit_error;
@@ -1609,6 +1615,15 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 	/* Add mode */
 	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_CONN_MODE)
 		MSGB_PRINTF_OR_RET("M: %s\r\n", mgcp_client_cmode_name(mgcp_msg->conn_mode));
+
+	/* Add SignalRequests */
+	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_SIGNAL_REQ) {
+		if (strlen(mgcp_msg->signal_req) <= 0) {
+			LOGPMGW(mgcp, LOGL_ERROR, "Empty SignalRequest, can not generate MGCP message\n");
+			goto exit_error;
+		}
+		MSGB_PRINTF_OR_RET("S: %s\r\n", mgcp_msg->signal_req);
+	}
 
 	/* Add X-Osmo-IGN */
 	if ((mgcp_msg->presence & MGCP_MSG_PRESENCE_X_OSMO_IGN)

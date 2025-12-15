@@ -113,6 +113,10 @@ static inline int mgcp_msg_terminate_nul(struct msgb *msg)
  * at once. */
 #define MGCP_MAX_CODECS 10
 
+/* Maximum length of SignalRequests string (RFC 3435 section 3.2.2.21)
+ * including the terminating NUL. */
+#define MGCP_SIGNAL_REQ_MAXLEN 32
+
 /* Themyscira Wireless MGW implementations are asymmetric, e.g., one side
  * must always be Ater-IP while the other side is PCMoIP, and not any other
  * combination.  These MGWs require a non-standard X-Side parameter line

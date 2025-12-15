@@ -72,6 +72,9 @@ struct mgcp_ctx {
 	/* Event that is sent when the current operation is completed (except
 	 * for DLCX, there the specified parent_term_evt is sent instead) */
 	uint32_t parent_evt;
+
+	/* Signals to be sent to the MGW */
+	char signal_req[MGCP_SIGNAL_REQ_MAXLEN];
 };
 
 #define S(x)	(1 << (x))
@@ -85,6 +88,7 @@ enum fsm_mgcp_client_states {
 	ST_READY,
 	ST_MDCX_RESP,
 	ST_DLCX_RESP,
+	ST_XSIG_RESP,
 };
 
 enum fsm_mgcp_client_evt {
@@ -94,6 +98,8 @@ enum fsm_mgcp_client_evt {
 	EV_MDCX_RESP,
 	EV_DLCX,
 	EV_DLCX_RESP,
+	EV_XSIG,
+	EV_XSIG_RESP,
 };
 
 static const struct value_string fsm_mgcp_client_evt_names[] = {
@@ -103,6 +109,8 @@ static const struct value_string fsm_mgcp_client_evt_names[] = {
 	OSMO_VALUE_STRING(EV_MDCX_RESP),
 	OSMO_VALUE_STRING(EV_DLCX),
 	OSMO_VALUE_STRING(EV_DLCX_RESP),
+	OSMO_VALUE_STRING(EV_XSIG),
+	OSMO_VALUE_STRING(EV_XSIG_RESP),
 	{0, NULL}
 };
 
@@ -208,6 +216,26 @@ struct msgb *make_dlcx_msg(struct mgcp_ctx *mgcp_ctx)
 		.presence = (MGCP_MSG_PRESENCE_ENDPOINT | MGCP_MSG_PRESENCE_CALL_ID | MGCP_MSG_PRESENCE_CONN_ID),
 		.call_id = mgcp_ctx->conn_peer_remote.call_id,
 		.conn_id = mgcp_ctx->conn_id,
+	};
+	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_remote.endpoint, MGCP_ENDPOINT_MAXLEN);
+
+	return mgcp_msg_gen(mgcp_ctx->mgcp, &mgcp_msg);
+}
+
+/* returns message buffer containing MGCP XSIG on success, NULL on error. */
+static struct msgb *make_xsig_msg(struct mgcp_ctx *mgcp_ctx)
+{
+	struct mgcp_msg mgcp_msg;
+
+	mgcp_msg = (struct mgcp_msg) {
+		.verb = MGCP_VERB_XSIG,
+		.presence = (MGCP_MSG_PRESENCE_ENDPOINT |
+			     MGCP_MSG_PRESENCE_CALL_ID |
+			     MGCP_MSG_PRESENCE_CONN_ID |
+			     MGCP_MSG_PRESENCE_SIGNAL_REQ),
+		.call_id = mgcp_ctx->conn_peer_remote.call_id,
+		.conn_id = mgcp_ctx->conn_id,
+		.signal_req = mgcp_ctx->signal_req,
 	};
 	osmo_strlcpy(mgcp_msg.endpoint, mgcp_ctx->conn_peer_remote.endpoint, MGCP_ENDPOINT_MAXLEN);
 
@@ -362,6 +390,7 @@ static void fsm_crcx_resp_cb(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 
 static void mgw_mdcx_resp_cb(struct mgcp_response *r, void *priv);
 static void mgw_dlcx_resp_cb(struct mgcp_response *r, void *priv);
+static void mgw_xsig_resp_cb(struct mgcp_response *r, void *priv);
 
 static void fsm_ready_cb(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
@@ -395,6 +424,16 @@ static void fsm_ready_cb(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 		}
 		rc = mgcp_client_tx(mgcp, msg, mgw_dlcx_resp_cb, fi);
 		new_state = ST_DLCX_RESP;
+		break;
+	case EV_XSIG:
+		msg = make_xsig_msg(mgcp_ctx);
+		if (!msg) {
+			/* make_xsig_msg() should already have logged the error */
+			osmo_fsm_inst_term(fi, OSMO_FSM_TERM_ERROR, NULL);
+			return;
+		}
+		rc = mgcp_client_tx(mgcp, msg, mgw_xsig_resp_cb, fi);
+		new_state = ST_XSIG_RESP;
 		break;
 	default:
 		OSMO_ASSERT(false);
@@ -515,6 +554,50 @@ static void fsm_dlcx_resp_cb(struct osmo_fsm_inst *fi, uint32_t event, void *dat
 	}
 }
 
+static void mgw_xsig_resp_cb(struct mgcp_response *r, void *priv)
+{
+	struct osmo_fsm_inst *fi = priv;
+	struct mgcp_ctx *mgcp_ctx;
+
+	OSMO_ASSERT(fi);
+	mgcp_ctx = fi->priv;
+	OSMO_ASSERT(mgcp_ctx);
+
+	mgcp_ctx->mgw_trans_pending = false;
+
+	if (r->head.response_code != 200) {
+		LOGPFSML(fi, LOGL_ERROR,
+			 "MGW/XSIG: response yields error: %d %s\n",
+			 r->head.response_code, r->head.comment);
+		osmo_fsm_inst_term(fi, OSMO_FSM_TERM_ERROR, NULL);
+		return;
+	}
+
+	osmo_fsm_inst_dispatch(fi, EV_XSIG_RESP, mgcp_ctx);
+}
+
+static void fsm_xsig_resp_cb(struct osmo_fsm_inst *fi, uint32_t event, void *data)
+{
+	struct mgcp_ctx *mgcp_ctx = data;
+	OSMO_ASSERT(mgcp_ctx);
+
+	switch (event) {
+	case EV_XSIG_RESP:
+		osmo_fsm_inst_state_chg(fi, ST_READY, 0, 0);
+		if (mgcp_ctx->terminate) {
+			/* Trigger immediate DLCX if DLCX was requested while the FSM was
+			 * busy with the previous operation */
+			LOGPFSML(fi, LOGL_ERROR, "MGW/XSIG: FSM was busy while DLCX was requested, executing now...\n");
+			osmo_fsm_inst_dispatch(fi, EV_DLCX, mgcp_ctx);
+		} else
+			osmo_fsm_inst_dispatch(fi->proc.parent, mgcp_ctx->parent_evt, NULL);
+		break;
+	default:
+		OSMO_ASSERT(false);
+		break;
+	}
+}
+
 static int fsm_timeout_cb(struct osmo_fsm_inst *fi)
 {
 	struct mgcp_ctx *mgcp_ctx = fi->priv;
@@ -598,8 +681,8 @@ static struct osmo_fsm_state fsm_mgcp_client_states[] = {
 	 * this state. The connection lives on until the user decides to
 	 * terminate it (DLCX). */
 	[ST_READY] = {
-		      .in_event_mask = S(EV_MDCX) | S(EV_DLCX),
-		      .out_state_mask = S(ST_MDCX_RESP) | S(ST_DLCX_RESP),
+		      .in_event_mask = S(EV_MDCX) | S(EV_DLCX) | S(EV_XSIG),
+		      .out_state_mask = S(ST_MDCX_RESP) | S(ST_DLCX_RESP) | S(ST_XSIG_RESP),
 		      .name = OSMO_STRINGIFY(ST_READY),
 		      .action = fsm_ready_cb,
 		      },
@@ -620,6 +703,15 @@ static struct osmo_fsm_state fsm_mgcp_client_states[] = {
 			  .out_state_mask = 0,
 			  .name = OSMO_STRINGIFY(ST_DLCX_RESP),
 			  .action = fsm_dlcx_resp_cb,
+			  },
+
+	/* Wait for the response of an XSIG operation, check and process the
+	 * results, change to ST_READY afterwards. */
+	[ST_XSIG_RESP] = {
+			  .in_event_mask = S(EV_XSIG_RESP),
+			  .out_state_mask = S(ST_READY),
+			  .name = OSMO_STRINGIFY(ST_XSIG_RESP),
+			  .action = fsm_xsig_resp_cb,
 			  },
 };
 
@@ -758,19 +850,9 @@ int mgcp_conn_modify(struct osmo_fsm_inst *fi, uint32_t parent_evt, struct mgcp_
 	OSMO_ASSERT(mgcp_ctx);
 	OSMO_ASSERT(conn_peer);
 
-	/* The user must not issue an MDCX before the CRCX has completed,
-	 * if this happens, it means that the parent FSM has overhead the
-	 * parent_evt (mandatory!) and executed the MDCX without even
-	 * waiting for the results. Another reason could be that the
-	 * parent FSM got messed up */
-	OSMO_ASSERT(fi->state != ST_CRCX_RESP);
-
-	/* If the user tries to issue an MDCX while an DLCX operation is
-	 * pending, there must be a serious problem with the paren FSM.
-	 * Eeither the parent_term_evt (mandatory!) has been overheard,
-	 * or the parant FSM got messed so badly that it still assumes
-	 * a live connection although it as killed it. */
-	OSMO_ASSERT(fi->state != ST_DLCX_RESP);
+	/* Current state needs to be READY, not in the middle of any other
+	 * operation. */
+	OSMO_ASSERT(fi->state == ST_READY);
 
 	/* Check if IP/Port parameters make sense */
 	if (conn_peer->port == 0) {
@@ -827,6 +909,34 @@ void mgcp_conn_delete(struct osmo_fsm_inst *fi)
 		return;
 	}
 	osmo_fsm_inst_dispatch(fi, EV_DLCX, mgcp_ctx);
+}
+
+/*! Send named signal (XSIG) toward MGW.
+ *  \param[in] fi FSM instance.
+ *  \param[in] parent_evt Event to be sent to parent when operation is done.
+ *  \param[in] signal_req SignalRequests string.
+ *  \returns 0 on success, negative on errors.
+ */
+int mgcp_conn_send_signal(struct osmo_fsm_inst *fi, uint32_t parent_evt,
+			  const char *signal_req)
+{
+	OSMO_ASSERT(fi);
+	struct mgcp_ctx *mgcp_ctx = fi->priv;
+	OSMO_ASSERT(mgcp_ctx);
+
+	/* Current state needs to be READY, not in the middle of any other
+	 * operation. */
+	OSMO_ASSERT(fi->state == ST_READY);
+
+	if (!signal_req || !signal_req[0])
+		return -EINVAL;
+	if (strlen(signal_req) > (MGCP_SIGNAL_REQ_MAXLEN - 1))
+		return -ENOSPC;
+
+	mgcp_ctx->parent_evt = parent_evt;
+	osmo_strlcpy(mgcp_ctx->signal_req, signal_req, sizeof(mgcp_ctx->signal_req));
+	osmo_fsm_inst_dispatch(fi, EV_XSIG, mgcp_ctx);
+	return 0;
 }
 
 const char *osmo_mgcpc_conn_peer_name(const struct mgcp_conn_peer *info)

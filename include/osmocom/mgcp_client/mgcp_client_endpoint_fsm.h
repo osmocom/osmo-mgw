@@ -31,6 +31,12 @@ void osmo_mgcpc_ep_ci_request(struct osmo_mgcpc_ep_ci *ci,
 			      uint32_t event_success, uint32_t event_failure,
 			      void *notify_data);
 
+void osmo_mgcpc_ep_ci_signal(struct osmo_mgcpc_ep_ci *ci,
+			     const char *signal_req,
+			     struct osmo_fsm_inst *notify,
+			     uint32_t event_success, uint32_t event_failure,
+			     void *notify_data);
+
 void osmo_mgcpc_ep_cancel_notify(struct osmo_mgcpc_ep *ep, struct osmo_fsm_inst *notify);
 struct osmo_mgcpc_ep *osmo_mgcpc_ep_ci_ep(struct osmo_mgcpc_ep_ci *ci);
 
