@@ -113,4 +113,12 @@ static inline int mgcp_msg_terminate_nul(struct msgb *msg)
  * at once. */
 #define MGCP_MAX_CODECS 10
 
+/* Themyscira Wireless MGW implementations are asymmetric, e.g., one side
+ * must always be Ater-IP while the other side is PCMoIP, and not any other
+ * combination.  These MGWs require a non-standard X-Side parameter line
+ * to be included in CRCX command, e.g., "X-Side: Ater" or "X-Side: PCM".
+ * Define the maximum allowed length of side ID string, including
+ * the terminating NUL. */
+#define MGCP_SIDE_ID_MAXLEN 16
+
 #endif

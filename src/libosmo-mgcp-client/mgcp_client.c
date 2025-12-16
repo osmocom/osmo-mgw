@@ -1103,6 +1103,15 @@ const char *mgcp_client_rtpbridge_wildcard(const struct mgcp_client *mgcp)
 	return _mgcp_client_name_append_domain(mgcp, "rtpbridge/*");
 }
 
+/*! Compose endpoint name for a wildcarded request to ThemWi Ater-to-PCM
+ *  transcoding MGW.
+ *  \param[in] mgcp MGCP client descriptor.
+ *  \returns string containing the endpoint name (e.g. transcoder\*@mgw) */
+const char *mgcp_client_transcoder_wildcard(const struct mgcp_client *mgcp)
+{
+	return _mgcp_client_name_append_domain(mgcp, "transcoder/*");
+}
+
 /*! Compose endpoint name for an E1 endpoint.
  *  \param[in] ctx talloc context.
  *  \param[in] mgcp MGCP client descriptor.
@@ -1617,6 +1626,15 @@ struct msgb *mgcp_msg_gen(struct mgcp_client *mgcp, struct mgcp_msg *mgcp_msg)
 		snprintf(buf, sizeof(buf), " %d", mgcp_msg->x_osmo_osmux_cid);
 		MSGB_PRINTF_OR_RET(MGCP_X_OSMO_OSMUX_HEADER "%s\r\n",
 				   mgcp_msg->x_osmo_osmux_cid == -1 ? " *" : buf);
+	}
+
+	/* Add X-Side for asymmetric MGWs */
+	if (mgcp_msg->presence & MGCP_MSG_PRESENCE_X_SIDE) {
+		if (strlen(mgcp_msg->x_side) <= 0) {
+			LOGPMGW(mgcp, LOGL_ERROR, "Empty side id, can not generate MGCP message\n");
+			goto exit_error;
+		}
+		MSGB_PRINTF_OR_RET("X-Side: %s\r\n", mgcp_msg->x_side);
 	}
 
 

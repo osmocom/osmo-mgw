@@ -62,6 +62,16 @@ struct mgcp_conn_peer {
 	 * here, see also mgcp_common.h. The format parameters will be applied on all codecs where applicable. */
 	bool param_present OSMO_DEPRECATED_OUTSIDE_LIBOSMOMGCPCLIENT("use ptmap[].fmtp instead");
 	struct mgcp_codec_param param OSMO_DEPRECATED_OUTSIDE_LIBOSMOMGCPCLIENT("use ptmap[].fmtp instead");
+
+	/*! osmo-msc is being extended with an option to operate with a ThemWi
+	 * asymmetric MGW that requires non-standard X-Side parameter line
+	 * to be included in CRCX command, as in "X-Side: Ater" for Ater-IP
+	 * side or "X-Side: PCM" for PCMoIP side.  If an application such as
+	 * osmo-msc or osmo-bsc needs to drive such MGW, put the side ID string
+	 * to be emitted with CRCX into this char buffer.  No X-Side parameter
+	 * line will be emitted if this char buffer is empty.
+	 */
+	char x_side[MGCP_SIDE_ID_MAXLEN];
 };
 
 struct osmo_fsm_inst *mgcp_conn_create(struct mgcp_client *mgcp, struct osmo_fsm_inst *parent_fi, uint32_t parent_term_evt,

@@ -70,6 +70,7 @@ struct mgcp_response_pending * mgcp_client_pending_add(
 #define MGCP_MSG_PRESENCE_AUDIO_IP	0x0008
 #define MGCP_MSG_PRESENCE_AUDIO_PORT	0x0010
 #define MGCP_MSG_PRESENCE_CONN_MODE	0x0020
+#define MGCP_MSG_PRESENCE_X_SIDE	0x2000
 #define MGCP_MSG_PRESENCE_X_OSMO_OSMUX_CID 0x4000
 #define MGCP_MSG_PRESENCE_X_OSMO_IGN	0x8000
 
@@ -89,6 +90,7 @@ struct mgcp_msg {
 	uint32_t x_osmo_ign;
 	bool x_osmo_osmux_use;
 	int x_osmo_osmux_cid; /* -1 is wildcard */
+	char x_side[MGCP_SIDE_ID_MAXLEN];
 	bool param_present;
 	struct mgcp_codec_param param;
 };
